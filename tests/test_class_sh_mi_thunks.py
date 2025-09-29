@@ -53,11 +53,26 @@ def test_get_shared_vec_size_unique():
     )
 
 
-def test_virtual_base_at_offset_0():
+def test_virtual_base_not_at_offset_0():
+    # This test ensures that the Diamond fixture actually exercises a non-zero
+    # virtual-base subobject offset on our supported platforms/ABIs.
+    #
+    # If this assert ever fails on some platform/toolchain, please adjust the
+    # C++ fixture so the virtual base is *not* at offset 0:
+    #   - Keep VBase non-empty.
+    #   - Make Left and Right non-empty and asymmetrically sized and, if
+    #     needed, nudge with a modest alignment.
+    #   - The goal is to achieve a non-zero address delta between `Diamond*`
+    #     and `static_cast<VBase*>(Diamond*)`.
+    #
+    # Rationale: certain smart_holder features are exercised only when the
+    # registered subobject address differs from the most-derived object start,
+    # so this check guards test efficacy across compilers.
     addrs = m.diamond_addrs()
-    if addrs.as_vbase - addrs.as_self == 0:
-        # Not an actual skip, just a trick generate a message in the pytest summary
-        pytest.skip("virtual base at offset 0 on this compiler/layout")
+    assert addrs.as_vbase - addrs.as_self != 0, (
+        "Diamond VBase at offset 0 on this platform; to ensure test efficacy, "
+        "tweak fixtures (VBase/Left/Right) to ensure non-zero subobject offset."
+    )
 
 
 @pytest.mark.parametrize(
