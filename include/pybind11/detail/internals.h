@@ -39,13 +39,7 @@
 /// further ABI-incompatible changes may be made before the ABI is officially
 /// changed to the new version.
 #ifndef PYBIND11_INTERNALS_VERSION
-#    if PY_VERSION_HEX >= 0x030E0000
-// Get test coverage for ABI version 12 without breaking existing
-// Python versions.
-#        define PYBIND11_INTERNALS_VERSION 12
-#    else
-#        define PYBIND11_INTERNALS_VERSION 11
-#    endif
+#    define PYBIND11_INTERNALS_VERSION 11
 #endif
 
 #if PYBIND11_INTERNALS_VERSION < 11
@@ -182,10 +176,10 @@ struct type_equal_to {
 };
 #endif
 
+// For now, we don't bother adding a fancy hash for pointers and just
+// let the standard library use the identity hash function if that's
+// what it wants to do (e.g., as in libstdc++).
 template <typename value_type>
-// REVIEW: do we need to add a fancy hash for pointers or is the
-// possible identity hash function from the standard library (e.g.,
-// libstdc++) sufficient?
 using fast_type_map = std::unordered_map<const std::type_info *, value_type>;
 
 template <typename value_type>
@@ -249,10 +243,11 @@ struct internals {
     pymutex exception_translator_mutex;
 #endif
 #if PYBIND11_INTERNALS_VERSION >= 12
-    // non-normative but fast "hint" for
-    // registered_types_cpp. Successful lookups are correct;
-    // unsuccessful lookups need to try registered_types_cpp and then
-    // backfill this map if they find anything.
+    // non-normative but fast "hint" for registered_types_cpp. Meant
+    // to be used as the first level of a two-level lookup: successful
+    // lookups are correct, but unsuccessful lookups need to try
+    // registered_types_cpp and then backfill this map if they find
+    // anything.
     fast_type_map<type_info *> registered_types_cpp_fast;
 #endif
 

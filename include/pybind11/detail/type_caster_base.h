@@ -215,6 +215,10 @@ inline detail::type_info *get_local_type_info(const std::type_info &tp) {
 }
 
 inline detail::type_info *get_global_type_info(const std::type_info &tp) {
+    // This is a two-level lookup. Hopefully we find the type info in
+    // registered_types_cpp_fast, but if not we try
+    // registered_types_cpp and fill registered_types_cpp_fast for
+    // next time.
     return with_internals([&](internals &internals) {
         detail::type_info *type_info = nullptr;
 #if PYBIND11_INTERNALS_VERSION >= 12
