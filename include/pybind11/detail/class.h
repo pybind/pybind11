@@ -314,9 +314,9 @@ inline void traverse_offset_bases(void *valueptr,
 
 #ifdef Py_GIL_DISABLED
 inline void enable_try_inc_ref(PyObject *obj) {
-#if PY_VERSION_HEX >= 0x030E00A4
+#    if PY_VERSION_HEX >= 0x030E00A4
     PyUnstable_EnableTryIncRef(obj);
-#else
+#    else
     if (_Py_IsImmortal(obj)) {
         return;
     }
@@ -331,7 +331,7 @@ inline void enable_try_inc_ref(PyObject *obj) {
             return;
         }
     }
-#endif
+#    endif
 }
 #endif
 
