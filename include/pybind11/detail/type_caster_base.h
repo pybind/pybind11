@@ -253,9 +253,9 @@ PYBIND11_NOINLINE handle get_type_handle(const std::type_info &tp, bool throw_if
 
 inline bool try_incref(PyObject *obj) {
     // Tries to increment the reference count of an object if it's not zero.
-    // TODO: Use PyUnstable_TryIncref when available.
-    // See https://github.com/python/cpython/issues/128844
-#ifdef Py_GIL_DISABLED
+#if defined(Py_GIL_DISABLED) && PY_VERSION_HEX >= 0x030E00A4
+    return PyUnstable_TryIncRef(obj);
+#elif defined(Py_GIL_DISABLED)
     // See
     // https://github.com/python/cpython/blob/d05140f9f77d7dfc753dd1e5ac3a5962aaa03eff/Include/internal/pycore_object.h#L761
     uint32_t local = _Py_atomic_load_uint32_relaxed(&obj->ob_ref_local);
