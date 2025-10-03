@@ -91,6 +91,7 @@ static PyType_Spec function_record_PyType_Spec
        function_record_PyType_Slots};
 
 inline PyTypeObject *get_function_record_PyTypeObject() {
+    PYBIND11_LOCK_INTERNALS(get_internals());
     PyTypeObject *&py_type_obj = detail::get_local_internals().function_record_py_type;
     if (!py_type_obj) {
         PyObject *py_obj = PyType_FromSpec(&function_record_PyType_Spec);
