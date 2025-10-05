@@ -204,7 +204,7 @@ jobs:
       run: echo "CMAKE_GENERATOR=Ninja" >> "$GITHUB_ENV"
 
     # More-or-less randomly adding a few extra flags here.
-    # In particular, use this one to smoke test the next ABI bump.
+    # In particular, use this one to test the next ABI bump (internals version).
     - name: Configure
       run: >
         cmake -S. -B.
