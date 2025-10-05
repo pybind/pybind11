@@ -1637,10 +1637,14 @@ protected:
         with_internals([&](internals &internals) {
             auto tindex = std::type_index(*rec.type);
             tinfo->direct_conversions = &internals.direct_conversions[tindex];
+            auto &local_internals = get_local_internals();
             if (rec.module_local) {
-                get_local_internals().registered_types_cpp[tindex] = tinfo;
+                local_internals.registered_types_cpp[rec.type] = tinfo;
             } else {
                 internals.registered_types_cpp[tindex] = tinfo;
+#if PYBIND11_INTERNALS_VERSION >= 12
+                internals.registered_types_cpp_fast[rec.type] = tinfo;
+#endif
             }
 
             PYBIND11_WARNING_PUSH
@@ -2138,10 +2142,18 @@ public:
 
         if (has_alias) {
             with_internals([&](internals &internals) {
-                auto &instances = record.module_local ? get_local_internals().registered_types_cpp
-                                                      : internals.registered_types_cpp;
-                instances[std::type_index(typeid(type_alias))]
-                    = instances[std::type_index(typeid(type))];
+                auto &local_internals = get_local_internals();
+                if (record.module_local) {
+                    local_internals.registered_types_cpp[&typeid(type_alias)]
+                        = local_internals.registered_types_cpp[&typeid(type)];
+                } else {
+                    type_info *const val
+                        = internals.registered_types_cpp[std::type_index(typeid(type))];
+                    internals.registered_types_cpp[std::type_index(typeid(type_alias))] = val;
+#if PYBIND11_INTERNALS_VERSION >= 12
+                    internals.registered_types_cpp_fast[&typeid(type_alias)] = val;
+#endif
+                }
             });
         }
         def("_pybind11_conduit_v1_", cpp_conduit_method);
