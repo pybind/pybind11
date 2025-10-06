@@ -91,6 +91,48 @@ PYBIND11_EMBEDDED_MODULE(throw_error_already_set, ) {
     d["missing"].cast<py::object>();
 }
 
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+struct Item
+{
+    Item() = default;
+    virtual ~Item() = default;
+    virtual int getInt() const = 0;
+};
+
+struct ItemTrampoline : public Item, py::trampoline_self_life_support
+{
+    int getInt() const override { PYBIND11_OVERRIDE_PURE(int, Item, getInt, ); }
+};
+
+PYBIND11_EMBEDDED_MODULE(embedded_smart_holder, m) {
+
+    py::classh<Item, ItemTrampoline>(m, "Item")
+        .def(py::init<>())
+        .def("getInt", &Item::getInt)
+        ;
+}
+
+TEST_CASE("Embedded smart holder test") {
+
+    auto module = py::module_::import("embedded_smart_holder");
+
+    auto o = module.attr("Item")();  // create py
+
+    auto i = o.cast<std::shared_ptr<Item>>();  // cast cpp
+
+    if (i->getInt() != 42)  // test cpp
+        throw std::runtime_error("Not 42");
+
+    o = py::object(); // release py
+
+    if (i->getInt() != 42)  // test cpp
+        throw std::runtime_error("Not 42 after release");
+}
+
+// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
 TEST_CASE("PYTHONPATH is used to update sys.path") {
     // The setup for this TEST_CASE is in catch.cpp!
     auto sys_path = py::str(py::module_::import("sys").attr("path")).cast<std::string>();
