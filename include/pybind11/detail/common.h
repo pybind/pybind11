@@ -1293,8 +1293,7 @@ template <typename... Args>
 #if defined(_MSC_VER) && _MSC_VER < 1920 // MSVC 2017
 constexpr
 #endif
-    inline void
-    silence_unused_warnings(Args &&...) {
+    inline void silence_unused_warnings(Args &&...) {
 }
 
 // MSVC warning C4100: Unreferenced formal parameter
