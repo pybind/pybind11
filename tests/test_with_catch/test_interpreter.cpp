@@ -99,7 +99,7 @@ struct Item {
     virtual int getInt() const = 0;
 };
 
-struct ItemTrampoline : public Item, py::trampoline_self_life_support {
+struct ItemTrampoline : public Item, public py::trampoline_self_life_support {
     int getInt() const override { PYBIND11_OVERRIDE_PURE(int, Item, getInt, ); }
 };
 
