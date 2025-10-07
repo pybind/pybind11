@@ -111,19 +111,25 @@ PYBIND11_EMBEDDED_MODULE(embedded_smart_holder, m) {
 }
 
 TEST_CASE("Embedded smart holder test") {
+    py::exec(R"(
+import embedded_smart_holder
 
-    auto module = py::module_::import("embedded_smart_holder");
+class ItemDerived(embedded_smart_holder.Item):
+    def getInt(self):
+        return 42
+)");
 
-    auto o = module.attr("Item")(); // create py
+    auto py_item_derived = py::globals()["ItemDerived"]();
 
-    auto i = o.cast<std::shared_ptr<Item>>(); // cast cpp
+    auto item = py_item_derived.cast<std::shared_ptr<Item>>()->getInt(); // cast cpp
 
-    if (i->getInt() != 42) // test cpp
+    if (item->getInt() != 42) // test cpp
         throw std::runtime_error("Not 42");
 
-    o = py::object(); // release py
+    py_item_derived = py::object(); // release py
+    py::module::import("gc").attr("collect")();
 
-    if (i->getInt() != 42) // test cpp
+    if (item->getInt() != 42) // test cpp
         throw std::runtime_error("Not 42 after release");
 }
 
