@@ -100,7 +100,7 @@ public:
     virtual int getInt() const = 0;
 };
 
-class ItemTrampoline : public Item, public py::trampoline_self_life_support {
+class ItemTrampoline : Item, public py::trampoline_self_life_support {
 public:
     int getInt() const override { PYBIND11_OVERRIDE_PURE(int, Item, getInt, ); }
 };
@@ -121,7 +121,7 @@ class ItemDerived(embedded_smart_holder.Item):
 
     auto py_item_derived = py::globals()["ItemDerived"]();
 
-    auto item = py_item_derived.cast<std::shared_ptr<Item>>()->getInt(); // cast cpp
+    auto item = py_item_derived.cast<std::shared_ptr<Item>>(); // cast cpp
 
     if (item->getInt() != 42) // test cpp
         throw std::runtime_error("Not 42");
