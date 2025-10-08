@@ -248,6 +248,47 @@ inline std::string generate_type_signature() {
 #    define PYBIND11_COMPAT_STRDUP strdup
 #endif
 
+#define PYBIND11_READABLE_SIGNATURE_EXPR                                                          \
+    detail::const_name("(") + cast_in::arg_names + detail::const_name(") -> ") + cast_out::name
+
+// We centralize readable function signatures in a specific template
+// so that we don't duplicate them across different instantiations of
+// cpp_function::initialize (which is templated on more types).
+template <typename cast_in, typename cast_out>
+class ReadableFunctionSignature {
+private:
+    // We have to repeat PYBIND11_READABLE_SIGNATURE_EXPR in decltype()
+    // because C++11 doesn't allow functions to return `auto`. (We don't
+    // know the type because it's some variant of detail::descr<N> with
+    // unknown N.)
+    static constexpr decltype(PYBIND11_READABLE_SIGNATURE_EXPR) readable_signature() {
+        return PYBIND11_READABLE_SIGNATURE_EXPR;
+    }
+
+public:
+    static constexpr decltype(readable_signature()) kReadableSignature = readable_signature();
+#if !defined(_MSC_VER)
+    static constexpr decltype(decltype(kReadableSignature)::types()) kTypes
+        = decltype(kReadableSignature)::types();
+#endif
+};
+#undef PYBIND11_READABLE_SIGNATURE_EXPR
+
+// Prior to C++17, we don't have inline variables, so we have to provide an out-of-line definition
+// of the class member.
+PYBIND11_WARNING_PUSH
+PYBIND11_WARNING_DISABLE_CLANG("-Wdeprecated-redundant-constexpr-static-def")
+template <typename cast_in, typename cast_out>
+constexpr decltype(ReadableFunctionSignature<cast_in, cast_out>::readable_signature())
+    ReadableFunctionSignature<cast_in, cast_out>::kReadableSignature;
+#if !defined(_MSC_VER)
+template <typename cast_in, typename cast_out>
+constexpr decltype(decltype(ReadableFunctionSignature<cast_in,
+                                                      cast_out>::kReadableSignature)::types())
+    ReadableFunctionSignature<cast_in, cast_out>::kTypes;
+#endif
+PYBIND11_WARNING_POP
+
 PYBIND11_NAMESPACE_END(detail)
 
 /// Wraps an arbitrary C++ function/method/lambda function/.. into a callable Python object
@@ -481,9 +522,14 @@ protected:
 
         /* Generate a readable signature describing the function's arguments and return
            value types */
-        static constexpr auto signature
-            = const_name("(") + cast_in::arg_names + const_name(") -> ") + cast_out::name;
-        PYBIND11_DESCR_CONSTEXPR auto types = decltype(signature)::types();
+        static constexpr const auto &signature
+            = detail::ReadableFunctionSignature<cast_in, cast_out>::kReadableSignature;
+#if !defined(_MSC_VER)
+        static constexpr const auto &types
+            = detail::ReadableFunctionSignature<cast_in, cast_out>::kTypes;
+#else
+        PYBIND11_DESCR_CONSTEXPR auto types = std::decay<decltype(signature)>::type::types();
+#endif
 
         /* Register the function with Python from generic (non-templated) code */
         // Pass on the ownership over the `unique_rec` to `initialize_generic`. `rec` stays valid.
