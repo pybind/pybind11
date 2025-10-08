@@ -13,6 +13,7 @@
 #include "detail/dynamic_raw_ptr_cast_if_possible.h"
 #include "detail/exception_translation.h"
 #include "detail/function_record_pyobject.h"
+#include "detail/function_ref.h"
 #include "detail/init.h"
 #include "detail/native_enum_data.h"
 #include "detail/using_smart_holder.h"
@@ -379,6 +380,40 @@ protected:
         return unique_function_record(new detail::function_record());
     }
 
+private:
+    // This is outlined from the dispatch lambda in initialize to save
+    // on code size. Crucially, we use function_ref to type-erase the
+    // actual function lambda so that we can get code reuse for
+    // functions with the same Return, Args, and Guard.
+    template <typename Return, typename Guard, typename ArgsConverter, typename... Args>
+    static handle call_impl(detail::function_call &call, detail::function_ref<Return(Args...)> f) {
+        using namespace detail;
+        using cast_out
+            = make_caster<conditional_t<std::is_void<Return>::value, void_type, Return>>;
+
+        ArgsConverter args_converter;
+        if (!args_converter.load_args(call)) {
+            return PYBIND11_TRY_NEXT_OVERLOAD;
+        }
+
+        /* Override policy for rvalues -- usually to enforce rvp::move on an rvalue */
+        return_value_policy policy
+            = return_value_policy_override<Return>::policy(call.func.policy);
+
+        /* Perform the function call */
+        handle result;
+        if (call.func.is_setter) {
+            (void) std::move(args_converter).template call<Return, Guard>(f);
+            result = none().release();
+        } else {
+            result = cast_out::cast(
+                std::move(args_converter).template call<Return, Guard>(f), policy, call.parent);
+        }
+
+        return result;
+    }
+
+protected:
     /// Special internal constructor for functors, lambda functions, etc.
     template <typename Func, typename Return, typename... Args, typename... Extra>
     void initialize(Func &&f, Return (*)(Args...), const Extra &...extra) {
@@ -441,13 +476,6 @@ protected:
 
         /* Dispatch code which converts function arguments and performs the actual function call */
         rec->impl = [](function_call &call) -> handle {
-            cast_in args_converter;
-
-            /* Try to cast the function arguments into the C++ domain */
-            if (!args_converter.load_args(call)) {
-                return PYBIND11_TRY_NEXT_OVERLOAD;
-            }
-
             /* Invoke call policy pre-call hook */
             process_attributes<Extra...>::precall(call);
 
@@ -456,24 +484,11 @@ protected:
                                                                           : call.func.data[0]);
             auto *cap = const_cast<capture *>(reinterpret_cast<const capture *>(data));
 
-            /* Override policy for rvalues -- usually to enforce rvp::move on an rvalue */
-            return_value_policy policy
-                = return_value_policy_override<Return>::policy(call.func.policy);
-
-            /* Function scope guard -- defaults to the compile-to-nothing `void_type` */
-            using Guard = extract_guard_t<Extra...>;
-
-            /* Perform the function call */
-            handle result;
-            if (call.func.is_setter) {
-                (void) std::move(args_converter).template call<Return, Guard>(cap->f);
-                result = none().release();
-            } else {
-                result = cast_out::cast(
-                    std::move(args_converter).template call<Return, Guard>(cap->f),
-                    policy,
-                    call.parent);
-            }
+            auto result = call_impl<Return,
+                                    /* Function scope guard -- defaults to the compile-to-nothing
+                                       `void_type` */
+                                    extract_guard_t<Extra...>,
+                                    cast_in>(call, detail::function_ref<Return(Args...)>(cap->f));
 
             /* Invoke call policy post-call hook */
             process_attributes<Extra...>::postcall(call, result);
