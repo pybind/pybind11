@@ -277,7 +277,8 @@ public:
 // Prior to C++17, we don't have inline variables, so we have to provide an out-of-line definition
 // of the class member.
 PYBIND11_WARNING_PUSH
-#if defined(__clang_major__) && __clang_major__ >= 17
+#if defined(__clang_major__)                                                                      \
+    && (__clang_major__ >= 17 || (defined(__APPLE__) && __clang_major >= 15))
 PYBIND11_WARNING_DISABLE_CLANG("-Wdeprecated-redundant-constexpr-static-def")
 #endif
 template <typename cast_in, typename cast_out>
