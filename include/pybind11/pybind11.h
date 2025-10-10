@@ -256,20 +256,23 @@ inline std::string generate_type_signature() {
 // cpp_function::initialize (which is templated on more types).
 template <typename cast_in, typename cast_out>
 class ReadableFunctionSignature {
+public:
+    using readable_signature_type = decltype(PYBIND11_READABLE_SIGNATURE_EXPR);
+
 private:
     // We have to repeat PYBIND11_READABLE_SIGNATURE_EXPR in decltype()
     // because C++11 doesn't allow functions to return `auto`. (We don't
     // know the type because it's some variant of detail::descr<N> with
     // unknown N.)
-    static constexpr decltype(PYBIND11_READABLE_SIGNATURE_EXPR) readable_signature() {
+    static constexpr readable_signature_type readable_signature() {
         return PYBIND11_READABLE_SIGNATURE_EXPR;
     }
 
 public:
-    static constexpr decltype(readable_signature()) kReadableSignature = readable_signature();
+    static constexpr readable_signature_type kReadableSignature = readable_signature();
 #if !defined(_MSC_VER)
-    static constexpr decltype(decltype(kReadableSignature)::types()) kTypes
-        = decltype(kReadableSignature)::types();
+    using types_type = decltype(readable_signature_type::types());
+    static constexpr types_type kTypes = readable_signature_type::types();
 #endif
 };
 #undef PYBIND11_READABLE_SIGNATURE_EXPR
@@ -282,12 +285,11 @@ PYBIND11_WARNING_PUSH
 PYBIND11_WARNING_DISABLE_CLANG("-Wdeprecated-redundant-constexpr-static-def")
 #endif
 template <typename cast_in, typename cast_out>
-constexpr decltype(ReadableFunctionSignature<cast_in, cast_out>::readable_signature())
+constexpr typename ReadableFunctionSignature<cast_in, cast_out>::readable_signature_type
     ReadableFunctionSignature<cast_in, cast_out>::kReadableSignature;
 #if !defined(_MSC_VER)
 template <typename cast_in, typename cast_out>
-constexpr decltype(decltype(ReadableFunctionSignature<cast_in,
-                                                      cast_out>::kReadableSignature)::types())
+constexpr typename ReadableFunctionSignature<cast_in, cast_out>::types_type
     ReadableFunctionSignature<cast_in, cast_out>::kTypes;
 #endif
 PYBIND11_WARNING_POP
