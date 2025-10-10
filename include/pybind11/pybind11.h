@@ -281,9 +281,10 @@ public:
 // of the class member.
 PYBIND11_WARNING_PUSH
 #if defined(__clang_major__)                                                                      \
-    && (__clang_major__ >= 17 || (defined(__APPLE__) && __clang_major >= 15))
+    && (__clang_major__ >= 17 || (defined(__APPLE__) && __clang_major__ >= 15))
 PYBIND11_WARNING_DISABLE_CLANG("-Wdeprecated-redundant-constexpr-static-def")
 #endif
+PYBIND11_WARNING_DISABLE_GCC("-Wdeprecated")
 template <typename cast_in, typename cast_out>
 constexpr typename ReadableFunctionSignature<cast_in, cast_out>::readable_signature_type
     ReadableFunctionSignature<cast_in, cast_out>::kReadableSignature;
