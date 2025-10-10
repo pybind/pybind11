@@ -283,6 +283,11 @@ PYBIND11_WARNING_PUSH
 #if defined(PYBIND11_CPP17)
 #    if defined(__clang_major__)                                                                  \
         && (__clang_major__ >= 17 || (defined(__APPLE__) && __clang_major__ >= 15))
+// Even with the above gating, there's one straggler CI job that
+// claims it doesn't know what
+// -Wdeprecated-redundant-constexpr-static-def is despite being on
+// Apple Clang 15. Just suppress -Wunknown-warning-option.
+PYBIND11_WARNING_DISABLE_CLANG("-Wunknown-warning-option")
 PYBIND11_WARNING_DISABLE_CLANG("-Wdeprecated-redundant-constexpr-static-def")
 #    endif
 PYBIND11_WARNING_DISABLE_CLANG("-Wdeprecated")
