@@ -38,6 +38,13 @@ TEST_SUBMODULE(local_bindings, m) {
     });
     m.def("load_external2_unique", [](std::unique_ptr<ExternalType2> p) { return p->i; });
 
+    // Aspects of set_foreign_holder that are not covered:
+    // - loading a foreign instance into a custom holder should fail
+    // - we're only covering the case where the local module doesn't know
+    //   about the type; the paths where it does (e.g., if both global and
+    //   foreign-module-local bindings exist for the same type) should work
+    //   the same way (they use the same code so they very likely do)
+
     // test_local_bindings
     // Register a class with py::module_local:
     bind_local<LocalType, -1>(m, "LocalType", py::module_local()).def("get3", [](LocalType &t) {
