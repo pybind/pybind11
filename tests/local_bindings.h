@@ -67,9 +67,9 @@ PYBIND11_MAKE_OPAQUE(NonLocalMap2)
 // Simple bindings (used with the above):
 template <typename T, int Adjust = 0, typename Holder = std::unique_ptr<T>, typename... Args>
 py::class_<T, Holder> bind_local(Args &&...args) {
-    return py::class_<T, Holder>(std::forward<Args>(args)...).def(py::init<int>()).def("get", [](T &i) {
-        return i.i + Adjust;
-    });
+    return py::class_<T, Holder>(std::forward<Args>(args)...)
+        .def(py::init<int>())
+        .def("get", [](T &i) { return i.i + Adjust; });
 }
 
 // Simulate a foreign library base class (to match the example in the docs):
