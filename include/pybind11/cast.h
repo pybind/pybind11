@@ -93,37 +93,37 @@ public:
             if (!underlying_caster.load(src.attr("value"), convert)) {
                 pybind11_fail("native_enum internal consistency failure.");
             }
-            value = static_cast<EnumType>(static_cast<Underlying>(underlying_caster));
+            native_value = static_cast<EnumType>(static_cast<Underlying>(underlying_caster));
+            native_loaded = true;
             return true;
         }
-        if (!pybind11_enum_) {
-            pybind11_enum_.reset(new type_caster_base<EnumType>());
+
+        type_caster_base<EnumType> legacy_caster;
+        if (legacy_caster.load(src, convert)) {
+            legacy_ptr = static_cast<EnumType *>(legacy_caster);
+            return true;
         }
-        return pybind11_enum_->load(src, convert);
+        return false;
     }
 
     template <typename T>
     using cast_op_type = detail::cast_op_type<T>;
 
     // NOLINTNEXTLINE(google-explicit-constructor)
-    operator EnumType *() {
-        if (!pybind11_enum_) {
-            return &value;
-        }
-        return pybind11_enum_->operator EnumType *();
-    }
+    operator EnumType *() { return native_loaded ? &native_value : legacy_ptr; }
 
     // NOLINTNEXTLINE(google-explicit-constructor)
     operator EnumType &() {
-        if (!pybind11_enum_) {
-            return value;
+        if (!native_loaded && !legacy_ptr) {
+            throw reference_cast_error();
         }
-        return pybind11_enum_->operator EnumType &();
+        return native_loaded ? native_value : *legacy_ptr;
     }
 
 private:
-    std::unique_ptr<type_caster_base<EnumType>> pybind11_enum_;
-    EnumType value;
+    EnumType native_value; // if loading a py::native_enum
+    bool native_loaded = false;
+    EnumType *legacy_ptr = nullptr; // if loading a py::enum_
 };
 
 template <typename EnumType, typename SFINAE = void>
