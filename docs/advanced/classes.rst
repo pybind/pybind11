@@ -972,9 +972,14 @@ Module-local class bindings
 ===========================
 
 When creating a binding for a class, pybind11 by default makes that binding
-"global" across modules.  What this means is that a type defined in one module
-can be returned from any module resulting in the same Python type.  For
-example, this allows the following:
+"global" across modules. What this means is that instances whose type is
+defined with a ``py::class_`` statement in one module can be passed to or
+returned from a function defined in any other module that is "ABI compatible"
+with the first, i.e., that was built with sufficiently similar versions of
+pybind11 and of the C++ compiler and C++ standard library. The internal data
+structures that pybind11 uses to keep track of its types and instances are
+shared just as they would be if everything were in the same module.
+For example, this allows the following:
 
 .. code-block:: cpp
 
