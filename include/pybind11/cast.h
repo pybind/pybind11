@@ -878,7 +878,7 @@ struct holder_caster_foreign_helpers {
     };
 
     template <typename type>
-    static auto try_shared_from_this(type *value, std::shared_ptr<type> *holder_out)
+    static auto set_via_shared_from_this(type *value, std::shared_ptr<type> *holder_out)
         -> decltype(value->shared_from_this(), bool()) {
         // object derives from enable_shared_from_this;
         // try to reuse an existing shared_ptr if one is known
@@ -890,7 +890,7 @@ struct holder_caster_foreign_helpers {
     }
 
     template <typename type>
-    static bool try_shared_from_this(void *, std::shared_ptr<type> *) {
+    static bool set_via_shared_from_this(void *, std::shared_ptr<type> *) {
         return false;
     }
 
@@ -903,7 +903,7 @@ struct holder_caster_foreign_helpers {
             *holder_out = {};
             return true;
         }
-        if (try_shared_from_this(value, holder_out)) {
+        if (set_via_shared_from_this(value, holder_out)) {
             return true;
         }
         *holder_out = std::shared_ptr<type>(value, py_deleter{src.inc_ref().ptr()});
