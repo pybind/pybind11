@@ -863,6 +863,71 @@ struct holder_helper {
     static auto get(const T &p) -> decltype(p.get()) { return p.get(); }
 };
 
+struct holder_caster_foreign_helpers {
+    struct py_deleter {
+        void operator()(const void *) const noexcept {
+            // Don't run the deleter if the interpreter has been shut down
+            if (Py_IsInitialized() == 0) {
+                return;
+            }
+            gil_scoped_acquire guard;
+            Py_DECREF(o);
+        }
+
+        PyObject *o;
+    };
+
+    template <typename type>
+    static auto try_shared_from_this(type *value, std::shared_ptr<type> *holder_out)
+        -> decltype(value->shared_from_this(), bool()) {
+        // object derives from enable_shared_from_this;
+        // try to reuse an existing shared_ptr if one is known
+        if (auto existing = try_get_shared_from_this(value)) {
+            *holder_out = std::static_pointer_cast<type>(existing);
+            return true;
+        }
+        return false;
+    }
+
+    template <typename type>
+    static bool try_shared_from_this(void *, std::shared_ptr<type> *) {
+        return false;
+    }
+
+    template <typename type>
+    static bool set_foreign_holder(handle src, type *value, std::shared_ptr<type> *holder_out) {
+        // We only support using std::shared_ptr<T> for foreign T, and
+        // it's done by creating a new shared_ptr control block that
+        // owns a reference to the original Python object.
+        if (value == nullptr) {
+            *holder_out = {};
+            return true;
+        }
+        if (try_shared_from_this(value, holder_out)) {
+            return true;
+        }
+        *holder_out = std::shared_ptr<type>(value, py_deleter{src.inc_ref().ptr()});
+        return true;
+    }
+
+    template <typename type>
+    static bool
+    set_foreign_holder(handle src, const type *value, std::shared_ptr<const type> *holder_out) {
+        std::shared_ptr<type> holder_mut;
+        if (set_foreign_holder(src, const_cast<type *>(value), &holder_mut)) {
+            *holder_out = holder_mut;
+            return true;
+        }
+        return false;
+    }
+
+    template <typename type>
+    static bool set_foreign_holder(handle, type *, ...) {
+        throw cast_error("Unable to cast foreign type to held instance -- "
+                         "only std::shared_ptr<T> is supported in this case");
+    }
+};
+
 // SMART_HOLDER_BAKEIN_FOLLOW_ON: Rewrite comment, with reference to shared_ptr specialization.
 /// Type caster for holder types like std::shared_ptr, etc.
 /// The SFINAE hook is provided to help work around the current lack of support
@@ -905,6 +970,10 @@ protected:
         if (inst_has_unique_ptr_holder) {
             throw cast_error("Unable to load a custom holder type from a default-holder instance");
         }
+    }
+
+    bool set_foreign_holder(handle src) {
+        return holder_caster_foreign_helpers::set_foreign_holder(src, (type *) value, &holder);
     }
 
     void load_value(value_and_holder &&v_h) {
@@ -977,7 +1046,7 @@ public:
     }
 
     explicit operator std::shared_ptr<type> *() {
-        if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
+        if (sh_load_helper.was_populated) {
             pybind11_fail("Passing `std::shared_ptr<T> *` from Python to C++ is not supported "
                           "(inherently unsafe).");
         }
@@ -985,14 +1054,14 @@ public:
     }
 
     explicit operator std::shared_ptr<type> &() {
-        if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
+        if (sh_load_helper.was_populated) {
             shared_ptr_storage = sh_load_helper.load_as_shared_ptr(typeinfo, value);
         }
         return shared_ptr_storage;
     }
 
     std::weak_ptr<type> potentially_slicing_weak_ptr() {
-        if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
+        if (sh_load_helper.was_populated) {
             // Reusing shared_ptr code to minimize code complexity.
             shared_ptr_storage
                 = sh_load_helper.load_as_shared_ptr(typeinfo,
@@ -1041,6 +1110,11 @@ protected:
         }
     }
 
+    bool set_foreign_holder(handle src) {
+        return holder_caster_foreign_helpers::set_foreign_holder(
+            src, (type *) value, &shared_ptr_storage);
+    }
+
     void load_value(value_and_holder &&v_h) {
         if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
             sh_load_helper.loaded_v_h = v_h;
@@ -1078,6 +1152,7 @@ protected:
                 value = cast.second(sub_caster.value);
                 if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
                     sh_load_helper.loaded_v_h = sub_caster.sh_load_helper.loaded_v_h;
+                    sh_load_helper.was_populated = true;
                 } else {
                     shared_ptr_storage
                         = std::shared_ptr<type>(sub_caster.shared_ptr_storage, (type *) value);
@@ -1224,6 +1299,12 @@ public:
         return false;
     }
 
+    bool set_foreign_holder(handle) {
+        throw cast_error("Foreign instance cannot be converted to std::unique_ptr "
+                         "because we don't know how to make it relinquish "
+                         "ownership");
+    }
+
     void load_value(value_and_holder &&v_h) {
         if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
             sh_load_helper.loaded_v_h = v_h;
@@ -1282,6 +1363,7 @@ public:
                 value = cast.second(sub_caster.value);
                 if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
                     sh_load_helper.loaded_v_h = sub_caster.sh_load_helper.loaded_v_h;
+                    sh_load_helper.was_populated = true;
                 } else {
                     pybind11_fail("Expected to be UNREACHABLE: " __FILE__
                                   ":" PYBIND11_TOSTRING(__LINE__));

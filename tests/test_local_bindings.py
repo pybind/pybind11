@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import sys
+from contextlib import suppress
+
 import pytest
 
 from pybind11_tests import local_bindings as m
@@ -19,6 +22,31 @@ def test_load_external():
     with pytest.raises(TypeError) as excinfo:
         assert m.load_external1(cm.ExternalType2(12)) == 12
     assert "incompatible function arguments" in str(excinfo.value)
+
+    def test_shared(val, ctor, loader):
+        obj = ctor(val)
+        with suppress(AttributeError):  # non-cpython VMs don't have getrefcount
+            rc_before = sys.getrefcount(obj)
+        wrapper = loader(obj)
+        # wrapper holds a shared_ptr that keeps obj alive
+        assert wrapper.use_count == 1
+        assert wrapper.value == val
+        with suppress(AttributeError):
+            rc_after = sys.getrefcount(obj)
+            assert rc_after > rc_before
+
+    test_shared(110, cm.ExternalType1, m.load_external1_shared)
+    test_shared(220, cm.ExternalType2, m.load_external2_shared)
+
+    with pytest.raises(TypeError, match="incompatible function arguments"):
+        test_shared(210, cm.ExternalType1, m.load_external2_shared)
+    with pytest.raises(TypeError, match="incompatible function arguments"):
+        test_shared(120, cm.ExternalType2, m.load_external1_shared)
+
+    with pytest.raises(
+        RuntimeError, match="Foreign instance cannot be converted to std::unique_ptr"
+    ):
+        m.load_external2_unique(cm.ExternalType2(2200))
 
 
 def test_local_bindings():

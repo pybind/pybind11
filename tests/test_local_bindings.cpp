@@ -22,6 +22,22 @@ TEST_SUBMODULE(local_bindings, m) {
     m.def("load_external1", [](ExternalType1 &e) { return e.i; });
     m.def("load_external2", [](ExternalType2 &e) { return e.i; });
 
+    struct SharedKeepAlive {
+        std::shared_ptr<int> contents;
+        int value() const { return contents ? *contents : -1; }
+        long use_count() const { return contents.use_count(); }
+    };
+    py::class_<SharedKeepAlive>(m, "SharedKeepAlive")
+        .def_property_readonly("value", &SharedKeepAlive::value)
+        .def_property_readonly("use_count", &SharedKeepAlive::use_count);
+    m.def("load_external1_shared", [](std::shared_ptr<ExternalType1> p) {
+        return SharedKeepAlive{std::shared_ptr<int>(p, &p->i)};
+    });
+    m.def("load_external2_shared", [](std::shared_ptr<ExternalType2> p) {
+        return SharedKeepAlive{std::shared_ptr<int>(p, &p->i)};
+    });
+    m.def("load_external2_unique", [](std::unique_ptr<ExternalType2> p) { return p->i; });
+
     // test_local_bindings
     // Register a class with py::module_local:
     bind_local<LocalType, -1>(m, "LocalType", py::module_local()).def("get3", [](LocalType &t) {
