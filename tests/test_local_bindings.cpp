@@ -30,10 +30,10 @@ TEST_SUBMODULE(local_bindings, m) {
     py::class_<SharedKeepAlive>(m, "SharedKeepAlive")
         .def_property_readonly("value", &SharedKeepAlive::value)
         .def_property_readonly("use_count", &SharedKeepAlive::use_count);
-    m.def("load_external1_shared", [](const std::shared_ptr<ExternalType1>& p) {
+    m.def("load_external1_shared", [](const std::shared_ptr<ExternalType1> &p) {
         return SharedKeepAlive{std::shared_ptr<int>(p, &p->i)};
     });
-    m.def("load_external2_shared", [](const std::shared_ptr<ExternalType2>& p) {
+    m.def("load_external2_shared", [](const std::shared_ptr<ExternalType2> &p) {
         return SharedKeepAlive{std::shared_ptr<int>(p, &p->i)};
     });
     m.def("load_external2_unique", [](std::unique_ptr<ExternalType2> p) { return p->i; });
