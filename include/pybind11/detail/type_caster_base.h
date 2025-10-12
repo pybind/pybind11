@@ -77,7 +77,7 @@ public:
         }
         frame = parent;
         for (auto *item : keep_alive) {
-            Py_DECREF(item);
+            Py_DECREF(item); // decref in C++ dtor: always safe?
         }
     }
 
@@ -727,7 +727,7 @@ struct shared_ptr_parent_life_support {
     // NOLINTNEXTLINE(readability-make-member-function-const)
     void operator()(void *) {
         gil_scoped_acquire gil;
-        Py_DECREF(parent);
+        Py_DECREF(parent); // decref in C++ dtor: NEEDS can_decref_now
     }
 };
 
@@ -741,7 +741,7 @@ struct shared_ptr_trampoline_self_life_support {
     // NOLINTNEXTLINE(readability-make-member-function-const)
     void operator()(void *) {
         gil_scoped_acquire gil;
-        Py_DECREF(self);
+        Py_DECREF(self); // decref in C++ dtor: NEEDS can_decref_now
     }
 };
 
