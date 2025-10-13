@@ -25,9 +25,10 @@ PYBIND11_MODULE(pybind11_cross_module_tests, m, py::mod_gil_not_used()) {
     // relevant pybind11_tests submodule from a test_whatever.py
 
     // test_load_external
-    bind_local<ExternalType1, 0, std::shared_ptr<ExternalType1>>(
-        m, "ExternalType1", py::module_local());
-    bind_local<ExternalType2, 0, py::smart_holder>(m, "ExternalType2", py::module_local());
+    bind_local<ExternalType1>(m, "ExternalType1", py::module_local());
+    bind_local<ExternalType2, 0, std::shared_ptr<ExternalType2>>(
+            m, "ExternalType2", py::module_local());
+    bind_local<ExternalType3, 0, py::smart_holder>(m, "ExternalType3", py::module_local());
 
     // test_exceptions.py
     py::register_local_exception<LocalSimpleException>(m, "LocalSimpleException");

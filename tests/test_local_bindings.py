@@ -14,6 +14,7 @@ def test_load_external():
 
     assert m.load_external1(cm.ExternalType1(11)) == 11
     assert m.load_external2(cm.ExternalType2(22)) == 22
+    assert m.load_external3(cm.ExternalType3(33)) == 33
 
     with pytest.raises(TypeError) as excinfo:
         assert m.load_external2(cm.ExternalType1(21)) == 21
@@ -35,18 +36,23 @@ def test_load_external():
             rc_after = sys.getrefcount(obj)
             assert rc_after > rc_before
 
-    test_shared(110, cm.ExternalType1, m.load_external1_shared)
     test_shared(220, cm.ExternalType2, m.load_external2_shared)
+    test_shared(330, cm.ExternalType3, m.load_external3_shared)
 
     with pytest.raises(TypeError, match="incompatible function arguments"):
-        test_shared(210, cm.ExternalType1, m.load_external2_shared)
+        test_shared(320, cm.ExternalType2, m.load_external3_shared)
     with pytest.raises(TypeError, match="incompatible function arguments"):
-        test_shared(120, cm.ExternalType2, m.load_external1_shared)
+        test_shared(230, cm.ExternalType3, m.load_external2_shared)
 
     with pytest.raises(
         RuntimeError, match="Foreign instance cannot be converted to std::unique_ptr"
     ):
-        m.load_external2_unique(cm.ExternalType2(2200))
+        m.load_external1_unique(cm.ExternalType1(2200))
+
+    with pytest.raises(
+        RuntimeError, match="Foreign instance cannot be converted to std::unique_ptr"
+    ):
+        m.load_external3_unique(cm.ExternalType3(3300))
 
 
 def test_local_bindings():

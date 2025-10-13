@@ -25,8 +25,9 @@ using MixedLocalGlobal = LocalBase<4>;
 using MixedGlobalLocal = LocalBase<5>;
 
 /// Registered with py::module_local only in the secondary module:
-using ExternalType1 = LocalBase<6>;
-using ExternalType2 = LocalBase<7>;
+using ExternalType1 = LocalBase<6>; // default holder
+using ExternalType2 = LocalBase<7>; // held by std::shared_ptr
+using ExternalType3 = LocalBase<8>; // held by smart_holder
 
 using LocalVec = std::vector<LocalType>;
 using LocalVec2 = std::vector<NonLocal2>;
