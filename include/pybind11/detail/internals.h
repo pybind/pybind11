@@ -357,6 +357,20 @@ struct type_info {
     void *get_buffer_data = nullptr;
     void *(*module_local_load)(PyObject *, const type_info *) = nullptr;
     holder_enum_t holder_enum_v = holder_enum_t::undefined;
+
+#if PYBIND11_INTERNALS_VERSION >= 12
+    // When a type appears in multiple DSOs,
+    // internals::registered_types_cpp_fast will have multiple distinct
+    // keys (the std::type_info from each DSO) mapped to the same
+    // detail::type_info*. We need to keep track of these aliases so that we clean
+    // them up when our type is deallocated. A linked list is appropriate
+    // because it is expected to be 1) usually empty and 2)
+    // when it's not empty, usually very small. See also `struct
+    // nb_alias_chain` added in
+    // https://github.com/wjakob/nanobind/commit/b515b1f7f2f4ecc0357818e6201c94a9f4cbfdc2
+    std::forward_list<const std::type_info *> alias_chain;
+#endif
+
     /* A simple type never occurs as a (direct or indirect) parent
      * of a class that makes use of multiple inheritance.
      * A type can be simple even if it has non-simple ancestors as long as it has no descendants.
