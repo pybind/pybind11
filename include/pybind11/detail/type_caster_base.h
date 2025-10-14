@@ -246,6 +246,14 @@ inline detail::type_info *get_global_type_info_lock_held(const std::type_info &t
     auto it = types.find(std::type_index(tp));
     if (it != types.end()) {
 #if PYBIND11_INTERNALS_VERSION >= 12
+        // We found the type in the slow map but not the fast one, so
+        // some other DSO added it (otherwise it would be in the fast
+        // map under &tp) and therefore we must be an alias. Record
+        // that in the chain.
+        std::unique_ptr<alias_chain_entry> chain(new alias_chain_entry);
+        chain->value = &tp;
+        chain->next = std::move(it->second->alias_chain);
+        it->second->alias_chain = std::move(chain);
         fast_types.emplace(&tp, it->second);
 #endif
         type_info = it->second;
