@@ -1069,6 +1069,7 @@ public:
         return false;
     }
     void check_holder_compat() {}
+    bool set_foreign_holder(handle) { return true; }
 
     PYBIND11_NOINLINE static void *local_load(PyObject *src, const type_info *ti) {
         auto caster = type_caster_generic(ti);
@@ -1107,14 +1108,14 @@ public:
     // logic (without having to resort to virtual inheritance).
     template <typename ThisT>
     PYBIND11_NOINLINE bool load_impl(handle src, bool convert) {
+        auto &this_ = static_cast<ThisT &>(*this);
         if (!src) {
             return false;
         }
         if (!typeinfo) {
-            return try_load_foreign_module_local(src);
+            return try_load_foreign_module_local(src) && this_.set_foreign_holder(src);
         }
 
-        auto &this_ = static_cast<ThisT &>(*this);
         this_.check_holder_compat();
 
         PyTypeObject *srctype = Py_TYPE(src.ptr());
@@ -1180,13 +1181,13 @@ public:
         if (typeinfo->module_local) {
             if (auto *gtype = get_global_type_info(*typeinfo->cpptype)) {
                 typeinfo = gtype;
-                return load(src, false);
+                return load_impl<ThisT>(src, false);
             }
         }
 
         // Global typeinfo has precedence over foreign module_local
         if (try_load_foreign_module_local(src)) {
-            return true;
+            return this_.set_foreign_holder(src);
         }
 
         // Custom converters didn't take None, now we convert None to nullptr.
@@ -1200,7 +1201,7 @@ public:
         }
 
         if (convert && cpptype && this_.try_cpp_conduit(src)) {
-            return true;
+            return this_.set_foreign_holder(src);
         }
 
         return false;

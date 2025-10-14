@@ -13,6 +13,7 @@
 #include "detail/argument_vector.h"
 #include "detail/common.h"
 #include "detail/descr.h"
+#include "detail/holder_caster_foreign_helpers.h"
 #include "detail/native_enum_data.h"
 #include "detail/type_caster_base.h"
 #include "detail/typeid.h"
@@ -907,6 +908,10 @@ protected:
         }
     }
 
+    bool set_foreign_holder(handle src) {
+        return holder_caster_foreign_helpers::set_foreign_holder(src, (type *) value, &holder);
+    }
+
     void load_value(value_and_holder &&v_h) {
         if (v_h.holder_constructed()) {
             value = v_h.value_ptr();
@@ -977,7 +982,7 @@ public:
     }
 
     explicit operator std::shared_ptr<type> *() {
-        if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
+        if (sh_load_helper.was_populated) {
             pybind11_fail("Passing `std::shared_ptr<T> *` from Python to C++ is not supported "
                           "(inherently unsafe).");
         }
@@ -985,14 +990,14 @@ public:
     }
 
     explicit operator std::shared_ptr<type> &() {
-        if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
+        if (sh_load_helper.was_populated) {
             shared_ptr_storage = sh_load_helper.load_as_shared_ptr(typeinfo, value);
         }
         return shared_ptr_storage;
     }
 
     std::weak_ptr<type> potentially_slicing_weak_ptr() {
-        if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
+        if (sh_load_helper.was_populated) {
             // Reusing shared_ptr code to minimize code complexity.
             shared_ptr_storage
                 = sh_load_helper.load_as_shared_ptr(typeinfo,
@@ -1041,6 +1046,11 @@ protected:
         }
     }
 
+    bool set_foreign_holder(handle src) {
+        return holder_caster_foreign_helpers::set_foreign_holder(
+            src, (type *) value, &shared_ptr_storage);
+    }
+
     void load_value(value_and_holder &&v_h) {
         if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
             sh_load_helper.loaded_v_h = v_h;
@@ -1078,6 +1088,7 @@ protected:
                 value = cast.second(sub_caster.value);
                 if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
                     sh_load_helper.loaded_v_h = sub_caster.sh_load_helper.loaded_v_h;
+                    sh_load_helper.was_populated = true;
                 } else {
                     shared_ptr_storage
                         = std::shared_ptr<type>(sub_caster.shared_ptr_storage, (type *) value);
@@ -1224,6 +1235,12 @@ public:
         return false;
     }
 
+    bool set_foreign_holder(handle) {
+        throw cast_error("Foreign instance cannot be converted to std::unique_ptr "
+                         "because we don't know how to make it relinquish "
+                         "ownership");
+    }
+
     void load_value(value_and_holder &&v_h) {
         if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
             sh_load_helper.loaded_v_h = v_h;
@@ -1282,6 +1299,7 @@ public:
                 value = cast.second(sub_caster.value);
                 if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
                     sh_load_helper.loaded_v_h = sub_caster.sh_load_helper.loaded_v_h;
+                    sh_load_helper.was_populated = true;
                 } else {
                     pybind11_fail("Expected to be UNREACHABLE: " __FILE__
                                   ":" PYBIND11_TOSTRING(__LINE__));
