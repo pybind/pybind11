@@ -157,5 +157,5 @@ PYBIND11_MODULE(pybind11_cross_module_tests, m, py::mod_gil_not_used()) {
     m.def("missing_header_return", []() { return std::vector<float>(); });
 
     // test_class_cross_module_use_after_one_module_dealloc
-    m.def("consume_cross_dso_class", [](CrossDSOClass) {});
+    m.def("consume_cross_dso_class", [](const CrossDSOClass &) {});
 }

@@ -1,13 +1,18 @@
 from __future__ import annotations
 
 import gc
+import sys
 import types
 import weakref
 
 import pytest
 
-import env  # noqa: F401
+import env
 from pybind11_tests import class_cross_module_use_after_one_module_dealloc as m
+
+is_python_3_13_free_threaded = (
+    env.CPYTHON and sys.version_info == (3, 13) and not sys._is_gil_enabled()
+)
 
 
 def delattr_and_ensure_destroyed(*specs):
@@ -26,7 +31,7 @@ def delattr_and_ensure_destroyed(*specs):
         )
 
 
-@pytest.mark.skipif("env.PYPY or env.GRAALPY")
+@pytest.mark.skipif("env.PYPY or env.GRAALPY or is_python_3_13_free_threaded")
 def test_cross_module_use_after_one_module_dealloc():
     # This is a regression test for a bug that occurred during development of
     # internals::registered_types_cpp_fast (see #5842). registered_types_cpp_fast maps
