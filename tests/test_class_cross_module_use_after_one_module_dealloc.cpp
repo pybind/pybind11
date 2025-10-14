@@ -4,7 +4,9 @@
 
 class CrossDSOClass {
 public:
+    CrossDSOClass() = default;
     virtual ~CrossDSOClass();
+    CrossDSOClass(const CrossDSOClass &) = default;
 };
 
 CrossDSOClass::~CrossDSOClass() = default;

@@ -228,12 +228,10 @@ extern "C" inline void pybind11_meta_dealloc(PyObject *obj) {
                 internals.registered_types_cpp.erase(tindex);
 #if PYBIND11_INTERNALS_VERSION >= 12
                 internals.registered_types_cpp_fast.erase(tinfo->cpptype);
-                const alias_chain_entry *chain = tinfo->alias_chain.get();
-                while (chain) {
-                    auto num_erased = internals.registered_types_cpp_fast.erase(chain->value);
+                for (const std::type_info *alias : tinfo->alias_chain) {
+                    auto num_erased = internals.registered_types_cpp_fast.erase(alias);
                     (void) num_erased;
                     assert(num_erased > 0);
-                    chain = chain->next.get();
                 }
 #endif
             }
