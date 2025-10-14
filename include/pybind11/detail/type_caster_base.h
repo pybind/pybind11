@@ -568,7 +568,7 @@ struct cast_sources {
     // this does not provide enough information to use a foreign type or
     // to render a useful error message
     cast_sources(const void *obj, const detail::type_info *tinfo)
-      : original{obj, tinfo ? tinfo->cpptype : nullptr}, result{obj, tinfo} {}
+        : original{obj, tinfo ? tinfo->cpptype : nullptr}, result{obj, tinfo} {}
 
     // The object passed to cast(), with its static type.
     // original.type must not be null if resolve() will be called.
@@ -1009,7 +1009,7 @@ public:
             // No pybind11 type info. Raise an exception.
             std::string tname = srcs.downcast.cpptype   ? srcs.downcast.cpptype->name()
                                 : srcs.original.cpptype ? srcs.original.cpptype->name()
-                                                         : "<unspecified>";
+                                                        : "<unspecified>";
             detail::clean_type_id(tname);
             std::string msg = "Unregistered type : " + tname;
             set_error(PyExc_TypeError, msg.c_str());
