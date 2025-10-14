@@ -476,10 +476,14 @@ inline void clear_instance(PyObject *self) {
         PyObject_ClearWeakRefs(self);
     }
 
+#if PY_VERSION_HEX >= 0x030D0000
+    PyObject_ClearManagedDict(self);
+#else
     PyObject **dict_ptr = _PyObject_GetDictPtr(self);
     if (dict_ptr) {
         Py_CLEAR(*dict_ptr);
     }
+#endif
 
     if (instance->has_patients) {
         clear_patients(self);
