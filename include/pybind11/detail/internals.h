@@ -286,9 +286,11 @@ struct internals {
     internals()
         : static_property_type(make_static_property_type()),
           default_metaclass(make_default_metaclass()) {
+        tstate = nullptr;
         PyThreadState *cur_tstate = PyThreadState_Get();
-        tstate = cur_tstate;
-
+        // The PyThreadState that is returned by PyThreadState_Get is not owned by us and may be
+        // detroyed by the owner at some point in the future.  Saving this PyThreadState here can
+        // lead to dangling pointer undefined behavior in complex multi-threaded scenarios.
         istate = cur_tstate->interp;
         registered_exception_translators.push_front(&translate_exception);
 #ifdef Py_GIL_DISABLED
