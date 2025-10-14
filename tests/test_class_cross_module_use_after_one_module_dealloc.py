@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import gc
 import sys
+import sysconfig
 import types
 import weakref
 
@@ -11,7 +12,7 @@ import env
 from pybind11_tests import class_cross_module_use_after_one_module_dealloc as m
 
 is_python_3_13_free_threaded = (
-    env.CPYTHON and sys.version_info == (3, 13) and not sys._is_gil_enabled()
+    sysconfig.get_config_var("Py_GIL_DISABLED") and (3, 13) <= sys.version_info < (3, 14)
 )
 
 
