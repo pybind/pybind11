@@ -920,21 +920,100 @@ public:
 
     bool load(handle src, bool convert) { return load_impl<type_caster_generic>(src, convert); }
 
-    PYBIND11_NOINLINE static handle cast(const void *_src,
+    // Information about how cast() can obtain its source object
+    struct cast_sources {
+        // A type-erased pointer and the type it points to
+        struct source {
+            const void *obj;
+            const std::type_info *type;
+        };
+
+        // Use the given pointer with its compile-time type, possibly downcast
+        // via polymorphic_type_hook()
+        template <typename itype>
+        cast_sources(const itype *ptr); // NOLINT(google-explicit-constructor)
+
+        // Use the given pointer and type
+        // NOLINTNEXTLINE(google-explicit-constructor)
+        cast_sources(const source &orig) : original(orig) { result = resolve(); }
+
+        // Use the given object and pybind11 type info. NB: if tinfo is null,
+        // this does not provide enough information to use a foreign type or
+        // to render a useful error message
+        cast_sources(const void *obj, const detail::type_info *tinfo)
+            : original{obj, tinfo ? tinfo->cpptype : nullptr}, result{obj, tinfo} {}
+
+        // The object passed to cast(), with its static type.
+        // original.type must not be null if resolve() will be called.
+        // original.obj may be null if we're converting nullptr to a Python None
+        source original;
+
+        // A more-derived version of `original` provided by a
+        // polymorphic_type_hook. downcast.type may be null if this is not
+        // a relevant concept for the current cast.
+        source downcast{};
+
+        // The source to use for this cast, and the corresponding pybind11
+        // type_info. If the type_info is null, then pybind11 doesn't know
+        // about this type.
+        std::pair<const void *, const type_info *> result;
+
+        // Returns true if the cast will use a pybind11 type that uses
+        // a smart holder.
+        bool creates_smart_holder() const {
+            return result.second != nullptr
+                   && result.second->holder_enum_v == detail::holder_enum_t::smart_holder;
+        }
+
+    private:
+        std::pair<const void *, const type_info *> resolve() {
+            if (downcast.type) {
+                if (same_type(*original.type, *downcast.type)) {
+                    downcast.type = nullptr;
+                } else if (const auto *tpi = get_type_info(*downcast.type)) {
+                    return {downcast.obj, tpi};
+                }
+            }
+            if (const auto *tpi = get_type_info(*original.type)) {
+                return {original.obj, tpi};
+            }
+            return {nullptr, nullptr};
+        }
+    };
+
+    static handle cast(const void *src,
+                       return_value_policy policy,
+                       handle parent,
+                       const detail::type_info *tinfo,
+                       void *(*copy_constructor)(const void *),
+                       void *(*move_constructor)(const void *),
+                       const void *existing_holder = nullptr) {
+        cast_sources srcs{src, tinfo};
+        return cast(srcs, policy, parent, copy_constructor, move_constructor, existing_holder);
+    }
+
+    PYBIND11_NOINLINE static handle cast(const cast_sources &srcs,
                                          return_value_policy policy,
                                          handle parent,
-                                         const detail::type_info *tinfo,
                                          void *(*copy_constructor)(const void *),
                                          void *(*move_constructor)(const void *),
                                          const void *existing_holder = nullptr) {
-        if (!tinfo) { // no type info: error will be set already
+        if (!srcs.result.second) {
+            // No pybind11 type info. Raise an exception.
+            std::string tname = srcs.downcast.type   ? srcs.downcast.type->name()
+                                : srcs.original.type ? srcs.original.type->name()
+                                                     : "<unspecified>";
+            detail::clean_type_id(tname);
+            std::string msg = "Unregistered type : " + tname;
+            set_error(PyExc_TypeError, msg.c_str());
             return handle();
         }
 
-        void *src = const_cast<void *>(_src);
+        void *src = const_cast<void *>(srcs.result.first);
         if (src == nullptr) {
             return none().release();
         }
+        const type_info *tinfo = srcs.result.second;
 
         if (handle registered_inst = find_registered_python_instance(src, tinfo)) {
             return registered_inst;
@@ -1205,25 +1284,6 @@ public:
         }
 
         return false;
-    }
-
-    // Called to do type lookup and wrap the pointer and type in a pair when a dynamic_cast
-    // isn't needed or can't be used.  If the type is unknown, sets the error and returns a pair
-    // with .second = nullptr.  (p.first = nullptr is not an error: it becomes None).
-    PYBIND11_NOINLINE static std::pair<const void *, const type_info *>
-    src_and_type(const void *src,
-                 const std::type_info &cast_type,
-                 const std::type_info *rtti_type = nullptr) {
-        if (auto *tpi = get_type_info(cast_type)) {
-            return {src, const_cast<const type_info *>(tpi)};
-        }
-
-        // Not found, set error:
-        std::string tname = rtti_type ? rtti_type->name() : cast_type.name();
-        detail::clean_type_id(tname);
-        std::string msg = "Unregistered type : " + tname;
-        set_error(PyExc_TypeError, msg.c_str());
-        return {nullptr, nullptr};
     }
 
     const type_info *typeinfo = nullptr;
@@ -1520,6 +1580,20 @@ struct polymorphic_type_hook : public polymorphic_type_hook_base<itype> {};
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+template <typename itype>
+type_caster_generic::cast_sources::cast_sources(const itype *ptr) : original{ptr, &typeid(itype)} {
+    // If this is a base pointer to a derived type, and the derived type is
+    // registered with pybind11, we want to make the full derived object
+    // available. In the typical case where itype is polymorphic, we get the
+    // correct derived pointer (which may be != base pointer) by a dynamic_cast
+    // to most derived type. If itype is not polymorphic, a user-provided
+    // specialization of polymorphic_type_hook can do the same thing.
+    // If there is no downcast to perform, then the default hook will leave
+    // derived.type set to nullptr, which causes us to ignore derived.obj.
+    downcast.obj = polymorphic_type_hook<itype>::get(ptr, downcast.type);
+    result = resolve();
+}
+
 /// Generic type caster for objects stored on the heap
 template <typename type>
 class type_caster_base : public type_caster_generic {
@@ -1530,6 +1604,11 @@ public:
 
     type_caster_base() : type_caster_base(typeid(type)) {}
     explicit type_caster_base(const std::type_info &info) : type_caster_generic(info) {}
+
+    struct cast_sources : type_caster_generic::cast_sources {
+        // NOLINTNEXTLINE(google-explicit-constructor)
+        cast_sources(const itype *ptr) : type_caster_generic::cast_sources(ptr) {}
+    };
 
     static handle cast(const itype &src, return_value_policy policy, handle parent) {
         if (policy == return_value_policy::automatic
@@ -1543,50 +1622,17 @@ public:
         return cast(std::addressof(src), return_value_policy::move, parent);
     }
 
-    // Returns a (pointer, type_info) pair taking care of necessary type lookup for a
-    // polymorphic type (using RTTI by default, but can be overridden by specializing
-    // polymorphic_type_hook). If the instance isn't derived, returns the base version.
-    static std::pair<const void *, const type_info *> src_and_type(const itype *src) {
-        const auto &cast_type = typeid(itype);
-        const std::type_info *instance_type = nullptr;
-        const void *vsrc = polymorphic_type_hook<itype>::get(src, instance_type);
-        if (instance_type && !same_type(cast_type, *instance_type)) {
-            // This is a base pointer to a derived type. If the derived type is registered
-            // with pybind11, we want to make the full derived object available.
-            // In the typical case where itype is polymorphic, we get the correct
-            // derived pointer (which may be != base pointer) by a dynamic_cast to
-            // most derived type. If itype is not polymorphic, we won't get here
-            // except via a user-provided specialization of polymorphic_type_hook,
-            // and the user has promised that no this-pointer adjustment is
-            // required in that case, so it's OK to use static_cast.
-            if (const auto *tpi = get_type_info(*instance_type)) {
-                return {vsrc, tpi};
-            }
-        }
-        // Otherwise we have either a nullptr, an `itype` pointer, or an unknown derived pointer,
-        // so don't do a cast
-        return type_caster_generic::src_and_type(src, cast_type, instance_type);
-    }
-
-    static handle cast(const itype *src, return_value_policy policy, handle parent) {
-        auto st = src_and_type(src);
-        return type_caster_generic::cast(st.first,
+    static handle cast(const cast_sources &srcs, return_value_policy policy, handle parent) {
+        return type_caster_generic::cast(srcs,
                                          policy,
                                          parent,
-                                         st.second,
-                                         make_copy_constructor(src),
-                                         make_move_constructor(src));
+                                         make_copy_constructor((const itype *) nullptr),
+                                         make_move_constructor((const itype *) nullptr));
     }
 
-    static handle cast_holder(const itype *src, const void *holder) {
-        auto st = src_and_type(src);
-        return type_caster_generic::cast(st.first,
-                                         return_value_policy::take_ownership,
-                                         {},
-                                         st.second,
-                                         nullptr,
-                                         nullptr,
-                                         holder);
+    static handle cast_holder(const cast_sources &srcs, const void *holder) {
+        auto policy = return_value_policy::take_ownership;
+        return type_caster_generic::cast(srcs, policy, {}, nullptr, nullptr, holder);
     }
 
     template <typename T>
