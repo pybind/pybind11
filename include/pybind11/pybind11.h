@@ -279,32 +279,17 @@ public:
 #undef PYBIND11_READABLE_FUNCTION_SIGNATURE_EXPR
 
 // Prior to C++17, we don't have inline variables, so we have to
-// provide an out-of-line definition of the class member. We should
-// remove the following chunk of code (until the PYBIND11_WARNING_POP)
-// if/when we drop support for C++11 and C++14.
-PYBIND11_WARNING_PUSH
-#if defined(PYBIND11_CPP17)
-#    if defined(__clang_major__)                                                                  \
-        && (__clang_major__ >= 17 || (defined(__APPLE__) && __clang_major__ >= 15))
-// Even with the above gating, there's one straggler CI job that
-// claims it doesn't know what
-// -Wdeprecated-redundant-constexpr-static-def is despite being on
-// Apple Clang 15. Just suppress -Wunknown-warning-option.
-PYBIND11_WARNING_DISABLE_CLANG("-Wunknown-warning-option")
-PYBIND11_WARNING_DISABLE_CLANG("-Wdeprecated-redundant-constexpr-static-def")
-#    endif
-PYBIND11_WARNING_DISABLE_CLANG("-Wdeprecated")
-PYBIND11_WARNING_DISABLE_GCC("-Wdeprecated")
-#endif
+// provide an out-of-line definition of the class member.
+#if !defined(PYBIND11_CPP17)
 template <typename cast_in, typename cast_out>
 constexpr typename ReadableFunctionSignature<cast_in, cast_out>::sig_type
     ReadableFunctionSignature<cast_in, cast_out>::kSig;
-#if !defined(_MSC_VER)
+#    if !defined(_MSC_VER)
 template <typename cast_in, typename cast_out>
 constexpr typename ReadableFunctionSignature<cast_in, cast_out>::types_type
     ReadableFunctionSignature<cast_in, cast_out>::kTypes;
+#    endif
 #endif
-PYBIND11_WARNING_POP
 
 PYBIND11_NAMESPACE_END(detail)
 
