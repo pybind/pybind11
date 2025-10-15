@@ -289,7 +289,7 @@ struct internals {
         tstate.set(nullptr);
         PyThreadState *cur_tstate = PyThreadState_Get();
         // The PyThreadState that is returned by PyThreadState_Get is not owned by us and may be
-        // detroyed by the owner at some point in the future.  Saving this PyThreadState here can
+        // destroyed by the owner at some point in the future.  Saving this PyThreadState here can
         // lead to dangling pointer undefined behavior in complex multi-threaded scenarios.
         istate = cur_tstate->interp;
         registered_exception_translators.push_front(&translate_exception);
