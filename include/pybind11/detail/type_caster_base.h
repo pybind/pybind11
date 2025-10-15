@@ -246,6 +246,11 @@ inline detail::type_info *get_global_type_info_lock_held(const std::type_info &t
     auto it = types.find(std::type_index(tp));
     if (it != types.end()) {
 #if PYBIND11_INTERNALS_VERSION >= 12
+        // We found the type in the slow map but not the fast one, so
+        // some other DSO added it (otherwise it would be in the fast
+        // map under &tp) and therefore we must be an alias. Record
+        // that.
+        it->second->alias_chain.push_front(&tp);
         fast_types.emplace(&tp, it->second);
 #endif
         type_info = it->second;
@@ -540,6 +545,74 @@ PYBIND11_NOINLINE handle get_object_handle(const void *ptr, const detail::type_i
     });
 }
 
+// Information about how type_caster_generic::cast() can obtain its source object
+struct cast_sources {
+    // A type-erased pointer and the type it points to
+    struct raw_source {
+        const void *cppobj;
+        const std::type_info *cpptype;
+    };
+
+    // A C++ pointer and the Python type info we will convert it to;
+    // we expect that cppobj points to something of type tinfo->cpptype
+    struct resolved_source {
+        const void *cppobj;
+        const type_info *tinfo;
+    };
+
+    // Use the given pointer with its compile-time type, possibly downcast
+    // via polymorphic_type_hook()
+    template <typename itype>
+    explicit cast_sources(const itype *ptr);
+
+    // Use the given pointer and type
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    cast_sources(const raw_source &orig) : original(orig) { result = resolve(); }
+
+    // Use the given object and pybind11 type info. NB: if tinfo is null,
+    // this does not provide enough information to use a foreign type or
+    // to render a useful error message
+    cast_sources(const void *obj, const detail::type_info *tinfo)
+        : original{obj, tinfo ? tinfo->cpptype : nullptr}, result{obj, tinfo} {}
+
+    // The object passed to cast(), with its static type.
+    // original.type must not be null if resolve() will be called.
+    // original.obj may be null if we're converting nullptr to a Python None
+    raw_source original;
+
+    // A more-derived version of `original` provided by a
+    // polymorphic_type_hook. downcast.type may be null if this is not
+    // a relevant concept for the current cast.
+    raw_source downcast{};
+
+    // The source to use for this cast, and the corresponding pybind11
+    // type_info. If the type_info is null, then pybind11 doesn't know
+    // about this type.
+    resolved_source result;
+
+    // Returns true if the cast will use a pybind11 type that uses
+    // a smart holder.
+    bool creates_smart_holder() const {
+        return result.tinfo != nullptr
+               && result.tinfo->holder_enum_v == detail::holder_enum_t::smart_holder;
+    }
+
+private:
+    resolved_source resolve() {
+        if (downcast.cpptype) {
+            if (same_type(*original.cpptype, *downcast.cpptype)) {
+                downcast.cpptype = nullptr;
+            } else if (const auto *tpi = get_type_info(*downcast.cpptype)) {
+                return {downcast.cppobj, tpi};
+            }
+        }
+        if (const auto *tpi = get_type_info(*original.cpptype)) {
+            return {original.cppobj, tpi};
+        }
+        return {nullptr, nullptr};
+    }
+};
+
 // Forward declarations
 void keep_alive_impl(handle nurse, handle patient);
 inline PyObject *make_new_instance(PyTypeObject *type);
@@ -602,18 +675,18 @@ template <typename T, typename D>
 handle smart_holder_from_unique_ptr(std::unique_ptr<T, D> &&src,
                                     return_value_policy policy,
                                     handle parent,
-                                    const std::pair<const void *, const type_info *> &st) {
+                                    const cast_sources::resolved_source &cs) {
     if (policy == return_value_policy::copy) {
         throw cast_error("return_value_policy::copy is invalid for unique_ptr.");
     }
     if (!src) {
         return none().release();
     }
-    // st.first is the subobject pointer appropriate for tinfo (may differ from src.get()
+    // cs.cppobj is the subobject pointer appropriate for tinfo (may differ from src.get()
     // under MI/VI). Use this for Python identity/registration, but keep ownership on T*.
-    void *src_raw_void_ptr = const_cast<void *>(st.first);
-    assert(st.second != nullptr);
-    const detail::type_info *tinfo = st.second;
+    void *src_raw_void_ptr = const_cast<void *>(cs.cppobj);
+    assert(cs.tinfo != nullptr);
+    const detail::type_info *tinfo = cs.tinfo;
     if (handle existing_inst = find_registered_python_instance(src_raw_void_ptr, tinfo)) {
         auto *self_life_support = tinfo->get_trampoline_self_life_support(src.get());
         if (self_life_support != nullptr) {
@@ -660,20 +733,20 @@ template <typename T, typename D>
 handle smart_holder_from_unique_ptr(std::unique_ptr<T const, D> &&src,
                                     return_value_policy policy,
                                     handle parent,
-                                    const std::pair<const void *, const type_info *> &st) {
+                                    const cast_sources::resolved_source &cs) {
     return smart_holder_from_unique_ptr(
         std::unique_ptr<T, D>(const_cast<T *>(src.release()),
                               std::move(src.get_deleter())), // Const2Mutbl
         policy,
         parent,
-        st);
+        cs);
 }
 
 template <typename T>
 handle smart_holder_from_shared_ptr(const std::shared_ptr<T> &src,
                                     return_value_policy policy,
                                     handle parent,
-                                    const std::pair<const void *, const type_info *> &st) {
+                                    const cast_sources::resolved_source &cs) {
     switch (policy) {
         case return_value_policy::automatic:
         case return_value_policy::automatic_reference:
@@ -692,11 +765,11 @@ handle smart_holder_from_shared_ptr(const std::shared_ptr<T> &src,
         return none().release();
     }
 
-    // st.first is the subobject pointer appropriate for tinfo (may differ from src.get()
+    // cs.cppobj is the subobject pointer appropriate for tinfo (may differ from src.get()
     // under MI/VI). Use this for Python identity/registration, but keep ownership on T*.
-    void *src_raw_void_ptr = const_cast<void *>(st.first);
-    assert(st.second != nullptr);
-    const detail::type_info *tinfo = st.second;
+    void *src_raw_void_ptr = const_cast<void *>(cs.cppobj);
+    assert(cs.tinfo != nullptr);
+    const detail::type_info *tinfo = cs.tinfo;
     if (handle existing_inst = find_registered_python_instance(src_raw_void_ptr, tinfo)) {
         // PYBIND11:REMINDER: MISSING: Enforcement of consistency with existing smart_holder.
         // PYBIND11:REMINDER: MISSING: keep_alive.
@@ -723,11 +796,11 @@ template <typename T>
 handle smart_holder_from_shared_ptr(const std::shared_ptr<T const> &src,
                                     return_value_policy policy,
                                     handle parent,
-                                    const std::pair<const void *, const type_info *> &st) {
+                                    const cast_sources::resolved_source &cs) {
     return smart_holder_from_shared_ptr(std::const_pointer_cast<T>(src), // Const2Mutbl
                                         policy,
                                         parent,
-                                        st);
+                                        cs);
 }
 
 struct shared_ptr_parent_life_support {
@@ -920,21 +993,39 @@ public:
 
     bool load(handle src, bool convert) { return load_impl<type_caster_generic>(src, convert); }
 
-    PYBIND11_NOINLINE static handle cast(const void *_src,
+    static handle cast(const void *src,
+                       return_value_policy policy,
+                       handle parent,
+                       const detail::type_info *tinfo,
+                       void *(*copy_constructor)(const void *),
+                       void *(*move_constructor)(const void *),
+                       const void *existing_holder = nullptr) {
+        cast_sources srcs{src, tinfo};
+        return cast(srcs, policy, parent, copy_constructor, move_constructor, existing_holder);
+    }
+
+    PYBIND11_NOINLINE static handle cast(const cast_sources &srcs,
                                          return_value_policy policy,
                                          handle parent,
-                                         const detail::type_info *tinfo,
                                          void *(*copy_constructor)(const void *),
                                          void *(*move_constructor)(const void *),
                                          const void *existing_holder = nullptr) {
-        if (!tinfo) { // no type info: error will be set already
+        if (!srcs.result.tinfo) {
+            // No pybind11 type info. Raise an exception.
+            std::string tname = srcs.downcast.cpptype   ? srcs.downcast.cpptype->name()
+                                : srcs.original.cpptype ? srcs.original.cpptype->name()
+                                                        : "<unspecified>";
+            detail::clean_type_id(tname);
+            std::string msg = "Unregistered type : " + tname;
+            set_error(PyExc_TypeError, msg.c_str());
             return handle();
         }
 
-        void *src = const_cast<void *>(_src);
+        void *src = const_cast<void *>(srcs.result.cppobj);
         if (src == nullptr) {
             return none().release();
         }
+        const type_info *tinfo = srcs.result.tinfo;
 
         if (handle registered_inst = find_registered_python_instance(src, tinfo)) {
             return registered_inst;
@@ -1205,25 +1296,6 @@ public:
         }
 
         return false;
-    }
-
-    // Called to do type lookup and wrap the pointer and type in a pair when a dynamic_cast
-    // isn't needed or can't be used.  If the type is unknown, sets the error and returns a pair
-    // with .second = nullptr.  (p.first = nullptr is not an error: it becomes None).
-    PYBIND11_NOINLINE static std::pair<const void *, const type_info *>
-    src_and_type(const void *src,
-                 const std::type_info &cast_type,
-                 const std::type_info *rtti_type = nullptr) {
-        if (auto *tpi = get_type_info(cast_type)) {
-            return {src, const_cast<const type_info *>(tpi)};
-        }
-
-        // Not found, set error:
-        std::string tname = rtti_type ? rtti_type->name() : cast_type.name();
-        detail::clean_type_id(tname);
-        std::string msg = "Unregistered type : " + tname;
-        set_error(PyExc_TypeError, msg.c_str());
-        return {nullptr, nullptr};
     }
 
     const type_info *typeinfo = nullptr;
@@ -1520,6 +1592,20 @@ struct polymorphic_type_hook : public polymorphic_type_hook_base<itype> {};
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+template <typename itype>
+cast_sources::cast_sources(const itype *ptr) : original{ptr, &typeid(itype)} {
+    // If this is a base pointer to a derived type, and the derived type is
+    // registered with pybind11, we want to make the full derived object
+    // available. In the typical case where itype is polymorphic, we get the
+    // correct derived pointer (which may be != base pointer) by a dynamic_cast
+    // to most derived type. If itype is not polymorphic, a user-provided
+    // specialization of polymorphic_type_hook can do the same thing.
+    // If there is no downcast to perform, then the default hook will leave
+    // derived.type set to nullptr, which causes us to ignore derived.obj.
+    downcast.cppobj = polymorphic_type_hook<itype>::get(ptr, downcast.cpptype);
+    result = resolve();
+}
+
 /// Generic type caster for objects stored on the heap
 template <typename type>
 class type_caster_base : public type_caster_generic {
@@ -1530,6 +1616,13 @@ public:
 
     type_caster_base() : type_caster_base(typeid(type)) {}
     explicit type_caster_base(const std::type_info &info) : type_caster_generic(info) {}
+
+    // Wrap the generic cast_sources to be only constructible from the type
+    // that's correct in this context, so you can't use type_caster_base<A>
+    // to convert an unrelated B* to Python.
+    struct cast_sources : detail::cast_sources {
+        explicit cast_sources(const itype *ptr) : detail::cast_sources(ptr) {}
+    };
 
     static handle cast(const itype &src, return_value_policy policy, handle parent) {
         if (policy == return_value_policy::automatic
@@ -1543,50 +1636,25 @@ public:
         return cast(std::addressof(src), return_value_policy::move, parent);
     }
 
-    // Returns a (pointer, type_info) pair taking care of necessary type lookup for a
-    // polymorphic type (using RTTI by default, but can be overridden by specializing
-    // polymorphic_type_hook). If the instance isn't derived, returns the base version.
-    static std::pair<const void *, const type_info *> src_and_type(const itype *src) {
-        const auto &cast_type = typeid(itype);
-        const std::type_info *instance_type = nullptr;
-        const void *vsrc = polymorphic_type_hook<itype>::get(src, instance_type);
-        if (instance_type && !same_type(cast_type, *instance_type)) {
-            // This is a base pointer to a derived type. If the derived type is registered
-            // with pybind11, we want to make the full derived object available.
-            // In the typical case where itype is polymorphic, we get the correct
-            // derived pointer (which may be != base pointer) by a dynamic_cast to
-            // most derived type. If itype is not polymorphic, we won't get here
-            // except via a user-provided specialization of polymorphic_type_hook,
-            // and the user has promised that no this-pointer adjustment is
-            // required in that case, so it's OK to use static_cast.
-            if (const auto *tpi = get_type_info(*instance_type)) {
-                return {vsrc, tpi};
-            }
-        }
-        // Otherwise we have either a nullptr, an `itype` pointer, or an unknown derived pointer,
-        // so don't do a cast
-        return type_caster_generic::src_and_type(src, cast_type, instance_type);
+    static handle cast(const itype *src, return_value_policy policy, handle parent) {
+        return cast(cast_sources{src}, policy, parent);
     }
 
-    static handle cast(const itype *src, return_value_policy policy, handle parent) {
-        auto st = src_and_type(src);
-        return type_caster_generic::cast(st.first,
+    static handle cast(const cast_sources &srcs, return_value_policy policy, handle parent) {
+        return type_caster_generic::cast(srcs,
                                          policy,
                                          parent,
-                                         st.second,
-                                         make_copy_constructor(src),
-                                         make_move_constructor(src));
+                                         make_copy_constructor((const itype *) nullptr),
+                                         make_move_constructor((const itype *) nullptr));
     }
 
     static handle cast_holder(const itype *src, const void *holder) {
-        auto st = src_and_type(src);
-        return type_caster_generic::cast(st.first,
-                                         return_value_policy::take_ownership,
-                                         {},
-                                         st.second,
-                                         nullptr,
-                                         nullptr,
-                                         holder);
+        return cast_holder(cast_sources{src}, holder);
+    }
+
+    static handle cast_holder(const cast_sources &srcs, const void *holder) {
+        auto policy = return_value_policy::take_ownership;
+        return type_caster_generic::cast(srcs, policy, {}, nullptr, nullptr, holder);
     }
 
     template <typename T>

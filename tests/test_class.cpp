@@ -58,6 +58,13 @@ class ForwardClass;
 class Args : public py::args {};
 } // namespace pr5396_forward_declared_class
 
+struct ConvertibleFromAnything {
+    ConvertibleFromAnything() = default;
+    template <class T>
+    // NOLINTNEXTLINE(bugprone-forwarding-reference-overload,google-explicit-constructor)
+    ConvertibleFromAnything(T &&) {}
+};
+
 } // namespace test_class
 
 static_assert(py::detail::is_same_or_base_of<py::args, py::args>::value, "");
@@ -578,6 +585,11 @@ TEST_SUBMODULE(class_, m) {
     });
 
     test_class::pr4220_tripped_over_this::bind_empty0(m);
+
+    // Regression test for compiler error that showed up in #5866
+    m.def("return_universal_recipient", []() -> test_class::ConvertibleFromAnything {
+        return test_class::ConvertibleFromAnything{};
+    });
 }
 
 template <int N>
