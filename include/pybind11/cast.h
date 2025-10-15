@@ -1011,15 +1011,12 @@ public:
     static handle
     cast(const std::shared_ptr<type> &src, return_value_policy policy, handle parent) {
         const auto *ptr = src.get();
-        auto st = type_caster_base<type>::src_and_type(ptr);
-        if (st.second == nullptr) {
-            return handle(); // no type info: error will be set already
-        }
-        if (st.second->holder_enum_v == detail::holder_enum_t::smart_holder) {
+        typename type_caster_base<type>::cast_sources srcs{ptr};
+        if (srcs.creates_smart_holder()) {
             return smart_holder_type_caster_support::smart_holder_from_shared_ptr(
-                src, policy, parent, st);
+                src, policy, parent, srcs.result);
         }
-        return type_caster_base<type>::cast_holder(ptr, &src);
+        return type_caster_base<type>::cast_holder(srcs, &src);
     }
 
     // This function will succeed even if the `responsible_parent` does not own the
@@ -1195,21 +1192,12 @@ public:
     static handle
     cast(std::unique_ptr<type, deleter> &&src, return_value_policy policy, handle parent) {
         auto *ptr = src.get();
-        auto st = type_caster_base<type>::src_and_type(ptr);
-        if (st.second == nullptr) {
-            return handle(); // no type info: error will be set already
-        }
-        if (st.second->holder_enum_v == detail::holder_enum_t::smart_holder) {
+        typename type_caster_base<type>::cast_sources srcs{ptr};
+        if (srcs.creates_smart_holder()) {
             return smart_holder_type_caster_support::smart_holder_from_unique_ptr(
-                std::move(src), policy, parent, st);
+                std::move(src), policy, parent, srcs.result);
         }
-        return type_caster_generic::cast(st.first,
-                                         return_value_policy::take_ownership,
-                                         {},
-                                         st.second,
-                                         nullptr,
-                                         nullptr,
-                                         std::addressof(src));
+        return type_caster_base<type>::cast_holder(srcs, &src);
     }
 
     static handle
