@@ -33,9 +33,10 @@ public:
                      const char *class_doc,
                      const native_enum_record &enum_record_)
         : enum_name_encoded{enum_name}, native_type_name_encoded{native_type_name},
-          enum_type_index{*enum_record_.cpptype}, parent_scope(reinterpret_borrow<object>(parent_scope_)),
-          enum_name{enum_name}, native_type_name{native_type_name}, class_doc(class_doc),
-          export_values_flag{false}, finalize_needed{false} {
+          enum_type_index{*enum_record_.cpptype},
+          parent_scope(reinterpret_borrow<object>(parent_scope_)), enum_name{enum_name},
+          native_type_name{native_type_name}, class_doc(class_doc), export_values_flag{false},
+          finalize_needed{false} {
         // Create the enum record capsule. It will be installed on the enum
         // type object during finalize(). Its destructor removes the enum
         // mapping from our internals, so that we won't try to convert to an

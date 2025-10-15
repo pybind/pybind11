@@ -93,7 +93,7 @@ TEST_SUBMODULE(native_enum, m) {
         .value("blue", color::blue)
         .finalize();
 
-    m.def("bind_altitude", [](const py::module_& mod) {
+    m.def("bind_altitude", [](const py::module_ &mod) {
         py::native_enum<altitude>(mod, "altitude", "enum.Enum")
             .value("high", altitude::high)
             .value("low", altitude::low)

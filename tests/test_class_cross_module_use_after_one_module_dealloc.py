@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import gc
 import types
 
 import pytest
 
 import env
 from pybind11_tests import class_cross_module_use_after_one_module_dealloc as m
+
 
 @pytest.mark.skipif(
     env.TYPES_ARE_IMMORTAL, reason="can't GC type objects on this platform"
