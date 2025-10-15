@@ -395,7 +395,7 @@ struct native_enum_record {
     const std::type_info *cpptype;
     uint32_t size_bytes;
     bool is_signed;
-    const uint8_t version = 0;
+    const uint8_t version = 1;
 
     static const char *attribute_name() { return "__pybind11_native_enum__"; }
 };

@@ -99,7 +99,6 @@ TEST_SUBMODULE(native_enum, m) {
             .value("low", altitude::low)
             .finalize();
     });
-    m.attr("bind_altitude")(m);
     m.def("is_high_altitude", [](altitude alt) { return alt == altitude::high; });
     m.def("get_altitude", []() -> altitude { return altitude::high; });
 
