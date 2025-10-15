@@ -285,7 +285,8 @@ struct internals {
 
     internals()
         : static_property_type(make_static_property_type()),
-          default_metaclass(make_default_metaclass()), tstate(nullptr) {
+          default_metaclass(make_default_metaclass()) {
+        tstate.set(nullptr);
         PyThreadState *cur_tstate = PyThreadState_Get();
         // The PyThreadState that is returned by PyThreadState_Get is not owned by us and may be
         // detroyed by the owner at some point in the future.  Saving this PyThreadState here can
