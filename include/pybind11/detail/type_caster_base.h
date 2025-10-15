@@ -563,7 +563,7 @@ struct cast_sources {
     // Use the given pointer with its compile-time type, possibly downcast
     // via polymorphic_type_hook()
     template <typename itype>
-    cast_sources(const itype *ptr); // NOLINT(google-explicit-constructor)
+    explicit cast_sources(const itype *ptr);
 
     // Use the given pointer and type
     // NOLINTNEXTLINE(google-explicit-constructor)
@@ -1621,8 +1621,7 @@ public:
     // that's correct in this context, so you can't use type_caster_base<A>
     // to convert an unrelated B* to Python.
     struct cast_sources : detail::cast_sources {
-        // NOLINTNEXTLINE(google-explicit-constructor)
-        cast_sources(const itype *ptr) : detail::cast_sources(ptr) {}
+        explicit cast_sources(const itype *ptr) : detail::cast_sources(ptr) {}
     };
 
     static handle cast(const itype &src, return_value_policy policy, handle parent) {
@@ -1637,12 +1636,20 @@ public:
         return cast(std::addressof(src), return_value_policy::move, parent);
     }
 
+    static handle cast(const itype *src, return_value_policy policy, handle parent) {
+        return cast(cast_sources{src}, policy, parent);
+    }
+
     static handle cast(const cast_sources &srcs, return_value_policy policy, handle parent) {
         return type_caster_generic::cast(srcs,
                                          policy,
                                          parent,
                                          make_copy_constructor((const itype *) nullptr),
                                          make_move_constructor((const itype *) nullptr));
+    }
+
+    static handle cast_holder(const itype *src, const void *holder) {
+        return cast_holder(cast_sources{src}, holder);
     }
 
     static handle cast_holder(const cast_sources &srcs, const void *holder) {
