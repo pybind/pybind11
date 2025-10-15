@@ -16,6 +16,7 @@ import sys
 import sysconfig
 import textwrap
 import traceback
+import weakref
 from typing import Callable
 
 import pytest
@@ -218,9 +219,33 @@ def gc_collect():
     gc.collect()
 
 
+def delattr_and_ensure_destroyed(*specs):
+    """For each of the given *specs* (a tuple of the form ``(scope, name)``),
+    perform ``delattr(scope, name)``, then do enough GC collections that the
+    deleted reference has actually caused the target to be destroyed. This is
+    typically used to test what happens when a type object is destroyed; if you
+    use it for that, you should be aware that extension types, or all types,
+    are immortal on some Python versions. See ``env.TYPES_ARE_IMMORTAL``.
+    """
+    wrs = []
+    for mod, name in specs:
+        wrs.append(weakref.ref(getattr(mod, name)))
+        delattr(mod, name)
+
+    for _ in range(5):
+        gc.collect()
+        if all(wr() is None for wr in wrs):
+            break
+    else:
+        pytest.fail(
+            f"Could not delete bindings such as {next(wr for wr in wrs if wr() is not None)!r}"
+        )
+
+
 def pytest_configure():
     pytest.suppress = contextlib.suppress
     pytest.gc_collect = gc_collect
+    pytest.delattr_and_ensure_destroyed = delattr_and_ensure_destroyed
 
 
 def pytest_report_header():
