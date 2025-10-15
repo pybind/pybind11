@@ -203,7 +203,8 @@ jobs:
       if: runner.os != 'Windows'
       run: echo "CMAKE_GENERATOR=Ninja" >> "$GITHUB_ENV"
 
-    # More-or-less randomly adding a few extra flags here
+    # More-or-less randomly adding a few extra flags here.
+    # In particular, use this one to test the next ABI bump (internals version).
     - name: Configure
       run: >
         cmake -S. -B.
@@ -213,6 +214,7 @@ jobs:
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=14
+        -DPYBIND11_INTERNALS_VERSION=10000000
 
     # Checks to makes sure defining `_` is allowed
     # Triggers EHsc missing error on Windows
