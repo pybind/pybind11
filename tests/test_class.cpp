@@ -61,7 +61,7 @@ class Args : public py::args {};
 struct ConvertibleFromAnything {
     ConvertibleFromAnything() = default;
     template <class T>
-    ConvertibleFromAnything(T&&) {} // NOLINT(google-explicit-constructor)
+    ConvertibleFromAnything(T &&) {} // NOLINT(google-explicit-constructor)
 };
 
 } // namespace test_class
@@ -586,10 +586,9 @@ TEST_SUBMODULE(class_, m) {
     test_class::pr4220_tripped_over_this::bind_empty0(m);
 
     // Regression test for compiler error that showed up in #5866
-    m.def("return_universal_recipient",
-          []() -> test_class::ConvertibleFromAnything {
-              return test_class::ConvertibleFromAnything{};
-          });
+    m.def("return_universal_recipient", []() -> test_class::ConvertibleFromAnything {
+        return test_class::ConvertibleFromAnything{};
+    });
 }
 
 template <int N>
