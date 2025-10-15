@@ -61,7 +61,8 @@ class Args : public py::args {};
 struct ConvertibleFromAnything {
     ConvertibleFromAnything() = default;
     template <class T>
-    ConvertibleFromAnything(T &&) {} // NOLINT
+    // NOLINTNEXTLINE(bugprone-forwarding-reference-overload,google-explicit-constructor)
+    ConvertibleFromAnything(T &&) {}
 };
 
 } // namespace test_class
