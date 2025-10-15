@@ -248,37 +248,40 @@ inline std::string generate_type_signature() {
 #    define PYBIND11_COMPAT_STRDUP strdup
 #endif
 
-#define PYBIND11_READABLE_SIGNATURE_EXPR                                                          \
+#define PYBIND11_READABLE_FUNCTION_SIGNATURE_EXPR                                                 \
     detail::const_name("(") + cast_in::arg_names + detail::const_name(") -> ") + cast_out::name
 
-// We centralize readable function signatures in a specific template
-// so that we don't duplicate them across different instantiations of
+// We factor out readable function signatures to a specific template
+// so that they don't get duplicated across different instantiations of
 // cpp_function::initialize (which is templated on more types).
 template <typename cast_in, typename cast_out>
 class ReadableFunctionSignature {
 public:
-    using readable_signature_type = decltype(PYBIND11_READABLE_SIGNATURE_EXPR);
+    using sig_type = decltype(PYBIND11_READABLE_FUNCTION_SIGNATURE_EXPR);
 
 private:
-    // We have to repeat PYBIND11_READABLE_SIGNATURE_EXPR in decltype()
+    // We have to repeat PYBIND11_READABLE_FUNCTION_SIGNATURE_EXPR in decltype()
     // because C++11 doesn't allow functions to return `auto`. (We don't
     // know the type because it's some variant of detail::descr<N> with
     // unknown N.)
-    static constexpr readable_signature_type readable_signature() {
-        return PYBIND11_READABLE_SIGNATURE_EXPR;
-    }
+    static constexpr sig_type sig() { return PYBIND11_READABLE_FUNCTION_SIGNATURE_EXPR; }
 
 public:
-    static constexpr readable_signature_type kReadableSignature = readable_signature();
+    static constexpr sig_type kSig = sig();
+    // We can only stash the result of detail::descr::types() in a
+    // constexpr variable if we aren't on MSVC (see
+    // PYBIND11_DESCR_CONSTEXPR).
 #if !defined(_MSC_VER)
-    using types_type = decltype(readable_signature_type::types());
-    static constexpr types_type kTypes = readable_signature_type::types();
+    using types_type = decltype(sig_type::types());
+    static constexpr types_type kTypes = sig_type::types();
 #endif
 };
-#undef PYBIND11_READABLE_SIGNATURE_EXPR
+#undef PYBIND11_READABLE_FUNCTION_SIGNATURE_EXPR
 
-// Prior to C++17, we don't have inline variables, so we have to provide an out-of-line definition
-// of the class member.
+// Prior to C++17, we don't have inline variables, so we have to
+// provide an out-of-line definition of the class member. We should
+// remove the following chunk of code (until the PYBIND11_WARNING_POP)
+// if/when we drop support for C++11 and C++14.
 PYBIND11_WARNING_PUSH
 #if defined(PYBIND11_CPP17)
 #    if defined(__clang_major__)                                                                  \
@@ -294,8 +297,8 @@ PYBIND11_WARNING_DISABLE_CLANG("-Wdeprecated")
 PYBIND11_WARNING_DISABLE_GCC("-Wdeprecated")
 #endif
 template <typename cast_in, typename cast_out>
-constexpr typename ReadableFunctionSignature<cast_in, cast_out>::readable_signature_type
-    ReadableFunctionSignature<cast_in, cast_out>::kReadableSignature;
+constexpr typename ReadableFunctionSignature<cast_in, cast_out>::sig_type
+    ReadableFunctionSignature<cast_in, cast_out>::kSig;
 #if !defined(_MSC_VER)
 template <typename cast_in, typename cast_out>
 constexpr typename ReadableFunctionSignature<cast_in, cast_out>::types_type
@@ -537,7 +540,7 @@ protected:
         /* Generate a readable signature describing the function's arguments and return
            value types */
         static constexpr const auto &signature
-            = detail::ReadableFunctionSignature<cast_in, cast_out>::kReadableSignature;
+            = detail::ReadableFunctionSignature<cast_in, cast_out>::kSig;
 #if !defined(_MSC_VER)
         static constexpr const auto &types
             = detail::ReadableFunctionSignature<cast_in, cast_out>::kTypes;
