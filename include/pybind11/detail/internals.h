@@ -286,8 +286,8 @@ struct internals {
     internals()
         : static_property_type(make_static_property_type()),
           default_metaclass(make_default_metaclass()) {
+        tstate.set(nullptr); // See PR #5870
         PyThreadState *cur_tstate = PyThreadState_Get();
-        tstate = cur_tstate;
 
         istate = cur_tstate->interp;
         registered_exception_translators.push_front(&translate_exception);
