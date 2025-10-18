@@ -120,7 +120,11 @@ public:
                 pybind11_fail("scoped_acquire::dec_ref(): internal error!");
             }
 #    endif
+            // Make sure that PyThreadState_Clear is not recursively called by finalizers.
+            // See issue #5827
+            ++tstate->gilstate_counter;
             PyThreadState_Clear(tstate);
+            --tstate->gilstate_counter;
             if (active) {
                 PyThreadState_DeleteCurrent();
             }
