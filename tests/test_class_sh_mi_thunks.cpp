@@ -51,11 +51,9 @@ struct VBase {
 // test_virtual_base_at_offset_0() and continues.
 struct Left : virtual VBase {
     char pad_l[4]; // small, typically 4 + padding
-    ~Left() override = default;
 };
 struct Right : virtual VBase {
     char pad_r[24]; // larger, to differ from Left
-    ~Right() override = default;
 };
 
 struct Diamond : Left, Right {

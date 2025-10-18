@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include <pybind11/contrib/pymetabind.h>
 #include <pybind11/gil.h>
 #include <pybind11/pytypes.h>
 #include <pybind11/trampoline_self_life_support.h>
@@ -37,6 +38,11 @@
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
+
+// Forward declaration, implemented in foreign.h
+void *try_foreign_bindings(const std::type_info *type,
+                           void *(*attempt)(void *closure, pymb_binding *binding),
+                           void *closure);
 
 /// A life support system for temporary objects created by `type_caster::load()`.
 /// Adding a patient will keep it alive up until the enclosing function returns.
@@ -99,6 +105,10 @@ public:
             Py_INCREF(h.ptr());
         }
     }
+
+    static bool can_add_patient() { return tls_current_frame() != nullptr; }
+
+    const std::unordered_set<PyObject *> &list_patients() const { return keep_alive; }
 };
 
 // Gets the cache entry for the given type, creating it if necessary.  The return value is the pair
@@ -284,9 +294,32 @@ PYBIND11_NOINLINE detail::type_info *get_type_info(const std::type_info &tp,
     return nullptr;
 }
 
-PYBIND11_NOINLINE handle get_type_handle(const std::type_info &tp, bool throw_if_missing) {
-    detail::type_info *type_info = get_type_info(tp, throw_if_missing);
-    return handle(type_info ? ((PyObject *) type_info->type) : nullptr);
+PYBIND11_NOINLINE handle get_type_handle(const std::type_info &tp,
+                                         bool throw_if_missing,
+                                         bool foreign_ok) {
+    if (detail::type_info *type_info = get_type_info(tp)) {
+        return handle((PyObject *) type_info->type);
+    }
+    if (foreign_ok) {
+        auto &interop_internals = detail::get_interop_internals();
+        if (interop_internals.imported_any) {
+            handle ret = with_internals([&](internals &) {
+                auto it = interop_internals.bindings.find(tp);
+                if (it != interop_internals.bindings.end() && !it->second.empty()) {
+                    pymb_binding *binding = *it->second.begin();
+                    return handle((PyObject *) binding->pytype);
+                }
+                return handle();
+            });
+            if (ret) {
+                return ret;
+            }
+        }
+    }
+    if (throw_if_missing) {
+        return handle((PyObject *) get_type_info(tp, true)->type);
+    }
+    return nullptr;
 }
 
 inline bool try_incref(PyObject *obj) {
@@ -523,8 +556,8 @@ PYBIND11_NOINLINE void instance::deallocate_layout() {
     }
 }
 
-PYBIND11_NOINLINE bool isinstance_generic(handle obj, const std::type_info &tp) {
-    handle type = detail::get_type_handle(tp, false);
+PYBIND11_NOINLINE bool isinstance_generic(handle obj, const std::type_info &tp, bool foreign_ok) {
+    handle type = detail::get_type_handle(tp, false, foreign_ok);
     if (!type) {
         return false;
     }
@@ -589,6 +622,21 @@ struct cast_sources {
     // type_info. If the type_info is null, then pybind11 doesn't know
     // about this type.
     resolved_source result;
+
+    // cast() sets this to the foreign framework used, if any
+    mutable pymb_framework *used_foreign = nullptr;
+
+    // Copy of type_info::init_instance, so it can be overridden in some
+    // cases casting a pybind11 instance on behalf of a foreign framework.
+    void (*init_instance)(instance *, const void *) = nullptr;
+
+    // cast() sets this to indicate whether the cast created a new instance
+    // or looked up one that already existed.
+    mutable bool is_new = false;
+
+    // Returns true if the cast will not succeed using a type listed in our
+    // pybind11 internals (it will either use a foreign-framework type or fail)
+    bool needs_foreign() const { return result.tinfo == nullptr; }
 
     // Returns true if the cast will use a pybind11 type that uses
     // a smart holder.
@@ -885,6 +933,7 @@ struct load_helper : value_and_holder_helper {
             }
             throw std::runtime_error("Non-owning holder (load_as_shared_ptr).");
         }
+
         auto *type_raw_ptr = static_cast<T *>(void_raw_ptr);
         if (python_instance_is_alias && !force_potentially_slicing_shared_ptr) {
             auto *vptr_gd_ptr = tinfo->get_memory_guarded_delete(holder().vptr);
@@ -997,21 +1046,90 @@ public:
                        return_value_policy policy,
                        handle parent,
                        const detail::type_info *tinfo,
-                       void *(*copy_constructor)(const void *),
-                       void *(*move_constructor)(const void *),
+                       copy_or_move_ctor copy_constructor,
+                       copy_or_move_ctor move_constructor,
                        const void *existing_holder = nullptr) {
         cast_sources srcs{src, tinfo};
         return cast(srcs, policy, parent, copy_constructor, move_constructor, existing_holder);
     }
 
+    static handle cast_foreign(const cast_sources &srcs,
+                               return_value_policy policy,
+                               handle parent,
+                               bool has_holder) {
+        struct capture {
+            const void *src;
+            pymb_rv_policy policy = pymb_rv_policy_none;
+            pymb_to_python_feedback feedback{};
+            const cast_sources *srcs;
+        } cap;
+
+        auto attempt = +[](void *closure, pymb_binding *binding) -> void * {
+            capture &cap = *(capture *) closure;
+            void *ret = binding->framework->to_python(
+                binding, const_cast<void *>(cap.src), cap.policy, &cap.feedback);
+            if (ret) {
+                cap.srcs->used_foreign = binding->framework;
+                cap.srcs->is_new = cap.feedback.is_new;
+            }
+            return ret;
+        };
+
+        cap.srcs = &srcs;
+        switch (policy) {
+            case return_value_policy::automatic:
+                cap.policy = pymb_rv_policy_take_ownership;
+                break;
+            case return_value_policy::automatic_reference:
+            case return_value_policy::reference:
+                cap.policy
+                    = has_holder ? pymb_rv_policy_share_ownership : pymb_rv_policy_reference;
+                break;
+            case return_value_policy::reference_internal:
+                if (!parent) {
+                    return nullptr;
+                }
+                cap.policy = pymb_rv_policy_share_ownership;
+                break;
+            case return_value_policy::take_ownership:
+            case return_value_policy::copy:
+            case return_value_policy::move:
+                cap.policy = (pymb_rv_policy) (uint8_t) policy;
+                break;
+        }
+
+        void *result_v = nullptr;
+        if (srcs.downcast.cpptype) {
+            cap.src = srcs.downcast.cppobj;
+            result_v = try_foreign_bindings(srcs.downcast.cpptype, attempt, &cap);
+        }
+        if (!result_v && srcs.original.cpptype) {
+            cap.src = srcs.original.cppobj;
+            result_v = try_foreign_bindings(srcs.original.cpptype, attempt, &cap);
+        }
+
+        auto *result = (PyObject *) result_v;
+        if (result && policy == return_value_policy::reference_internal && srcs.is_new
+            && srcs.used_foreign->keep_alive(result, parent.ptr(), nullptr) == 0) {
+            keep_alive_impl(result, parent.ptr());
+        }
+        return result;
+    }
+
     PYBIND11_NOINLINE static handle cast(const cast_sources &srcs,
                                          return_value_policy policy,
                                          handle parent,
-                                         void *(*copy_constructor)(const void *),
-                                         void *(*move_constructor)(const void *),
+                                         copy_or_move_ctor copy_constructor,
+                                         copy_or_move_ctor move_constructor,
                                          const void *existing_holder = nullptr) {
         if (!srcs.result.tinfo) {
-            // No pybind11 type info. Raise an exception.
+            // No pybind11 type info. See if we can use another framework's
+            // type to complete this cast. Set srcs.used_foreign if so.
+            if (srcs.original.cpptype && get_interop_internals().imported_any) {
+                if (handle ret = cast_foreign(srcs, policy, parent, existing_holder != nullptr)) {
+                    return ret;
+                }
+            }
             std::string tname = srcs.downcast.cpptype   ? srcs.downcast.cpptype->name()
                                 : srcs.original.cpptype ? srcs.original.cpptype->name()
                                                         : "<unspecified>";
@@ -1098,7 +1216,8 @@ public:
                 throw cast_error("unhandled return_value_policy: should not happen!");
         }
 
-        tinfo->init_instance(wrapper, existing_holder);
+        srcs.init_instance(wrapper, existing_holder);
+        srcs.is_new = true;
 
         return inst.release();
     }
@@ -1170,41 +1289,76 @@ public:
         return nullptr;
     }
 
-    /// Try to load with foreign typeinfo, if available. Used when there is no
-    /// native typeinfo, or when the native one wasn't able to produce a value.
-    PYBIND11_NOINLINE bool try_load_foreign_module_local(handle src) {
-        constexpr auto *local_key = PYBIND11_MODULE_LOCAL_ID;
-        const auto pytype = type::handle_of(src);
-        if (!hasattr(pytype, local_key)) {
+    /// Try to load as a type exposed by a different binding framework (which
+    /// might be an ABI-incompatible version of pybind11).
+    bool try_load_other_framework(handle src, bool convert) {
+        auto &interop_internals = get_interop_internals();
+        if (!interop_internals.imported_any || !cpptype || src.is_none()) {
             return false;
         }
 
-        type_info *foreign_typeinfo = reinterpret_borrow<capsule>(getattr(pytype, local_key));
-        // Only consider this foreign loader if actually foreign and is a loader of the correct cpp
-        // type
-        if (foreign_typeinfo->module_local_load == &local_load
-            || (cpptype && !same_type(*cpptype, *foreign_typeinfo->cpptype))) {
-            return false;
-        }
+        struct capture {
+            handle src;
+            bool convert;
+        } cap{src, convert};
 
-        if (auto *result = foreign_typeinfo->module_local_load(src.ptr(), foreign_typeinfo)) {
+        auto attempt = +[](void *closure, pymb_binding *binding) -> void * {
+            capture &cap = *(capture *) closure;
+            void (*keep_referenced)(void *, PyObject *) = nullptr;
+            if (loader_life_support::can_add_patient()) {
+                keep_referenced
+                    = [](void *, PyObject *item) { loader_life_support::add_patient(item); };
+            }
+            return binding->framework->from_python(
+                binding, cap.src.ptr(), cap.convert, keep_referenced, nullptr);
+        };
+
+        if (void *result = try_foreign_bindings(cpptype, attempt, &cap)) {
             value = result;
             return true;
         }
         return false;
     }
 
+    /// Try to load as a type bound as py::module_local() in a different (but
+    /// ABI-compatible) pybind11 module.
+    bool try_load_other_module_local(handle src, type_info *remote_typeinfo) {
+        // Only consider this loader if it's not ours and it loads the correct cpp type
+        if (remote_typeinfo->module_local_load == &local_load
+            || (cpptype && !same_type(*cpptype, *remote_typeinfo->cpptype))) {
+            return false;
+        }
+
+        if (auto *result = remote_typeinfo->module_local_load(src.ptr(), remote_typeinfo)) {
+            value = result;
+            return true;
+        }
+        return false;
+    }
+
+    /// Try to load with foreign typeinfo, if available. Used when there is no
+    /// native typeinfo, or when the native one wasn't able to produce a value.
+    PYBIND11_NOINLINE bool try_load_foreign(handle src, bool convert, bool foreign_ok) {
+        constexpr auto *local_key = PYBIND11_MODULE_LOCAL_ID;
+        const auto pytype = type::handle_of(src);
+        if (hasattr(pytype, local_key)) {
+            return try_load_other_module_local(
+                src, reinterpret_borrow<capsule>(getattr(pytype, local_key)));
+        }
+        return foreign_ok && try_load_other_framework(src, convert);
+    }
+
     // Implementation of `load`; this takes the type of `this` so that it can dispatch the relevant
     // bits of code between here and copyable_holder_caster where the two classes need different
     // logic (without having to resort to virtual inheritance).
     template <typename ThisT>
-    PYBIND11_NOINLINE bool load_impl(handle src, bool convert) {
+    PYBIND11_NOINLINE bool load_impl(handle src, bool convert, bool foreign_ok = true) {
         auto &this_ = static_cast<ThisT &>(*this);
         if (!src) {
             return false;
         }
         if (!typeinfo) {
-            return try_load_foreign_module_local(src) && this_.set_foreign_holder(src);
+            return try_load_foreign(src, convert, foreign_ok) && this_.set_foreign_holder(src);
         }
 
         this_.check_holder_compat();
@@ -1276,8 +1430,9 @@ public:
             }
         }
 
-        // Global typeinfo has precedence over foreign module_local
-        if (try_load_foreign_module_local(src)) {
+        // Global typeinfo has precedence over foreign module_local and
+        // foreign frameworks
+        if (try_load_foreign(src, convert, foreign_ok)) {
             return this_.set_foreign_holder(src);
         }
 
@@ -1648,13 +1803,80 @@ public:
                                          make_move_constructor((const itype *) nullptr));
     }
 
-    static handle cast_holder(const itype *src, const void *holder) {
-        return cast_holder(cast_sources{src}, holder);
+    PYBIND11_NOINLINE static void after_shared_ptr_cast_to_foreign(
+        handle ret, std::shared_ptr<const void> holder, pymb_framework *framework) {
+        // Make the resulting Python object keep a shared_ptr<T> alive,
+        // even if there's not space for it inside the object.
+        std::unique_ptr<std::shared_ptr<const void>> sp{new auto(std::move(holder))};
+        auto deleter = [](void *p) noexcept { delete (std::shared_ptr<const void> *) p; };
+        if (!framework->keep_alive(ret.ptr(), sp.get(), deleter)) {
+            // If they don't provide a keep_alive, use our own weakref-based
+            // one. If ret is not weakrefable, it will throw and the capsule's
+            // destructor will clean up for us.
+            keep_alive_impl(ret, capsule((void *) sp.release(), deleter));
+        }
+        (void) sp.release(); // NOLINT(bugprone-unused-return-value)
+    }
+
+    template <class T>
+    static handle cast_holder(const cast_sources &srcs, std::unique_ptr<T> *holder) {
+        handle ret = type_caster_generic::cast(
+            srcs, return_value_policy::take_ownership, {}, nullptr, nullptr, holder);
+        if (srcs.used_foreign) {
+            // Foreign cast succeeded; transfer ownership
+            if (srcs.is_new) {
+                // The new instance took ownership, so drop it on the C++ side
+                (void) holder->release(); // NOLINT(bugprone-unused-return-value)
+            } else {
+                // The instance already existed, so wouldn't have been carrying
+                // ownership since `*holder` held exclusive ownership until a
+                // moment ago. Transfer the ownership via a keep_alive instead.
+                after_shared_ptr_cast_to_foreign(
+                    ret, std::shared_ptr<T>{std::move(*holder)}, srcs.used_foreign);
+            }
+        }
+        return ret;
+    }
+
+    template <class T>
+    static handle cast_holder(const cast_sources &srcs, const std::shared_ptr<T> *holder) {
+        // Use reference policy if casting via a foreign binding, and
+        // take_ownership if casting a pybind11 type
+        auto policy = srcs.needs_foreign() ? return_value_policy::reference
+                                           : return_value_policy::take_ownership;
+        handle ret = type_caster_generic::cast(srcs, policy, {}, nullptr, nullptr, holder);
+        if (srcs.used_foreign && srcs.is_new) {
+            after_shared_ptr_cast_to_foreign(
+                ret, std::static_pointer_cast<const void>(*holder), srcs.used_foreign);
+        }
+        return ret;
+    }
+
+    // Support unique_ptr with custom deleter by converting it to shared_ptr
+    template <class T, class D>
+    static handle cast_holder(const cast_sources &srcs, std::unique_ptr<T, D> *holder) {
+        std::shared_ptr<T> shared_holder = std::move(*holder);
+        return cast_holder(srcs, &shared_holder);
     }
 
     static handle cast_holder(const cast_sources &srcs, const void *holder) {
-        auto policy = return_value_policy::take_ownership;
-        return type_caster_generic::cast(srcs, policy, {}, nullptr, nullptr, holder);
+        auto policy = srcs.needs_foreign() ? return_value_policy::reference
+                                           : return_value_policy::take_ownership;
+        handle ret = type_caster_generic::cast(srcs, policy, {}, nullptr, nullptr, holder);
+        if (srcs.used_foreign) {
+            PyErr_SetString(PyExc_TypeError,
+                            "Can't cast foreign type to holder; only "
+                            "returns of std::unique_ptr and std::shared_ptr "
+                            "are supported for foreign types");
+            ret.dec_ref();
+            return nullptr;
+        }
+        return ret;
+    }
+
+    template <class Holder>
+    static handle cast_holder(const itype *src, const Holder *holder) {
+        return cast_holder(cast_sources{src}, holder);
     }
 
     template <typename T>
@@ -1671,27 +1893,31 @@ public:
     }
 
 protected:
-    using Constructor = void *(*) (const void *);
-
     /* Only enabled when the types are {copy,move}-constructible *and* when the type
        does not have a private operator new implementation. A comma operator is used in the
        decltype argument to apply SFINAE to the public copy/move constructors.*/
     template <typename T, typename = enable_if_t<is_copy_constructible<T>::value>>
     static auto make_copy_constructor(const T *)
-        -> decltype(new T(std::declval<const T>()), Constructor{}) {
+        -> decltype(new T(std::declval<const T>()), copy_or_move_ctor{}) {
         return [](const void *arg) -> void * { return new T(*reinterpret_cast<const T *>(arg)); };
     }
 
     template <typename T, typename = enable_if_t<is_move_constructible<T>::value>>
     static auto make_move_constructor(const T *)
-        -> decltype(new T(std::declval<T &&>()), Constructor{}) {
+        -> decltype(new T(std::declval<T &&>()), copy_or_move_ctor{}) {
         return [](const void *arg) -> void * {
             return new T(std::move(*const_cast<T *>(reinterpret_cast<const T *>(arg))));
         };
     }
 
-    static Constructor make_copy_constructor(...) { return nullptr; }
-    static Constructor make_move_constructor(...) { return nullptr; }
+    static copy_or_move_ctor make_copy_constructor(...) { return nullptr; }
+    static copy_or_move_ctor make_move_constructor(...) { return nullptr; }
+
+public:
+    static std::pair<copy_or_move_ctor, copy_or_move_ctor> copy_and_move_ctors() {
+        return {make_copy_constructor(static_cast<const itype *>(nullptr)),
+                make_move_constructor(static_cast<const itype *>(nullptr))};
+    }
 };
 
 inline std::string quote_cpp_type_name(const std::string &cpp_type_name) {
@@ -1699,8 +1925,7 @@ inline std::string quote_cpp_type_name(const std::string &cpp_type_name) {
 }
 
 PYBIND11_NOINLINE std::string type_info_description(const std::type_info &ti) {
-    if (auto *type_data = get_type_info(ti)) {
-        handle th((PyObject *) type_data->type);
+    if (handle th = get_type_handle(ti, false, true)) {
         return th.attr("__module__").cast<std::string>() + '.'
                + th.attr("__qualname__").cast<std::string>();
     }
