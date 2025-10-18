@@ -61,6 +61,13 @@ def test_iterable(doc):
 
 def test_float(doc):
     assert doc(m.get_float) == "get_float() -> float"
+    assert doc(m.float_roundtrip) == "float_roundtrip(arg0: float) -> float"
+    f1 = m.float_roundtrip(5.5)
+    assert isinstance(f1, float)
+    assert f1 == 5.5
+    f2 = m.float_roundtrip(5)
+    assert isinstance(f2, float)
+    assert f2 == 5.0
 
 
 def test_list(capture, doc):
@@ -917,7 +924,7 @@ def test_inplace_rshift(a, b):
 def test_tuple_nonempty_annotations(doc):
     assert (
         doc(m.annotate_tuple_float_str)
-        == "annotate_tuple_float_str(arg0: tuple[typing.SupportsFloat, str]) -> None"
+        == "annotate_tuple_float_str(arg0: tuple[float, str]) -> None"
     )
 
 
@@ -930,7 +937,7 @@ def test_tuple_empty_annotations(doc):
 def test_tuple_variable_length_annotations(doc):
     assert (
         doc(m.annotate_tuple_variable_length)
-        == "annotate_tuple_variable_length(arg0: tuple[typing.SupportsFloat, ...]) -> None"
+        == "annotate_tuple_variable_length(arg0: tuple[float, ...]) -> None"
     )
 
 
@@ -989,7 +996,7 @@ def test_type_annotation(doc):
 def test_union_annotations(doc):
     assert (
         doc(m.annotate_union)
-        == "annotate_union(arg0: list[str | typing.SupportsInt | object], arg1: str, arg2: typing.SupportsInt, arg3: object) -> list[str | int | object]"
+        == "annotate_union(arg0: list[str | int | object], arg1: str, arg2: int, arg3: object) -> list[str | int | object]"
     )
 
 

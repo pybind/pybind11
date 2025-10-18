@@ -75,8 +75,8 @@ inline void *interop_cb_from_python(pymb_binding *binding,
         }
         try {
             auto cap
-                = reinterpret_borrow<capsule>(pytype.attr(native_enum_info::attribute_name()));
-            auto *info = cap.get_pointer<native_enum_info>();
+                = reinterpret_borrow<capsule>(pytype.attr(native_enum_record::attribute_name()));
+            auto *info = cap.get_pointer<native_enum_record>();
             auto value = handle(pyobj).attr("value");
             uint64_t ival = 0;
             if (info->is_signed && handle(value) < int_(0)) {
@@ -197,8 +197,8 @@ inline PyObject *interop_cb_to_python(pymb_binding *binding,
         try {
             handle pytype((PyObject *) binding->pytype);
             auto cap
-                = reinterpret_borrow<capsule>(pytype.attr(native_enum_info::attribute_name()));
-            auto *info = cap.get_pointer<native_enum_info>();
+                = reinterpret_borrow<capsule>(pytype.attr(native_enum_record::attribute_name()));
+            auto *info = cap.get_pointer<native_enum_record>();
             uint64_t key = 0;
             switch (info->size_bytes) {
                 case 1:
@@ -272,7 +272,7 @@ inline PyObject *interop_cb_to_python(pymb_binding *binding,
     }
 
     try {
-        type_caster_generic::cast_sources srcs{cobj, ti};
+        cast_sources srcs{cobj, ti};
         if (inhibit_registration) {
             srcs.init_instance = init_instance_unregistered;
         }
@@ -686,8 +686,8 @@ PYBIND11_NOINLINE void interop_enable_export_all() {
         for (const auto &entry : internals.native_enum_type_map) {
             try {
                 auto cap = reinterpret_borrow<capsule>(
-                    handle(entry.second).attr(native_enum_info::attribute_name()));
-                auto *info = cap.get_pointer<native_enum_info>();
+                    handle(entry.second).attr(native_enum_record::attribute_name()));
+                auto *info = cap.get_pointer<native_enum_record>();
                 detail::export_for_interop(info->cpptype, (PyTypeObject *) entry.second, nullptr);
             } catch (error_already_set &) { // NOLINT(bugprone-empty-catch)
                 // Ignore native enums without a __pybind11_enum__ capsule;
@@ -795,8 +795,8 @@ inline void export_for_interop(handle ty) {
     // Not a class_; maybe it's a native_enum?
     try {
         auto cap
-            = reinterpret_borrow<capsule>(ty.attr(detail::native_enum_info::attribute_name()));
-        auto *info = cap.get_pointer<detail::native_enum_info>();
+            = reinterpret_borrow<capsule>(ty.attr(detail::native_enum_record::attribute_name()));
+        auto *info = cap.get_pointer<detail::native_enum_record>();
         bool ours = detail::with_internals([&](detail::internals &internals) {
             auto it = internals.native_enum_type_map.find(*info->cpptype);
             if (it != internals.native_enum_type_map.end() && it->second == ty.ptr()) {

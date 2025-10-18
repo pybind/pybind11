@@ -10,8 +10,10 @@
 
 #pragma once
 
+#include "detail/argument_vector.h"
 #include "detail/common.h"
 #include "detail/descr.h"
+#include "detail/holder_caster_foreign_helpers.h"
 #include "detail/native_enum_data.h"
 #include "detail/type_caster_base.h"
 #include "detail/typeid.h"
@@ -859,71 +861,6 @@ struct holder_helper {
     static auto get(const T &p) -> decltype(p.get()) { return p.get(); }
 };
 
-struct holder_caster_foreign_helpers {
-    struct py_deleter {
-        void operator()(const void *) const noexcept {
-            // Don't run the deleter if the interpreter has been shut down
-            if (Py_IsInitialized() == 0) {
-                return;
-            }
-            gil_scoped_acquire guard;
-            Py_DECREF(o);
-        }
-
-        PyObject *o;
-    };
-
-    template <typename type>
-    static auto try_shared_from_this(type *value, std::shared_ptr<type> *holder_out)
-        -> decltype(value->shared_from_this(), bool()) {
-        // object derives from enable_shared_from_this;
-        // try to reuse an existing shared_ptr if one is known
-        if (auto existing = try_get_shared_from_this(value)) {
-            *holder_out = std::static_pointer_cast<type>(existing);
-            return true;
-        }
-        return false;
-    }
-
-    template <typename type>
-    static bool try_shared_from_this(void *, std::shared_ptr<type> *) {
-        return false;
-    }
-
-    template <typename type>
-    static bool set_foreign_holder(handle src, type *value, std::shared_ptr<type> *holder_out) {
-        // We only support using std::shared_ptr<T> for foreign T, and
-        // it's done by creating a new shared_ptr control block that
-        // owns a reference to the original Python object.
-        if (value == nullptr) {
-            *holder_out = {};
-            return true;
-        }
-        if (try_shared_from_this(value, holder_out)) {
-            return true;
-        }
-        *holder_out = std::shared_ptr<type>(value, py_deleter{src.inc_ref().ptr()});
-        return true;
-    }
-
-    template <typename type>
-    static bool
-    set_foreign_holder(handle src, const type *value, std::shared_ptr<const type> *holder_out) {
-        std::shared_ptr<type> holder_mut;
-        if (set_foreign_holder(src, const_cast<type *>(value), &holder_mut)) {
-            *holder_out = holder_mut;
-            return true;
-        }
-        return false;
-    }
-
-    template <typename type>
-    static bool set_foreign_holder(handle, type *, ...) {
-        throw cast_error("Unable to cast foreign type to held instance -- "
-                         "only std::shared_ptr<T> is supported in this case");
-    }
-};
-
 // SMART_HOLDER_BAKEIN_FOLLOW_ON: Rewrite comment, with reference to shared_ptr specialization.
 /// Type caster for holder types like std::shared_ptr, etc.
 /// The SFINAE hook is provided to help work around the current lack of support
@@ -1284,8 +1221,8 @@ public:
     }
 
     bool set_foreign_holder(handle) {
-        throw cast_error("Foreign types cannot be converted to std::unique_ptr "
-                         "because we don't know how to make them relinquish "
+        throw cast_error("Foreign instance cannot be converted to std::unique_ptr "
+                         "because we don't know how to make it relinquish "
                          "ownership");
     }
 
@@ -1467,7 +1404,7 @@ struct handle_type_name<buffer> {
 };
 template <>
 struct handle_type_name<int_> {
-    static constexpr auto name = io_name("typing.SupportsInt", "int");
+    static constexpr auto name = const_name("int");
 };
 template <>
 struct handle_type_name<iterable> {
@@ -1479,7 +1416,7 @@ struct handle_type_name<iterator> {
 };
 template <>
 struct handle_type_name<float_> {
-    static constexpr auto name = io_name("typing.SupportsFloat", "float");
+    static constexpr auto name = const_name("float");
 };
 template <>
 struct handle_type_name<function> {
@@ -1599,6 +1536,21 @@ struct pyobject_caster {
 
 template <typename T>
 class type_caster<T, enable_if_t<is_pyobject<T>::value>> : public pyobject_caster<T> {};
+
+template <>
+class type_caster<float_> : public pyobject_caster<float_> {
+public:
+    bool load(handle src, bool /* convert */) {
+        if (isinstance<float_>(src)) {
+            value = reinterpret_borrow<float_>(src);
+        } else if (isinstance<int_>(src)) {
+            value = float_(reinterpret_borrow<int_>(src));
+        } else {
+            return false;
+        }
+        return true;
+    }
+};
 
 // Our conditions for enabling moving are quite restrictive:
 // At compile time:
@@ -2104,6 +2056,10 @@ using is_pos_only = std::is_same<intrinsic_t<T>, pos_only>;
 // forward declaration (definition in attr.h)
 struct function_record;
 
+/// (Inline size chosen mostly arbitrarily; 6 should pad function_call out to two cache lines
+/// (16 pointers) in size.)
+constexpr std::size_t arg_vector_small_size = 6;
+
 /// Internal data associated with a single function call
 struct function_call {
     function_call(const function_record &f, handle p); // Implementation in attr.h
@@ -2112,10 +2068,10 @@ struct function_call {
     const function_record &func;
 
     /// Arguments passed to the function:
-    std::vector<handle> args;
+    argument_vector<arg_vector_small_size> args;
 
     /// The `convert` value the arguments should be loaded with
-    std::vector<bool> args_convert;
+    args_convert_vector<arg_vector_small_size> args_convert;
 
     /// Extra references for the optional `py::args` and/or `py::kwargs` arguments (which, if
     /// present, are also in `args` but without a reference).

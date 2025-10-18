@@ -22,26 +22,34 @@ native_enum_missing_finalize_error_message(const std::string &enum_name_encoded)
     return "pybind11::native_enum<...>(\"" + enum_name_encoded + "\", ...): MISSING .finalize()";
 }
 
+// Internals for pybind11::native_enum; one native_enum_data object exists
+// inside each pybind11::native_enum and lives only for the duration of the
+// native_enum binding statement.
 class native_enum_data {
 public:
-    native_enum_data(handle parent_scope,
+    native_enum_data(handle parent_scope_,
                      const char *enum_name,
                      const char *native_type_name,
                      const char *class_doc,
-                     const native_enum_info &enum_info_)
+                     const native_enum_record &enum_record_)
         : enum_name_encoded{enum_name}, native_type_name_encoded{native_type_name},
-          enum_type_index{*enum_info_.cpptype}, parent_scope(parent_scope), enum_name{enum_name},
+          enum_type_index{*enum_record_.cpptype},
+          parent_scope(reinterpret_borrow<object>(parent_scope_)), enum_name{enum_name},
           native_type_name{native_type_name}, class_doc(class_doc), export_values_flag{false},
           finalize_needed{false} {
-        enum_info = capsule(
-            new native_enum_info{enum_info_},
-            native_enum_info::attribute_name(),
-            +[](void *enum_info_) {
-                auto *info = (native_enum_info *) enum_info_;
+        // Create the enum record capsule. It will be installed on the enum
+        // type object during finalize(). Its destructor removes the enum
+        // mapping from our internals, so that we won't try to convert to an
+        // enum type that's been destroyed.
+        enum_record = capsule(
+            new native_enum_record{enum_record_},
+            native_enum_record::attribute_name(),
+            +[](void *record_) {
+                auto *record = static_cast<native_enum_record *>(record_);
                 with_internals([&](internals &internals) {
-                    internals.native_enum_type_map.erase(*info->cpptype);
+                    internals.native_enum_type_map.erase(*record->cpptype);
                 });
-                delete info;
+                delete record;
             });
     }
 
@@ -82,7 +90,7 @@ private:
     str enum_name;
     str native_type_name;
     std::string class_doc;
-    capsule enum_info;
+    capsule enum_record;
 
 protected:
     list members;
@@ -209,15 +217,15 @@ inline void native_enum_data::finalize() {
         py_enum[doc[int_(0)]].attr("__doc__") = doc[int_(1)];
     }
 
-    py_enum.attr(native_enum_info::attribute_name()) = enum_info;
+    py_enum.attr(native_enum_record::attribute_name()) = enum_record;
     with_internals([&](internals &internals) {
         internals.native_enum_type_map[enum_type_index] = py_enum.ptr();
 
         auto &interop_internals = get_interop_internals();
         if (interop_internals.export_all) {
-            auto *info = enum_info.get_pointer<native_enum_info>();
+            auto *record = enum_record.get_pointer<native_enum_record>();
             interop_internals.export_for_interop(
-                info->cpptype, (PyTypeObject *) py_enum.ptr(), nullptr);
+                record->cpptype, (PyTypeObject *) py_enum.ptr(), nullptr);
         }
     });
 }

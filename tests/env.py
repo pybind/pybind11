@@ -24,6 +24,12 @@ PY_GIL_DISABLED = bool(sysconfig.get_config_var("Py_GIL_DISABLED"))
 # Runtime state (what's actually happening now)
 sys_is_gil_enabled = getattr(sys, "_is_gil_enabled", lambda: True)
 
+TYPES_ARE_IMMORTAL = (
+    PYPY
+    or GRAALPY
+    or (CPYTHON and PY_GIL_DISABLED and (3, 13) <= sys.version_info < (3, 14))
+)
+
 
 def deprecated_call():
     """

@@ -243,6 +243,49 @@ inline std::string generate_type_signature() {
         caster_name_field.text, &func_rec, descr_types.data(), type_index, arg_index);
 }
 
+#define PYBIND11_READABLE_FUNCTION_SIGNATURE_EXPR                                                 \
+    detail::const_name("(") + cast_in::arg_names + detail::const_name(") -> ") + cast_out::name
+
+// We factor out readable function signatures to a specific template
+// so that they don't get duplicated across different instantiations of
+// cpp_function::initialize (which is templated on more types).
+template <typename cast_in, typename cast_out>
+class ReadableFunctionSignature {
+public:
+    using sig_type = decltype(PYBIND11_READABLE_FUNCTION_SIGNATURE_EXPR);
+
+private:
+    // We have to repeat PYBIND11_READABLE_FUNCTION_SIGNATURE_EXPR in decltype()
+    // because C++11 doesn't allow functions to return `auto`. (We don't
+    // know the type because it's some variant of detail::descr<N> with
+    // unknown N.)
+    static constexpr sig_type sig() { return PYBIND11_READABLE_FUNCTION_SIGNATURE_EXPR; }
+
+public:
+    static constexpr sig_type kSig = sig();
+    // We can only stash the result of detail::descr::types() in a
+    // constexpr variable if we aren't on MSVC (see
+    // PYBIND11_DESCR_CONSTEXPR).
+#if !defined(_MSC_VER)
+    using types_type = decltype(sig_type::types());
+    static constexpr types_type kTypes = sig_type::types();
+#endif
+};
+#undef PYBIND11_READABLE_FUNCTION_SIGNATURE_EXPR
+
+// Prior to C++17, we don't have inline variables, so we have to
+// provide an out-of-line definition of the class member.
+#if !defined(PYBIND11_CPP17)
+template <typename cast_in, typename cast_out>
+constexpr typename ReadableFunctionSignature<cast_in, cast_out>::sig_type
+    ReadableFunctionSignature<cast_in, cast_out>::kSig;
+#    if !defined(_MSC_VER)
+template <typename cast_in, typename cast_out>
+constexpr typename ReadableFunctionSignature<cast_in, cast_out>::types_type
+    ReadableFunctionSignature<cast_in, cast_out>::kTypes;
+#    endif
+#endif
+
 PYBIND11_NAMESPACE_END(detail)
 
 /// Wraps an arbitrary C++ function/method/lambda function/.. into a callable Python object
@@ -476,9 +519,14 @@ protected:
 
         /* Generate a readable signature describing the function's arguments and return
            value types */
-        static constexpr auto signature
-            = const_name("(") + cast_in::arg_names + const_name(") -> ") + cast_out::name;
-        PYBIND11_DESCR_CONSTEXPR auto types = decltype(signature)::types();
+        static constexpr const auto &signature
+            = detail::ReadableFunctionSignature<cast_in, cast_out>::kSig;
+#if !defined(_MSC_VER)
+        static constexpr const auto &types
+            = detail::ReadableFunctionSignature<cast_in, cast_out>::kTypes;
+#else
+        PYBIND11_DESCR_CONSTEXPR auto types = std::decay<decltype(signature)>::type::types();
+#endif
 
         /* Register the function with Python from generic (non-templated) code */
         // Pass on the ownership over the `unique_rec` to `initialize_generic`. `rec` stays valid.
@@ -1043,13 +1091,14 @@ protected:
                 }
 #endif
 
-                std::vector<bool> second_pass_convert;
+                args_convert_vector<arg_vector_small_size> second_pass_convert;
                 if (overloaded) {
                     // We're in the first no-convert pass, so swap out the conversion flags for a
                     // set of all-false flags.  If the call fails, we'll swap the flags back in for
                     // the conversion-allowed call below.
-                    second_pass_convert.resize(func.nargs, false);
-                    call.args_convert.swap(second_pass_convert);
+                    second_pass_convert = std::move(call.args_convert);
+                    call.args_convert
+                        = args_convert_vector<arg_vector_small_size>(func.nargs, false);
                 }
 
                 // 6. Call the function.
@@ -1631,10 +1680,14 @@ protected:
         with_internals([&](internals &internals) {
             auto tindex = std::type_index(*rec.type);
             tinfo->direct_conversions = &internals.direct_conversions[tindex];
+            auto &local_internals = get_local_internals();
             if (rec.module_local) {
-                get_local_internals().registered_types_cpp[tindex] = tinfo;
+                local_internals.registered_types_cpp[rec.type] = tinfo;
             } else {
                 internals.registered_types_cpp[tindex] = tinfo;
+#if PYBIND11_INTERNALS_VERSION >= 12
+                internals.registered_types_cpp_fast[rec.type] = tinfo;
+#endif
             }
 
             PYBIND11_WARNING_PUSH
@@ -2139,10 +2192,18 @@ public:
             get_interop_internals().copy_move_ctors.emplace(
                 *record.type, detail::type_caster_base<type_>::copy_and_move_ctors());
             if (has_alias) {
-                auto &instances = record.module_local ? get_local_internals().registered_types_cpp
-                                                      : internals.registered_types_cpp;
-                instances[std::type_index(typeid(type_alias))]
-                    = instances[std::type_index(typeid(type))];
+                auto &local_internals = get_local_internals();
+                if (record.module_local) {
+                    local_internals.registered_types_cpp[&typeid(type_alias)]
+                        = local_internals.registered_types_cpp[&typeid(type)];
+                } else {
+                    type_info *const val
+                        = internals.registered_types_cpp[std::type_index(typeid(type))];
+                    internals.registered_types_cpp[std::type_index(typeid(type_alias))] = val;
+#if PYBIND11_INTERNALS_VERSION >= 12
+                    internals.registered_types_cpp_fast[&typeid(type_alias)] = val;
+#endif
+                }
             }
         });
         def("_pybind11_conduit_v1_", cpp_conduit_method);

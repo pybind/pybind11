@@ -221,10 +221,19 @@ extern "C" inline void pybind11_meta_dealloc(PyObject *obj) {
             auto tindex = std::type_index(*tinfo->cpptype);
             internals.direct_conversions.erase(tindex);
 
+            auto &local_internals = get_local_internals();
             if (tinfo->module_local) {
-                get_local_internals().registered_types_cpp.erase(tindex);
+                local_internals.registered_types_cpp.erase(tinfo->cpptype);
             } else {
                 internals.registered_types_cpp.erase(tindex);
+#if PYBIND11_INTERNALS_VERSION >= 12
+                internals.registered_types_cpp_fast.erase(tinfo->cpptype);
+                for (const std::type_info *alias : tinfo->alias_chain) {
+                    auto num_erased = internals.registered_types_cpp_fast.erase(alias);
+                    (void) num_erased;
+                    assert(num_erased > 0);
+                }
+#endif
             }
             get_interop_internals().copy_move_ctors.erase(tindex);
             internals.registered_types_py.erase(tinfo->type);
@@ -315,8 +324,9 @@ inline void traverse_offset_bases(void *valueptr,
 
 #ifdef Py_GIL_DISABLED
 inline void enable_try_inc_ref(PyObject *obj) {
-    // TODO: Replace with PyUnstable_Object_EnableTryIncRef when available.
-    // See https://github.com/python/cpython/issues/128844
+#    if PY_VERSION_HEX >= 0x030E00A4
+    PyUnstable_EnableTryIncRef(obj);
+#    else
     if (_Py_IsImmortal(obj)) {
         return;
     }
@@ -331,10 +341,12 @@ inline void enable_try_inc_ref(PyObject *obj) {
             return;
         }
     }
+#    endif
 }
 #endif
 
 inline bool register_instance_impl(void *ptr, instance *self) {
+    assert(ptr);
 #ifdef Py_GIL_DISABLED
     enable_try_inc_ref(reinterpret_cast<PyObject *>(self));
 #endif
@@ -342,6 +354,7 @@ inline bool register_instance_impl(void *ptr, instance *self) {
     return true; // unused, but gives the same signature as the deregister func
 }
 inline bool deregister_instance_impl(void *ptr, instance *self) {
+    assert(ptr);
     return with_instance_map(ptr, [&](instance_map &instances) {
         auto range = instances.equal_range(ptr);
         for (auto it = range.first; it != range.second; ++it) {
