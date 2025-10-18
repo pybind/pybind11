@@ -348,9 +348,9 @@ public:
     }
 
     PYBIND11_TYPE_CASTER(T,
-                         io_name<std::is_integral<T>::value>(PYBIND11_TYPE_ARGUMENT_INT,
+                         io_name<std::is_integral<T>::value>(PYBIND11_INT_ARGUMENT_TYPE_HINT,
                                                              "int",
-                                                             PYBIND11_TYPE_ARGUMENT_FLOAT,
+                                                             PYBIND11_FLOAT_ARGUMENT_TYPE_HINT,
                                                              "float"));
 };
 

@@ -298,12 +298,12 @@
 #    define PYBIND11_TYPE_GUARD_TYPE_HINT "typing_extensions.TypeGuard"
 #endif
 
-#ifndef PYBIND11_DISABLE_NUMERIC_SUPPORTS_HINT
-#    define PYBIND11_TYPE_ARGUMENT_FLOAT "typing.SupportsFloat"
-#    define PYBIND11_TYPE_ARGUMENT_INT "typing.SupportsInt"
+#ifndef PYBIND11_DISABLE_SUPPORTS_TYPE_HINTS
+#    define PYBIND11_FLOAT_ARGUMENT_TYPE_HINT "typing.SupportsFloat"
+#    define PYBIND11_INT_ARGUMENT_TYPE_HINT "typing.SupportsInt"
 #else
-#    define PYBIND11_TYPE_ARGUMENT_FLOAT "float"
-#    define PYBIND11_TYPE_ARGUMENT_INT "int"
+#    define PYBIND11_FLOAT_ARGUMENT_TYPE_HINT "float"
+#    define PYBIND11_INT_ARGUMENT_TYPE_HINT "int"
 #endif
 
 // #define PYBIND11_STR_LEGACY_PERMISSIVE
