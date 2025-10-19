@@ -382,6 +382,24 @@ struct type_info {
     bool module_local : 1;
 };
 
+/// Information stored in a capsule on py::native_enum() types. Since we don't
+/// create a type_info record for native enums, we must store here any
+/// information we will need about the enum at runtime.
+///
+/// If you make backward-incompatible changes to this structure, you must
+/// change the `attribute_name()` so that native enums from older version of
+/// pybind11 don't have their records reinterpreted. Better would be to keep
+/// the changes backward-compatible (i.e., only add new fields at the end)
+/// and detect/indicate their presence using the currently-unused `version`.
+struct native_enum_record {
+    const std::type_info *cpptype;
+    uint32_t size_bytes;
+    bool is_signed;
+    const uint8_t version = 1;
+
+    static const char *attribute_name() { return "__pybind11_native_enum__"; }
+};
+
 #define PYBIND11_INTERNALS_ID                                                                     \
     "__pybind11_internals_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                        \
         PYBIND11_COMPILER_TYPE_LEADING_UNDERSCORE PYBIND11_PLATFORM_ABI_ID "__"
