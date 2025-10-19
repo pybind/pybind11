@@ -25,8 +25,9 @@ using MixedLocalGlobal = LocalBase<4>;
 using MixedGlobalLocal = LocalBase<5>;
 
 /// Registered with py::module_local only in the secondary module:
-using ExternalType1 = LocalBase<6>;
-using ExternalType2 = LocalBase<7>;
+using ExternalType1 = LocalBase<6>; // default holder
+using ExternalType2 = LocalBase<7>; // held by std::shared_ptr
+using ExternalType3 = LocalBase<8>; // held by smart_holder
 
 using LocalVec = std::vector<LocalType>;
 using LocalVec2 = std::vector<NonLocal2>;
@@ -65,11 +66,11 @@ PYBIND11_MAKE_OPAQUE(NonLocalMap)
 PYBIND11_MAKE_OPAQUE(NonLocalMap2)
 
 // Simple bindings (used with the above):
-template <typename T, int Adjust = 0, typename... Args>
-py::class_<T> bind_local(Args &&...args) {
-    return py::class_<T>(std::forward<Args>(args)...).def(py::init<int>()).def("get", [](T &i) {
-        return i.i + Adjust;
-    });
+template <typename T, int Adjust = 0, typename Holder = std::unique_ptr<T>, typename... Args>
+py::class_<T, Holder> bind_local(Args &&...args) {
+    return py::class_<T, Holder>(std::forward<Args>(args)...)
+        .def(py::init<int>())
+        .def("get", [](T &i) { return i.i + Adjust; });
 }
 
 // Simulate a foreign library base class (to match the example in the docs):

@@ -93,10 +93,14 @@ TEST_SUBMODULE(native_enum, m) {
         .value("blue", color::blue)
         .finalize();
 
-    py::native_enum<altitude>(m, "altitude", "enum.Enum")
-        .value("high", altitude::high)
-        .value("low", altitude::low)
-        .finalize();
+    m.def("bind_altitude", [](const py::module_ &mod) {
+        py::native_enum<altitude>(mod, "altitude", "enum.Enum")
+            .value("high", altitude::high)
+            .value("low", altitude::low)
+            .finalize();
+    });
+    m.def("is_high_altitude", [](altitude alt) { return alt == altitude::high; });
+    m.def("get_altitude", []() -> altitude { return altitude::high; });
 
     py::native_enum<flags_uchar>(m, "flags_uchar", "enum.Flag")
         .value("bit0", flags_uchar::bit0)
@@ -135,6 +139,15 @@ TEST_SUBMODULE(native_enum, m) {
 
     m.def("pass_color", [](color e) { return static_cast<int>(e); });
     m.def("return_color", [](int i) { return static_cast<color>(i); });
+
+    m.def("return_color_const_ptr", []() -> const color * {
+        static const color test_color = color::red;
+        return &test_color;
+    });
+    m.def("return_color_mutbl_ptr", []() -> color * {
+        static color test_color = color::green;
+        return &test_color;
+    });
 
     py::native_enum<func_sig_rendering>(m, "func_sig_rendering", "enum.Enum").finalize();
     m.def(

@@ -108,7 +108,7 @@ type is explicitly allowed.
     } // namespace pybind11
 
     // Bind the negate function
-    PYBIND11_MODULE(docs_advanced_cast_custom, m) { m.def("negate", user_space::negate); }
+    PYBIND11_MODULE(docs_advanced_cast_custom, m, py::mod_gil_not_used()) { m.def("negate", user_space::negate); }
 
 .. note::
 

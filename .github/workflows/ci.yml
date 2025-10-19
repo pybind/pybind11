@@ -179,12 +179,13 @@ jobs:
 
     name: "🐍 ${{ matrix.python-version }} • ${{ matrix.runs-on }} • x64 inplace C++14"
     runs-on: ${{ matrix.runs-on }}
+    timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Setup Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
         allow-prereleases: true
@@ -202,7 +203,8 @@ jobs:
       if: runner.os != 'Windows'
       run: echo "CMAKE_GENERATOR=Ninja" >> "$GITHUB_ENV"
 
-    # More-or-less randomly adding a few extra flags here
+    # More-or-less randomly adding a few extra flags here.
+    # In particular, use this one to test the next ABI bump (internals version).
     - name: Configure
       run: >
         cmake -S. -B.
@@ -212,6 +214,7 @@ jobs:
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=14
+        -DPYBIND11_INTERNALS_VERSION=10000000
 
     # Checks to makes sure defining `_` is allowed
     # Triggers EHsc missing error on Windows
@@ -242,7 +245,7 @@ jobs:
     timeout-minutes: 40
     container: quay.io/pypa/musllinux_1_2_x86_64:latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -277,9 +280,10 @@ jobs:
 
     name: "🐍 ${{ matrix.python-version }}${{ matrix.python-debug && '-dbg' || '' }} (deadsnakes)${{ matrix.valgrind && ' • Valgrind' || '' }} • x64"
     runs-on: ubuntu-latest
+    timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Setup Python ${{ matrix.python-version }} (deadsnakes)
       uses: deadsnakes/action@v3.2.0
@@ -364,9 +368,10 @@ jobs:
 
     name: "🐍 3 • Clang ${{ matrix.clang }} • C++${{ matrix.std }} • x64${{ matrix.cxx_flags && ' • cxx_flags' || '' }}"
     container: "silkeh/clang:${{ matrix.clang }}${{ matrix.container_suffix }}"
+    timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Add wget and python3
       run: apt-get update && apt-get install -y python3-dev python3-numpy python3-pytest libeigen3-dev
@@ -401,9 +406,10 @@ jobs:
     runs-on: ubuntu-latest
     name: "🐍 3.10 • CUDA 12.2 • Ubuntu 22.04"
     container: nvidia/cuda:12.2.0-devel-ubuntu22.04
+    timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     # tzdata will try to ask for the timezone, so set the DEBIAN_FRONTEND
     - name: Install 🐍 3
@@ -427,7 +433,7 @@ jobs:
 #    container: centos:8
 #
 #    steps:
-#    - uses: actions/checkout@v4
+#    - uses: actions/checkout@v5
 #
 #    - name: Add Python 3 and a few requirements
 #      run: yum update -y && yum install -y git python3-devel python3-numpy python3-pytest make environment-modules
@@ -468,12 +474,13 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-22.04
     name: "🐍 3 • NVHPC 23.5 • C++17 • x64"
+    timeout-minutes: 90
 
     env:
       # tzdata will try to ask for the timezone, so set the DEBIAN_FRONTEND
       DEBIAN_FRONTEND: 'noninteractive'
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Add NVHPC Repo
       run: |
@@ -532,9 +539,10 @@ jobs:
 
     name: "🐍 3 • GCC ${{ matrix.gcc }} • C++${{ matrix.std }} • x64${{ matrix.cxx_flags && ' • cxx_flags' || '' }}"
     container: "gcc:${{ matrix.gcc }}"
+    timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Add Python 3
       run: apt-get update; apt-get install -y python3-dev python3-numpy python3-pytest python3-pip libeigen3-dev
@@ -593,11 +601,12 @@ jobs:
   icc:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-22.04
+    timeout-minutes: 90
 
     name: "🐍 3 • ICC latest • x64"
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Add apt repo
       run: |
@@ -707,10 +716,11 @@ jobs:
 
     name: "🐍 3 • ${{ matrix.container }} • x64"
     container: "${{ matrix.container }}"
+    timeout-minutes: 90
 
     steps:
     - name: Latest actions/checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Add Python 3.8
       if: matrix.container == 'almalinux:8'
@@ -765,6 +775,7 @@ jobs:
     name: "🐍 3.9 • Debian • x86 •  Install"
     runs-on: ubuntu-latest
     container: i386/debian:bullseye
+    timeout-minutes: 90
 
     steps:
     - uses: actions/checkout@v1  # v1 is required to run inside docker
@@ -809,11 +820,12 @@ jobs:
     if: github.event.pull_request.draft == false
     name: "Documentation build test"
     runs-on: ubuntu-latest
+    timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
-    - uses: actions/setup-python@v5
+    - uses: actions/setup-python@v6
       with:
         python-version: "3.x"
 
@@ -855,12 +867,13 @@ jobs:
 
     name: "🐍 ${{ matrix.python }} • MSVC 2022 • x86 ${{ matrix.args }}"
     runs-on: windows-2022
+    timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Setup Python ${{ matrix.python }}
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python }}
         architecture: x86
@@ -907,12 +920,13 @@ jobs:
 
     name: "🐍 ${{ matrix.python }} • MSVC 2022 (Debug) • x86 ${{ matrix.args }}"
     runs-on: windows-2022
+    timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Setup Python ${{ matrix.python }}
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python }}
         architecture: x86
@@ -955,12 +969,13 @@ jobs:
 
     name: "🐍 ${{ matrix.python }} • MSVC 2022 C++20 • x64"
     runs-on: windows-2022
+    timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Setup Python ${{ matrix.python }}
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python }}
 
@@ -1012,6 +1027,7 @@ jobs:
     if: github.event.pull_request.draft == false
     name: "🐍 3 • windows-latest • ${{ matrix.sys }}"
     runs-on: windows-latest
+    timeout-minutes: 90
     defaults:
       run:
         shell: msys2 {0}
@@ -1019,8 +1035,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { sys: mingw64, env: x86_64 }
-          - { sys: mingw32, env: i686 }
+          - sys: mingw32
+            env: i686
+            extra_install: ""
+          - sys: mingw64
+            env: x86_64
+            extra_install: |
+              mingw-w64-x86_64-python-numpy
+              mingw-w64-x86_64-python-scipy
+              mingw-w64-x86_64-eigen3
     steps:
     - uses: msys2/setup-msys2@v2
       with:
@@ -1034,17 +1057,9 @@ jobs:
           mingw-w64-${{matrix.env}}-python-pytest
           mingw-w64-${{matrix.env}}-boost
           mingw-w64-${{matrix.env}}-catch
+          ${{ matrix.extra_install }}
 
-    - uses: msys2/setup-msys2@v2
-      if: matrix.sys == 'mingw64'
-      with:
-        msystem: ${{matrix.sys}}
-        install: >-
-          mingw-w64-${{matrix.env}}-python-numpy
-          mingw-w64-${{matrix.env}}-python-scipy
-          mingw-w64-${{matrix.env}}-eigen3
-
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Configure C++11
       # LTO leads to many undefined reference like
@@ -1126,6 +1141,7 @@ jobs:
         python: ['3.10']
 
     runs-on: "${{ matrix.os }}"
+    timeout-minutes: 90
 
     name: "🐍 ${{ matrix.python }} • ${{ matrix.os }} • clang-latest"
 
@@ -1134,13 +1150,13 @@ jobs:
         run: env
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Clang
         uses: egor-tensin/setup-clang@v1
 
       - name: Setup Python ${{ matrix.python }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
 
@@ -1186,94 +1202,6 @@ jobs:
 
       - name: Visibility test
         run: cmake --build . --target test_cross_module_rtti -j 2
-
-      - name: Clean directory
-        run: git clean -fdx
-
-  macos_brew_install_llvm:
-    if: github.event.pull_request.draft == false
-    name: "macos-13 • brew install llvm"
-    runs-on: macos-13
-
-    env:
-      # https://apple.stackexchange.com/questions/227026/how-to-install-recent-clang-with-homebrew
-      LDFLAGS: '-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib'
-
-    steps:
-      - name: Update PATH
-        run: echo "/usr/local/opt/llvm/bin" >> $GITHUB_PATH
-
-      - name: Show env
-        run: env
-
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Show Clang++ version before brew install llvm
-        run: clang++ --version
-
-      - name: brew install llvm
-        run: brew install llvm
-
-      - name: Show Clang++ version after brew install llvm
-        run: clang++ --version
-
-      - name: Update CMake
-        uses: jwlawson/actions-setup-cmake@v2.0
-
-      - name: Run pip installs
-        run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install -r tests/requirements.txt
-          python3 -m pip install numpy
-          python3 -m pip install scipy
-
-      - name: Show CMake version
-        run: cmake --version
-
-      - name: CMake Configure
-        run: >
-          cmake -S . -B .
-          -DPYBIND11_WERROR=ON
-          -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF
-          -DDOWNLOAD_CATCH=ON
-          -DDOWNLOAD_EIGEN=ON
-          -DCMAKE_CXX_COMPILER=clang++
-          -DCMAKE_CXX_STANDARD=17
-          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
-
-      - name: Build
-        run: cmake --build . -j 2
-
-      - name: Python tests
-        run: cmake --build . --target pytest -j 2
-
-      - name: C++ tests
-        run: cmake --build . --target cpptest -j 2
-
-      - name: Interface test
-        run: cmake --build . --target test_cmake_build -j 2
-
-      - name: Visibility test
-        run: cmake --build . --target test_cross_module_rtti -j 2
-
-      - name: CMake Configure - Exercise cmake -DPYBIND11_TEST_OVERRIDE
-        run: >
-          cmake -S . -B build_partial
-          -DPYBIND11_WERROR=ON
-          -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF
-          -DDOWNLOAD_CATCH=ON
-          -DDOWNLOAD_EIGEN=ON
-          -DCMAKE_CXX_COMPILER=clang++
-          -DCMAKE_CXX_STANDARD=17
-          -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
-          "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
-
-      - name: Build - Exercise cmake -DPYBIND11_TEST_OVERRIDE
-        run: cmake --build build_partial -j 2
-
-      - name: Python tests - Exercise cmake -DPYBIND11_TEST_OVERRIDE
-        run: cmake --build build_partial --target pytest -j 2
 
       - name: Clean directory
         run: git clean -fdx

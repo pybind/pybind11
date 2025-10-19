@@ -19,7 +19,7 @@ namespace py = pybind11;
 
 int main(int argc, char *argv[]) {
     // Setup for TEST_CASE in test_interpreter.cpp, tagging on a large random number:
-    std::string updated_pythonpath("pybind11_test_embed_PYTHONPATH_2099743835476552");
+    std::string updated_pythonpath("pybind11_test_with_catch_PYTHONPATH_2099743835476552");
     const char *preexisting_pythonpath = getenv("PYTHONPATH");
     if (preexisting_pythonpath != nullptr) {
 #if defined(_WIN32)

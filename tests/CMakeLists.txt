@@ -67,6 +67,7 @@ project(pybind11_tests CXX)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/../tools")
 
 option(PYBIND11_WERROR "Report all warnings as errors" OFF)
+option(DOWNLOAD_CATCH "Download catch2 if not found" OFF)
 option(DOWNLOAD_EIGEN "Download EIGEN" OFF)
 option(PYBIND11_CUDA_TESTS "Enable building CUDA tests" OFF)
 option(PYBIND11_TEST_SMART_HOLDER "Change the default to smart holder" OFF)
@@ -116,6 +117,7 @@ set(PYBIND11_TEST_FILES
     test_callbacks
     test_chrono
     test_class
+    test_class_cross_module_use_after_one_module_dealloc
     test_class_release_gil_before_calling_cpp_dtor
     test_class_sh_basic
     test_class_sh_disowning
@@ -238,8 +240,9 @@ list(SORT PYBIND11_PYTEST_FILES)
 # Contains the set of test files that require pybind11_cross_module_tests to be
 # built; if none of these are built (i.e. because TEST_OVERRIDE is used and
 # doesn't include them) the second module doesn't get built.
-tests_extra_targets("test_exceptions.py;test_local_bindings.py;test_stl.py;test_stl_binders.py"
-                    "pybind11_cross_module_tests")
+tests_extra_targets(
+  "test_class_cross_module_use_after_one_module_dealloc.py;test_exceptions.py;test_local_bindings.py;test_stl.py;test_stl_binders.py"
+  "pybind11_cross_module_tests")
 
 # And add additional targets for other tests.
 tests_extra_targets("test_exceptions.py" "cross_module_interleaved_error_already_set")
@@ -646,8 +649,8 @@ if(NOT PYBIND11_CUDA_TESTS)
   # Test pure C++ code (not depending on Python). Provides the `test_pure_cpp` target.
   add_subdirectory(pure_cpp)
 
-  # Test embedding the interpreter. Provides the `cpptest` target.
-  add_subdirectory(test_embed)
+  # Test C++ code that depends on Python, such as embedding the interpreter. Provides the `cpptest` target.
+  add_subdirectory(test_with_catch)
 
   # Test CMake build using functions and targets from subdirectory or installed location
   add_subdirectory(test_cmake_build)

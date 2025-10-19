@@ -87,7 +87,7 @@ Global install with brew
 
 The brew package manager (Homebrew on macOS, or Linuxbrew on Linux) has a
 `pybind11 package
-<https://github.com/Homebrew/homebrew-core/blob/master/Formula/pybind11.rb>`_.
+<https://github.com/Homebrew/homebrew-core/blob/master/Formula/p/pybind11.rb>`_.
 To install:
 
 .. code-block:: bash

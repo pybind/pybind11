@@ -364,6 +364,11 @@ function(_pybind11_generate_lto target prefer_thin_lto)
     endif()
     if(NOT HAS_FLTO_THIN)
       _pybind11_return_if_cxx_and_linker_flags_work(
+        HAS_FLTO_AUTO "-flto=auto${cxx_append}" "-flto=auto${linker_append}"
+        PYBIND11_LTO_CXX_FLAGS PYBIND11_LTO_LINKER_FLAGS)
+    endif()
+    if(NOT HAS_FLTO_AUTO)
+      _pybind11_return_if_cxx_and_linker_flags_work(
         HAS_FLTO "-flto${cxx_append}" "-flto${linker_append}" PYBIND11_LTO_CXX_FLAGS
         PYBIND11_LTO_LINKER_FLAGS)
     endif()

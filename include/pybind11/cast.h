@@ -10,8 +10,10 @@
 
 #pragma once
 
+#include "detail/argument_vector.h"
 #include "detail/common.h"
 #include "detail/descr.h"
+#include "detail/holder_caster_foreign_helpers.h"
 #include "detail/native_enum_data.h"
 #include "detail/type_caster_base.h"
 #include "detail/typeid.h"
@@ -76,6 +78,11 @@ public:
             parent);
     }
 
+    template <typename SrcType>
+    static handle cast(SrcType *src, return_value_policy policy, handle parent) {
+        return cast(*src, policy, parent);
+    }
+
     bool load(handle src, bool convert) {
         handle native_enum
             = global_internals_native_enum_type_map_get_item(std::type_index(typeid(EnumType)));
@@ -87,37 +94,37 @@ public:
             if (!underlying_caster.load(src.attr("value"), convert)) {
                 pybind11_fail("native_enum internal consistency failure.");
             }
-            value = static_cast<EnumType>(static_cast<Underlying>(underlying_caster));
+            native_value = static_cast<EnumType>(static_cast<Underlying>(underlying_caster));
+            native_loaded = true;
             return true;
         }
-        if (!pybind11_enum_) {
-            pybind11_enum_.reset(new type_caster_base<EnumType>());
+
+        type_caster_base<EnumType> legacy_caster;
+        if (legacy_caster.load(src, convert)) {
+            legacy_ptr = static_cast<EnumType *>(legacy_caster);
+            return true;
         }
-        return pybind11_enum_->load(src, convert);
+        return false;
     }
 
     template <typename T>
     using cast_op_type = detail::cast_op_type<T>;
 
     // NOLINTNEXTLINE(google-explicit-constructor)
-    operator EnumType *() {
-        if (!pybind11_enum_) {
-            return &value;
-        }
-        return pybind11_enum_->operator EnumType *();
-    }
+    operator EnumType *() { return native_loaded ? &native_value : legacy_ptr; }
 
     // NOLINTNEXTLINE(google-explicit-constructor)
     operator EnumType &() {
-        if (!pybind11_enum_) {
-            return value;
+        if (!native_loaded && !legacy_ptr) {
+            throw reference_cast_error();
         }
-        return pybind11_enum_->operator EnumType &();
+        return native_loaded ? native_value : *legacy_ptr;
     }
 
 private:
-    std::unique_ptr<type_caster_base<EnumType>> pybind11_enum_;
-    EnumType value;
+    EnumType native_value; // if loading a py::native_enum
+    bool native_loaded = false;
+    EnumType *legacy_ptr = nullptr; // if loading a py::enum_
 };
 
 template <typename EnumType, typename SFINAE = void>
@@ -901,6 +908,10 @@ protected:
         }
     }
 
+    bool set_foreign_holder(handle src) {
+        return holder_caster_foreign_helpers::set_foreign_holder(src, (type *) value, &holder);
+    }
+
     void load_value(value_and_holder &&v_h) {
         if (v_h.holder_constructed()) {
             value = v_h.value_ptr();
@@ -971,7 +982,7 @@ public:
     }
 
     explicit operator std::shared_ptr<type> *() {
-        if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
+        if (sh_load_helper.was_populated) {
             pybind11_fail("Passing `std::shared_ptr<T> *` from Python to C++ is not supported "
                           "(inherently unsafe).");
         }
@@ -979,14 +990,14 @@ public:
     }
 
     explicit operator std::shared_ptr<type> &() {
-        if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
+        if (sh_load_helper.was_populated) {
             shared_ptr_storage = sh_load_helper.load_as_shared_ptr(typeinfo, value);
         }
         return shared_ptr_storage;
     }
 
     std::weak_ptr<type> potentially_slicing_weak_ptr() {
-        if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
+        if (sh_load_helper.was_populated) {
             // Reusing shared_ptr code to minimize code complexity.
             shared_ptr_storage
                 = sh_load_helper.load_as_shared_ptr(typeinfo,
@@ -1000,15 +1011,12 @@ public:
     static handle
     cast(const std::shared_ptr<type> &src, return_value_policy policy, handle parent) {
         const auto *ptr = src.get();
-        auto st = type_caster_base<type>::src_and_type(ptr);
-        if (st.second == nullptr) {
-            return handle(); // no type info: error will be set already
-        }
-        if (st.second->holder_enum_v == detail::holder_enum_t::smart_holder) {
+        typename type_caster_base<type>::cast_sources srcs{ptr};
+        if (srcs.creates_smart_holder()) {
             return smart_holder_type_caster_support::smart_holder_from_shared_ptr(
-                src, policy, parent, st);
+                src, policy, parent, srcs.result);
         }
-        return type_caster_base<type>::cast_holder(ptr, &src);
+        return type_caster_base<type>::cast_holder(srcs, &src);
     }
 
     // This function will succeed even if the `responsible_parent` does not own the
@@ -1033,6 +1041,11 @@ protected:
         if (inst_has_unique_ptr_holder) {
             throw cast_error("Unable to load a custom holder type from a default-holder instance");
         }
+    }
+
+    bool set_foreign_holder(handle src) {
+        return holder_caster_foreign_helpers::set_foreign_holder(
+            src, (type *) value, &shared_ptr_storage);
     }
 
     void load_value(value_and_holder &&v_h) {
@@ -1072,6 +1085,7 @@ protected:
                 value = cast.second(sub_caster.value);
                 if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
                     sh_load_helper.loaded_v_h = sub_caster.sh_load_helper.loaded_v_h;
+                    sh_load_helper.was_populated = true;
                 } else {
                     shared_ptr_storage
                         = std::shared_ptr<type>(sub_caster.shared_ptr_storage, (type *) value);
@@ -1178,21 +1192,12 @@ public:
     static handle
     cast(std::unique_ptr<type, deleter> &&src, return_value_policy policy, handle parent) {
         auto *ptr = src.get();
-        auto st = type_caster_base<type>::src_and_type(ptr);
-        if (st.second == nullptr) {
-            return handle(); // no type info: error will be set already
-        }
-        if (st.second->holder_enum_v == detail::holder_enum_t::smart_holder) {
+        typename type_caster_base<type>::cast_sources srcs{ptr};
+        if (srcs.creates_smart_holder()) {
             return smart_holder_type_caster_support::smart_holder_from_unique_ptr(
-                std::move(src), policy, parent, st);
+                std::move(src), policy, parent, srcs.result);
         }
-        return type_caster_generic::cast(st.first,
-                                         return_value_policy::take_ownership,
-                                         {},
-                                         st.second,
-                                         nullptr,
-                                         nullptr,
-                                         std::addressof(src));
+        return type_caster_base<type>::cast_holder(srcs, &src);
     }
 
     static handle
@@ -1216,6 +1221,12 @@ public:
             return true;
         }
         return false;
+    }
+
+    bool set_foreign_holder(handle) {
+        throw cast_error("Foreign instance cannot be converted to std::unique_ptr "
+                         "because we don't know how to make it relinquish "
+                         "ownership");
     }
 
     void load_value(value_and_holder &&v_h) {
@@ -1276,6 +1287,7 @@ public:
                 value = cast.second(sub_caster.value);
                 if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
                     sh_load_helper.loaded_v_h = sub_caster.sh_load_helper.loaded_v_h;
+                    sh_load_helper.was_populated = true;
                 } else {
                     pybind11_fail("Expected to be UNREACHABLE: " __FILE__
                                   ":" PYBIND11_TOSTRING(__LINE__));
@@ -1395,7 +1407,7 @@ struct handle_type_name<buffer> {
 };
 template <>
 struct handle_type_name<int_> {
-    static constexpr auto name = io_name("typing.SupportsInt", "int");
+    static constexpr auto name = const_name("int");
 };
 template <>
 struct handle_type_name<iterable> {
@@ -1407,7 +1419,7 @@ struct handle_type_name<iterator> {
 };
 template <>
 struct handle_type_name<float_> {
-    static constexpr auto name = io_name("typing.SupportsFloat", "float");
+    static constexpr auto name = const_name("float");
 };
 template <>
 struct handle_type_name<function> {
@@ -1527,6 +1539,21 @@ struct pyobject_caster {
 
 template <typename T>
 class type_caster<T, enable_if_t<is_pyobject<T>::value>> : public pyobject_caster<T> {};
+
+template <>
+class type_caster<float_> : public pyobject_caster<float_> {
+public:
+    bool load(handle src, bool /* convert */) {
+        if (isinstance<float_>(src)) {
+            value = reinterpret_borrow<float_>(src);
+        } else if (isinstance<int_>(src)) {
+            value = float_(reinterpret_borrow<int_>(src));
+        } else {
+            return false;
+        }
+        return true;
+    }
+};
 
 // Our conditions for enabling moving are quite restrictive:
 // At compile time:
@@ -2032,6 +2059,10 @@ using is_pos_only = std::is_same<intrinsic_t<T>, pos_only>;
 // forward declaration (definition in attr.h)
 struct function_record;
 
+/// (Inline size chosen mostly arbitrarily; 6 should pad function_call out to two cache lines
+/// (16 pointers) in size.)
+constexpr std::size_t arg_vector_small_size = 6;
+
 /// Internal data associated with a single function call
 struct function_call {
     function_call(const function_record &f, handle p); // Implementation in attr.h
@@ -2040,10 +2071,10 @@ struct function_call {
     const function_record &func;
 
     /// Arguments passed to the function:
-    std::vector<handle> args;
+    argument_vector<arg_vector_small_size> args;
 
     /// The `convert` value the arguments should be loaded with
-    std::vector<bool> args_convert;
+    args_convert_vector<arg_vector_small_size> args_convert;
 
     /// Extra references for the optional `py::args` and/or `py::kwargs` arguments (which, if
     /// present, are also in `args` but without a reference).

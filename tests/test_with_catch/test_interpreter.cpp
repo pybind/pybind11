@@ -94,8 +94,9 @@ PYBIND11_EMBEDDED_MODULE(throw_error_already_set, ) {
 TEST_CASE("PYTHONPATH is used to update sys.path") {
     // The setup for this TEST_CASE is in catch.cpp!
     auto sys_path = py::str(py::module_::import("sys").attr("path")).cast<std::string>();
-    REQUIRE_THAT(sys_path,
-                 Catch::Matchers::Contains("pybind11_test_embed_PYTHONPATH_2099743835476552"));
+    REQUIRE_THAT(
+        sys_path,
+        Catch::Matchers::Contains("pybind11_test_with_catch_PYTHONPATH_2099743835476552"));
 }
 
 TEST_CASE("Pass classes and data between modules defined in C++ and Python") {
@@ -198,17 +199,32 @@ TEST_CASE("Custom PyConfig") {
 }
 
 TEST_CASE("scoped_interpreter with PyConfig_InitIsolatedConfig and argv") {
+    std::vector<std::string> path;
+    for (auto p : py::module::import("sys").attr("path")) {
+        path.emplace_back(py::str(p));
+    }
+
     py::finalize_interpreter();
     {
         PyConfig config;
         PyConfig_InitIsolatedConfig(&config);
         char *argv[] = {strdup("a.out")};
-        py::scoped_interpreter argv_scope{&config, 1, argv};
+        py::scoped_interpreter argv_scope{&config, 1, argv, true};
         std::free(argv[0]);
-        auto module = py::module::import("test_interpreter");
-        auto py_widget = module.attr("DerivedWidget")("The question");
-        const auto &cpp_widget = py_widget.cast<const Widget &>();
-        REQUIRE(cpp_widget.argv0() == "a.out");
+        // Because this config is isolated, setting the path during init will not work, we have to
+        // set it manually.  If we don't set it, then we can't import "test_interpreter"
+        for (auto &&p : path) {
+            py::list(py::module::import("sys").attr("path")).append(p);
+        }
+        try {
+            auto module = py::module::import("test_interpreter");
+            auto py_widget = module.attr("DerivedWidget")("The question");
+            const auto &cpp_widget = py_widget.cast<const Widget &>();
+            REQUIRE(cpp_widget.argv0() == "a.out");
+        } catch (py::error_already_set &e) {
+            // catch here so that the exception doesn't escape the interpreter that owns it
+            FAIL(e.what());
+        }
     }
     py::initialize_interpreter();
 }

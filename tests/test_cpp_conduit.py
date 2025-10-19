@@ -12,7 +12,7 @@ from pybind11_tests import cpp_conduit as home_planet
 
 
 def import_warns_freethreaded(name):
-    if name not in sys.modules and not getattr(sys, "_is_gil_enabled", lambda: True)():
+    if name not in sys.modules and not env.sys_is_gil_enabled():
         with pytest.warns(
             RuntimeWarning, match=f"has been enabled to load module '{name}'"
         ):
