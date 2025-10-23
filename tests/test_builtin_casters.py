@@ -473,6 +473,11 @@ def test_complex_cast():
     assert m.complex_cast(1) == "1.0"
     assert m.complex_cast(2j) == "(0.0, 2.0)"
 
+    assert m.complex_cast_strict(1) == "(1.0, 0.0)"
+    assert m.complex_cast_strict(3.0) == "(3.0, 0.0)"
+    assert m.complex_cast_strict(complex(5, 4)) == "(5.0, 4.0)"
+    assert m.complex_cast_strict(2j) == "(0.0, 2.0)"
+
 
 def test_bool_caster():
     """Test bool caster implicit conversions."""
