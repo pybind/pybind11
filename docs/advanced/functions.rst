@@ -455,6 +455,7 @@ object, such as:
     m.def("floats_only", [](double f) { return 0.5 * f; }, py::arg("f").noconvert());
     m.def("floats_preferred", [](double f) { return 0.5 * f; }, py::arg("f"));
 
+TODO: Update this is no longer true
 Attempting the call the second function (the one without ``.noconvert()``) with
 an integer will succeed, but attempting to call the ``.noconvert()`` version
 will fail with a ``TypeError``:

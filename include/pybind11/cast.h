@@ -253,7 +253,11 @@ public:
 #endif
 
         if (std::is_floating_point<T>::value) {
-            if (convert || PyFloat_Check(src.ptr())) {
+            if (PyFloat_Check(src.ptr())) {
+                py_value = (py_type) PyFloat_AsDouble(src.ptr());
+            } else if (PYBIND11_LONG_CHECK(src.ptr())) {
+                py_value = (py_type) PyLong_AsDouble(src.ptr());
+            } else if (convert) {
                 py_value = (py_type) PyFloat_AsDouble(src.ptr());
             } else {
                 return false;

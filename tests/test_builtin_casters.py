@@ -322,6 +322,10 @@ def test_int_convert(doc):
 
 
 def test_float_convert(doc):
+    class Int:
+        def __int__(self):
+            return -5
+
     class Float:
         def __float__(self):
             return 41.45
@@ -333,8 +337,14 @@ def test_float_convert(doc):
     def requires_conversion(v):
         pytest.raises(TypeError, noconvert, v)
 
+    def cant_convert(v):
+        pytest.raises(TypeError, convert, v)
+
     requires_conversion(Float())
     assert pytest.approx(convert(Float())) == 41.45
+    assert pytest.approx(convert(3)) == 3.0
+    assert pytest.approx(noconvert(3)) == 3.0
+    cant_convert(Int())
 
 
 def test_numpy_int_convert():
