@@ -51,7 +51,7 @@ public:
         if (!src) {
             return false;
         }
-        if (!convert && !PyComplex_Check(src.ptr())) {
+        if (!convert && !(PyComplex_Check(src.ptr()) || PyFloat_Check(src.ptr()) || PYBIND11_LONG_CHECK(src.ptr()))) {
             return false;
         }
         Py_complex result = PyComplex_AsCComplex(src.ptr());
