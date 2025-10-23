@@ -455,7 +455,7 @@ object, such as:
     m.def("supports_float", [](double f) { return 0.5 * f; }, py::arg("f"));
     m.def("only_float", [](double f) { return 0.5 * f; }, py::arg("f").noconvert());
 
-``supports_float`` will accept any argument that implments ``__float__``.
+``supports_float`` will accept any argument that implements ``__float__``.
 ``only_float`` will only accept a float or int argument. Anything else will fail with a ``TypeError``:
 
 .. note::
