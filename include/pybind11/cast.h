@@ -252,7 +252,7 @@ public:
         auto index_check = [](PyObject *o) { return hasattr(o, "__index__"); };
 #endif
 
-        if constexpr (std::is_floating_point<T>::value) {
+        if (std::is_floating_point<T>::value) {
             if (convert || PyFloat_Check(src.ptr()) || PYBIND11_LONG_CHECK(src.ptr())) {
                 py_value = (py_type) PyFloat_AsDouble(src.ptr());
             } else {
