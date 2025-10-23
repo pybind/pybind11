@@ -473,7 +473,7 @@ object, such as:
             return f"MyFloat({self._value})"
         def __float__(self) -> float:
             return self._value
-    
+
     >>> supports_float(MyFloat(4))
     2.0
     >>> only_float(MyFloat(4))
