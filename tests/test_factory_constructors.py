@@ -430,12 +430,12 @@ def test_reallocation_d(capture, msg):
 @pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_reallocation_e(capture, msg):
     with capture:
-        create_and_destroy(3.5, 4.5)
+        create_and_destroy(4, 4.5)
     assert msg(capture) == strip_comments(
         """
         noisy new               # preallocation needed before invoking placement-new overload
         noisy placement new     # Placement new
-        NoisyAlloc(double 3.5)  # construction
+        NoisyAlloc(int 4)       # construction
         ---
         ~NoisyAlloc()  # Destructor
         noisy delete   # operator delete
@@ -446,13 +446,13 @@ def test_reallocation_e(capture, msg):
 @pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_reallocation_f(capture, msg):
     with capture:
-        create_and_destroy(4, 0.5)
+        create_and_destroy(3.5, 0.5)
     assert msg(capture) == strip_comments(
         """
         noisy new          # preallocation needed before invoking placement-new overload
         noisy delete       # deallocation of preallocated storage
         noisy new          # Factory pointer allocation
-        NoisyAlloc(int 4)  # factory pointer construction
+        NoisyAlloc(double 3.5)  # factory pointer construction
         ---
         ~NoisyAlloc()  # Destructor
         noisy delete   # operator delete

@@ -402,10 +402,10 @@ TEST_SUBMODULE(factory_constructors, m) {
     // Old-style placement new init; requires preallocation
     ignoreOldStyleInitWarnings([&pyNoisyAlloc]() {
         pyNoisyAlloc.def("__init__",
-                         [](NoisyAlloc &a, double d, double) { new (&a) NoisyAlloc(d); });
+                         [](NoisyAlloc &a, int i, double) { new (&a) NoisyAlloc(i); });
     });
     // Requires deallocation of previous overload preallocated value:
-    pyNoisyAlloc.def(py::init([](int i, double) { return new NoisyAlloc(i); }));
+    pyNoisyAlloc.def(py::init([](double d, double) { return new NoisyAlloc(d); }));
     // Regular again: requires yet another preallocation
     ignoreOldStyleInitWarnings([&pyNoisyAlloc]() {
         pyNoisyAlloc.def(

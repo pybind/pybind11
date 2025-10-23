@@ -240,18 +240,18 @@ TEST_SUBMODULE(methods_and_attributes, m) {
 #if defined(PYBIND11_OVERLOAD_CAST)
         .def("overloaded", py::overload_cast<>(&ExampleMandA::overloaded))
         .def("overloaded", py::overload_cast<int>(&ExampleMandA::overloaded))
+        .def("overloaded", py::overload_cast<int, int>(&ExampleMandA::overloaded))
         .def("overloaded", py::overload_cast<int, float>(&ExampleMandA::overloaded))
         .def("overloaded", py::overload_cast<float, int>(&ExampleMandA::overloaded))
-        .def("overloaded", py::overload_cast<int, int>(&ExampleMandA::overloaded))
         .def("overloaded", py::overload_cast<float, float>(&ExampleMandA::overloaded))
         .def("overloaded_float", py::overload_cast<float, float>(&ExampleMandA::overloaded))
         .def("overloaded_const", py::overload_cast<int>(&ExampleMandA::overloaded, py::const_))
         .def("overloaded_const",
+             py::overload_cast<int, int>(&ExampleMandA::overloaded, py::const_))
+        .def("overloaded_const",
              py::overload_cast<int, float>(&ExampleMandA::overloaded, py::const_))
         .def("overloaded_const",
              py::overload_cast<float, int>(&ExampleMandA::overloaded, py::const_))
-        .def("overloaded_const",
-             py::overload_cast<int, int>(&ExampleMandA::overloaded, py::const_))
         .def("overloaded_const",
              py::overload_cast<float, float>(&ExampleMandA::overloaded, py::const_))
 #else
