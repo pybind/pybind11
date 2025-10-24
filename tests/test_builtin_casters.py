@@ -286,7 +286,7 @@ def test_int_convert(doc):
 
     convert, noconvert = m.int_passthrough, m.int_passthrough_noconvert
 
-    assert doc(convert) == "int_passthrough(arg0: typing.SupportsInt) -> int"
+    assert doc(convert) == "int_passthrough(arg0: typing.SupportsInt | typing.SupportsIndex) -> int"
     assert doc(noconvert) == "int_passthrough_noconvert(arg0: int) -> int"
 
     def requires_conversion(v):
@@ -326,13 +326,17 @@ def test_float_convert(doc):
     class Int:
         def __int__(self):
             return -5
+        
+    class Index:
+        def __index__(self) -> int:
+            return -7
 
     class Float:
         def __float__(self):
             return 41.45
 
     convert, noconvert = m.float_passthrough, m.float_passthrough_noconvert
-    assert doc(convert) == "float_passthrough(arg0: typing.SupportsFloat) -> float"
+    assert doc(convert) == "float_passthrough(arg0: typing.SupportsFloat | typing.SupportsIndex) -> float"
     assert doc(noconvert) == "float_passthrough_noconvert(arg0: float) -> float"
 
     def requires_conversion(v):
@@ -342,7 +346,9 @@ def test_float_convert(doc):
         pytest.raises(TypeError, convert, v)
 
     requires_conversion(Float())
+    requires_conversion(Index())
     assert pytest.approx(convert(Float())) == 41.45
+    assert pytest.approx(convert(Index())) == -7.0
     assert pytest.approx(convert(3)) == 3.0
     assert pytest.approx(noconvert(3)) == 3.0
     cant_convert(Int())
@@ -392,7 +398,7 @@ def test_tuple(doc):
     assert (
         doc(m.tuple_passthrough)
         == """
-        tuple_passthrough(arg0: tuple[bool, str, typing.SupportsInt]) -> tuple[int, str, bool]
+        tuple_passthrough(arg0: tuple[bool, str, typing.SupportsInt | typing.SupportsIndex]) -> tuple[int, str, bool]
 
         Return a triple in reversed order
     """
