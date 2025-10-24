@@ -316,6 +316,7 @@ def test_int_convert(doc):
     # Before Python 3.8, `PyLong_AsLong` does not pick up on `obj.__index__`,
     # but pybind11 "backports" this behavior.
     assert convert(Index()) == 42
+    assert isinstance(convert(Index()), int)
     assert noconvert(Index()) == 42
     assert convert(IntAndIndex()) == 0  # Fishy; `int(DoubleThought)` == 42
     assert noconvert(IntAndIndex()) == 0
@@ -355,6 +356,7 @@ def test_float_convert(doc):
     requires_conversion(Index())
     assert pytest.approx(convert(Float())) == 41.45
     assert pytest.approx(convert(Index())) == -7.0
+    assert isinstance(convert(Float()), float)
     assert pytest.approx(convert(3)) == 3.0
     assert pytest.approx(noconvert(3)) == 3.0
     cant_convert(Int())
@@ -529,8 +531,10 @@ def test_complex_cast(doc):
     assert convert(1 + 5j) == 1.0 + 5.0j
     assert convert(Complex()) == 5.0 + 4j
     assert convert(Float()) == 5.0
+    assert isinstance(convert(Float()), complex)
     cant_convert(Int())
     assert convert(Index()) == 1
+    assert isinstance(convert(Index()), complex)
 
     assert noconvert(1) == 1.0
     assert noconvert(2.0) == 2.0

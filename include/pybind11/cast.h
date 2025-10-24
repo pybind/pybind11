@@ -244,26 +244,18 @@ public:
             return false;
         }
 
-#if !defined(PYPY_VERSION)
-        auto index_check = [](PyObject *o) { return PyIndex_Check(o); };
-#else
-        // In PyPy 7.3.3, `PyIndex_Check` is implemented by calling `__index__`,
-        // while CPython only considers the existence of `nb_index`/`__index__`.
-        auto index_check = [](PyObject *o) { return hasattr(o, "__index__"); };
-#endif
-
         if (std::is_floating_point<T>::value) {
             if (convert || PyFloat_Check(src.ptr()) || PYBIND11_LONG_CHECK(src.ptr())) {
                 py_value = (py_type) PyFloat_AsDouble(src.ptr());
             } else {
                 return false;
             }
-        } else if (convert || PYBIND11_LONG_CHECK(src.ptr()) || index_check(src.ptr())) {
+        } else if (convert || PYBIND11_LONG_CHECK(src.ptr()) || PYBIND11_INDEX_CHECK(src.ptr())) {
             handle src_or_index = src;
             // PyPy: 7.3.7's 3.8 does not implement PyLong_*'s __index__ calls.
 #if defined(PYPY_VERSION)
             object index;
-            if (!PYBIND11_LONG_CHECK(src.ptr())) { // So: index_check(src.ptr())
+            if (!PYBIND11_LONG_CHECK(src.ptr())) { // So: PYBIND11_INDEX_CHECK(src.ptr())
                 index = reinterpret_steal<object>(PyNumber_Index(src.ptr()));
                 if (!index) {
                     PyErr_Clear();
