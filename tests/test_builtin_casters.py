@@ -469,9 +469,32 @@ def test_reference_wrapper():
     assert m.refwrap_call_iiw(IncType(10), m.refwrap_iiw) == [10, 10, 10, 10]
 
 
-def test_complex_cast():
+def test_complex_cast(doc):
     """std::complex casts"""
+
+    class Complex:
+
+        def __complex__(self) -> complex:
+            return complex(5, 4)
+        
+    class Float:
+
+        def __float__(self) -> float:
+            return 5.0
+        
+    class Int:
+
+        def __int__(self) -> int:
+            return 3
+        
+    class Index:
+
+        def __index__(self) -> int:
+            return 1
+
     assert m.complex_cast(1) == "1.0"
+    assert m.complex_cast(1.0) == "1.0"
+    assert m.complex_cast(Complex()) == "(5.0, 4.0)"
     assert m.complex_cast(2j) == "(0.0, 2.0)"
 
     assert m.complex_cast_strict(1) == "(1.0, 0.0)"
@@ -479,6 +502,31 @@ def test_complex_cast():
     assert m.complex_cast_strict(complex(5, 4)) == "(5.0, 4.0)"
     assert m.complex_cast_strict(2j) == "(0.0, 2.0)"
 
+    convert, noconvert = m.complex_convert, m.complex_noconvert
+
+    def requires_conversion(v):
+        pytest.raises(TypeError, noconvert, v)
+
+    def cant_convert(v):
+        pytest.raises(TypeError, convert, v)
+
+    assert doc(convert) == "complex_convert(arg0: typing.SupportsComplex | typing.SupportsFloat | typing.SupportsIndex) -> complex"
+    assert doc(noconvert) == "complex_noconvert(arg0: complex) -> complex"
+
+    assert convert(1) == 1.0
+    assert convert(2.0) == 2.0
+    assert convert(1 + 5j) == 1.0 + 5.0j
+    assert convert(Complex()) == 5.0 + 4j
+    assert convert(Float()) == 5.0
+    cant_convert(Int())
+    assert convert(Index()) == 1
+
+    assert noconvert(1) == 1.0
+    assert noconvert(2.0) == 2.0
+    assert noconvert(1 + 5j) == 1.0 + 5.0j
+    requires_conversion(Complex())
+    requires_conversion(Float())
+    requires_conversion(Index())
 
 def test_bool_caster():
     """Test bool caster implicit conversions."""
