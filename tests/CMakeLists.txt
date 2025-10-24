@@ -545,7 +545,9 @@ source_group(
   FILES ${PYBIND11_HEADERS})
 
 # Make sure pytest is found or produce a warning
-pybind11_find_import(pytest VERSION 3.1)
+if(NOT CMAKE_CROSSCOMPILING)
+  pybind11_find_import(pytest VERSION 3.1)
+endif()
 
 if(NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
   # This is not used later in the build, so it's okay to regenerate each time.
