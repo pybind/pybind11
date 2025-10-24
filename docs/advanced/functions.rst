@@ -437,9 +437,9 @@ Certain argument types may support conversion from one type to another.  Some
 examples of conversions are:
 
 * :ref:`implicit_conversions` declared using ``py::implicitly_convertible<A,B>()``
-* Passing an argument that implements ``__float__`` to ``float`` or ``double``.
-* Passing an argument that implements ``__int__`` to ``int``.
-* Passing an argument that implements ``__complex__`` to ``std::complex<float>``.
+* Passing an argument that implements ``__float__`` or ``__index__`` to ``float`` or ``double``.
+* Passing an argument that implements ``__int__`` or ``__index__`` to ``int``.
+* Passing an argument that implements ``__complex__``, ``__float__``, or ``__index__`` to ``std::complex<float>``.
   (Requires the optional ``pybind11/complex.h`` header).
 * Calling a function taking an Eigen matrix reference with a numpy array of the
   wrong type or of an incompatible data layout.  (Requires the optional
@@ -455,7 +455,7 @@ object, such as:
     m.def("supports_float", [](double f) { return 0.5 * f; }, py::arg("f"));
     m.def("only_float", [](double f) { return 0.5 * f; }, py::arg("f").noconvert());
 
-``supports_float`` will accept any argument that implements ``__float__``.
+``supports_float`` will accept any argument that implements ``__float__`` or ``__index__``.
 ``only_float`` will only accept a float or int argument. Anything else will fail with a ``TypeError``:
 
 .. note::
