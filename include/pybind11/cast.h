@@ -258,10 +258,7 @@ public:
             } else {
                 return false;
             }
-        } else if (PyFloat_Check(src.ptr())
-                   || (!convert && !PYBIND11_LONG_CHECK(src.ptr()) && !index_check(src.ptr()))) {
-            return false;
-        } else {
+        } else if (convert || PYBIND11_LONG_CHECK(src.ptr()) || index_check(src.ptr())) {
             handle src_or_index = src;
             // PyPy: 7.3.7's 3.8 does not implement PyLong_*'s __index__ calls.
 #if defined(PYPY_VERSION)
@@ -284,6 +281,8 @@ public:
                                ? (py_type) PyLong_AsLong(src_or_index.ptr())
                                : (py_type) PYBIND11_LONG_AS_LONGLONG(src_or_index.ptr());
             }
+        } else {
+            return false;
         }
 
         // Python API reported an error
