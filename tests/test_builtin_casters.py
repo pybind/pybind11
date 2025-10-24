@@ -286,7 +286,10 @@ def test_int_convert(doc):
 
     convert, noconvert = m.int_passthrough, m.int_passthrough_noconvert
 
-    assert doc(convert) == "int_passthrough(arg0: typing.SupportsInt | typing.SupportsIndex) -> int"
+    assert (
+        doc(convert)
+        == "int_passthrough(arg0: typing.SupportsInt | typing.SupportsIndex) -> int"
+    )
     assert doc(noconvert) == "int_passthrough_noconvert(arg0: int) -> int"
 
     def requires_conversion(v):
@@ -326,7 +329,7 @@ def test_float_convert(doc):
     class Int:
         def __int__(self):
             return -5
-        
+
     class Index:
         def __index__(self) -> int:
             return -7
@@ -336,7 +339,10 @@ def test_float_convert(doc):
             return 41.45
 
     convert, noconvert = m.float_passthrough, m.float_passthrough_noconvert
-    assert doc(convert) == "float_passthrough(arg0: typing.SupportsFloat | typing.SupportsIndex) -> float"
+    assert (
+        doc(convert)
+        == "float_passthrough(arg0: typing.SupportsFloat | typing.SupportsIndex) -> float"
+    )
     assert doc(noconvert) == "float_passthrough_noconvert(arg0: float) -> float"
 
     def requires_conversion(v):
@@ -479,22 +485,18 @@ def test_complex_cast(doc):
     """std::complex casts"""
 
     class Complex:
-
         def __complex__(self) -> complex:
             return complex(5, 4)
-        
-    class Float:
 
+    class Float:
         def __float__(self) -> float:
             return 5.0
-        
-    class Int:
 
+    class Int:
         def __int__(self) -> int:
             return 3
-        
-    class Index:
 
+    class Index:
         def __index__(self) -> int:
             return 1
 
@@ -516,7 +518,10 @@ def test_complex_cast(doc):
     def cant_convert(v):
         pytest.raises(TypeError, convert, v)
 
-    assert doc(convert) == "complex_convert(arg0: typing.SupportsComplex | typing.SupportsFloat | typing.SupportsIndex) -> complex"
+    assert (
+        doc(convert)
+        == "complex_convert(arg0: typing.SupportsComplex | typing.SupportsFloat | typing.SupportsIndex) -> complex"
+    )
     assert doc(noconvert) == "complex_noconvert(arg0: complex) -> complex"
 
     assert convert(1) == 1.0
@@ -533,6 +538,7 @@ def test_complex_cast(doc):
     requires_conversion(Complex())
     requires_conversion(Float())
     requires_conversion(Index())
+
 
 def test_bool_caster():
     """Test bool caster implicit conversions."""
