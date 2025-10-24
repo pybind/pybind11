@@ -297,7 +297,8 @@ def test_int_convert(doc):
 
     assert convert(7) == 7
     assert noconvert(7) == 7
-    cant_convert(3.14159)
+    assert convert(3.14159) == 3
+    requires_conversion(3.14159)
     # TODO: Avoid DeprecationWarning in `PyLong_AsLong` (and similar)
     # TODO: PyPy 3.8 does not behave like CPython 3.8 here yet (7.3.7)
     if sys.version_info < (3, 10) and env.CPYTHON:

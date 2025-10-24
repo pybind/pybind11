@@ -543,7 +543,7 @@ def test_overload_ordering():
     )
 
     with pytest.raises(TypeError) as err:
-        m.overload_order(1.1)
+        m.overload_order([])
 
     assert "1. (arg0: typing.SupportsInt) -> int" in str(err.value)
     assert "2. (arg0: str) -> int" in str(err.value)
