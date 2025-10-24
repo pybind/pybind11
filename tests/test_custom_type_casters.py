@@ -59,7 +59,7 @@ def test_noconvert_args(msg):
 
     assert m.ints_preferred(4) == 2
     assert m.ints_preferred(True) == 0
-    m.ints_preferred(4.0) == 2
+    assert m.ints_preferred(4.0) == 2
 
     assert m.ints_only(4) == 2
     with pytest.raises(TypeError) as excinfo:
