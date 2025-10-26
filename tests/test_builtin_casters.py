@@ -365,7 +365,6 @@ def test_numpy_int_convert(avoid_PyLong_AsLong_deprecation):
     assert convert(np.intc(42)) == 42
     assert noconvert(np.intc(42)) == 42
 
-    # The implicit conversion from np.float32 is undesirable but currently accepted.
     assert avoid_PyLong_AsLong_deprecation(convert, np.float32(3.14159), 3)
     require_implicit(np.float32(3.14159))
 
