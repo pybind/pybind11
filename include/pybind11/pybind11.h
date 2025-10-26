@@ -120,7 +120,8 @@ inline std::string generate_function_signature(const char *type_caster_name_fiel
         const auto c = *pc;
         if (c == '{') {
             // Write arg name for everything except *args and **kwargs.
-            is_starred = *(pc + 1) == '*';
+            // Detect {@*args...} or {@**kwargs...}
+            is_starred = *(pc + 1) == '@' && *(pc + 2) == '*';
             if (is_starred) {
                 continue;
             }
