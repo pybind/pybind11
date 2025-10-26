@@ -247,7 +247,7 @@ def test_integer_casting():
     assert "incompatible function arguments" in str(excinfo.value)
 
 
-def test_int_convert(doc):
+def test_int_convert(doc, avoid_PyLong_AsLong_deprecation):
     class Int:
         def __int__(self):
             return 42
@@ -300,15 +300,9 @@ def test_int_convert(doc):
 
     assert convert(7) == 7
     assert noconvert(7) == 7
-    assert convert(3.14159) == 3
+    assert avoid_PyLong_AsLong_deprecation(convert, 3.14159, 3)
     requires_conversion(3.14159)
-    # TODO: Avoid DeprecationWarning in `PyLong_AsLong` (and similar)
-    # TODO: PyPy 3.8 does not behave like CPython 3.8 here yet (7.3.7)
-    if sys.version_info < (3, 10) and env.CPYTHON:
-        with env.deprecated_call():
-            assert convert(Int()) == 42
-    else:
-        assert convert(Int()) == 42
+    assert avoid_PyLong_AsLong_deprecation(convert, Int(), 42)
     requires_conversion(Int())
     cant_convert(NotInt())
     cant_convert(Float())
@@ -326,7 +320,7 @@ def test_int_convert(doc):
     requires_conversion(RaisingValueErrorOnIndex())
 
 
-def test_float_convert(doc):
+def test_float_convert(doc, avoid_PyLong_AsLong_deprecation):
     class Int:
         def __int__(self):
             return -5
@@ -357,12 +351,12 @@ def test_float_convert(doc):
     assert pytest.approx(convert(Float())) == 41.45
     assert pytest.approx(convert(Index())) == -7.0
     assert isinstance(convert(Float()), float)
-    assert pytest.approx(convert(3)) == 3.0
+    assert avoid_PyLong_AsLong_deprecation(convert, 3, 3.0)
     assert pytest.approx(noconvert(3)) == 3.0
     cant_convert(Int())
 
 
-def test_numpy_int_convert():
+def test_numpy_int_convert(avoid_PyLong_AsLong_deprecation):
     np = pytest.importorskip("numpy")
 
     convert, noconvert = m.int_passthrough, m.int_passthrough_noconvert
@@ -375,14 +369,7 @@ def test_numpy_int_convert():
     assert noconvert(np.intc(42)) == 42
 
     # The implicit conversion from np.float32 is undesirable but currently accepted.
-    # TODO: Avoid DeprecationWarning in `PyLong_AsLong` (and similar)
-    # TODO: PyPy 3.8 does not behave like CPython 3.8 here yet (7.3.7)
-    # https://github.com/pybind/pybind11/issues/3408
-    if (3, 8) <= sys.version_info < (3, 10) and env.CPYTHON:
-        with env.deprecated_call():
-            assert convert(np.float32(3.14159)) == 3
-    else:
-        assert convert(np.float32(3.14159)) == 3
+    assert avoid_PyLong_AsLong_deprecation(convert, np.float32(3.14159), 3)
     require_implicit(np.float32(3.14159))
 
 
@@ -483,7 +470,7 @@ def test_reference_wrapper():
     assert m.refwrap_call_iiw(IncType(10), m.refwrap_iiw) == [10, 10, 10, 10]
 
 
-def test_complex_cast(doc):
+def test_complex_cast(doc, avoid_PyLong_AsLong_deprecation):
     """std::complex casts"""
 
     class Complex:
@@ -526,8 +513,8 @@ def test_complex_cast(doc):
     )
     assert doc(noconvert) == "complex_noconvert(arg0: complex) -> complex"
 
-    assert convert(1) == 1.0
-    assert convert(2.0) == 2.0
+    assert avoid_PyLong_AsLong_deprecation(convert, 1, 1.0)
+    assert avoid_PyLong_AsLong_deprecation(convert, 2.0, 2.0)
     assert convert(1 + 5j) == 1.0 + 5.0j
     assert convert(Complex()) == 5.0 + 4j
     assert convert(Float()) == 5.0
