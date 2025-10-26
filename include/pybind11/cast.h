@@ -1940,7 +1940,12 @@ typing::Tuple<Args...> make_tuple(Args &&...args_) {
     for (auto &arg_value : args) {
         PyTuple_SET_ITEM(result.ptr(), counter++, arg_value.release().ptr());
     }
+    PYBIND11_WARNING_PUSH
+#ifdef PYBIND11_DETECTED_CLANG_WITH_MISLEADING_CALL_STD_MOVE_EXPLICITLY_WARNING
+    PYBIND11_WARNING_DISABLE_CLANG("-Wreturn-std-move")
+#endif
     return result;
+    PYBIND11_WARNING_POP
 }
 
 /// \ingroup annotations
