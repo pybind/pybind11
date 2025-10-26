@@ -332,7 +332,7 @@ def avoid_PyLong_AsLong_deprecation() -> Callable[
         expected: _EXPECTED_T,
     ) -> bool:
         if sys.version_info < (3, 10) and env.CPYTHON:
-            with pytest.deprecated_call():
+            with env.deprecated_call():
                 return convert(value) == expected
         else:
             return convert(value) == expected
