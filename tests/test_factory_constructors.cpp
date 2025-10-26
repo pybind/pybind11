@@ -376,9 +376,13 @@ TEST_SUBMODULE(factory_constructors, m) {
             py::print("noisy placement new");
             return p;
         }
-        static void operator delete(void *p, size_t s) {
+        static void operator delete(void *p) noexcept {
             py::print("noisy delete");
-            ::operator delete(p, s);
+            ::operator delete(p);
+        }
+        static void operator delete(void *p, size_t) {
+            py::print("noisy delete size");
+            ::operator delete(p);
         }
         static void operator delete(void *, void *) { py::print("noisy placement delete"); }
     };
