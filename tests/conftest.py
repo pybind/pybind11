@@ -318,7 +318,6 @@ def backport_typehints() -> Callable[[SanitizedString], SanitizedString]:
 _EXPECTED_T = TypeVar("_EXPECTED_T")
 
 
-# The implicit conversion from np.float32 is undesirable but currently accepted.
 # TODO: Avoid DeprecationWarning in `PyLong_AsLong` (and similar)
 # TODO: PyPy 3.8 does not behave like CPython 3.8 here yet (7.3.7)
 # https://github.com/pybind/pybind11/issues/3408
