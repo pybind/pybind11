@@ -156,7 +156,7 @@ inline std::string generate_function_signature(const char *type_caster_name_fiel
         } else if (c == '%') {
             const std::type_info *t = types[type_index++];
             if (!t) {
-                // pybind11_fail("Internal error while parsing type signature (1)");
+                pybind11_fail("Internal error while parsing type signature (1)");
             }
             if (auto *tinfo = detail::get_type_info(*t)) {
                 handle th((PyObject *) tinfo->type);
