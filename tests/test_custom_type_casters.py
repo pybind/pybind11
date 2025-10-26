@@ -60,7 +60,6 @@ def test_noconvert_args(msg, avoid_PyLong_AsLong_deprecation):
     assert m.ints_preferred(4) == 2
     assert m.ints_preferred(True) == 0
     assert avoid_PyLong_AsLong_deprecation(m.ints_preferred, 4.0, 2)
-    assert m.ints_preferred(4.0) == 2
 
     assert m.ints_only(4) == 2
     with pytest.raises(TypeError) as excinfo:

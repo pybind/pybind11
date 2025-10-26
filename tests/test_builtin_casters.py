@@ -317,7 +317,7 @@ def test_int_convert(doc, avoid_PyLong_AsLong_deprecation):
     requires_conversion(RaisingValueErrorOnIndex())
 
 
-def test_float_convert(doc, avoid_PyLong_AsLong_deprecation):
+def test_float_convert(doc):
     class Int:
         def __int__(self):
             return -5
@@ -348,7 +348,7 @@ def test_float_convert(doc, avoid_PyLong_AsLong_deprecation):
     assert pytest.approx(convert(Float())) == 41.45
     assert pytest.approx(convert(Index())) == -7.0
     assert isinstance(convert(Float()), float)
-    assert avoid_PyLong_AsLong_deprecation(convert, 3, 3.0)
+    assert pytest.approx(convert(3)) == 3.0
     assert pytest.approx(noconvert(3)) == 3.0
     cant_convert(Int())
 
@@ -466,7 +466,7 @@ def test_reference_wrapper():
     assert m.refwrap_call_iiw(IncType(10), m.refwrap_iiw) == [10, 10, 10, 10]
 
 
-def test_complex_cast(doc, avoid_PyLong_AsLong_deprecation):
+def test_complex_cast(doc):
     """std::complex casts"""
 
     class Complex:
@@ -509,8 +509,8 @@ def test_complex_cast(doc, avoid_PyLong_AsLong_deprecation):
     )
     assert doc(noconvert) == "complex_noconvert(arg0: complex) -> complex"
 
-    assert avoid_PyLong_AsLong_deprecation(convert, 1, 1.0)
-    assert avoid_PyLong_AsLong_deprecation(convert, 2.0, 2.0)
+    assert convert(1) == 1.0
+    assert convert(2.0) == 2.0
     assert convert(1 + 5j) == 1.0 + 5.0j
     assert convert(Complex()) == 5.0 + 4j
     assert convert(Float()) == 5.0
