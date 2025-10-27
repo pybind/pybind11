@@ -22,7 +22,7 @@ jobs:
         submodules: true
         fetch-depth: 0
 
-    - uses: pypa/cibuildwheel@v3.1
+    - uses: pypa/cibuildwheel@v3.2
       env:
         PYODIDE_BUILD_EXPORTS: whole_archive
       with:
@@ -45,7 +45,7 @@ jobs:
     # We have to uninstall first because GH is now using a local tap to build cmake<4, iOS needs cmake>=4
     - run: brew uninstall cmake && brew install cmake
 
-    - uses: pypa/cibuildwheel@v3.1
+    - uses: pypa/cibuildwheel@v3.2
       env:
         CIBW_PLATFORM: ios
         CIBW_SKIP: cp314-*  # https://github.com/pypa/cibuildwheel/issues/2494
@@ -80,7 +80,7 @@ jobs:
 
     - run: pipx install patchelf
 
-    - uses: pypa/cibuildwheel@v3.1
+    - uses: pypa/cibuildwheel@v3.2
       env:
         CIBW_PLATFORM: android
       with:
