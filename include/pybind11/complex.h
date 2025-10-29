@@ -57,6 +57,8 @@ public:
             return false;
         }
         handle src_or_index = src;
+        // PyPy: 7.3.7's 3.8 does not implement PyLong_*'s __index__ calls.
+        // The same logic is used in numeric_caster for ints and floats
 #if defined(PYPY_VERSION)
         object index;
         if (PYBIND11_INDEX_CHECK(src.ptr())) {
