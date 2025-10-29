@@ -1,10 +1,7 @@
 from __future__ import annotations
 
-import sys
-
 import pytest
 
-import env
 from pybind11_tests import IncType, UserType
 from pybind11_tests import builtin_casters as m
 
@@ -247,7 +244,7 @@ def test_integer_casting():
     assert "incompatible function arguments" in str(excinfo.value)
 
 
-def test_int_convert(doc):
+def test_int_convert(doc, avoid_PyLong_AsLong_deprecation):
     class Int:
         def __int__(self):
             return 42
@@ -286,7 +283,10 @@ def test_int_convert(doc):
 
     convert, noconvert = m.int_passthrough, m.int_passthrough_noconvert
 
-    assert doc(convert) == "int_passthrough(arg0: typing.SupportsInt) -> int"
+    assert (
+        doc(convert)
+        == "int_passthrough(arg0: typing.SupportsInt | typing.SupportsIndex) -> int"
+    )
     assert doc(noconvert) == "int_passthrough_noconvert(arg0: int) -> int"
 
     def requires_conversion(v):
@@ -297,14 +297,9 @@ def test_int_convert(doc):
 
     assert convert(7) == 7
     assert noconvert(7) == 7
-    cant_convert(3.14159)
-    # TODO: Avoid DeprecationWarning in `PyLong_AsLong` (and similar)
-    # TODO: PyPy 3.8 does not behave like CPython 3.8 here yet (7.3.7)
-    if sys.version_info < (3, 10) and env.CPYTHON:
-        with env.deprecated_call():
-            assert convert(Int()) == 42
-    else:
-        assert convert(Int()) == 42
+    assert avoid_PyLong_AsLong_deprecation(convert, 3.14159, 3)
+    requires_conversion(3.14159)
+    assert avoid_PyLong_AsLong_deprecation(convert, Int(), 42)
     requires_conversion(Int())
     cant_convert(NotInt())
     cant_convert(Float())
@@ -312,6 +307,7 @@ def test_int_convert(doc):
     # Before Python 3.8, `PyLong_AsLong` does not pick up on `obj.__index__`,
     # but pybind11 "backports" this behavior.
     assert convert(Index()) == 42
+    assert isinstance(convert(Index()), int)
     assert noconvert(Index()) == 42
     assert convert(IntAndIndex()) == 0  # Fishy; `int(DoubleThought)` == 42
     assert noconvert(IntAndIndex()) == 0
@@ -322,22 +318,42 @@ def test_int_convert(doc):
 
 
 def test_float_convert(doc):
+    class Int:
+        def __int__(self):
+            return -5
+
+    class Index:
+        def __index__(self) -> int:
+            return -7
+
     class Float:
         def __float__(self):
             return 41.45
 
     convert, noconvert = m.float_passthrough, m.float_passthrough_noconvert
-    assert doc(convert) == "float_passthrough(arg0: typing.SupportsFloat) -> float"
+    assert (
+        doc(convert)
+        == "float_passthrough(arg0: typing.SupportsFloat | typing.SupportsIndex) -> float"
+    )
     assert doc(noconvert) == "float_passthrough_noconvert(arg0: float) -> float"
 
     def requires_conversion(v):
         pytest.raises(TypeError, noconvert, v)
 
+    def cant_convert(v):
+        pytest.raises(TypeError, convert, v)
+
     requires_conversion(Float())
+    requires_conversion(Index())
     assert pytest.approx(convert(Float())) == 41.45
+    assert pytest.approx(convert(Index())) == -7.0
+    assert isinstance(convert(Float()), float)
+    assert pytest.approx(convert(3)) == 3.0
+    assert pytest.approx(noconvert(3)) == 3.0
+    cant_convert(Int())
 
 
-def test_numpy_int_convert():
+def test_numpy_int_convert(avoid_PyLong_AsLong_deprecation):
     np = pytest.importorskip("numpy")
 
     convert, noconvert = m.int_passthrough, m.int_passthrough_noconvert
@@ -349,15 +365,7 @@ def test_numpy_int_convert():
     assert convert(np.intc(42)) == 42
     assert noconvert(np.intc(42)) == 42
 
-    # The implicit conversion from np.float32 is undesirable but currently accepted.
-    # TODO: Avoid DeprecationWarning in `PyLong_AsLong` (and similar)
-    # TODO: PyPy 3.8 does not behave like CPython 3.8 here yet (7.3.7)
-    # https://github.com/pybind/pybind11/issues/3408
-    if (3, 8) <= sys.version_info < (3, 10) and env.CPYTHON:
-        with env.deprecated_call():
-            assert convert(np.float32(3.14159)) == 3
-    else:
-        assert convert(np.float32(3.14159)) == 3
+    assert avoid_PyLong_AsLong_deprecation(convert, np.float32(3.14159), 3)
     require_implicit(np.float32(3.14159))
 
 
@@ -381,7 +389,7 @@ def test_tuple(doc):
     assert (
         doc(m.tuple_passthrough)
         == """
-        tuple_passthrough(arg0: tuple[bool, str, typing.SupportsInt]) -> tuple[int, str, bool]
+        tuple_passthrough(arg0: tuple[bool, str, typing.SupportsInt | typing.SupportsIndex]) -> tuple[int, str, bool]
 
         Return a triple in reversed order
     """
@@ -458,10 +466,65 @@ def test_reference_wrapper():
     assert m.refwrap_call_iiw(IncType(10), m.refwrap_iiw) == [10, 10, 10, 10]
 
 
-def test_complex_cast():
+def test_complex_cast(doc):
     """std::complex casts"""
+
+    class Complex:
+        def __complex__(self) -> complex:
+            return complex(5, 4)
+
+    class Float:
+        def __float__(self) -> float:
+            return 5.0
+
+    class Int:
+        def __int__(self) -> int:
+            return 3
+
+    class Index:
+        def __index__(self) -> int:
+            return 1
+
     assert m.complex_cast(1) == "1.0"
+    assert m.complex_cast(1.0) == "1.0"
+    assert m.complex_cast(Complex()) == "(5.0, 4.0)"
     assert m.complex_cast(2j) == "(0.0, 2.0)"
+
+    assert m.complex_cast_strict(1) == "(1.0, 0.0)"
+    assert m.complex_cast_strict(3.0) == "(3.0, 0.0)"
+    assert m.complex_cast_strict(complex(5, 4)) == "(5.0, 4.0)"
+    assert m.complex_cast_strict(2j) == "(0.0, 2.0)"
+
+    convert, noconvert = m.complex_convert, m.complex_noconvert
+
+    def requires_conversion(v):
+        pytest.raises(TypeError, noconvert, v)
+
+    def cant_convert(v):
+        pytest.raises(TypeError, convert, v)
+
+    assert (
+        doc(convert)
+        == "complex_convert(arg0: typing.SupportsComplex | typing.SupportsFloat | typing.SupportsIndex) -> complex"
+    )
+    assert doc(noconvert) == "complex_noconvert(arg0: complex) -> complex"
+
+    assert convert(1) == 1.0
+    assert convert(2.0) == 2.0
+    assert convert(1 + 5j) == 1.0 + 5.0j
+    assert convert(Complex()) == 5.0 + 4j
+    assert convert(Float()) == 5.0
+    assert isinstance(convert(Float()), complex)
+    cant_convert(Int())
+    assert convert(Index()) == 1
+    assert isinstance(convert(Index()), complex)
+
+    assert noconvert(1) == 1.0
+    assert noconvert(2.0) == 2.0
+    assert noconvert(1 + 5j) == 1.0 + 5.0j
+    requires_conversion(Complex())
+    requires_conversion(Float())
+    requires_conversion(Index())
 
 
 def test_bool_caster():
