@@ -2218,7 +2218,7 @@ public:
     static void add_base(detail::type_record &) {}
 
     template <typename Func, typename... Extra>
-    class_ &def(const char *name_, Func &&f, const Extra &...extra) {
+    PYBIND11_ALWAYS_INLINE class_ &def(const char *name_, Func &&f, const Extra &...extra) {
         cpp_function cf(method_adaptor<type>(std::forward<Func>(f)),
                         name(name_),
                         is_method(*this),
@@ -2797,37 +2797,12 @@ struct enum_base {
         pos_only())
 
         if (is_convertible) {
-            PYBIND11_ENUM_OP_CONV_LHS("__eq__", !b.is_none() && a.equal(b));
-            PYBIND11_ENUM_OP_CONV_LHS("__ne__", b.is_none() || !a.equal(b));
-
             if (is_arithmetic) {
-                PYBIND11_ENUM_OP_CONV("__lt__", a < b);
-                PYBIND11_ENUM_OP_CONV("__gt__", a > b);
-                PYBIND11_ENUM_OP_CONV("__le__", a <= b);
-                PYBIND11_ENUM_OP_CONV("__ge__", a >= b);
-                PYBIND11_ENUM_OP_CONV("__and__", a & b);
-                PYBIND11_ENUM_OP_CONV("__rand__", a & b);
-                PYBIND11_ENUM_OP_CONV("__or__", a | b);
-                PYBIND11_ENUM_OP_CONV("__ror__", a | b);
-                PYBIND11_ENUM_OP_CONV("__xor__", a ^ b);
-                PYBIND11_ENUM_OP_CONV("__rxor__", a ^ b);
                 m_base.attr("__invert__")
                     = cpp_function([](const object &arg) { return ~(int_(arg)); },
                                    name("__invert__"),
                                    is_method(m_base),
                                    pos_only());
-            }
-        } else {
-            PYBIND11_ENUM_OP_STRICT("__eq__", int_(a).equal(int_(b)), return false);
-            PYBIND11_ENUM_OP_STRICT("__ne__", !int_(a).equal(int_(b)), return true);
-
-            if (is_arithmetic) {
-#define PYBIND11_THROW throw type_error("Expected an enumeration of matching type!");
-                PYBIND11_ENUM_OP_STRICT("__lt__", int_(a) < int_(b), PYBIND11_THROW);
-                PYBIND11_ENUM_OP_STRICT("__gt__", int_(a) > int_(b), PYBIND11_THROW);
-                PYBIND11_ENUM_OP_STRICT("__le__", int_(a) <= int_(b), PYBIND11_THROW);
-                PYBIND11_ENUM_OP_STRICT("__ge__", int_(a) >= int_(b), PYBIND11_THROW);
-#undef PYBIND11_THROW
             }
         }
 
@@ -2944,6 +2919,59 @@ public:
 
         def(init([](Scalar i) { return static_cast<Type>(i); }), arg("value"));
         def_property_readonly("value", [](Type value) { return (Scalar) value; }, pos_only());
+#define PYBIND11_ENUM_OP_SAME_TYPE(op, expr)                                                      \
+    def(op, [](Type a, Type b) { return expr; }, pybind11::name(op), arg("other"), pos_only())
+#define PYBIND11_ENUM_OP_SAME_TYPE_RHS_MAY_BE_NONE(op, expr)                                      \
+    def(op, [](Type a, Type *b_ptr) { return expr; }, pybind11::name(op), arg("other"), pos_only())
+#define PYBIND11_ENUM_OP_SCALAR(op, op_expr)                                                      \
+    def(                                                                                          \
+        op,                                                                                       \
+        [](Type a, Scalar b) { return static_cast<Scalar>(a) op_expr b; },                        \
+        pybind11::name(op),                                                                       \
+        arg("other"),                                                                             \
+        pos_only())
+#define PYBIND11_ENUM_OP_CONV_ARITHMETIC(op, op_expr)                                             \
+    PYBIND11_ENUM_OP_SAME_TYPE(op, static_cast<Scalar>(a) op_expr static_cast<Scalar>(b));        \
+    PYBIND11_ENUM_OP_SCALAR(op, op_expr)
+#define PYBIND11_ENUM_OP_REJECT_UNRELATED_TYPE(op, strict_behavior)                               \
+    def(                                                                                          \
+        op,                                                                                       \
+        [](Type, const object &) { strict_behavior; },                                            \
+        pybind11::name(op),                                                                       \
+        arg("other"),                                                                             \
+        pos_only())
+#define PYBIND11_ENUM_OP_STRICT_ARITHMETIC(op, op_expr, strict_behavior)                          \
+    PYBIND11_ENUM_OP_SAME_TYPE(op, static_cast<Scalar>(a) op_expr static_cast<Scalar>(b));        \
+    PYBIND11_ENUM_OP_REJECT_UNRELATED_TYPE(op, strict_behavior);
+
+        PYBIND11_ENUM_OP_SAME_TYPE_RHS_MAY_BE_NONE("__eq__", b_ptr && a == *b_ptr);
+        PYBIND11_ENUM_OP_SAME_TYPE_RHS_MAY_BE_NONE("__ne__", !b_ptr || a != *b_ptr);
+        if (std::is_convertible<Type, Scalar>::value) {
+            PYBIND11_ENUM_OP_SCALAR("__eq__", ==);
+            PYBIND11_ENUM_OP_SCALAR("__ne__", !=);
+            if (is_arithmetic) {
+                PYBIND11_ENUM_OP_CONV_ARITHMETIC("__lt__", <);
+                PYBIND11_ENUM_OP_CONV_ARITHMETIC("__gt__", >);
+                PYBIND11_ENUM_OP_CONV_ARITHMETIC("__le__", <=);
+                PYBIND11_ENUM_OP_CONV_ARITHMETIC("__ge__", >=);
+                PYBIND11_ENUM_OP_CONV_ARITHMETIC("__and__", &);
+                PYBIND11_ENUM_OP_CONV_ARITHMETIC("__rand__", &);
+                PYBIND11_ENUM_OP_CONV_ARITHMETIC("__or__", |);
+                PYBIND11_ENUM_OP_CONV_ARITHMETIC("__ror__", |);
+                PYBIND11_ENUM_OP_CONV_ARITHMETIC("__xor__", ^);
+                PYBIND11_ENUM_OP_CONV_ARITHMETIC("__rxor__", ^);
+            }
+        } else if (is_arithmetic) {
+#define PYBIND11_THROW throw type_error("Expected an enumeration of matching type!");
+            PYBIND11_ENUM_OP_STRICT_ARITHMETIC("__lt__", <, PYBIND11_THROW);
+            PYBIND11_ENUM_OP_STRICT_ARITHMETIC("__gt__", >, PYBIND11_THROW);
+            PYBIND11_ENUM_OP_STRICT_ARITHMETIC("__le__", <=, PYBIND11_THROW);
+            PYBIND11_ENUM_OP_STRICT_ARITHMETIC("__ge__", >=, PYBIND11_THROW);
+#undef PYBIND11_THROW
+        }
+        PYBIND11_ENUM_OP_REJECT_UNRELATED_TYPE("__eq__", return false);
+        PYBIND11_ENUM_OP_REJECT_UNRELATED_TYPE("__ne__", return true);
+
         def("__int__", [](Type value) { return (Scalar) value; }, pos_only());
         def("__index__", [](Type value) { return (Scalar) value; }, pos_only());
         attr("__setstate__") = cpp_function(
