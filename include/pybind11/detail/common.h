@@ -163,6 +163,14 @@
 #    define PYBIND11_NOINLINE __attribute__((noinline)) inline
 #endif
 
+#if defined(_MSC_VER)
+#    define PYBIND11_ALWAYS_INLINE __forceinline
+#elif defined(__GNUC__)
+#    define PYBIND11_ALWAYS_INLINE __attribute__((__always_inline__)) inline
+#else
+#    define PYBIND11_ALWAYS_INLINE inline
+#endif
+
 #if defined(__MINGW32__)
 // For unknown reasons all PYBIND11_DEPRECATED member trigger a warning when declared
 // whether it is used or not
