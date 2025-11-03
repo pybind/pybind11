@@ -295,7 +295,6 @@ def test_generated_dunder_methods_pos_only():
             "__rxor__",
         ]:
             method = getattr(enum_type, binary_op, None)
-            # TODO: docs now show overloading; update
             if method is not None:
                 # 1) The docs must start with the name of the op.
                 assert (
