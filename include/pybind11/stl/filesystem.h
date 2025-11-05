@@ -59,10 +59,11 @@ public:
     }
 
     bool load(handle handle, bool convert) {
-        if (!convert && !PyObject_IsInstance(handle.ptr(), module_::import("pathlib").attr("Path").ptr())) {
+        if (!convert
+            && !PyObject_IsInstance(handle.ptr(), module_::import("pathlib").attr("Path").ptr())) {
             return false;
         }
-		
+
         // PyUnicode_FSConverter and PyUnicode_FSDecoder normally take care of
         // calling PyOS_FSPath themselves, but that's broken on PyPy (PyPy
         // issue #3168) so we do it ourselves instead.
