@@ -32,6 +32,7 @@
 // pybind11: modified again from executorch::runtime::FunctionRef
 // - renamed back to function_ref
 // - use pybind11 enable_if_t, remove_cvref_t, and remove_reference_t
+// - lint suppressions
 
 // torch::executor: modified from llvm::function_ref
 // - renamed to FunctionRef
@@ -63,14 +64,17 @@ class function_ref<Ret(Params...)> {
 
     template <typename Callable>
     static Ret callback_fn(intptr_t callable, Params... params) {
+        // NOLINTNEXTLINE(performance-no-int-to-ptr)
         return (*reinterpret_cast<Callable *>(callable))(std::forward<Params>(params)...);
     }
 
 public:
     function_ref() = default;
+    // NOLINTNEXTLINE(google-explicit-constructor)
     function_ref(std::nullptr_t) {}
 
     template <typename Callable>
+    // NOLINTNEXTLINE(google-explicit-constructor)
     function_ref(
         Callable &&callable,
         // This is not the copy-constructor.

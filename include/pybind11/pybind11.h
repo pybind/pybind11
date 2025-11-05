@@ -2946,6 +2946,7 @@ public:
         arg("other"),                                                                             \
         pos_only())
 #define PYBIND11_ENUM_OP_CONV_ARITHMETIC(op, op_expr)                                             \
+    /* NOLINTNEXTLINE(bugprone-macro-parentheses) */                                              \
     PYBIND11_ENUM_OP_SAME_TYPE(op, static_cast<Scalar>(a) op_expr static_cast<Scalar>(b));        \
     PYBIND11_ENUM_OP_SCALAR(op, op_expr)
 #define PYBIND11_ENUM_OP_REJECT_UNRELATED_TYPE(op, strict_behavior)                               \
@@ -2956,6 +2957,7 @@ public:
         arg("other"),                                                                             \
         pos_only())
 #define PYBIND11_ENUM_OP_STRICT_ARITHMETIC(op, op_expr, strict_behavior)                          \
+    /* NOLINTNEXTLINE(bugprone-macro-parentheses) */                                              \
     PYBIND11_ENUM_OP_SAME_TYPE(op, static_cast<Scalar>(a) op_expr static_cast<Scalar>(b));        \
     PYBIND11_ENUM_OP_REJECT_UNRELATED_TYPE(op, strict_behavior);
 
