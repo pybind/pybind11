@@ -456,6 +456,9 @@ TEST_SUBMODULE(stl, m) {
     // test_fs_path
     m.attr("has_filesystem") = true;
     m.def("parent_path", [](const std::filesystem::path &path) { return path.parent_path(); });
+    m.def("parent_path_noconvert", 
+        [](const std::filesystem::path &path) { return path.parent_path(); },
+        py::arg("arg0").noconvert());
     m.def("parent_paths", [](const std::vector<std::filesystem::path> &paths) {
         std::vector<std::filesystem::path> result;
         result.reserve(paths.size());
