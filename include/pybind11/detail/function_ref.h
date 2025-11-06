@@ -63,6 +63,7 @@ class function_ref<Ret(Params...)> {
     intptr_t callable;
 
     template <typename Callable>
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     static Ret callback_fn(intptr_t callable, Params... params) {
         // NOLINTNEXTLINE(performance-no-int-to-ptr)
         return (*reinterpret_cast<Callable *>(callable))(std::forward<Params>(params)...);
@@ -87,6 +88,7 @@ public:
         : callback(callback_fn<remove_reference_t<Callable>>),
           callable(reinterpret_cast<intptr_t>(&callable)) {}
 
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
     Ret operator()(Params... params) const {
         return callback(callable, std::forward<Params>(params)...);
     }
