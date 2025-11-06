@@ -60,7 +60,8 @@ public:
 
     bool load(handle handle, bool convert) {
         if (!convert
-            && PyObject_IsInstance(handle.ptr(), module_::import("pathlib").attr("Path").ptr()) != 1) {
+            && PyObject_IsInstance(handle.ptr(), module_::import("pathlib").attr("Path").ptr())
+                   != 1) {
             return false;
         }
 
