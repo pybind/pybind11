@@ -86,7 +86,7 @@ protected:
     std::type_index enum_type_index;
 
 private:
-    handle parent_scope;
+    object parent_scope;
     str enum_name;
     str native_type_name;
     std::string class_doc;

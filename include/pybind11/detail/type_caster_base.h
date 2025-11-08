@@ -606,7 +606,11 @@ struct cast_sources {
     // this does not provide enough information to use a foreign type or
     // to render a useful error message
     cast_sources(const void *obj, const detail::type_info *tinfo)
-        : original{obj, tinfo ? tinfo->cpptype : nullptr}, result{obj, tinfo} {}
+        : original{obj, tinfo ? tinfo->cpptype : nullptr}, result{obj, tinfo} {
+        if (tinfo) {
+            init_instance = tinfo->init_instance;
+        }
+    }
 
     // The object passed to cast(), with its static type.
     // original.type must not be null if resolve() will be called.
@@ -651,10 +655,12 @@ private:
             if (same_type(*original.cpptype, *downcast.cpptype)) {
                 downcast.cpptype = nullptr;
             } else if (const auto *tpi = get_type_info(*downcast.cpptype)) {
+                init_instance = tpi->init_instance;
                 return {downcast.cppobj, tpi};
             }
         }
         if (const auto *tpi = get_type_info(*original.cpptype)) {
+            init_instance = tpi->init_instance;
             return {original.cppobj, tpi};
         }
         return {nullptr, nullptr};

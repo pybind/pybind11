@@ -3010,7 +3010,9 @@ PYBIND11_NOINLINE void keep_alive_impl(handle nurse, handle patient) {
 
         weakref wr(nurse, disable_lifesupport);
 
-        patient.inc_ref(); /* reference patient and leak the weak reference */
+        /* Increase reference counts of both patient and weakref; both will
+         * be correspondingly decreased in the disable_lifesupport callback */
+        patient.inc_ref();
         (void) wr.release();
     }
 }
