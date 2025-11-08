@@ -527,6 +527,68 @@ def test_complex_cast(doc):
     requires_conversion(Index())
 
 
+def test_overload_resolution_float_int():
+    """
+    Test overload resolution behavior when int can match float.
+
+    This test documents the breaking change: when a float overload is registered
+    before an int overload, passing a Python int will now match the float overload
+    (because int can be converted to float in strict mode per PEP 484).
+
+    Before this PR: int(42) would match int overload (if both existed)
+    After this PR: int(42) matches float overload (if registered first)
+
+    This is a breaking change because existing code that relied on int matching
+    int overloads may now match float overloads instead.
+    """
+    # Test 1: float overload registered first, int second
+    # When passing int(42), pybind11 tries overloads in order:
+    # 1. float overload - can int(42) be converted? Yes (with PR changes)
+    # 2. Match! Use float overload (int overload never checked)
+    result = m.overload_resolution_test(42)
+    assert result == "float: 42.000000", (
+        f"Expected int(42) to match float overload, got: {result}. "
+        "This documents the breaking change: int now matches float overloads."
+    )
+    assert m.overload_resolution_test(42.0) == "float: 42.000000"
+
+    # Test 2: With noconvert (strict mode) - this is the KEY breaking change
+    # Before PR: int(42) would NOT match float overload with noconvert, would match int overload
+    # After PR: int(42) DOES match float overload with noconvert (because int->float is now allowed)
+    result_strict = m.overload_resolution_strict(42)
+    assert result_strict == "float_strict: 42.000000", (
+        f"Expected int(42) to match float overload with noconvert, got: {result_strict}. "
+        "This is the key breaking change: int now matches float even in strict mode."
+    )
+    assert m.overload_resolution_strict(42.0) == "float_strict: 42.000000"
+
+    # Test 3: complex overload registered first, then float, then int
+    # When passing int(5), pybind11 tries overloads in order:
+    # 1. complex overload - can int(5) be converted? Yes (with PR changes)
+    # 2. Match! Use complex overload
+    assert m.overload_resolution_complex(5) == "complex: (5.000000, 0.000000)"
+    assert m.overload_resolution_complex(5.0) == "complex: (5.000000, 0.000000)"
+    assert (
+        m.overload_resolution_complex(complex(3, 4)) == "complex: (3.000000, 4.000000)"
+    )
+
+    # Verify that the overloads are registered in the expected order
+    # The docstring should show float overload before int overload
+    doc = m.overload_resolution_test.__doc__
+    assert doc is not None
+    # Check that float overload appears before int overload in docstring
+    # The docstring uses "typing.SupportsFloat" and "typing.SupportsInt"
+    float_pos = doc.find("SupportsFloat")
+    int_pos = doc.find("SupportsInt")
+    assert float_pos != -1, f"Could not find 'SupportsFloat' in docstring: {doc}"
+    assert int_pos != -1, f"Could not find 'SupportsInt' in docstring: {doc}"
+    assert float_pos < int_pos, (
+        f"Float overload should appear before int overload in docstring. "
+        f"Found 'SupportsFloat' at {float_pos}, 'SupportsInt' at {int_pos}. "
+        f"Docstring: {doc}"
+    )
+
+
 def test_bool_caster():
     """Test bool caster implicit conversions."""
     convert, noconvert = m.bool_passthrough, m.bool_passthrough_noconvert
