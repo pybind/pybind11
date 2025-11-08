@@ -527,6 +527,57 @@ def test_complex_cast(doc):
     requires_conversion(Index())
 
 
+def test_complex_index_handling():
+    """
+    Test __index__ handling in complex caster.
+
+    This test verifies that custom __index__ objects (not PyLong) work correctly
+    with complex conversion. The behavior should be consistent across CPython,
+    PyPy, and GraalPy.
+
+    - Custom __index__ objects work with convert (non-strict mode)
+    - Custom __index__ objects do NOT work with noconvert (strict mode)
+    - Regular int (PyLong) works with both convert and noconvert
+    """
+
+    class CustomIndex:
+        """Custom class with __index__ but not __int__ or __float__"""
+
+        def __index__(self) -> int:
+            return 42
+
+    class CustomIndexNegative:
+        """Custom class with negative __index__"""
+
+        def __index__(self) -> int:
+            return -17
+
+    convert, noconvert = m.complex_convert, m.complex_noconvert
+
+    # Test that regular int (PyLong) works
+    assert convert(5) == 5.0 + 0j
+    assert noconvert(5) == 5.0 + 0j
+
+    # Test that custom __index__ objects work with convert (non-strict mode)
+    # This exercises the PyPy-specific path in complex.h
+    assert convert(CustomIndex()) == 42.0 + 0j
+    assert convert(CustomIndexNegative()) == -17.0 + 0j
+
+    # With noconvert (strict mode), custom __index__ objects are NOT accepted
+    # Strict mode only accepts complex, float, or int (PyLong), not custom __index__ objects
+    def requires_conversion(v):
+        pytest.raises(TypeError, noconvert, v)
+
+    requires_conversion(CustomIndex())
+    requires_conversion(CustomIndexNegative())
+
+    # Verify the result is actually a complex
+    result = convert(CustomIndex())
+    assert isinstance(result, complex)
+    assert result.real == 42.0
+    assert result.imag == 0.0
+
+
 def test_overload_resolution_float_int():
     """
     Test overload resolution behavior when int can match float.
