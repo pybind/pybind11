@@ -348,8 +348,10 @@ public:
     }
 
     PYBIND11_TYPE_CASTER(T,
-                         io_name<std::is_integral<T>::value>(
-                             "typing.SupportsInt", "int", "typing.SupportsFloat", "float"));
+                         io_name<std::is_integral<T>::value>(PYBIND11_INT_ARGUMENT_TYPE_HINT,
+                                                             "int",
+                                                             PYBIND11_FLOAT_ARGUMENT_TYPE_HINT,
+                                                             "float"));
 };
 
 template <typename T>
