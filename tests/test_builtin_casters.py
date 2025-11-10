@@ -356,7 +356,7 @@ def test_float_convert(doc):
     assert pytest.approx(convert(Index())) == -7.0
     assert isinstance(convert(Float()), float)
     assert pytest.approx(convert(3)) == 3.0
-    assert pytest.approx(noconvert(3)) == 3.0
+    requires_conversion(3)
     cant_convert(Int())
 
 
@@ -529,8 +529,8 @@ def test_complex_cast(doc):
     assert convert(Index()) == 1
     assert isinstance(convert(Index()), complex)
 
-    assert noconvert(1) == 1.0
-    assert noconvert(2.0) == 2.0
+    requires_conversion(1)
+    requires_conversion(2.0)
     assert noconvert(1 + 5j) == 1.0 + 5.0j
     requires_conversion(Complex())
     requires_conversion(Float())
