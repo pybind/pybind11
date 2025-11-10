@@ -1211,7 +1211,10 @@ def test_class_attribute_types() -> None:
     instance_annotations = get_annotations_helper(m.Instance)
 
     assert empty_annotations is None
-    assert static_annotations["x"] == "typing.ClassVar[typing.SupportsFloat]"
+    assert (
+        static_annotations["x"]
+        == "typing.ClassVar[typing.SupportsFloat | typing.SupportsIndex]"
+    )
     assert (
         static_annotations["dict_str_int"]
         == "typing.ClassVar[dict[str, typing.SupportsInt | typing.SupportsIndex]]"
@@ -1226,7 +1229,7 @@ def test_class_attribute_types() -> None:
     static.dict_str_int["hi"] = 3
     assert m.Static().dict_str_int == {"hi": 3}
 
-    assert instance_annotations["y"] == "typing.SupportsFloat"
+    assert instance_annotations["y"] == "typing.SupportsFloat | typing.SupportsIndex"
     instance1 = m.Instance()
     instance1.y = 4.0
 
@@ -1243,7 +1246,10 @@ def test_class_attribute_types() -> None:
 def test_redeclaration_attr_with_type_hint() -> None:
     obj = m.Instance()
     m.attr_with_type_hint_float_x(obj)
-    assert get_annotations_helper(obj)["x"] == "typing.SupportsFloat"
+    assert (
+        get_annotations_helper(obj)["x"]
+        == "typing.SupportsFloat | typing.SupportsIndex"
+    )
     with pytest.raises(
         RuntimeError, match=r'^__annotations__\["x"\] was set already\.$'
     ):

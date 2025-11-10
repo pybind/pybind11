@@ -264,7 +264,7 @@ def test_no_mixed_overloads():
             "#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for more details"
             if not detailed_error_messages_enabled
             else "error while attempting to bind instance method ExampleMandA.overload_mixed2"
-            "(self: pybind11_tests.methods_and_attributes.ExampleMandA, arg0: typing.SupportsInt, arg1: typing.SupportsInt | typing.SupportsIndex)"
+            "(self: pybind11_tests.methods_and_attributes.ExampleMandA, arg0: typing.SupportsInt | typing.SupportsIndex, arg1: typing.SupportsInt | typing.SupportsIndex)"
             " -> str"
         )
     )
