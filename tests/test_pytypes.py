@@ -944,14 +944,14 @@ def test_tuple_variable_length_annotations(doc):
 def test_dict_annotations(doc):
     assert (
         doc(m.annotate_dict_str_int)
-        == "annotate_dict_str_int(arg0: dict[str, typing.SupportsInt]) -> None"
+        == "annotate_dict_str_int(arg0: dict[str, typing.SupportsInt | typing.SupportsIndex]) -> None"
     )
 
 
 def test_list_annotations(doc):
     assert (
         doc(m.annotate_list_int)
-        == "annotate_list_int(arg0: list[typing.SupportsInt]) -> None"
+        == "annotate_list_int(arg0: list[typing.SupportsInt | typing.SupportsIndex]) -> None"
     )
 
 
@@ -969,7 +969,7 @@ def test_iterable_annotations(doc):
 def test_iterator_annotations(doc):
     assert (
         doc(m.annotate_iterator_int)
-        == "annotate_iterator_int(arg0: collections.abc.Iterator[typing.SupportsInt]) -> None"
+        == "annotate_iterator_int(arg0: collections.abc.Iterator[typing.SupportsInt | typing.SupportsIndex]) -> None"
     )
 
 
@@ -989,7 +989,8 @@ def test_fn_return_only(doc):
 
 def test_type_annotation(doc):
     assert (
-        doc(m.annotate_type) == "annotate_type(arg0: type[typing.SupportsInt]) -> type"
+        doc(m.annotate_type)
+        == "annotate_type(arg0: type[typing.SupportsInt | typing.SupportsIndex]) -> type"
     )
 
 
@@ -1007,7 +1008,7 @@ def test_union_typing_only(doc):
 def test_union_object_annotations(doc):
     assert (
         doc(m.annotate_union_to_object)
-        == "annotate_union_to_object(arg0: typing.SupportsInt | str) -> object"
+        == "annotate_union_to_object(arg0: typing.SupportsInt | typing.SupportsIndex | str) -> object"
     )
 
 
@@ -1044,7 +1045,7 @@ def test_never_annotation(doc, backport_typehints):
 def test_optional_object_annotations(doc):
     assert (
         doc(m.annotate_optional_to_object)
-        == "annotate_optional_to_object(arg0: typing.SupportsInt | None) -> object"
+        == "annotate_optional_to_object(arg0: typing.SupportsInt | typing.SupportsIndex | None) -> object"
     )
 
 
@@ -1167,7 +1168,10 @@ def get_annotations_helper(o):
 def test_module_attribute_types() -> None:
     module_annotations = get_annotations_helper(m)
 
-    assert module_annotations["list_int"] == "list[typing.SupportsInt]"
+    assert (
+        module_annotations["list_int"]
+        == "list[typing.SupportsInt | typing.SupportsIndex]"
+    )
     assert module_annotations["set_str"] == "set[str]"
     assert module_annotations["foo"] == "pybind11_tests.pytypes.foo"
 
@@ -1190,7 +1194,10 @@ def test_get_annotations_compliance() -> None:
 
     module_annotations = get_annotations(m)
 
-    assert module_annotations["list_int"] == "list[typing.SupportsInt]"
+    assert (
+        module_annotations["list_int"]
+        == "list[typing.SupportsInt | typing.SupportsIndex]"
+    )
     assert module_annotations["set_str"] == "set[str]"
 
 
@@ -1207,7 +1214,7 @@ def test_class_attribute_types() -> None:
     assert static_annotations["x"] == "typing.ClassVar[typing.SupportsFloat]"
     assert (
         static_annotations["dict_str_int"]
-        == "typing.ClassVar[dict[str, typing.SupportsInt]]"
+        == "typing.ClassVar[dict[str, typing.SupportsInt | typing.SupportsIndex]]"
     )
 
     assert m.Static.x == 1.0
