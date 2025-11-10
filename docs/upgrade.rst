@@ -47,8 +47,9 @@ Also new in v3.0 is ``py::native_enum``, a modern API for exposing
 C++ enumerations as native Python types — typically standard-library
 ``enum.Enum`` or related subclasses. This provides improved integration with
 Python's enum system, compared to the older (now deprecated) ``py::enum_``.
-One also has to include ``#include <pybind11/native_enum.h>`` in the source file.
 See `#5555 <https://github.com/pybind/pybind11/pull/5555>`_ for details.
+Note that ``#include <pybind11/native_enum.h>`` is not included automatically
+and must be added explicitly.
 
 Functions exposed with pybind11 are now pickleable. This removes a
 long-standing obstacle when using pybind11-bound functions with Python features
