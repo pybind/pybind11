@@ -32,7 +32,7 @@ repos:
 
 # Ruff, the Python auto-correcting linter/formatter written in Rust
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.13.3
+  rev: v0.14.3
   hooks:
   - id: ruff-check
     args: ["--fix", "--show-fixes"]
@@ -135,14 +135,14 @@ repos:
 
 # PyLint has native support - not always usable, but works for us
 - repo: https://github.com/PyCQA/pylint
-  rev: "v3.3.9"
+  rev: "v4.0.2"
   hooks:
   - id: pylint
     files: ^pybind11
 
 # Check schemas on some of our YAML files
 - repo: https://github.com/python-jsonschema/check-jsonschema
-  rev: 0.34.0
+  rev: 0.34.1
   hooks:
   - id: check-readthedocs
   - id: check-github-workflows
