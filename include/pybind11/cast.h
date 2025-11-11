@@ -255,7 +255,9 @@ public:
             // PyPy: 7.3.7's 3.8 does not implement PyLong_*'s __index__ calls.
 #if defined(PYPY_VERSION)
             object index;
-            if (!PYBIND11_LONG_CHECK(src.ptr())) { // So: PYBIND11_INDEX_CHECK(src.ptr())
+            // If not a PyLong, we need to call PyNumber_Index explicitly on PyPy.
+            // When convert is false, we only reach here if PYBIND11_INDEX_CHECK passed above.
+            if (!PYBIND11_LONG_CHECK(src.ptr())) {
                 index = reinterpret_steal<object>(PyNumber_Index(src.ptr()));
                 if (!index) {
                     PyErr_Clear();
