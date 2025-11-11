@@ -54,7 +54,23 @@ public:
         if (!convert && !PyComplex_Check(src.ptr())) {
             return false;
         }
-        Py_complex result = PyComplex_AsCComplex(src.ptr());
+        handle src_or_index = src;
+        // PyPy: 7.3.7's 3.8 does not implement PyLong_*'s __index__ calls.
+        // The same logic is used in numeric_caster for ints and floats
+#if defined(PYPY_VERSION)
+        object index;
+        if (PYBIND11_INDEX_CHECK(src.ptr())) {
+            index = reinterpret_steal<object>(PyNumber_Index(src.ptr()));
+            if (!index) {
+                PyErr_Clear();
+                if (!convert)
+                    return false;
+            } else {
+                src_or_index = index;
+            }
+        }
+#endif
+        Py_complex result = PyComplex_AsCComplex(src_or_index.ptr());
         if (result.real == -1.0 && PyErr_Occurred()) {
             PyErr_Clear();
             return false;
