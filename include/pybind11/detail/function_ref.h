@@ -14,12 +14,10 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file contains some extension to <functional>.
+// This file contains a header-only class template that provides functionality
+// similar to std::function but with non-owning semantics. It is a template-only
+// implementation that requires no additional library linking.
 //
-// No library is required when using these functions.
-//
-//===----------------------------------------------------------------------===//
-//     Extra additions to <functional>
 //===----------------------------------------------------------------------===//
 
 /// An efficient, type-erasing, non-owning reference to a callable. This is
