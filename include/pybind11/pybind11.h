@@ -2995,6 +2995,13 @@ public:
         PYBIND11_ENUM_OP_REJECT_UNRELATED_TYPE("__eq__", return false);
         PYBIND11_ENUM_OP_REJECT_UNRELATED_TYPE("__ne__", return true);
 
+#undef PYBIND11_ENUM_OP_SAME_TYPE
+#undef PYBIND11_ENUM_OP_SAME_TYPE_RHS_MAY_BE_NONE
+#undef PYBIND11_ENUM_OP_SCALAR
+#undef PYBIND11_ENUM_OP_CONV_ARITHMETIC
+#undef PYBIND11_ENUM_OP_REJECT_UNRELATED_TYPE
+#undef PYBIND11_ENUM_OP_STRICT_ARITHMETIC
+
         def("__int__", [](Type value) { return (Scalar) value; }, pos_only());
         def("__index__", [](Type value) { return (Scalar) value; }, pos_only());
         attr("__setstate__") = cpp_function(
