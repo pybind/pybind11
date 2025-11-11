@@ -388,6 +388,12 @@ private:
     template <typename Return, typename Guard, typename ArgsConverter, typename... Args>
     static handle call_impl(detail::function_call &call, detail::function_ref<Return(Args...)> f) {
         using namespace detail;
+        // Static assertion: function_ref must be trivially copyable to ensure safe pass-by-value.
+        // Lifetime safety: The function_ref is created from cap->f which lives in the capture
+        // object stored in the function record, and is only used synchronously within this
+        // function call. It is never stored beyond the scope of call_impl.
+        static_assert(std::is_trivially_copyable<detail::function_ref<Return(Args...)>>::value,
+                      "function_ref must be trivially copyable for safe pass-by-value usage");
         using cast_out
             = make_caster<conditional_t<std::is_void<Return>::value, void_type, Return>>;
 
