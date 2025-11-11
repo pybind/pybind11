@@ -2985,12 +2985,13 @@ public:
                 PYBIND11_ENUM_OP_CONV_ARITHMETIC("__rxor__", ^);
             }
         } else if (is_arithmetic) {
-#define PYBIND11_THROW throw type_error("Expected an enumeration of matching type!");
-            PYBIND11_ENUM_OP_STRICT_ARITHMETIC("__lt__", <, PYBIND11_THROW);
-            PYBIND11_ENUM_OP_STRICT_ARITHMETIC("__gt__", >, PYBIND11_THROW);
-            PYBIND11_ENUM_OP_STRICT_ARITHMETIC("__le__", <=, PYBIND11_THROW);
-            PYBIND11_ENUM_OP_STRICT_ARITHMETIC("__ge__", >=, PYBIND11_THROW);
-#undef PYBIND11_THROW
+#define PYBIND11_ENUM_OP_THROW_TYPE_ERROR                                                         \
+    throw type_error("Expected an enumeration of matching type!");
+            PYBIND11_ENUM_OP_STRICT_ARITHMETIC("__lt__", <, PYBIND11_ENUM_OP_THROW_TYPE_ERROR);
+            PYBIND11_ENUM_OP_STRICT_ARITHMETIC("__gt__", >, PYBIND11_ENUM_OP_THROW_TYPE_ERROR);
+            PYBIND11_ENUM_OP_STRICT_ARITHMETIC("__le__", <=, PYBIND11_ENUM_OP_THROW_TYPE_ERROR);
+            PYBIND11_ENUM_OP_STRICT_ARITHMETIC("__ge__", >=, PYBIND11_ENUM_OP_THROW_TYPE_ERROR);
+#undef PYBIND11_ENUM_OP_THROW_TYPE_ERROR
         }
         PYBIND11_ENUM_OP_REJECT_UNRELATED_TYPE("__eq__", return false);
         PYBIND11_ENUM_OP_REJECT_UNRELATED_TYPE("__ne__", return true);
