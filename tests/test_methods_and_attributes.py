@@ -544,6 +544,11 @@ def test_overload_ordering():
         in m.overload_order.__doc__
     )
 
+    # PR 5879 enabled conversions from Python `float` to C++ `int` in convert mode
+    # (i.e. if `arg(...).noconvert()` is NOT specified). This matches Python's
+    # behavior where `int(1.1)` succeeds, making pybind11 more consistent with
+    # Python's type system.
+    assert m.overload_order(1.1) == 4
     with pytest.raises(TypeError) as err:
         m.overload_order([])
 
