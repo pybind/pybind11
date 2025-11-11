@@ -140,11 +140,11 @@ def test_cpp_function_roundtrip():
 def test_function_signatures(doc):
     assert (
         doc(m.test_callback3)
-        == "test_callback3(arg0: collections.abc.Callable[[typing.SupportsInt], int]) -> str"
+        == "test_callback3(arg0: collections.abc.Callable[[typing.SupportsInt | typing.SupportsIndex], int]) -> str"
     )
     assert (
         doc(m.test_callback4)
-        == "test_callback4() -> collections.abc.Callable[[typing.SupportsInt], int]"
+        == "test_callback4() -> collections.abc.Callable[[typing.SupportsInt | typing.SupportsIndex], int]"
     )
 
 

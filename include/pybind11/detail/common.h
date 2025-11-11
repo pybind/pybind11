@@ -322,6 +322,13 @@
 #define PYBIND11_BYTES_AS_STRING PyBytes_AsString
 #define PYBIND11_BYTES_SIZE PyBytes_Size
 #define PYBIND11_LONG_CHECK(o) PyLong_Check(o)
+// In PyPy 7.3.3, `PyIndex_Check` is implemented by calling `__index__`,
+// while CPython only considers the existence of `nb_index`/`__index__`.
+#if !defined(PYPY_VERSION)
+#    define PYBIND11_INDEX_CHECK(o) PyIndex_Check(o)
+#else
+#    define PYBIND11_INDEX_CHECK(o) hasattr(o, "__index__")
+#endif
 #define PYBIND11_LONG_AS_LONGLONG(o) PyLong_AsLongLong(o)
 #define PYBIND11_LONG_FROM_SIGNED(o) PyLong_FromSsize_t((ssize_t) (o))
 #define PYBIND11_LONG_FROM_UNSIGNED(o) PyLong_FromSize_t((size_t) (o))
