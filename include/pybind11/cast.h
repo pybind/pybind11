@@ -250,12 +250,15 @@ public:
             } else {
                 return false;
             }
-        } else if (PyFloat_Check(src.ptr())) {
+        } else if (PyFloat_Check(src.ptr())
+                   || !(convert || PYBIND11_LONG_CHECK(src.ptr())
+                        || PYBIND11_INDEX_CHECK(src.ptr()))) {
             // Explicitly reject float → int conversion even in convert mode.
             // This prevents silent truncation (e.g., 1.9 → 1).
             // Only int → float conversion is allowed (widening, no precision loss).
+            // Also reject if none of the conversion conditions are met.
             return false;
-        } else if (convert || PYBIND11_LONG_CHECK(src.ptr()) || PYBIND11_INDEX_CHECK(src.ptr())) {
+        } else {
             handle src_or_index = src;
             // PyPy: 7.3.7's 3.8 does not implement PyLong_*'s __index__ calls.
 #if defined(PYPY_VERSION)
@@ -280,8 +283,6 @@ public:
                                ? (py_type) PyLong_AsLong(src_or_index.ptr())
                                : (py_type) PYBIND11_LONG_AS_LONGLONG(src_or_index.ptr());
             }
-        } else {
-            return false;
         }
 
         // Python API reported an error
