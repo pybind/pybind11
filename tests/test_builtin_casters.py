@@ -324,6 +324,50 @@ def test_int_convert(doc):
     assert convert(RaisingValueErrorOnIndex()) == 42
     requires_conversion(RaisingValueErrorOnIndex())
 
+    class IndexReturnsFloat:
+        def __index__(self):
+            return 3.14  # noqa: PLE0305  Wrong: should return int
+
+    class IntReturnsFloat:
+        def __int__(self):
+            return 3.14  # Wrong: should return int
+
+    class IndexFloatIntInt:
+        def __index__(self):
+            return 3.14  # noqa: PLE0305  Wrong: should return int
+
+        def __int__(self):
+            return 42  # Correct: returns int
+
+    class IndexIntIntFloat:
+        def __index__(self):
+            return 42  # Correct: returns int
+
+        def __int__(self):
+            return 3.14  # Wrong: should return int
+
+    class IndexFloatIntFloat:
+        def __index__(self):
+            return 3.14  # noqa: PLE0305  Wrong: should return int
+
+        def __int__(self):
+            return 2.71  # Wrong: should return int
+
+    cant_convert(IndexReturnsFloat())
+    requires_conversion(IndexReturnsFloat())
+
+    cant_convert(IntReturnsFloat())
+    requires_conversion(IntReturnsFloat())
+
+    assert convert(IndexFloatIntInt()) == 42  # convert: __index__ fails, uses __int__
+    requires_conversion(IndexFloatIntInt())  # noconvert: __index__ fails, no fallback
+
+    assert convert(IndexIntIntFloat()) == 42  # convert: __index__ succeeds
+    assert noconvert(IndexIntIntFloat()) == 42  # noconvert: __index__ succeeds
+
+    cant_convert(IndexFloatIntFloat())  # convert mode rejects (both fail)
+    requires_conversion(IndexFloatIntFloat())  # noconvert mode also rejects
+
 
 def test_float_convert(doc):
     class Int:
