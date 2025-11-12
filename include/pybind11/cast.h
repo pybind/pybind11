@@ -285,8 +285,10 @@ public:
             }
         }
 
-        // Python API reported an error
-        bool py_err = py_value == (py_type) -1 && PyErr_Occurred();
+        bool py_err = (PyErr_Occurred() != nullptr);
+        if (py_err) {
+            assert(py_value == static_cast<py_type>(-1));
+        }
 
         // Check to see if the conversion is valid (integers should match exactly)
         // Signed/unsigned checks happen elsewhere
