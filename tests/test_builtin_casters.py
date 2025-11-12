@@ -304,7 +304,7 @@ def test_int_convert(doc):
     # TODO: Avoid DeprecationWarning in `PyLong_AsLong` (and similar)
     # TODO: PyPy 3.8 does not behave like CPython 3.8 here yet (7.3.7)
     if sys.version_info < (3, 10) and env.CPYTHON:
-        with env.deprecated_call():
+        with pytest.deprecated_call():
             assert convert(Int()) == 42
     else:
         assert convert(Int()) == 42
@@ -377,7 +377,7 @@ def test_numpy_int_convert():
     # TODO: PyPy 3.8 does not behave like CPython 3.8 here yet (7.3.7)
     # https://github.com/pybind/pybind11/issues/3408
     if (3, 8) <= sys.version_info < (3, 10) and env.CPYTHON:
-        with env.deprecated_call():
+        with pytest.deprecated_call():
             assert convert(np.float32(3.14159)) == 3
     else:
         assert convert(np.float32(3.14159)) == 3
