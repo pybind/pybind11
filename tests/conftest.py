@@ -17,11 +17,9 @@ import sysconfig
 import textwrap
 import traceback
 import weakref
-from typing import Callable, SupportsIndex, TypeVar
+from typing import Callable
 
 import pytest
-
-import env
 
 # Early diagnostic for failed imports
 try:
@@ -313,27 +311,3 @@ def backport_typehints() -> Callable[[SanitizedString], SanitizedString]:
         return sanatized_string
 
     return backport
-
-
-_EXPECTED_T = TypeVar("_EXPECTED_T")
-
-
-# TODO: Avoid DeprecationWarning in `PyLong_AsLong` (and similar)
-# TODO: PyPy 3.8 does not behave like CPython 3.8 here yet (7.3.7)
-# https://github.com/pybind/pybind11/issues/3408
-@pytest.fixture
-def avoid_PyLong_AsLong_deprecation() -> Callable[
-    [Callable[[SupportsIndex], _EXPECTED_T], SupportsIndex, _EXPECTED_T], bool
-]:
-    def check(
-        convert: Callable[[SupportsIndex], _EXPECTED_T],
-        value: SupportsIndex,
-        expected: _EXPECTED_T,
-    ) -> bool:
-        if sys.version_info < (3, 10) and env.CPYTHON:
-            with pytest.deprecated_call():
-                return convert(value) == expected
-        else:
-            return convert(value) == expected
-
-    return check

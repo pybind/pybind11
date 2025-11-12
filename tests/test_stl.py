@@ -422,7 +422,7 @@ def test_missing_header_message():
     )
 
     with pytest.raises(TypeError) as excinfo:
-        cm.missing_header_arg([1.0, "bar", 3.0])
+        cm.missing_header_arg([1.0, 2.0, 3.0])
     assert expected_message in str(excinfo.value)
 
     with pytest.raises(TypeError) as excinfo:
@@ -491,7 +491,7 @@ def test_pass_std_vector_pair_int():
 
 def test_list_caster_fully_consumes_generator_object():
     def gen_invalid():
-        yield from [1, "bar", 3]
+        yield from [1, 2.0, 3]
 
     gen_obj = gen_invalid()
     with pytest.raises(TypeError):
@@ -514,15 +514,15 @@ def test_pass_std_set_int():
 
 
 def test_set_caster_dict_keys_failure():
-    dict_keys = {1: None, "bar": None, 3: None}.keys()
+    dict_keys = {1: None, 2.0: None, 3: None}.keys()
     # The asserts does not really exercise anything in pybind11, but if one of
     # them fails in some future version of Python, the set_caster load
     # implementation may need to be revisited.
-    assert tuple(dict_keys) == (1, "bar", 3)
-    assert tuple(dict_keys) == (1, "bar", 3)
+    assert tuple(dict_keys) == (1, 2.0, 3)
+    assert tuple(dict_keys) == (1, 2.0, 3)
     with pytest.raises(TypeError):
         m.pass_std_set_int(dict_keys)
-    assert tuple(dict_keys) == (1, "bar", 3)
+    assert tuple(dict_keys) == (1, 2.0, 3)
 
 
 class FakePyMappingMissingItems:

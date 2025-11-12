@@ -6,7 +6,7 @@ import env  # noqa: F401
 from pybind11_tests import custom_type_casters as m
 
 
-def test_noconvert_args(msg, avoid_PyLong_AsLong_deprecation):
+def test_noconvert_args(msg):
     a = m.ArgInspector()
     assert (
         msg(a.f("hi"))
@@ -59,7 +59,17 @@ def test_noconvert_args(msg, avoid_PyLong_AsLong_deprecation):
 
     assert m.ints_preferred(4) == 2
     assert m.ints_preferred(True) == 0
-    assert avoid_PyLong_AsLong_deprecation(m.ints_preferred, 4.0, 2)
+    with pytest.raises(TypeError) as excinfo:
+        m.ints_preferred(4.0)
+    assert (
+        msg(excinfo.value)
+        == """
+        ints_preferred(): incompatible function arguments. The following argument types are supported:
+            1. (i: typing.SupportsInt | typing.SupportsIndex) -> int
+
+        Invoked with: 4.0
+    """
+    )
 
     assert m.ints_only(4) == 2
     with pytest.raises(TypeError) as excinfo:
