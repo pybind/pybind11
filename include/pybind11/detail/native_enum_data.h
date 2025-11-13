@@ -86,7 +86,7 @@ protected:
     std::type_index enum_type_index;
 
 private:
-    object parent_scope;
+    handle parent_scope;
     str enum_name;
     str native_type_name;
     std::string class_doc;
@@ -220,6 +220,13 @@ inline void native_enum_data::finalize() {
     py_enum.attr(native_enum_record::attribute_name()) = enum_record;
     with_internals([&](internals &internals) {
         internals.native_enum_type_map[enum_type_index] = py_enum.ptr();
+
+        auto &interop_internals = get_interop_internals();
+        if (interop_internals.export_all) {
+            auto *record = enum_record.get_pointer<native_enum_record>();
+            interop_internals.export_for_interop(
+                record->cpptype, (PyTypeObject *) py_enum.ptr(), nullptr);
+        }
     });
 }
 
