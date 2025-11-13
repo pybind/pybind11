@@ -15,8 +15,7 @@
 #include <chrono>
 #include <thread>
 
-#if defined(PYBIND11_CPP20) && defined(__has_include) && __has_include(<barrier>)
-#    define PYBIND11_HAS_STD_BARRIER 1
+#if defined(PYBIND11_HAS_STD_BARRIER)
 #    include <barrier>
 #endif
 
@@ -96,7 +95,7 @@ TEST_SUBMODULE(thread, m) {
     });
 #endif
 
-    m.attr("has_barrier") =
+    m.attr("defined_PYBIND11_HAS_STD_BARRIER") =
 #ifdef PYBIND11_HAS_STD_BARRIER
         true;
 #else

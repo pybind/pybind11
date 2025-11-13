@@ -70,7 +70,7 @@ def test_bind_shared_instance():
 
 
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
-@pytest.mark.skipif(not m.has_barrier, reason="no <barrier>")
+@pytest.mark.skipif(not m.defined_PYBIND11_HAS_STD_BARRIER, reason="no <barrier>")
 @pytest.mark.skipif(env.sys_is_gil_enabled(), reason="Deadlock with the GIL")
 def test_pythread_state_clear_destructor():
     class Foo:
