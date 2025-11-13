@@ -2171,21 +2171,50 @@ private:
 
 /// Helper class which collects only positional arguments for a Python function call.
 /// A fancier version below can collect any argument, but this one is optimal for simple calls.
-template <return_value_policy policy>
+template <size_t N, return_value_policy policy>
 class simple_collector {
 public:
     template <typename... Ts>
-    explicit simple_collector(Ts &&...values)
-        : m_args(pybind11::make_tuple<policy>(std::forward<Ts>(values)...)) {}
+    explicit simple_collector(Ts &&...values) {
+        static_assert(sizeof...(Ts) == N);
+        size_t i = 0;
+        using expander = int[];
+        (void) expander{
+            0,
+            (m_args[i++] = detail::make_caster<Ts>::cast(std::forward<Ts>(values), policy, nullptr)
+                               .inc_ref()
+                               .ptr(),
+             0)...};
+        for (i = 0; i < N; ++i) {
+            if (!m_args[i]) {
+#if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
+                throw cast_error_unable_to_convert_call_arg(std::to_string(i));
+#else
+                std::array<std::string, N> argtypes{{type_id<Ts>()...}};
+                throw cast_error_unable_to_convert_call_arg(std::to_string(i), argtypes[i]);
+#endif
+            }
+        }
+    }
 
-    const tuple &args() const & { return m_args; }
+    ~simple_collector() {
+        for (size_t i = 0; i < N; ++i) {
+            handle(m_args[i]).dec_ref();
+        }
+    }
+
+    tuple args() const {
+        tuple result(N);
+        for (size_t i = 0; i < N; ++i) {
+            PyTuple_SET_ITEM(result.ptr(), i, handle(m_args[i]).inc_ref().ptr());
+        }
+        return result;
+    }
     dict kwargs() const { return {}; }
-
-    tuple args() && { return std::move(m_args); }
 
     /// Call a Python function and pass the collected arguments
     object call(PyObject *ptr) const {
-        PyObject *result = PyObject_CallObject(ptr, m_args.ptr());
+        PyObject *result = PyObject_Vectorcall(ptr, m_args.data(), N, nullptr);
         if (!result) {
             throw error_already_set();
         }
@@ -2193,7 +2222,7 @@ public:
     }
 
 private:
-    tuple m_args;
+    std::array<PyObject *, N> m_args;
 };
 
 /// Helper class which collects positional, keyword, * and ** arguments for a Python function call
@@ -2328,8 +2357,8 @@ constexpr bool args_are_all_positional() {
 template <return_value_policy policy,
           typename... Args,
           typename = enable_if_t<args_are_all_positional<Args...>()>>
-simple_collector<policy> collect_arguments(Args &&...args) {
-    return simple_collector<policy>(std::forward<Args>(args)...);
+simple_collector<sizeof...(Args), policy> collect_arguments(Args &&...args) {
+    return simple_collector<sizeof...(Args), policy>(std::forward<Args>(args)...);
 }
 
 /// Collect all arguments, including keywords and unpacking (only instantiated when needed)

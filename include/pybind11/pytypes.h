@@ -1394,7 +1394,7 @@ template <typename T>
 using is_keyword_or_ds = satisfies_any_of<T, is_keyword, is_ds_unpacking>;
 
 // Call argument collector forward declarations
-template <return_value_policy policy = return_value_policy::automatic_reference>
+template <size_t N, return_value_policy policy = return_value_policy::automatic_reference>
 class simple_collector;
 template <return_value_policy policy = return_value_policy::automatic_reference>
 class unpacking_collector;
