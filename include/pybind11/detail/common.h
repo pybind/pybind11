@@ -103,6 +103,10 @@
 #    define PYBIND11_DTOR_CONSTEXPR
 #endif
 
+#if defined(PYBIND11_CPP20) && defined(__has_include) && __has_include(<barrier>)
+#    define PYBIND11_HAS_STD_BARRIER 1
+#endif
+
 // Compiler version assertions
 #if defined(__INTEL_COMPILER)
 #    if __INTEL_COMPILER < 1800
