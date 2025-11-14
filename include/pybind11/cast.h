@@ -2171,10 +2171,6 @@ private:
 
 /// Helper class which collects only positional arguments for a Python function call.
 /// A fancier version below can collect any argument, but this one is optimal for simple calls.
-// Disable warnings about useless comparisons when N == 0.
-PYBIND11_WARNING_PUSH
-PYBIND11_WARNING_DISABLE_GCC("-Wtype-limits")
-PYBIND11_WARNING_DISABLE_INTEL(186)
 template <size_t N, return_value_policy policy>
 class simple_collector {
 public:
@@ -2189,6 +2185,9 @@ public:
                                .inc_ref()
                                .ptr(),
              0)...};
+        PYBIND11_WARNING_PUSH
+        PYBIND11_WARNING_DISABLE_GCC("-Wtype-limits")
+        PYBIND11_WARNING_DISABLE_INTEL(186)
         for (i = 0; i < N; ++i) {
             if (!m_args[i]) {
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
@@ -2199,12 +2198,17 @@ public:
 #endif
             }
         }
+        PYBIND11_WARNING_POP
     }
 
     ~simple_collector() {
+        PYBIND11_WARNING_PUSH
+        PYBIND11_WARNING_DISABLE_GCC("-Wtype-limits")
+        PYBIND11_WARNING_DISABLE_INTEL(186)
         for (size_t i = 0; i < N; ++i) {
             handle(m_args[i]).dec_ref();
         }
+        PYBIND11_WARNING_POP
     }
 
     simple_collector(const simple_collector &) = delete;
@@ -2214,9 +2218,13 @@ public:
 
     tuple args() const {
         tuple result(N);
+        PYBIND11_WARNING_PUSH
+        PYBIND11_WARNING_DISABLE_GCC("-Wtype-limits")
+        PYBIND11_WARNING_DISABLE_INTEL(186)
         for (size_t i = 0; i < N; ++i) {
             PyTuple_SET_ITEM(result.ptr(), i, handle(m_args[i]).inc_ref().ptr());
         }
+        PYBIND11_WARNING_POP
         return result;
     }
     dict kwargs() const { return {}; }
@@ -2237,7 +2245,6 @@ public:
 
 private:
     std::array<PyObject *, N> m_args;
-    PYBIND11_WARNING_POP
 };
 
 /// Helper class which collects positional, keyword, * and ** arguments for a Python function call
