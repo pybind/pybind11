@@ -1468,21 +1468,24 @@ template <>
 struct handle_type_name<weakref> {
     static constexpr auto name = const_name("weakref.ReferenceType");
 };
+// args/Args/kwargs/KWArgs have name as well as typehint included
 template <>
 struct handle_type_name<args> {
-    static constexpr auto name = const_name("*args");
+    static constexpr auto name = io_name("*args", "tuple");
 };
 template <typename T>
 struct handle_type_name<Args<T>> {
-    static constexpr auto name = const_name("*args: ") + make_caster<T>::name;
+    static constexpr auto name
+        = io_name("*args: ", "tuple[") + make_caster<T>::name + io_name("", ", ...]");
 };
 template <>
 struct handle_type_name<kwargs> {
-    static constexpr auto name = const_name("**kwargs");
+    static constexpr auto name = io_name("**kwargs", "dict[str, typing.Any]");
 };
 template <typename T>
 struct handle_type_name<KWArgs<T>> {
-    static constexpr auto name = const_name("**kwargs: ") + make_caster<T>::name;
+    static constexpr auto name
+        = io_name("**kwargs: ", "dict[str, ") + make_caster<T>::name + io_name("", "]");
 };
 template <>
 struct handle_type_name<obj_attr_accessor> {
@@ -1908,13 +1911,20 @@ inline cast_error cast_error_unable_to_convert_call_arg(const std::string &name,
 }
 #endif
 
+namespace typing {
+template <typename... Types>
+class Tuple : public tuple {
+    using tuple::tuple;
+};
+} // namespace typing
+
 template <return_value_policy policy = return_value_policy::automatic_reference>
-tuple make_tuple() {
+typing::Tuple<> make_tuple() {
     return tuple(0);
 }
 
 template <return_value_policy policy = return_value_policy::automatic_reference, typename... Args>
-tuple make_tuple(Args &&...args_) {
+typing::Tuple<Args...> make_tuple(Args &&...args_) {
     constexpr size_t size = sizeof...(Args);
     std::array<object, size> args{{reinterpret_steal<object>(
         detail::make_caster<Args>::cast(std::forward<Args>(args_), policy, nullptr))...}};
@@ -1933,7 +1943,12 @@ tuple make_tuple(Args &&...args_) {
     for (auto &arg_value : args) {
         PyTuple_SET_ITEM(result.ptr(), counter++, arg_value.release().ptr());
     }
+    PYBIND11_WARNING_PUSH
+#ifdef PYBIND11_DETECTED_CLANG_WITH_MISLEADING_CALL_STD_MOVE_EXPLICITLY_WARNING
+    PYBIND11_WARNING_DISABLE_CLANG("-Wreturn-std-move")
+#endif
     return result;
+    PYBIND11_WARNING_POP
 }
 
 /// \ingroup annotations
