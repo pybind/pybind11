@@ -2188,6 +2188,7 @@ public:
         PYBIND11_WARNING_PUSH
         PYBIND11_WARNING_DISABLE_GCC("-Wtype-limits")
         PYBIND11_WARNING_DISABLE_INTEL(186)
+        PYBIND11_WARNING_DISABLE_NVCC(186)
         for (i = 0; i < N; ++i) {
             if (!m_args[i]) {
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
@@ -2205,6 +2206,7 @@ public:
         PYBIND11_WARNING_PUSH
         PYBIND11_WARNING_DISABLE_GCC("-Wtype-limits")
         PYBIND11_WARNING_DISABLE_INTEL(186)
+        PYBIND11_WARNING_DISABLE_NVCC(186)
         for (size_t i = 0; i < N; ++i) {
             handle(m_args[i]).dec_ref();
         }
@@ -2221,6 +2223,7 @@ public:
         PYBIND11_WARNING_PUSH
         PYBIND11_WARNING_DISABLE_GCC("-Wtype-limits")
         PYBIND11_WARNING_DISABLE_INTEL(186)
+        PYBIND11_WARNING_DISABLE_NVCC(186)
         for (size_t i = 0; i < N; ++i) {
             PyTuple_SET_ITEM(result.ptr(), i, handle(m_args[i]).inc_ref().ptr());
         }
