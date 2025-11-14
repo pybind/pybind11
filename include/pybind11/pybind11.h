@@ -10,18 +10,25 @@
 
 #pragma once
 #include "detail/class.h"
+#include "detail/dynamic_raw_ptr_cast_if_possible.h"
 #include "detail/exception_translation.h"
+#include "detail/function_record_pyobject.h"
 #include "detail/init.h"
+#include "detail/native_enum_data.h"
+#include "detail/using_smart_holder.h"
 #include "attr.h"
 #include "gil.h"
 #include "gil_safe_call_once.h"
 #include "options.h"
+#include "trampoline_self_life_support.h"
 #include "typing.h"
 
+#include <cassert>
 #include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <new>
+#include <stack>
 #include <string>
 #include <utility>
 #include <vector>
@@ -32,13 +39,6 @@
 PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
 #endif
 
-#if defined(__cpp_lib_launder) && !(defined(_MSC_VER) && (_MSC_VER < 1914))
-#    define PYBIND11_STD_LAUNDER std::launder
-#    define PYBIND11_HAS_STD_LAUNDER 1
-#else
-#    define PYBIND11_STD_LAUNDER
-#    define PYBIND11_HAS_STD_LAUNDER 0
-#endif
 #if defined(__GNUG__) && !defined(__clang__)
 #    include <cxxabi.h>
 #endif
@@ -101,10 +101,195 @@ inline std::string replace_newlines_and_squash(const char *text) {
     return result.substr(str_begin, str_range);
 }
 
+/* Generate a proper function signature */
+inline std::string generate_function_signature(const char *type_caster_name_field,
+                                               detail::function_record *func_rec,
+                                               const std::type_info *const *types,
+                                               size_t &type_index,
+                                               size_t &arg_index) {
+    std::string signature;
+    bool is_starred = false;
+    // `is_return_value.top()` is true if we are currently inside the return type of the
+    // signature. Using `@^`/`@$` we can force types to be arg/return types while `@!` pops
+    // back to the previous state.
+    std::stack<bool> is_return_value({false});
+    // The following characters have special meaning in the signature parsing. Literals
+    // containing these are escaped with `!`.
+    std::string special_chars("!@%{}-");
+    for (const auto *pc = type_caster_name_field; *pc != '\0'; ++pc) {
+        const auto c = *pc;
+        if (c == '{') {
+            // Write arg name for everything except *args and **kwargs.
+            // Detect {@*args...} or {@**kwargs...}
+            is_starred = *(pc + 1) == '@' && *(pc + 2) == '*';
+            if (is_starred) {
+                continue;
+            }
+            // Separator for keyword-only arguments, placed before the kw
+            // arguments start (unless we are already putting an *args)
+            if (!func_rec->has_args && arg_index == func_rec->nargs_pos) {
+                signature += "*, ";
+            }
+            if (arg_index < func_rec->args.size() && func_rec->args[arg_index].name) {
+                signature += func_rec->args[arg_index].name;
+            } else if (arg_index == 0 && func_rec->is_method) {
+                signature += "self";
+            } else {
+                signature += "arg" + std::to_string(arg_index - (func_rec->is_method ? 1 : 0));
+            }
+            signature += ": ";
+        } else if (c == '}') {
+            // Write default value if available.
+            if (!is_starred && arg_index < func_rec->args.size()
+                && func_rec->args[arg_index].descr) {
+                signature += " = ";
+                signature += detail::replace_newlines_and_squash(func_rec->args[arg_index].descr);
+            }
+            // Separator for positional-only arguments (placed after the
+            // argument, rather than before like *
+            if (func_rec->nargs_pos_only > 0 && (arg_index + 1) == func_rec->nargs_pos_only) {
+                signature += ", /";
+            }
+            if (!is_starred) {
+                arg_index++;
+            }
+        } else if (c == '%') {
+            const std::type_info *t = types[type_index++];
+            if (!t) {
+                pybind11_fail("Internal error while parsing type signature (1)");
+            }
+            if (auto *tinfo = detail::get_type_info(*t)) {
+                handle th((PyObject *) tinfo->type);
+                signature += th.attr("__module__").cast<std::string>() + "."
+                             + th.attr("__qualname__").cast<std::string>();
+            } else if (auto th = detail::global_internals_native_enum_type_map_get_item(*t)) {
+                signature += th.attr("__module__").cast<std::string>() + "."
+                             + th.attr("__qualname__").cast<std::string>();
+            } else if (func_rec->is_new_style_constructor && arg_index == 0) {
+                // A new-style `__init__` takes `self` as `value_and_holder`.
+                // Rewrite it to the proper class type.
+                signature += func_rec->scope.attr("__module__").cast<std::string>() + "."
+                             + func_rec->scope.attr("__qualname__").cast<std::string>();
+            } else {
+                signature += detail::quote_cpp_type_name(detail::clean_type_id(t->name()));
+            }
+        } else if (c == '!' && special_chars.find(*(pc + 1)) != std::string::npos) {
+            // typing::Literal escapes special characters with !
+            signature += *++pc;
+        } else if (c == '@') {
+            // `@^ ... @!` and `@$ ... @!` are used to force arg/return value type (see
+            // typing::Callable/detail::arg_descr/detail::return_descr)
+            if (*(pc + 1) == '^') {
+                is_return_value.emplace(false);
+                ++pc;
+                continue;
+            }
+            if (*(pc + 1) == '$') {
+                is_return_value.emplace(true);
+                ++pc;
+                continue;
+            }
+            if (*(pc + 1) == '!') {
+                is_return_value.pop();
+                ++pc;
+                continue;
+            }
+            // Handle types that differ depending on whether they appear
+            // in an argument or a return value position (see io_name<text1, text2>).
+            // For named arguments (py::arg()) with noconvert set, return value type is used.
+            ++pc;
+            if (!is_return_value.top()
+                && (!(arg_index < func_rec->args.size() && !func_rec->args[arg_index].convert))) {
+                while (*pc != '\0' && *pc != '@') {
+                    signature += *pc++;
+                }
+                if (*pc == '@') {
+                    ++pc;
+                }
+                while (*pc != '\0' && *pc != '@') {
+                    ++pc;
+                }
+            } else {
+                while (*pc != '\0' && *pc != '@') {
+                    ++pc;
+                }
+                if (*pc == '@') {
+                    ++pc;
+                }
+                while (*pc != '\0' && *pc != '@') {
+                    signature += *pc++;
+                }
+            }
+        } else {
+            if (c == '-' && *(pc + 1) == '>') {
+                is_return_value.emplace(true);
+            }
+            signature += c;
+        }
+    }
+    return signature;
+}
+
+template <typename T>
+inline std::string generate_type_signature() {
+    static constexpr auto caster_name_field = make_caster<T>::name;
+    PYBIND11_DESCR_CONSTEXPR auto descr_types = decltype(caster_name_field)::types();
+    // Create a default function_record to ensure the function signature has the proper
+    // configuration e.g. no_convert.
+    auto func_rec = function_record();
+    size_t type_index = 0;
+    size_t arg_index = 0;
+    return generate_function_signature(
+        caster_name_field.text, &func_rec, descr_types.data(), type_index, arg_index);
+}
+
 #if defined(_MSC_VER)
 #    define PYBIND11_COMPAT_STRDUP _strdup
 #else
 #    define PYBIND11_COMPAT_STRDUP strdup
+#endif
+
+#define PYBIND11_READABLE_FUNCTION_SIGNATURE_EXPR                                                 \
+    detail::const_name("(") + cast_in::arg_names + detail::const_name(") -> ") + cast_out::name
+
+// We factor out readable function signatures to a specific template
+// so that they don't get duplicated across different instantiations of
+// cpp_function::initialize (which is templated on more types).
+template <typename cast_in, typename cast_out>
+class ReadableFunctionSignature {
+public:
+    using sig_type = decltype(PYBIND11_READABLE_FUNCTION_SIGNATURE_EXPR);
+
+private:
+    // We have to repeat PYBIND11_READABLE_FUNCTION_SIGNATURE_EXPR in decltype()
+    // because C++11 doesn't allow functions to return `auto`. (We don't
+    // know the type because it's some variant of detail::descr<N> with
+    // unknown N.)
+    static constexpr sig_type sig() { return PYBIND11_READABLE_FUNCTION_SIGNATURE_EXPR; }
+
+public:
+    static constexpr sig_type kSig = sig();
+    // We can only stash the result of detail::descr::types() in a
+    // constexpr variable if we aren't on MSVC (see
+    // PYBIND11_DESCR_CONSTEXPR).
+#if !defined(_MSC_VER)
+    using types_type = decltype(sig_type::types());
+    static constexpr types_type kTypes = sig_type::types();
+#endif
+};
+#undef PYBIND11_READABLE_FUNCTION_SIGNATURE_EXPR
+
+// Prior to C++17, we don't have inline variables, so we have to
+// provide an out-of-line definition of the class member.
+#if !defined(PYBIND11_CPP17)
+template <typename cast_in, typename cast_out>
+constexpr typename ReadableFunctionSignature<cast_in, cast_out>::sig_type
+    ReadableFunctionSignature<cast_in, cast_out>::kSig;
+#    if !defined(_MSC_VER)
+template <typename cast_in, typename cast_out>
+constexpr typename ReadableFunctionSignature<cast_in, cast_out>::types_type
+    ReadableFunctionSignature<cast_in, cast_out>::kTypes;
+#    endif
 #endif
 
 PYBIND11_NAMESPACE_END(detail)
@@ -140,7 +325,7 @@ public:
     cpp_function(Return (Class::*f)(Arg...), const Extra &...extra) {
         initialize(
             [f](Class *c, Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
-            (Return(*)(Class *, Arg...)) nullptr,
+            (Return (*)(Class *, Arg...)) nullptr,
             extra...);
     }
 
@@ -152,7 +337,7 @@ public:
     cpp_function(Return (Class::*f)(Arg...) &, const Extra &...extra) {
         initialize(
             [f](Class *c, Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
-            (Return(*)(Class *, Arg...)) nullptr,
+            (Return (*)(Class *, Arg...)) nullptr,
             extra...);
     }
 
@@ -162,7 +347,7 @@ public:
     cpp_function(Return (Class::*f)(Arg...) const, const Extra &...extra) {
         initialize([f](const Class *c,
                        Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
-                   (Return(*)(const Class *, Arg...)) nullptr,
+                   (Return (*)(const Class *, Arg...)) nullptr,
                    extra...);
     }
 
@@ -174,7 +359,7 @@ public:
     cpp_function(Return (Class::*f)(Arg...) const &, const Extra &...extra) {
         initialize([f](const Class *c,
                        Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
-                   (Return(*)(const Class *, Arg...)) nullptr,
+                   (Return (*)(const Class *, Arg...)) nullptr,
                    extra...);
     }
 
@@ -201,6 +386,10 @@ protected:
         using namespace detail;
         struct capture {
             remove_reference_t<Func> f;
+
+            static capture *from_data(void **data) {
+                return PYBIND11_STD_LAUNDER(reinterpret_cast<capture *>(data));
+            }
         };
 
         /* Store the function including any extra state it might have (e.g. a lambda capture
@@ -220,7 +409,7 @@ protected:
             PYBIND11_WARNING_DISABLE_GCC("-Wplacement-new")
 #endif
 
-            new ((capture *) &rec->data) capture{std::forward<Func>(f)};
+            new (capture::from_data(rec->data)) capture{std::forward<Func>(f)};
 
 #if !PYBIND11_HAS_STD_LAUNDER
             PYBIND11_WARNING_DISABLE_GCC("-Wstrict-aliasing")
@@ -230,8 +419,8 @@ protected:
             // a significant refactoring it's "impossible" to solve.
             if (!std::is_trivially_destructible<capture>::value) {
                 rec->free_data = [](function_record *r) {
-                    auto data = PYBIND11_STD_LAUNDER((capture *) &r->data);
-                    (void) data;
+                    auto data = capture::from_data(r->data);
+                    (void) data; // suppress "unused variable" warnings
                     data->~capture();
                 };
             }
@@ -336,9 +525,14 @@ protected:
 
         /* Generate a readable signature describing the function's arguments and return
            value types */
-        static constexpr auto signature = const_name("(") + cast_in::arg_names
-                                          + const_name(") -> ") + as_return_type<cast_out>::name;
-        PYBIND11_DESCR_CONSTEXPR auto types = decltype(signature)::types();
+        static constexpr const auto &signature
+            = detail::ReadableFunctionSignature<cast_in, cast_out>::kSig;
+#if !defined(_MSC_VER)
+        static constexpr const auto &types
+            = detail::ReadableFunctionSignature<cast_in, cast_out>::kTypes;
+#else
+        PYBIND11_DESCR_CONSTEXPR auto types = std::decay<decltype(signature)>::type::types();
+#endif
 
         /* Register the function with Python from generic (non-templated) code */
         // Pass on the ownership over the `unique_rec` to `initialize_generic`. `rec` stays valid.
@@ -348,6 +542,8 @@ protected:
         using FunctionType = Return (*)(Args...);
         constexpr bool is_function_ptr
             = std::is_convertible<Func, FunctionType>::value && sizeof(capture) == sizeof(void *);
+        PYBIND11_ENSURE_PRECONDITION_FOR_FUNCTIONAL_H_PERFORMANCE_OPTIMIZATIONS(
+            !is_function_ptr || std::is_standard_layout<capture>::value);
         if (is_function_ptr) {
             rec->is_stateless = true;
             rec->data[1]
@@ -436,67 +632,9 @@ protected:
         }
 #endif
 
-        /* Generate a proper function signature */
-        std::string signature;
         size_t type_index = 0, arg_index = 0;
-        bool is_starred = false;
-        for (const auto *pc = text; *pc != '\0'; ++pc) {
-            const auto c = *pc;
-
-            if (c == '{') {
-                // Write arg name for everything except *args and **kwargs.
-                is_starred = *(pc + 1) == '*';
-                if (is_starred) {
-                    continue;
-                }
-                // Separator for keyword-only arguments, placed before the kw
-                // arguments start (unless we are already putting an *args)
-                if (!rec->has_args && arg_index == rec->nargs_pos) {
-                    signature += "*, ";
-                }
-                if (arg_index < rec->args.size() && rec->args[arg_index].name) {
-                    signature += rec->args[arg_index].name;
-                } else if (arg_index == 0 && rec->is_method) {
-                    signature += "self";
-                } else {
-                    signature += "arg" + std::to_string(arg_index - (rec->is_method ? 1 : 0));
-                }
-                signature += ": ";
-            } else if (c == '}') {
-                // Write default value if available.
-                if (!is_starred && arg_index < rec->args.size() && rec->args[arg_index].descr) {
-                    signature += " = ";
-                    signature += detail::replace_newlines_and_squash(rec->args[arg_index].descr);
-                }
-                // Separator for positional-only arguments (placed after the
-                // argument, rather than before like *
-                if (rec->nargs_pos_only > 0 && (arg_index + 1) == rec->nargs_pos_only) {
-                    signature += ", /";
-                }
-                if (!is_starred) {
-                    arg_index++;
-                }
-            } else if (c == '%') {
-                const std::type_info *t = types[type_index++];
-                if (!t) {
-                    pybind11_fail("Internal error while parsing type signature (1)");
-                }
-                if (auto *tinfo = detail::get_type_info(*t)) {
-                    handle th((PyObject *) tinfo->type);
-                    signature += th.attr("__module__").cast<std::string>() + "."
-                                 + th.attr("__qualname__").cast<std::string>();
-                } else if (rec->is_new_style_constructor && arg_index == 0) {
-                    // A new-style `__init__` takes `self` as `value_and_holder`.
-                    // Rewrite it to the proper class type.
-                    signature += rec->scope.attr("__module__").cast<std::string>() + "."
-                                 + rec->scope.attr("__qualname__").cast<std::string>();
-                } else {
-                    signature += detail::quote_cpp_type_name(detail::clean_type_id(t->name()));
-                }
-            } else {
-                signature += c;
-            }
-        }
+        std::string signature
+            = detail::generate_function_signature(text, rec, types, type_index, arg_index);
 
         if (arg_index != args - rec->has_args - rec->has_kwargs || types[type_index] != nullptr) {
             pybind11_fail("Internal error while parsing type signature (2)");
@@ -514,20 +652,15 @@ protected:
         if (rec->sibling) {
             if (PyCFunction_Check(rec->sibling.ptr())) {
                 auto *self = PyCFunction_GET_SELF(rec->sibling.ptr());
-                if (!isinstance<capsule>(self)) {
+                if (self == nullptr) {
+                    pybind11_fail(
+                        "initialize_generic: Unexpected nullptr from PyCFunction_GET_SELF");
+                }
+                chain = detail::function_record_ptr_from_PyObject(self);
+                if (chain && !chain->scope.is(rec->scope)) {
+                    /* Never append a method to an overload chain of a parent class;
+                       instead, hide the parent's overloads in this case */
                     chain = nullptr;
-                } else {
-                    auto rec_capsule = reinterpret_borrow<capsule>(self);
-                    if (detail::is_function_record_capsule(rec_capsule)) {
-                        chain = rec_capsule.get_pointer<detail::function_record>();
-                        /* Never append a method to an overload chain of a parent class;
-                           instead, hide the parent's overloads in this case */
-                        if (!chain->scope.is(rec->scope)) {
-                            chain = nullptr;
-                        }
-                    } else {
-                        chain = nullptr;
-                    }
                 }
             }
             // Don't trigger for things like the default __init__, which are wrapper_descriptors
@@ -547,21 +680,13 @@ protected:
                 = reinterpret_cast<PyCFunction>(reinterpret_cast<void (*)()>(dispatcher));
             rec->def->ml_flags = METH_VARARGS | METH_KEYWORDS;
 
-            capsule rec_capsule(unique_rec.release(),
-                                detail::get_function_record_capsule_name(),
-                                [](void *ptr) { destruct((detail::function_record *) ptr); });
+            object py_func_rec = detail::function_record_PyObject_New();
+            ((detail::function_record_PyObject *) py_func_rec.ptr())->cpp_func_rec
+                = unique_rec.release();
             guarded_strdup.release();
 
-            object scope_module;
-            if (rec->scope) {
-                if (hasattr(rec->scope, "__module__")) {
-                    scope_module = rec->scope.attr("__module__");
-                } else if (hasattr(rec->scope, "__name__")) {
-                    scope_module = rec->scope.attr("__name__");
-                }
-            }
-
-            m_ptr = PyCFunction_NewEx(rec->def, rec_capsule.ptr(), scope_module.ptr());
+            object scope_module = detail::get_scope_module(rec->scope);
+            m_ptr = PyCFunction_NewEx(rec->def, py_func_rec.ptr(), scope_module.ptr());
             if (!m_ptr) {
                 pybind11_fail("cpp_function::cpp_function(): Could not allocate function object");
             }
@@ -590,8 +715,9 @@ protected:
                 // chain.
                 chain_start = rec;
                 rec->next = chain;
-                auto rec_capsule = reinterpret_borrow<capsule>(PyCFunction_GET_SELF(m_ptr));
-                rec_capsule.set_pointer(unique_rec.release());
+                auto *py_func_rec
+                    = (detail::function_record_PyObject *) PyCFunction_GET_SELF(m_ptr);
+                py_func_rec->cpp_func_rec = unique_rec.release();
                 guarded_strdup.release();
             } else {
                 // Or end of chain (normal behavior)
@@ -666,6 +792,8 @@ protected:
         }
     }
 
+    friend void detail::function_record_PyTypeObject_methods::tp_dealloc_impl(PyObject *);
+
     /// When a cpp_function is GCed, release any memory allocated by pybind11
     static void destruct(detail::function_record *rec, bool free_strings = true) {
 // If on Python 3.9, check the interpreter "MICRO" (patch) version.
@@ -715,13 +843,11 @@ protected:
     /// Main dispatch logic for calls to functions bound using pybind11
     static PyObject *dispatcher(PyObject *self, PyObject *args_in, PyObject *kwargs_in) {
         using namespace detail;
-        assert(isinstance<capsule>(self));
+        const function_record *overloads = function_record_ptr_from_PyObject(self);
+        assert(overloads != nullptr);
 
         /* Iterator over the list of potentially admissible overloads */
-        const function_record *overloads = reinterpret_cast<function_record *>(
-                                  PyCapsule_GetPointer(self, get_function_record_capsule_name())),
-                              *current_overload = overloads;
-        assert(overloads != nullptr);
+        const function_record *current_overload = overloads;
 
         /* Need to know how many arguments + keyword arguments there are to pick the right
            overload */
@@ -804,7 +930,7 @@ protected:
                 function_call call(func, parent);
 
                 // Protect std::min with parentheses
-                size_t args_to_copy = (std::min)(pos_args, n_args_in);
+                size_t args_to_copy = (std::min) (pos_args, n_args_in);
                 size_t args_copied = 0;
 
                 // 0. Inject new-style `self` argument
@@ -971,13 +1097,14 @@ protected:
                 }
 #endif
 
-                std::vector<bool> second_pass_convert;
+                args_convert_vector<arg_vector_small_size> second_pass_convert;
                 if (overloaded) {
                     // We're in the first no-convert pass, so swap out the conversion flags for a
                     // set of all-false flags.  If the call fails, we'll swap the flags back in for
                     // the conversion-allowed call below.
-                    second_pass_convert.resize(func.nargs, false);
-                    call.args_convert.swap(second_pass_convert);
+                    second_pass_convert = std::move(call.args_convert);
+                    call.args_convert
+                        = args_convert_vector<arg_vector_small_size>(func.nargs, false);
                 }
 
                 // 6. Call the function.
@@ -1165,9 +1292,20 @@ protected:
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+PYBIND11_NAMESPACE_BEGIN(function_record_PyTypeObject_methods)
+
+// This implementation needs the definition of `class cpp_function`.
+inline void tp_dealloc_impl(PyObject *self) {
+    auto *py_func_rec = (function_record_PyObject *) self;
+    cpp_function::destruct(py_func_rec->cpp_func_rec);
+    py_func_rec->cpp_func_rec = nullptr;
+}
+
+PYBIND11_NAMESPACE_END(function_record_PyTypeObject_methods)
+
 template <>
 struct handle_type_name<cpp_function> {
-    static constexpr auto name = const_name("Callable");
+    static constexpr auto name = const_name("collections.abc.Callable");
 };
 
 PYBIND11_NAMESPACE_END(detail)
@@ -1181,6 +1319,151 @@ public:
 private:
     bool flag_;
 };
+
+class multiple_interpreters {
+public:
+    enum class level {
+        not_supported,      /// Use to activate Py_MOD_MULTIPLE_INTERPRETERS_NOT_SUPPORTED
+        shared_gil,         /// Use to activate Py_MOD_MULTIPLE_INTERPRETERS_SUPPORTED
+        per_interpreter_gil /// Use to activate Py_MOD_PER_INTERPRETER_GIL_SUPPORTED
+    };
+
+    static multiple_interpreters not_supported() {
+        return multiple_interpreters(level::not_supported);
+    }
+    static multiple_interpreters shared_gil() { return multiple_interpreters(level::shared_gil); }
+    static multiple_interpreters per_interpreter_gil() {
+        return multiple_interpreters(level::per_interpreter_gil);
+    }
+
+    explicit constexpr multiple_interpreters(level l) : level_(l) {}
+    level value() const { return level_; }
+
+private:
+    level level_;
+};
+
+PYBIND11_NAMESPACE_BEGIN(detail)
+
+inline bool gil_not_used_option() { return false; }
+template <typename F, typename... O>
+bool gil_not_used_option(F &&, O &&...o);
+template <typename... O>
+inline bool gil_not_used_option(mod_gil_not_used f, O &&...o) {
+    return f.flag() || gil_not_used_option(o...);
+}
+template <typename F, typename... O>
+inline bool gil_not_used_option(F &&, O &&...o) {
+    return gil_not_used_option(o...);
+}
+
+#ifdef Py_mod_multiple_interpreters
+inline void *multi_interp_slot() { return Py_MOD_MULTIPLE_INTERPRETERS_NOT_SUPPORTED; }
+template <typename... O>
+inline void *multi_interp_slot(multiple_interpreters mi, O &&...o) {
+    switch (mi.value()) {
+        case multiple_interpreters::level::per_interpreter_gil:
+            return Py_MOD_PER_INTERPRETER_GIL_SUPPORTED;
+        case multiple_interpreters::level::shared_gil:
+            return Py_MOD_MULTIPLE_INTERPRETERS_SUPPORTED;
+        case multiple_interpreters::level::not_supported:
+            return Py_MOD_MULTIPLE_INTERPRETERS_NOT_SUPPORTED;
+    }
+    // silence warnings with this unreachable line:
+    return multi_interp_slot(o...);
+}
+template <typename F, typename... O>
+inline void *multi_interp_slot(F &&, O &&...o) {
+    return multi_interp_slot(o...);
+}
+#endif
+
+/*
+Return a borrowed reference to the named module if it has been successfully initialized within this
+interpreter before. nullptr if it has not been successfully initialized.
+*/
+inline PyObject *get_cached_module(pybind11::str const &nameobj) {
+    dict state = detail::get_python_state_dict();
+    if (!state.contains("__pybind11_module_cache")) {
+        return nullptr;
+    }
+    dict cache = state["__pybind11_module_cache"];
+    if (!cache.contains(nameobj)) {
+        return nullptr;
+    }
+    return cache[nameobj].ptr();
+}
+
+/*
+Add successfully initialized a module object to the internal cache.
+
+The module must have a __spec__ attribute with a name attribute.
+*/
+inline void cache_completed_module(pybind11::object const &mod) {
+    dict state = detail::get_python_state_dict();
+    if (!state.contains("__pybind11_module_cache")) {
+        state["__pybind11_module_cache"] = dict();
+    }
+    state["__pybind11_module_cache"][mod.attr("__spec__").attr("name")] = mod;
+}
+
+/*
+A Py_mod_create slot function which will return the previously created module from the cache if one
+exists, and otherwise will create a new module object.
+*/
+inline PyObject *cached_create_module(PyObject *spec, PyModuleDef *) {
+    (void) &cache_completed_module; // silence unused-function warnings, it is used in a macro
+
+    auto nameobj = getattr(reinterpret_borrow<object>(spec), "name", none());
+    if (nameobj.is_none()) {
+        set_error(PyExc_ImportError, "module spec is missing a name");
+        return nullptr;
+    }
+
+    auto *mod = get_cached_module(nameobj);
+    if (mod) {
+        Py_INCREF(mod);
+    } else {
+        mod = PyModule_NewObject(nameobj.ptr());
+    }
+    return mod;
+}
+
+/// Must be a POD type, and must hold enough entries for all of the possible slots PLUS ONE for
+/// the sentinel (0) end slot.
+using slots_array = std::array<PyModuleDef_Slot, 5>;
+
+/// Initialize an array of slots based on the supplied exec slot and options.
+template <typename... Options>
+inline slots_array init_slots(int (*exec_fn)(PyObject *), Options &&...options) noexcept {
+    /* NOTE: slots_array MUST be large enough to hold all possible options.  If you add an option
+    here, you MUST also increase the size of slots_array in the type alias above! */
+    slots_array mod_def_slots;
+    size_t next_slot = 0;
+
+    mod_def_slots[next_slot++] = {Py_mod_create, reinterpret_cast<void *>(&cached_create_module)};
+
+    if (exec_fn != nullptr) {
+        mod_def_slots[next_slot++] = {Py_mod_exec, reinterpret_cast<void *>(exec_fn)};
+    }
+
+#ifdef Py_mod_multiple_interpreters
+    mod_def_slots[next_slot++] = {Py_mod_multiple_interpreters, multi_interp_slot(options...)};
+#endif
+
+    if (gil_not_used_option(options...)) {
+#if defined(Py_mod_gil) && defined(Py_GIL_DISABLED)
+        mod_def_slots[next_slot++] = {Py_mod_gil, Py_MOD_GIL_NOT_USED};
+#endif
+    }
+
+    // slots must have a zero end sentinel
+    mod_def_slots[next_slot++] = {0, nullptr};
+
+    return mod_def_slots;
+}
+
+PYBIND11_NAMESPACE_END(detail)
 
 /// Wrapper for Python extension modules
 class module_ : public object {
@@ -1236,6 +1519,24 @@ public:
         if (doc && options::show_user_defined_docstrings()) {
             result.attr("__doc__") = pybind11::str(doc);
         }
+
+#if defined(GRAALVM_PYTHON) && (!defined(GRAALPY_VERSION_NUM) || GRAALPY_VERSION_NUM < 0x190000)
+        // GraalPy doesn't support PyModule_GetFilenameObject,
+        // so getting by attribute (see PR #5584)
+        handle this_module = m_ptr;
+        if (object this_file = getattr(this_module, "__file__", none())) {
+            result.attr("__file__") = this_file;
+        }
+#else
+        handle this_file = PyModule_GetFilenameObject(m_ptr);
+        if (this_file) {
+            result.attr("__file__") = this_file;
+        } else if (PyErr_ExceptionMatches(PyExc_SystemError) != 0) {
+            PyErr_Clear();
+        } else {
+            throw error_already_set();
+        }
+#endif
         attr(name) = result;
         return result;
     }
@@ -1275,30 +1576,29 @@ public:
         PyModule_AddObject(ptr(), name, obj.inc_ref().ptr() /* steals a reference */);
     }
 
-    using module_def = PyModuleDef; // TODO: Can this be removed (it was needed only for Python 2)?
+    // DEPRECATED (since PR #5688): Use PyModuleDef directly instead.
+    using module_def = PyModuleDef;
 
     /** \rst
         Create a new top-level module that can be used as the main module of a C extension.
 
-        ``def`` should point to a statically allocated module_def.
+        ``def`` should point to a statically allocated PyModuleDef.
     \endrst */
     static module_ create_extension_module(const char *name,
                                            const char *doc,
-                                           module_def *def,
+                                           PyModuleDef *def,
                                            mod_gil_not_used gil_not_used
                                            = mod_gil_not_used(false)) {
-        // module_def is PyModuleDef
         // Placement new (not an allocation).
-        def = new (def)
-            PyModuleDef{/* m_base */ PyModuleDef_HEAD_INIT,
-                        /* m_name */ name,
-                        /* m_doc */ options::show_user_defined_docstrings() ? doc : nullptr,
-                        /* m_size */ -1,
-                        /* m_methods */ nullptr,
-                        /* m_slots */ nullptr,
-                        /* m_traverse */ nullptr,
-                        /* m_clear */ nullptr,
-                        /* m_free */ nullptr};
+        new (def) PyModuleDef{/* m_base */ PyModuleDef_HEAD_INIT,
+                              /* m_name */ name,
+                              /* m_doc */ options::show_user_defined_docstrings() ? doc : nullptr,
+                              /* m_size */ -1,
+                              /* m_methods */ nullptr,
+                              /* m_slots */ nullptr,
+                              /* m_traverse */ nullptr,
+                              /* m_clear */ nullptr,
+                              /* m_free */ nullptr};
         auto *m = PyModule_Create(def);
         if (m == nullptr) {
             if (PyErr_Occurred()) {
@@ -1346,13 +1646,6 @@ inline dict globals() {
 #endif
 }
 
-template <typename... Args, typename = detail::enable_if_t<args_are_all_keyword_or_ds<Args...>()>>
-PYBIND11_DEPRECATED("make_simple_namespace should be replaced with "
-                    "py::module_::import(\"types\").attr(\"SimpleNamespace\") ")
-object make_simple_namespace(Args &&...args_) {
-    return module_::import("types").attr("SimpleNamespace")(std::forward<Args>(args_)...);
-}
-
 PYBIND11_NAMESPACE_BEGIN(detail)
 /// Generic support for creating new Python heap types
 class generic_type : public object {
@@ -1384,18 +1677,23 @@ protected:
         tinfo->holder_size_in_ptrs = size_in_ptrs(rec.holder_size);
         tinfo->init_instance = rec.init_instance;
         tinfo->dealloc = rec.dealloc;
+        tinfo->get_trampoline_self_life_support = rec.get_trampoline_self_life_support;
         tinfo->simple_type = true;
         tinfo->simple_ancestors = true;
-        tinfo->default_holder = rec.default_holder;
         tinfo->module_local = rec.module_local;
+        tinfo->holder_enum_v = rec.holder_enum_v;
 
         with_internals([&](internals &internals) {
             auto tindex = std::type_index(*rec.type);
             tinfo->direct_conversions = &internals.direct_conversions[tindex];
+            auto &local_internals = get_local_internals();
             if (rec.module_local) {
-                get_local_internals().registered_types_cpp[tindex] = tinfo;
+                local_internals.registered_types_cpp[rec.type] = tinfo;
             } else {
                 internals.registered_types_cpp[tindex] = tinfo;
+#if PYBIND11_INTERNALS_VERSION >= 12
+                internals.registered_types_cpp_fast[rec.type] = tinfo;
+#endif
             }
 
             PYBIND11_WARNING_PUSH
@@ -1560,6 +1858,239 @@ auto method_adaptor(Return (Class::*pmf)(Args...) const) -> Return (Derived::*)(
     return pmf;
 }
 
+PYBIND11_NAMESPACE_BEGIN(detail)
+
+// Helper for the property_cpp_function static member functions below.
+// The only purpose of these functions is to support .def_readonly & .def_readwrite.
+// In this context, the PM template parameter is certain to be a Pointer to a Member.
+// The main purpose of must_be_member_function_pointer is to make this obvious, and to guard
+// against accidents. As a side-effect, it also explains why the syntactical overhead for
+// perfect forwarding is not needed.
+template <typename PM>
+using must_be_member_function_pointer = enable_if_t<std::is_member_pointer<PM>::value, int>;
+
+// Note that property_cpp_function is intentionally in the main pybind11 namespace,
+// because user-defined specializations could be useful.
+
+// Classic (non-smart_holder) implementations for .def_readonly and .def_readwrite
+// getter and setter functions.
+// WARNING: This classic implementation can lead to dangling pointers for raw pointer members.
+// See test_ptr() in tests/test_class_sh_property.py
+// However, this implementation works as-is (and safely) for smart_holder std::shared_ptr members.
+template <typename T, typename D>
+struct property_cpp_function_classic {
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    static cpp_function readonly(PM pm, const handle &hdl) {
+        return cpp_function([pm](const T &c) -> const D & { return c.*pm; }, is_method(hdl));
+    }
+
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    static cpp_function read(PM pm, const handle &hdl) {
+        return readonly(pm, hdl);
+    }
+
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    static cpp_function write(PM pm, const handle &hdl) {
+        return cpp_function([pm](T &c, const D &value) { c.*pm = value; }, is_method(hdl));
+    }
+};
+
+PYBIND11_NAMESPACE_END(detail)
+
+template <typename T, typename D, typename SFINAE = void>
+struct property_cpp_function : detail::property_cpp_function_classic<T, D> {};
+
+PYBIND11_NAMESPACE_BEGIN(detail)
+
+template <typename T, typename D, typename SFINAE = void>
+struct both_t_and_d_use_type_caster_base : std::false_type {};
+
+// `T` is assumed to be equivalent to `intrinsic_t<T>`.
+// `D` is may or may not be equivalent to `intrinsic_t<D>`.
+template <typename T, typename D>
+struct both_t_and_d_use_type_caster_base<
+    T,
+    D,
+    enable_if_t<all_of<std::is_base_of<type_caster_base<T>, type_caster<T>>,
+                       std::is_base_of<type_caster_base<intrinsic_t<D>>, make_caster<D>>>::value>>
+    : std::true_type {};
+
+// Specialization for raw pointer members, using smart_holder if that is the class_ holder,
+// or falling back to the classic implementation if not.
+// WARNING: Like the classic implementation, this implementation can lead to dangling pointers.
+// See test_ptr() in tests/test_class_sh_property.py
+// However, the read functions return a shared_ptr to the member, emulating the PyCLIF approach:
+// https://github.com/google/clif/blob/c371a6d4b28d25d53a16e6d2a6d97305fb1be25a/clif/python/instance.h#L233
+// This prevents disowning of the Python object owning the raw pointer member.
+template <typename T, typename D>
+struct property_cpp_function_sh_raw_ptr_member {
+    using drp = typename std::remove_pointer<D>::type;
+
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    static cpp_function readonly(PM pm, const handle &hdl) {
+        type_info *tinfo = get_type_info(typeid(T), /*throw_if_missing=*/true);
+        if (tinfo->holder_enum_v == holder_enum_t::smart_holder) {
+            return cpp_function(
+                [pm](handle c_hdl) -> std::shared_ptr<drp> {
+                    std::shared_ptr<T> c_sp
+                        = type_caster<std::shared_ptr<T>>::shared_ptr_with_responsible_parent(
+                            c_hdl);
+                    D ptr = (*c_sp).*pm;
+                    return std::shared_ptr<drp>(c_sp, ptr);
+                },
+                is_method(hdl));
+        }
+        return property_cpp_function_classic<T, D>::readonly(pm, hdl);
+    }
+
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    static cpp_function read(PM pm, const handle &hdl) {
+        return readonly(pm, hdl);
+    }
+
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    static cpp_function write(PM pm, const handle &hdl) {
+        type_info *tinfo = get_type_info(typeid(T), /*throw_if_missing=*/true);
+        if (tinfo->holder_enum_v == holder_enum_t::smart_holder) {
+            return cpp_function([pm](T &c, D value) { c.*pm = std::forward<D>(std::move(value)); },
+                                is_method(hdl));
+        }
+        return property_cpp_function_classic<T, D>::write(pm, hdl);
+    }
+};
+
+// Specialization for members held by-value, using smart_holder if that is the class_ holder,
+// or falling back to the classic implementation if not.
+// The read functions return a shared_ptr to the member, emulating the PyCLIF approach:
+// https://github.com/google/clif/blob/c371a6d4b28d25d53a16e6d2a6d97305fb1be25a/clif/python/instance.h#L233
+// This prevents disowning of the Python object owning the member.
+template <typename T, typename D>
+struct property_cpp_function_sh_member_held_by_value {
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    static cpp_function readonly(PM pm, const handle &hdl) {
+        type_info *tinfo = get_type_info(typeid(T), /*throw_if_missing=*/true);
+        if (tinfo->holder_enum_v == holder_enum_t::smart_holder) {
+            return cpp_function(
+                [pm](handle c_hdl) -> std::shared_ptr<typename std::add_const<D>::type> {
+                    std::shared_ptr<T> c_sp
+                        = type_caster<std::shared_ptr<T>>::shared_ptr_with_responsible_parent(
+                            c_hdl);
+                    return std::shared_ptr<typename std::add_const<D>::type>(c_sp,
+                                                                             &(c_sp.get()->*pm));
+                },
+                is_method(hdl));
+        }
+        return property_cpp_function_classic<T, D>::readonly(pm, hdl);
+    }
+
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    static cpp_function read(PM pm, const handle &hdl) {
+        type_info *tinfo = get_type_info(typeid(T), /*throw_if_missing=*/true);
+        if (tinfo->holder_enum_v == holder_enum_t::smart_holder) {
+            return cpp_function(
+                [pm](handle c_hdl) -> std::shared_ptr<D> {
+                    std::shared_ptr<T> c_sp
+                        = type_caster<std::shared_ptr<T>>::shared_ptr_with_responsible_parent(
+                            c_hdl);
+                    return std::shared_ptr<D>(c_sp, &(c_sp.get()->*pm));
+                },
+                is_method(hdl));
+        }
+        return property_cpp_function_classic<T, D>::read(pm, hdl);
+    }
+
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    static cpp_function write(PM pm, const handle &hdl) {
+        type_info *tinfo = get_type_info(typeid(T), /*throw_if_missing=*/true);
+        if (tinfo->holder_enum_v == holder_enum_t::smart_holder) {
+            return cpp_function([pm](T &c, const D &value) { c.*pm = value; }, is_method(hdl));
+        }
+        return property_cpp_function_classic<T, D>::write(pm, hdl);
+    }
+};
+
+// Specialization for std::unique_ptr members, using smart_holder if that is the class_ holder,
+// or falling back to the classic implementation if not.
+// read disowns the member unique_ptr.
+// write disowns the passed Python object.
+// readonly is disabled (static_assert) because there is no safe & intuitive way to make the member
+// accessible as a Python object without disowning the member unique_ptr. A .def_readonly disowning
+// the unique_ptr member is deemed highly prone to misunderstandings.
+template <typename T, typename D>
+struct property_cpp_function_sh_unique_ptr_member {
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    static cpp_function readonly(PM, const handle &) {
+        static_assert(!is_instantiation<std::unique_ptr, D>::value,
+                      "def_readonly cannot be used for std::unique_ptr members.");
+        return cpp_function{}; // Unreachable.
+    }
+
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    static cpp_function read(PM pm, const handle &hdl) {
+        type_info *tinfo = get_type_info(typeid(T), /*throw_if_missing=*/true);
+        if (tinfo->holder_enum_v == holder_enum_t::smart_holder) {
+            return cpp_function(
+                [pm](handle c_hdl) -> D {
+                    std::shared_ptr<T> c_sp
+                        = type_caster<std::shared_ptr<T>>::shared_ptr_with_responsible_parent(
+                            c_hdl);
+                    return D{std::move(c_sp.get()->*pm)};
+                },
+                is_method(hdl));
+        }
+        return property_cpp_function_classic<T, D>::read(pm, hdl);
+    }
+
+    template <typename PM, must_be_member_function_pointer<PM> = 0>
+    static cpp_function write(PM pm, const handle &hdl) {
+        return cpp_function([pm](T &c, D &&value) { c.*pm = std::move(value); }, is_method(hdl));
+    }
+};
+
+PYBIND11_NAMESPACE_END(detail)
+
+template <typename T, typename D>
+struct property_cpp_function<
+    T,
+    D,
+    detail::enable_if_t<detail::all_of<std::is_pointer<D>,
+                                       detail::both_t_and_d_use_type_caster_base<T, D>>::value>>
+    : detail::property_cpp_function_sh_raw_ptr_member<T, D> {};
+
+template <typename T, typename D>
+struct property_cpp_function<T,
+                             D,
+                             detail::enable_if_t<detail::all_of<
+                                 detail::none_of<std::is_pointer<D>,
+                                                 std::is_array<D>,
+                                                 detail::is_instantiation<std::unique_ptr, D>,
+                                                 detail::is_instantiation<std::shared_ptr, D>>,
+                                 detail::both_t_and_d_use_type_caster_base<T, D>>::value>>
+    : detail::property_cpp_function_sh_member_held_by_value<T, D> {};
+
+template <typename T, typename D>
+struct property_cpp_function<
+    T,
+    D,
+    detail::enable_if_t<detail::all_of<
+        detail::is_instantiation<std::unique_ptr, D>,
+        detail::both_t_and_d_use_type_caster_base<T, typename D::element_type>>::value>>
+    : detail::property_cpp_function_sh_unique_ptr_member<T, D> {};
+
+#ifdef PYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE
+// NOTE: THIS IS MEANT FOR STRESS-TESTING OR TRIAGING ONLY!
+//       Running the pybind11 unit tests with smart_holder as the default holder is to ensure
+//       that `py::smart_holder` / `py::classh` is backward-compatible with all pre-existing
+//       functionality.
+//       Be careful not to link translation units compiled with different default holders, because
+//       this will cause ODR violations (https://en.wikipedia.org/wiki/One_Definition_Rule).
+template <typename>
+using default_holder_type = smart_holder;
+#else
+template <typename T>
+using default_holder_type = std::unique_ptr<T>;
+#endif
+
 template <typename type_, typename... options>
 class class_ : public detail::generic_type {
     template <typename T>
@@ -1576,13 +2107,27 @@ public:
     using type = type_;
     using type_alias = detail::exactly_one_t<is_subtype, void, options...>;
     constexpr static bool has_alias = !std::is_void<type_alias>::value;
-    using holder_type = detail::exactly_one_t<is_holder, std::unique_ptr<type>, options...>;
+    using holder_type = detail::exactly_one_t<is_holder, default_holder_type<type>, options...>;
 
     static_assert(detail::all_of<is_valid_class_option<options>...>::value,
                   "Unknown/invalid class_ template parameters provided");
 
     static_assert(!has_alias || std::is_polymorphic<type>::value,
-                  "Cannot use an alias class with a non-polymorphic type");
+                  "Cannot use an alias class (aka trampoline) with a non-polymorphic type");
+
+#ifndef PYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE
+    static_assert(!has_alias || !detail::is_smart_holder<holder_type>::value
+                      || std::is_base_of<trampoline_self_life_support, type_alias>::value,
+                  "Alias class (aka trampoline) must inherit from"
+                  " pybind11::trampoline_self_life_support if used in combination with"
+                  " pybind11::smart_holder");
+#endif
+    static_assert(!has_alias || detail::is_smart_holder<holder_type>::value
+                      || !std::is_base_of<trampoline_self_life_support, type_alias>::value,
+                  "pybind11::trampoline_self_life_support is a smart_holder feature, therefore"
+                  " an alias class (aka trampoline) should inherit from"
+                  " pybind11::trampoline_self_life_support only if used in combination with"
+                  " pybind11::smart_holder");
 
     PYBIND11_OBJECT(class_, generic_type, PyType_Check)
 
@@ -1607,8 +2152,16 @@ public:
         record.type_align = alignof(conditional_t<has_alias, type_alias, type> &);
         record.holder_size = sizeof(holder_type);
         record.init_instance = init_instance;
-        record.dealloc = dealloc;
-        record.default_holder = detail::is_instantiation<std::unique_ptr, holder_type>::value;
+
+        if (detail::is_instantiation<std::unique_ptr, holder_type>::value) {
+            record.holder_enum_v = detail::holder_enum_t::std_unique_ptr;
+        } else if (detail::is_instantiation<std::shared_ptr, holder_type>::value) {
+            record.holder_enum_v = detail::holder_enum_t::std_shared_ptr;
+        } else if (std::is_same<holder_type, smart_holder>::value) {
+            record.holder_enum_v = detail::holder_enum_t::smart_holder;
+        } else {
+            record.holder_enum_v = detail::holder_enum_t::custom_holder;
+        }
 
         set_operator_new<type>(&record);
 
@@ -1618,14 +2171,38 @@ public:
         /* Process optional arguments, if any */
         process_attributes<Extra...>::init(extra..., &record);
 
+        if (record.release_gil_before_calling_cpp_dtor) {
+            record.dealloc = dealloc_release_gil_before_calling_cpp_dtor;
+        } else {
+            record.dealloc = dealloc_without_manipulating_gil;
+        }
+
+        if (std::is_base_of<trampoline_self_life_support, type_alias>::value) {
+            // Store a cross-DSO-safe getter.
+            // This lambda is defined in the same DSO that instantiates
+            // class_<type, alias_type>, but it can be called safely from any other DSO.
+            record.get_trampoline_self_life_support = [](void *type_ptr) {
+                return dynamic_raw_ptr_cast_if_possible<trampoline_self_life_support>(
+                    static_cast<type *>(type_ptr));
+            };
+        }
+
         generic_type::initialize(record);
 
         if (has_alias) {
             with_internals([&](internals &internals) {
-                auto &instances = record.module_local ? get_local_internals().registered_types_cpp
-                                                      : internals.registered_types_cpp;
-                instances[std::type_index(typeid(type_alias))]
-                    = instances[std::type_index(typeid(type))];
+                auto &local_internals = get_local_internals();
+                if (record.module_local) {
+                    local_internals.registered_types_cpp[&typeid(type_alias)]
+                        = local_internals.registered_types_cpp[&typeid(type)];
+                } else {
+                    type_info *const val
+                        = internals.registered_types_cpp[std::type_index(typeid(type))];
+                    internals.registered_types_cpp[std::type_index(typeid(type_alias))] = val;
+#if PYBIND11_INTERNALS_VERSION >= 12
+                    internals.registered_types_cpp_fast[&typeid(type_alias)] = val;
+#endif
+                }
             });
         }
         def("_pybind11_conduit_v1_", cpp_conduit_method);
@@ -1741,9 +2318,11 @@ public:
     class_ &def_readwrite(const char *name, D C::*pm, const Extra &...extra) {
         static_assert(std::is_same<C, type>::value || std::is_base_of<C, type>::value,
                       "def_readwrite() requires a class member (or base class member)");
-        cpp_function fget([pm](const type &c) -> const D & { return c.*pm; }, is_method(*this)),
-            fset([pm](type &c, const D &value) { c.*pm = value; }, is_method(*this));
-        def_property(name, fget, fset, return_value_policy::reference_internal, extra...);
+        def_property(name,
+                     property_cpp_function<type, D>::read(pm, *this),
+                     property_cpp_function<type, D>::write(pm, *this),
+                     return_value_policy::reference_internal,
+                     extra...);
         return *this;
     }
 
@@ -1751,8 +2330,10 @@ public:
     class_ &def_readonly(const char *name, const D C::*pm, const Extra &...extra) {
         static_assert(std::is_same<C, type>::value || std::is_base_of<C, type>::value,
                       "def_readonly() requires a class member (or base class member)");
-        cpp_function fget([pm](const type &c) -> const D & { return c.*pm; }, is_method(*this));
-        def_property_readonly(name, fget, return_value_policy::reference_internal, extra...);
+        def_property_readonly(name,
+                              property_cpp_function<type, D>::readonly(pm, *this),
+                              return_value_policy::reference_internal,
+                              extra...);
         return *this;
     }
 
@@ -1935,6 +2516,8 @@ private:
     /// instance.  Should be called as soon as the `type` value_ptr is set for an instance.  Takes
     /// an optional pointer to an existing holder to use; if not specified and the instance is
     /// `.owned`, a new holder will be constructed to manage the value pointer.
+    template <typename H = holder_type,
+              detail::enable_if_t<!detail::is_smart_holder<H>::value, int> = 0>
     static void init_instance(detail::instance *inst, const void *holder_ptr) {
         auto v_h = inst->get_value_and_holder(detail::get_type_info(typeid(type)));
         if (!v_h.instance_registered()) {
@@ -1944,15 +2527,73 @@ private:
         init_holder(inst, v_h, (const holder_type *) holder_ptr, v_h.value_ptr<type>());
     }
 
-    /// Deallocates an instance; via holder, if constructed; otherwise via operator delete.
-    static void dealloc(detail::value_and_holder &v_h) {
-        // We could be deallocating because we are cleaning up after a Python exception.
-        // If so, the Python error indicator will be set. We need to clear that before
-        // running the destructor, in case the destructor code calls more Python.
-        // If we don't, the Python API will exit with an exception, and pybind11 will
-        // throw error_already_set from the C++ destructor which is forbidden and triggers
-        // std::terminate().
-        error_scope scope;
+    template <typename WrappedType>
+    static bool try_initialization_using_shared_from_this(holder_type *, WrappedType *, ...) {
+        return false;
+    }
+
+    // Adopting existing approach used by type_caster_base, although it leads to somewhat fuzzy
+    // ownership semantics: if we detected via shared_from_this that a shared_ptr exists already,
+    // it is reused, irrespective of the return_value_policy in effect.
+    // "SomeBaseOfWrappedType" is needed because std::enable_shared_from_this is not necessarily a
+    // direct base of WrappedType.
+    template <typename WrappedType, typename SomeBaseOfWrappedType>
+    static bool try_initialization_using_shared_from_this(
+        holder_type *uninitialized_location,
+        WrappedType *value_ptr_w_t,
+        const std::enable_shared_from_this<SomeBaseOfWrappedType> *) {
+        auto shd_ptr = std::dynamic_pointer_cast<WrappedType>(
+            detail::try_get_shared_from_this(value_ptr_w_t));
+        if (!shd_ptr) {
+            return false;
+        }
+        // Note: inst->owned ignored.
+        new (uninitialized_location) holder_type(holder_type::from_shared_ptr(shd_ptr));
+        return true;
+    }
+
+    template <typename H = holder_type,
+              detail::enable_if_t<detail::is_smart_holder<H>::value, int> = 0>
+    static void init_instance(detail::instance *inst, const void *holder_const_void_ptr) {
+        // Need for const_cast is a consequence of the type_info::init_instance type:
+        // void (*init_instance)(instance *, const void *);
+        auto *holder_void_ptr = const_cast<void *>(holder_const_void_ptr);
+
+        auto v_h = inst->get_value_and_holder(detail::get_type_info(typeid(type)));
+        if (!v_h.instance_registered()) {
+            register_instance(inst, v_h.value_ptr(), v_h.type);
+            v_h.set_instance_registered();
+        }
+        auto *uninitialized_location = std::addressof(v_h.holder<holder_type>());
+        auto *value_ptr_w_t = v_h.value_ptr<type>();
+        // Try downcast from `type` to `type_alias`:
+        inst->is_alias
+            = detail::dynamic_raw_ptr_cast_if_possible<type_alias>(value_ptr_w_t) != nullptr;
+        if (holder_void_ptr) {
+            // Note: inst->owned ignored.
+            auto *holder_ptr = static_cast<holder_type *>(holder_void_ptr);
+            new (uninitialized_location) holder_type(std::move(*holder_ptr));
+        } else if (!try_initialization_using_shared_from_this(
+                       uninitialized_location, value_ptr_w_t, value_ptr_w_t)) {
+            if (inst->owned) {
+                new (uninitialized_location) holder_type(holder_type::from_raw_ptr_take_ownership(
+                    value_ptr_w_t, /*void_cast_raw_ptr*/ inst->is_alias));
+            } else {
+                new (uninitialized_location)
+                    holder_type(holder_type::from_raw_ptr_unowned(value_ptr_w_t));
+            }
+        }
+        v_h.set_holder_constructed();
+    }
+
+    // Deallocates an instance; via holder, if constructed; otherwise via operator delete.
+    // NOTE: The Python error indicator needs to cleared BEFORE this function is called.
+    // This is because we could be deallocating while cleaning up after a Python exception.
+    // If the error indicator is not cleared but the C++ destructor code makes Python C API
+    // calls, those calls are likely to generate a new exception, and pybind11 will then
+    // throw `error_already_set` from the C++ destructor. This is forbidden and will
+    // trigger std::terminate().
+    static void dealloc_impl(detail::value_and_holder &v_h) {
         if (v_h.holder_constructed()) {
             v_h.holder<holder_type>().~holder_type();
             v_h.set_holder_constructed(false);
@@ -1961,6 +2602,32 @@ private:
                 v_h.value_ptr<type>(), v_h.type->type_size, v_h.type->type_align);
         }
         v_h.value_ptr() = nullptr;
+    }
+
+    static void dealloc_without_manipulating_gil(detail::value_and_holder &v_h) {
+        error_scope scope;
+        dealloc_impl(v_h);
+    }
+
+    static void dealloc_release_gil_before_calling_cpp_dtor(detail::value_and_holder &v_h) {
+        error_scope scope;
+        // Intentionally not using `gil_scoped_release` because the non-simple
+        // version unconditionally calls `get_internals()`.
+        // `Py_BEGIN_ALLOW_THREADS`, `Py_END_ALLOW_THREADS` cannot be used
+        // because those macros include `{` and `}`.
+        PyThreadState *py_ts = PyEval_SaveThread();
+        try {
+            dealloc_impl(v_h);
+        } catch (...) {
+            // This code path is expected to be unreachable unless there is a
+            // bug in pybind11 itself.
+            // An alternative would be to mark this function, or
+            // `dealloc_impl()`, with `nothrow`, but that would be a subtle
+            // behavior change and could make debugging more difficult.
+            PyEval_RestoreThread(py_ts);
+            throw;
+        }
+        PyEval_RestoreThread(py_ts);
     }
 
     static detail::function_record *get_function_record(handle h) {
@@ -1973,16 +2640,14 @@ private:
         if (!func_self) {
             throw error_already_set();
         }
-        if (!isinstance<capsule>(func_self)) {
-            return nullptr;
-        }
-        auto cap = reinterpret_borrow<capsule>(func_self);
-        if (!detail::is_function_record_capsule(cap)) {
-            return nullptr;
-        }
-        return cap.get_pointer<detail::function_record>();
+        return detail::function_record_ptr_from_PyObject(func_self.ptr());
     }
 };
+
+// Supports easier switching between py::class_<T> and py::class_<T, py::smart_holder>:
+// users can simply replace the `_` in `class_` with `h` or vice versa.
+template <typename type_, typename... options>
+using classh = class_<type_, smart_holder, options...>;
 
 /// Binds an existing constructor taking arguments Args...
 template <typename... Args>
@@ -2020,7 +2685,7 @@ detail::initimpl::pickle_factory<GetState, SetState> pickle(GetState &&g, SetSta
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 inline str enum_name(handle arg) {
-    dict entries = arg.get_type().attr("__entries");
+    dict entries = type::handle_of(arg).attr("__entries");
     for (auto kv : entries) {
         if (handle(kv.second[int_(0)]).equal(arg)) {
             return pybind11::str(kv.first);
@@ -2272,6 +2937,14 @@ public:
     template <typename... Extra>
     enum_(const handle &scope, const char *name, const Extra &...extra)
         : class_<Type>(scope, name, extra...), m_base(*this, scope) {
+        {
+            if (detail::global_internals_native_enum_type_map_contains(
+                    std::type_index(typeid(Type)))) {
+                pybind11_fail("pybind11::enum_ \"" + std::string(name)
+                              + "\" is already registered as a pybind11::native_enum!");
+            }
+        }
+
         constexpr bool is_arithmetic = detail::any_of<std::is_same<arithmetic, Extra>...>::value;
         constexpr bool is_convertible = std::is_convertible<Type, Underlying>::value;
         m_base.init(is_arithmetic, is_convertible);
@@ -2469,6 +3142,7 @@ template <typename Access,
           typename Sentinel,
           typename ValueType,
           typename... Extra>
+// NOLINTNEXTLINE(performance-unnecessary-value-param)
 iterator make_iterator_impl(Iterator first, Sentinel last, Extra &&...extra) {
     using state = detail::iterator_state<Access, Policy, Iterator, Sentinel, ValueType, Extra...>;
     // TODO: state captures only the types of Extra, not the values
@@ -2508,6 +3182,7 @@ template <return_value_policy Policy = return_value_policy::reference_internal,
           typename Sentinel,
           typename ValueType = typename detail::iterator_access<Iterator>::result_type,
           typename... Extra>
+// NOLINTNEXTLINE(performance-unnecessary-value-param)
 typing::Iterator<ValueType> make_iterator(Iterator first, Sentinel last, Extra &&...extra) {
     return detail::make_iterator_impl<detail::iterator_access<Iterator>,
                                       Policy,
@@ -2593,17 +3268,22 @@ typing::Iterator<ValueType> make_value_iterator(Type &value, Extra &&...extra) {
 
 template <typename InputType, typename OutputType>
 void implicitly_convertible() {
+    static int tss_sentinel_pointee = 1; // arbitrary value
     struct set_flag {
-        bool &flag;
-        explicit set_flag(bool &flag_) : flag(flag_) { flag_ = true; }
-        ~set_flag() { flag = false; }
+        thread_specific_storage<int> &flag;
+        explicit set_flag(thread_specific_storage<int> &flag_) : flag(flag_) {
+            flag = &tss_sentinel_pointee; // trick: the pointer itself is the sentinel
+        }
+        ~set_flag() { flag.reset(nullptr); }
+
+        // Prevent copying/moving to ensure RAII guard is used safely
+        set_flag(const set_flag &) = delete;
+        set_flag(set_flag &&) = delete;
+        set_flag &operator=(const set_flag &) = delete;
+        set_flag &operator=(set_flag &&) = delete;
     };
     auto implicit_caster = [](PyObject *obj, PyTypeObject *type) -> PyObject * {
-#ifdef Py_GIL_DISABLED
-        thread_local bool currently_used = false;
-#else
-        static bool currently_used = false;
-#endif
+        static thread_specific_storage<int> currently_used;
         if (currently_used) { // implicit conversions are non-reentrant
             return nullptr;
         }

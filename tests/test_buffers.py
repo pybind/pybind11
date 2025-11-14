@@ -227,10 +227,10 @@ def test_ctypes_from_buffer():
         assert not cinfo.readonly
 
 
-def test_buffer_docstring():
+def test_buffer_docstring(doc, backport_typehints):
     assert (
-        m.get_buffer_info.__doc__.strip()
-        == "get_buffer_info(arg0: Buffer) -> pybind11_tests.buffers.buffer_info"
+        backport_typehints(doc(m.get_buffer_info))
+        == "get_buffer_info(arg0: collections.abc.Buffer) -> m.buffers.buffer_info"
     )
 
 

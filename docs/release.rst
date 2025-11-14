@@ -1,9 +1,8 @@
 On version numbers
 ^^^^^^^^^^^^^^^^^^
 
-The two version numbers (C++ and Python) must match when combined (checked when
-you build the PyPI package), and must be a valid `PEP 440
-<https://www.python.org/dev/peps/pep-0440>`_ version when combined.
+The version number must be a valid `PEP 440
+<https://www.python.org/dev/peps/pep-0440>`_ version number.
 
 For example:
 
@@ -11,35 +10,32 @@ For example:
 
     #define PYBIND11_VERSION_MAJOR X
     #define PYBIND11_VERSION_MINOR Y
-    #define PYBIND11_VERSION_PATCH Z.dev1
+    #define PYBIND11_VERSION_MICRO Z
+    #define PYBIND11_VERSION_RELEASE_LEVEL PY_RELEASE_LEVEL_ALPHA
+    #define PYBIND11_VERSION_RELEASE_SERIAL 0
+    #define PYBIND11_VERSION_PATCH Za0
 
-For beta, ``PYBIND11_VERSION_PATCH`` should be ``Z.b1``. RC's can be ``Z.rc1``.
-Always include the dot (even though PEP 440 allows it to be dropped). For a
-final release, this must be a simple integer. There is also
-``PYBIND11_VERSION_HEX`` just below that needs to be updated.
+For beta, ``PYBIND11_VERSION_PATCH`` should be ``Zb1``. RC's can be ``Zrc1``.
+For a final release, this must be a simple integer.
 
 
 To release a new version of pybind11:
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If you don't have nox, you should either use ``pipx run nox`` instead, or use
-``pipx install nox`` or ``brew install nox`` (Unix).
+``uv tool install nox``, ``pipx install nox``, or ``brew install nox`` (Unix).
 
 - Update the version number
 
   - Update ``PYBIND11_VERSION_MAJOR`` etc. in
-    ``include/pybind11/detail/common.h``. PATCH should be a simple integer.
-
-  - Update ``PYBIND11_VERSION_HEX`` just below as well.
-
-  - Update ``pybind11/_version.py`` (match above).
+    ``include/pybind11/detail/common.h``. MICRO should be a simple integer.
 
   - Run ``nox -s tests_packaging`` to ensure this was done correctly.
 
-- Ensure that all the information in ``setup.cfg`` is up-to-date, like
+- Ensure that all the information in ``pyproject.toml`` is up-to-date, like
     supported Python versions.
 
-- Add release date in ``docs/changelog.rst`` and integrate the output of
+- Add release date in ``docs/changelog.md`` and integrate the output of
   ``nox -s make_changelog``.
 
   - Note that the ``nox -s make_changelog`` command inspects
@@ -54,7 +50,9 @@ If you don't have nox, you should either use ``pipx run nox`` instead, or use
 - Add a release branch if this is a new MINOR version, or update the existing
   release branch if it is a patch version
 
-  - New branch: ``git checkout -b vX.Y``, ``git push -u origin vX.Y``
+  - NOTE: This documentation assumes your ``upstream`` is ``https://github.com/pybind/pybind11.git``
+
+  - New branch: ``git checkout -b vX.Y``, ``git push -u upstream vX.Y``
 
   - Update branch: ``git checkout vX.Y``, ``git merge <release branch>``, ``git push``
 
@@ -63,11 +61,11 @@ If you don't have nox, you should either use ``pipx run nox`` instead, or use
 
   - ``git tag -a vX.Y.Z -m 'vX.Y.Z release'``
 
-  - ``grep ^__version__ pybind11/_version.py``
+  - ``git grep PYBIND11_VERSION include/pybind11/detail/common.h``
 
     - Last-minute consistency check: same as tag?
 
-  - ``git push --tags``
+  - Push the new tag: ``git push upstream vX.Y.Z``
 
 - Update stable
 
@@ -90,10 +88,9 @@ If you don't have nox, you should either use ``pipx run nox`` instead, or use
     click "Draft a new release" on the far right, fill in the tag name
     (if you didn't tag above, it will be made here), fill in a release name
     like "Version X.Y.Z", and copy-and-paste the markdown-formatted (!) changelog
-    into the description. You can use ``cat docs/changelog.rst | pandoc -f rst -t gfm``,
-    then manually remove line breaks and strip links to PRs and issues,
-    e.g. to a bare ``#1234``, without the surrounding ``<...>_`` hyperlink markup.
-    Check "pre-release" if this is a beta/RC.
+    into the description. You can remove line breaks and optionally strip links
+    to PRs and issues, e.g. to a bare ``#1234`` without the hyperlink markup.
+    Check "pre-release" if this is an alpha/beta/RC.
 
   - CLI method: with ``gh`` installed, run ``gh release create vX.Y.Z -t "Version X.Y.Z"``
     If this is a pre-release, add ``-p``.
@@ -103,27 +100,21 @@ If you don't have nox, you should either use ``pipx run nox`` instead, or use
   - Make sure you are on master, not somewhere else: ``git checkout master``
 
   - Update version macros in ``include/pybind11/detail/common.h`` (set PATCH to
-    ``0.dev1`` and increment MINOR).
+    ``0a0`` and increment MINOR).
 
   - Update ``pybind11/_version.py`` to match.
 
   - Run ``nox -s tests_packaging`` to ensure this was done correctly.
 
   - If the release was a new MINOR version, add a new ``IN DEVELOPMENT``
-    section in ``docs/changelog.rst``.
+    section in ``docs/changelog.md``.
 
   - ``git add``, ``git commit``, ``git push``
 
-If a version branch is updated, remember to set PATCH to ``1.dev1``.
-
-If you'd like to bump homebrew, run:
-
-.. code-block:: console
-
-    brew bump-formula-pr --url https://github.com/pybind/pybind11/archive/vX.Y.Z.tar.gz
+If a version branch is updated, remember to set PATCH to ``1a0``.
 
 Conda-forge should automatically make a PR in a few hours, and automatically
-merge it if there are no issues.
+merge it if there are no issues. Homebrew should be automatic, too.
 
 
 Manual packaging
@@ -138,6 +129,7 @@ this is the procedure:
 .. code-block:: bash
 
     nox -s build
+    nox -s build_global
     twine upload dist/*
 
 This makes SDists and wheels, and the final line uploads them.

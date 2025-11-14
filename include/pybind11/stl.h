@@ -43,7 +43,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 // Begin: Equivalent of
 //        https://github.com/google/clif/blob/ae4eee1de07cdf115c0c9bf9fec9ff28efce6f6c/clif/python/runtime.cc#L388-L438
 /*
-The three `PyObjectTypeIsConvertibleTo*()` functions below are
+The three `object_is_convertible_to_*()` functions below are
 the result of converging the behaviors of pybind11 and PyCLIF
 (http://github.com/google/clif).
 
@@ -69,10 +69,13 @@ to prevent accidents and improve readability:
   are also fairly commonly used, therefore enforcing explicit conversions
   would have an unfavorable cost : benefit ratio; more sloppily speaking,
   such an enforcement would be more annoying than helpful.
+
+Additional checks have been added to allow types derived from `collections.abc.Set` and
+`collections.abc.Mapping` (`collections.abc.Sequence` is already allowed by `PySequence_Check`).
 */
 
-inline bool PyObjectIsInstanceWithOneOfTpNames(PyObject *obj,
-                                               std::initializer_list<const char *> tp_names) {
+inline bool object_is_instance_with_one_of_tp_names(PyObject *obj,
+                                                    std::initializer_list<const char *> tp_names) {
     if (PyType_Check(obj)) {
         return false;
     }
@@ -85,37 +88,48 @@ inline bool PyObjectIsInstanceWithOneOfTpNames(PyObject *obj,
     return false;
 }
 
-inline bool PyObjectTypeIsConvertibleToStdVector(PyObject *obj) {
-    if (PySequence_Check(obj) != 0) {
-        return !PyUnicode_Check(obj) && !PyBytes_Check(obj);
+inline bool object_is_convertible_to_std_vector(const handle &src) {
+    // Allow sequence-like objects, but not (byte-)string-like objects.
+    if (PySequence_Check(src.ptr()) != 0) {
+        return !PyUnicode_Check(src.ptr()) && !PyBytes_Check(src.ptr());
     }
-    return (PyGen_Check(obj) != 0) || (PyAnySet_Check(obj) != 0)
-           || PyObjectIsInstanceWithOneOfTpNames(
-               obj, {"dict_keys", "dict_values", "dict_items", "map", "zip"});
+    // Allow generators, set/frozenset and several common iterable types.
+    return (PyGen_Check(src.ptr()) != 0) || (PyAnySet_Check(src.ptr()) != 0)
+           || object_is_instance_with_one_of_tp_names(
+               src.ptr(), {"dict_keys", "dict_values", "dict_items", "map", "zip"});
 }
 
-inline bool PyObjectTypeIsConvertibleToStdSet(PyObject *obj) {
-    return (PyAnySet_Check(obj) != 0) || PyObjectIsInstanceWithOneOfTpNames(obj, {"dict_keys"});
+inline bool object_is_convertible_to_std_set(const handle &src, bool convert) {
+    // Allow set/frozenset and dict keys.
+    // In convert mode: also allow types derived from collections.abc.Set.
+    return ((PyAnySet_Check(src.ptr()) != 0)
+            || object_is_instance_with_one_of_tp_names(src.ptr(), {"dict_keys"}))
+           || (convert && isinstance(src, module_::import("collections.abc").attr("Set")));
 }
 
-inline bool PyObjectTypeIsConvertibleToStdMap(PyObject *obj) {
-    if (PyDict_Check(obj)) {
+inline bool object_is_convertible_to_std_map(const handle &src, bool convert) {
+    // Allow dict.
+    if (PyDict_Check(src.ptr())) {
         return true;
     }
-    // Implicit requirement in the conditions below:
-    // A type with `.__getitem__()` & `.items()` methods must implement these
-    // to be compatible with https://docs.python.org/3/c-api/mapping.html
-    if (PyMapping_Check(obj) == 0) {
-        return false;
+    // Allow types conforming to Mapping Protocol.
+    // According to https://docs.python.org/3/c-api/mapping.html, `PyMappingCheck()` checks for
+    // `__getitem__()` without checking the type of keys. In order to restrict the allowed types
+    // closer to actual Mapping-like types, we also check for the `items()` method.
+    if (PyMapping_Check(src.ptr()) != 0) {
+        PyObject *items = PyObject_GetAttrString(src.ptr(), "items");
+        if (items != nullptr) {
+            bool is_convertible = (PyCallable_Check(items) != 0);
+            Py_DECREF(items);
+            if (is_convertible) {
+                return true;
+            }
+        } else {
+            PyErr_Clear();
+        }
     }
-    PyObject *items = PyObject_GetAttrString(obj, "items");
-    if (items == nullptr) {
-        PyErr_Clear();
-        return false;
-    }
-    bool is_convertible = (PyCallable_Check(items) != 0);
-    Py_DECREF(items);
-    return is_convertible;
+    // In convert mode: Allow types derived from collections.abc.Mapping
+    return convert && isinstance(src, module_::import("collections.abc").attr("Mapping"));
 }
 
 //
@@ -164,7 +178,7 @@ private:
         return true;
     }
 
-    bool convert_anyset(anyset s, bool convert) {
+    bool convert_anyset(const anyset &s, bool convert) {
         value.clear();
         reserve_maybe(s, &value);
         return convert_iterable(s, convert);
@@ -172,7 +186,7 @@ private:
 
 public:
     bool load(handle src, bool convert) {
-        if (!PyObjectTypeIsConvertibleToStdSet(src.ptr())) {
+        if (!object_is_convertible_to_std_set(src, convert)) {
             return false;
         }
         if (isinstance<anyset>(src)) {
@@ -203,7 +217,9 @@ public:
         return s.release();
     }
 
-    PYBIND11_TYPE_CASTER(type, const_name("set[") + key_conv::name + const_name("]"));
+    PYBIND11_TYPE_CASTER(type,
+                         io_name("collections.abc.Set", "set") + const_name("[") + key_conv::name
+                             + const_name("]"));
 };
 
 template <typename Type, typename Key, typename Value>
@@ -234,7 +250,7 @@ private:
 
 public:
     bool load(handle src, bool convert) {
-        if (!PyObjectTypeIsConvertibleToStdMap(src.ptr())) {
+        if (!object_is_convertible_to_std_map(src, convert)) {
             return false;
         }
         if (isinstance<dict>(src)) {
@@ -274,7 +290,8 @@ public:
     }
 
     PYBIND11_TYPE_CASTER(Type,
-                         const_name("dict[") + key_conv::name + const_name(", ") + value_conv::name
+                         io_name("collections.abc.Mapping", "dict") + const_name("[")
+                             + key_conv::name + const_name(", ") + value_conv::name
                              + const_name("]"));
 };
 
@@ -283,7 +300,7 @@ struct list_caster {
     using value_conv = make_caster<Value>;
 
     bool load(handle src, bool convert) {
-        if (!PyObjectTypeIsConvertibleToStdVector(src.ptr())) {
+        if (!object_is_convertible_to_std_vector(src)) {
             return false;
         }
         if (isinstance<sequence>(src)) {
@@ -340,7 +357,9 @@ public:
         return l.release();
     }
 
-    PYBIND11_TYPE_CASTER(Type, const_name("list[") + value_conv::name + const_name("]"));
+    PYBIND11_TYPE_CASTER(Type,
+                         io_name("collections.abc.Sequence", "list") + const_name("[")
+                             + value_conv::name + const_name("]"));
 };
 
 template <typename Type, typename Alloc>
@@ -416,7 +435,7 @@ private:
 
 public:
     bool load(handle src, bool convert) {
-        if (!PyObjectTypeIsConvertibleToStdVector(src.ptr())) {
+        if (!object_is_convertible_to_std_vector(src)) {
             return false;
         }
         if (isinstance<sequence>(src)) {
@@ -474,10 +493,12 @@ public:
     using cast_op_type = movable_cast_op_type<T_>;
 
     static constexpr auto name
-        = const_name<Resizable>(const_name(""), const_name("Annotated[")) + const_name("list[")
-          + value_conv::name + const_name("]")
-          + const_name<Resizable>(
-              const_name(""), const_name(", FixedSize(") + const_name<Size>() + const_name(")]"));
+        = const_name<Resizable>(const_name(""), const_name("typing.Annotated["))
+          + io_name("collections.abc.Sequence", "list") + const_name("[") + value_conv::name
+          + const_name("]")
+          + const_name<Resizable>(const_name(""),
+                                  const_name(", \"FixedSize(") + const_name<Size>()
+                                      + const_name(")\"]"));
 };
 
 template <typename Type, size_t Size>
@@ -536,7 +557,7 @@ struct optional_caster {
         return true;
     }
 
-    PYBIND11_TYPE_CASTER(Type, const_name("Optional[") + value_conv::name + const_name("]"));
+    PYBIND11_TYPE_CASTER(Type, value_conv::name | make_caster<none>::name);
 };
 
 #if defined(PYBIND11_HAS_OPTIONAL)
@@ -620,10 +641,7 @@ struct variant_caster<V<Ts...>> {
     }
 
     using Type = V<Ts...>;
-    PYBIND11_TYPE_CASTER(Type,
-                         const_name("Union[")
-                             + ::pybind11::detail::concat(make_caster<Ts>::name...)
-                             + const_name("]"));
+    PYBIND11_TYPE_CASTER(Type, ::pybind11::detail::union_concat(make_caster<Ts>::name...));
 };
 
 #if defined(PYBIND11_HAS_VARIANT)

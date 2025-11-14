@@ -27,18 +27,25 @@ The binding code for ``Pet`` looks as follows:
 
     namespace py = pybind11;
 
-    PYBIND11_MODULE(example, m) {
+    PYBIND11_MODULE(example, m, py::mod_gil_not_used()) {
         py::class_<Pet>(m, "Pet")
             .def(py::init<const std::string &>())
             .def("setName", &Pet::setName)
             .def("getName", &Pet::getName);
     }
 
-:class:`class_` creates bindings for a C++ *class* or *struct*-style data
+``py::class_`` creates bindings for a C++ *class* or *struct*-style data
 structure. :func:`init` is a convenience function that takes the types of a
 constructor's parameters as template arguments and wraps the corresponding
-constructor (see the :ref:`custom_constructors` section for details). An
-interactive Python session demonstrating this example is shown below:
+constructor (see the :ref:`custom_constructors` section for details).
+
+.. note::
+
+    Starting with pybind11v3, it is recommended to include `py::smart_holder`
+    in most situations for safety, especially if you plan to support conversions
+    to C++ smart pointers. See :ref:`smart_holder` for more information.
+
+An interactive Python session demonstrating this example is shown below:
 
 .. code-block:: pycon
 
@@ -258,7 +265,7 @@ inheritance relationship:
 
 There are two different ways of indicating a hierarchical relationship to
 pybind11: the first specifies the C++ base class as an extra template
-parameter of the :class:`class_`:
+parameter of the ``py::class_``:
 
 .. code-block:: cpp
 
@@ -272,7 +279,7 @@ parameter of the :class:`class_`:
         .def("bark", &Dog::bark);
 
 Alternatively, we can also assign a name to the previously bound ``Pet``
-:class:`class_` object and reference it when binding the ``Dog`` class:
+``py::class_`` object and reference it when binding the ``Dog`` class:
 
 .. code-block:: cpp
 
@@ -452,6 +459,66 @@ you can use ``py::detail::overload_cast_impl`` with an additional set of parenth
     other using the ``.def(py::init<...>())`` syntax. The existing machinery
     for specifying keyword and default arguments also works.
 
+☝️ Pitfalls with raw pointers and shared ownership
+==================================================
+
+``py::class_``-wrapped objects automatically manage the lifetime of the
+wrapped C++ object, in collaboration with the chosen holder type (see
+:ref:`py_class_holder`). When wrapping C++ functions involving raw pointers,
+care needs to be taken to not accidentally undermine automatic lifetime
+management. For example, ownership is inadvertently transferred here:
+
+.. code-block:: cpp
+
+    class Child { };
+
+    class Parent {
+    public:
+       Parent() : child(std::make_shared<Child>()) { }
+       Child *get_child() { return child.get(); }  /* DANGER */
+    private:
+        std::shared_ptr<Child> child;
+    };
+
+    PYBIND11_MODULE(example, m, py::mod_gil_not_used()) {
+        py::class_<Child, std::shared_ptr<Child>>(m, "Child");
+
+        py::class_<Parent, std::shared_ptr<Parent>>(m, "Parent")
+           .def(py::init<>())
+           .def("get_child", &Parent::get_child);  /* PROBLEM */
+    }
+
+The following Python code leads to undefined behavior, likely resulting in
+a segmentation fault.
+
+.. code-block:: python
+
+   from example import Parent
+
+   print(Parent().get_child())
+
+Part of the ``/* PROBLEM */`` here is that pybind11 falls back to using
+``return_value_policy::take_ownership`` as the default (see
+:ref:`return_value_policies`). The fact that the ``Child`` instance is
+already managed by ``std::shared_ptr<Child>`` is lost. Therefore pybind11
+will create a second independent ``std::shared_ptr<Child>`` that also
+claims ownership of the pointer, eventually leading to heap-use-after-free
+or double-free errors.
+
+There are various ways to resolve this issue, either by changing
+the ``Child`` or ``Parent`` C++ implementations (e.g. using
+``std::enable_shared_from_this<Child>`` as a base class for
+``Child``, or adding a member function to ``Parent`` that returns
+``std::shared_ptr<Child>``), or if that is not feasible, by using
+``return_value_policy::reference_internal``. What is the best approach
+depends on the exact situation.
+
+A highly effective way to stay in the clear — even in pure C++, but
+especially when binding C++ code to Python — is to consistently prefer
+``std::shared_ptr`` or ``std::unique_ptr`` over passing raw pointers.
+
+.. _native_enum:
+
 Enumerations and internal types
 ===============================
 
@@ -480,6 +547,8 @@ The binding code for this example looks as follows:
 
 .. code-block:: cpp
 
+    #include <pybind11/native_enum.h> // Not already included with pybind11.h
+
     py::class_<Pet> pet(m, "Pet");
 
     pet.def(py::init<const std::string &, Pet::Kind>())
@@ -487,69 +556,97 @@ The binding code for this example looks as follows:
         .def_readwrite("type", &Pet::type)
         .def_readwrite("attr", &Pet::attr);
 
-    py::enum_<Pet::Kind>(pet, "Kind")
+    py::native_enum<Pet::Kind>(pet, "Kind", "enum.Enum")
         .value("Dog", Pet::Kind::Dog)
         .value("Cat", Pet::Kind::Cat)
-        .export_values();
+        .export_values()
+        .finalize();
 
     py::class_<Pet::Attributes>(pet, "Attributes")
         .def(py::init<>())
         .def_readwrite("age", &Pet::Attributes::age);
 
 
-To ensure that the nested types ``Kind`` and ``Attributes`` are created within the scope of ``Pet``, the
-``pet`` :class:`class_` instance must be supplied to the :class:`enum_` and :class:`class_`
-constructor. The :func:`enum_::export_values` function exports the enum entries
-into the parent scope, which should be skipped for newer C++11-style strongly
-typed enums.
+To ensure that the nested types ``Kind`` and ``Attributes`` are created
+within the scope of ``Pet``, the ``pet`` ``py::class_`` instance must be
+supplied to the ``py::native_enum`` and ``py::class_`` constructors. The
+``.export_values()`` function is available for exporting the enum entries
+into the parent scope, if desired.
 
-.. code-block:: pycon
-
-    >>> p = Pet("Lucy", Pet.Cat)
-    >>> p.type
-    Kind.Cat
-    >>> int(p.type)
-    1L
-
-The entries defined by the enumeration type are exposed in the ``__members__`` property:
-
-.. code-block:: pycon
-
-    >>> Pet.Kind.__members__
-    {'Dog': Kind.Dog, 'Cat': Kind.Cat}
-
-The ``name`` property returns the name of the enum value as a unicode string.
+``py::native_enum`` was introduced with pybind11v3. It binds C++ enum types
+to native Python enum types, typically types in Python's
+`stdlib enum <https://docs.python.org/3/library/enum.html>`_ module,
+which are `PEP 435 compatible <https://peps.python.org/pep-0435/>`_.
+This is the recommended way to bind C++ enums.
+The older ``py::enum_`` is not PEP 435 compatible
+(see `issue #2332 <https://github.com/pybind/pybind11/issues/2332>`_)
+but remains supported indefinitely for backward compatibility.
+New bindings should prefer ``py::native_enum``.
 
 .. note::
 
-    It is also possible to use ``str(enum)``, however these accomplish different
-    goals. The following shows how these two approaches differ.
+    The deprecated ``py::enum_`` is :ref:`documented here <deprecated_enum>`.
 
-    .. code-block:: pycon
+The ``.finalize()`` call above is needed because Python's native enums
+cannot be built incrementally — all name/value pairs need to be passed at
+once. To achieve this, ``py::native_enum`` acts as a buffer to collect the
+name/value pairs. The ``.finalize()`` call uses the accumulated name/value
+pairs to build the arguments for constructing a native Python enum type.
 
-        >>> p = Pet("Lucy", Pet.Cat)
-        >>> pet_type = p.type
-        >>> pet_type
-        Pet.Cat
-        >>> str(pet_type)
-        'Pet.Cat'
-        >>> pet_type.name
-        'Cat'
+The ``py::native_enum`` constructor takes a third argument,
+``native_type_name``, which specifies the fully qualified name of the Python
+base class to use — e.g., ``"enum.Enum"`` or ``"enum.IntEnum"``. A fourth
+optional argument, ``class_doc``, provides the docstring for the generated
+class.
+
+For example:
+
+.. code-block:: cpp
+
+    py::native_enum<Pet::Kind>(pet, "Kind", "enum.IntEnum", "Constant specifying the kind of pet")
+
+You may use any fully qualified Python name for ``native_type_name``.
+The only requirement is that the named type is similar to
+`enum.Enum <https://docs.python.org/3/library/enum.html#enum.Enum>`_
+in these ways:
+
+* Has a `constructor similar to that of enum.Enum
+  <https://docs.python.org/3/howto/enum.html#functional-api>`_::
+
+    Colors = enum.Enum("Colors", (("Red", 0), ("Green", 1)))
+
+* A `C++ underlying <https://en.cppreference.com/w/cpp/types/underlying_type>`_
+  enum value can be passed to the constructor for the Python enum value::
+
+    red = Colors(0)
+
+* The enum values have a ``.value`` property yielding a value that
+  can be cast to the C++ underlying type::
+
+    underlying = red.value
+
+As of Python 3.13, the compatible `types in the stdlib enum module
+<https://docs.python.org/3/library/enum.html#module-contents>`_ are:
+``Enum``, ``IntEnum``, ``Flag``, ``IntFlag``.
 
 .. note::
 
-    When the special tag ``py::arithmetic()`` is specified to the ``enum_``
-    constructor, pybind11 creates an enumeration that also supports rudimentary
-    arithmetic and bit-level operations like comparisons, and, or, xor, negation,
-    etc.
+    In rare cases, a C++ enum may be bound to Python via a
+    :ref:`custom type caster <custom_type_caster>`. In such cases, a
+    template specialization like this may be required:
 
     .. code-block:: cpp
 
-        py::enum_<Pet::Kind>(pet, "Kind", py::arithmetic())
-           ...
+        #if defined(PYBIND11_HAS_NATIVE_ENUM)
+        namespace pybind11::detail {
+        template <typename FancyEnum>
+        struct type_caster_enum_type_enabled<
+            FancyEnum,
+            enable_if_t<is_fancy_enum<FancyEnum>::value>> : std::false_type {};
+        }
+        #endif
 
-    By default, these are omitted to conserve space.
+    This specialization is needed only if the custom type caster is templated.
 
-.. warning::
-
-    Contrary to Python customs, enum values from the wrappers should not be compared using ``is``, but with ``==`` (see `#1177 <https://github.com/pybind/pybind11/issues/1177>`_ for background).
+    The ``PYBIND11_HAS_NATIVE_ENUM`` guard is needed only if backward
+    compatibility with pybind11v2 is required.

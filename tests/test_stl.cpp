@@ -12,10 +12,10 @@
 #include "constructor_stats.h"
 #include "pybind11_tests.h"
 
-#ifndef PYBIND11_HAS_FILESYSTEM_IS_OPTIONAL
-#    define PYBIND11_HAS_FILESYSTEM_IS_OPTIONAL
+#if defined(PYBIND11_HAS_FILESYSTEM) || defined(PYBIND11_HAS_EXPERIMENTAL_FILESYSTEM)
+#    include <pybind11/stl/filesystem.h>
 #endif
-#include <pybind11/stl/filesystem.h>
+
 #include <pybind11/typing.h>
 
 #include <string>
@@ -99,6 +99,7 @@ public:
     using OptionalEnumValue = OptionalImpl<EnumType>;
 
     OptionalProperties() : value(EnumType::kSet) {}
+    OptionalProperties(const OptionalProperties &) = default;
     ~OptionalProperties() {
         // Reset value to detect use-after-destruction.
         // This is set to a specific value rather than nullopt to ensure that
@@ -648,4 +649,19 @@ TEST_SUBMODULE(stl, m) {
         }
         return zum;
     });
+    m.def("roundtrip_std_vector_int", [](const std::vector<int> &v) { return v; });
+    m.def("roundtrip_std_map_str_int", [](const std::map<std::string, int> &m) { return m; });
+    m.def("roundtrip_std_set_int", [](const std::set<int> &s) { return s; });
+    m.def(
+        "roundtrip_std_vector_int_noconvert",
+        [](const std::vector<int> &v) { return v; },
+        py::arg("v").noconvert());
+    m.def(
+        "roundtrip_std_map_str_int_noconvert",
+        [](const std::map<std::string, int> &m) { return m; },
+        py::arg("m").noconvert());
+    m.def(
+        "roundtrip_std_set_int_noconvert",
+        [](const std::set<int> &s) { return s; },
+        py::arg("s").noconvert());
 }

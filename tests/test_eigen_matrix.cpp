@@ -237,6 +237,7 @@ TEST_SUBMODULE(eigen_matrix, m) {
 
     public:
         ReturnTester() { print_created(this); }
+        ReturnTester(const ReturnTester &) = default;
         ~ReturnTester() { print_destroyed(this); }
         static Eigen::MatrixXd create() { return Eigen::MatrixXd::Ones(10, 10); }
         // NOLINTNEXTLINE(readability-const-return-type)
@@ -440,4 +441,8 @@ TEST_SUBMODULE(eigen_matrix, m) {
         py::module_::import("numpy").attr("ones")(10);
         return v[0](5);
     });
+    m.def("round_trip_vector", [](const Eigen::VectorXf &x) -> Eigen::VectorXf { return x; });
+    m.def("round_trip_dense", [](const DenseMatrixR &m) -> DenseMatrixR { return m; });
+    m.def("round_trip_dense_ref",
+          [](const Eigen::Ref<DenseMatrixR> &m) -> Eigen::Ref<DenseMatrixR> { return m; });
 }

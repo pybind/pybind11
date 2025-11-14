@@ -1,0 +1,87 @@
+name: CIBW
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+    - master
+    - stable
+    - v*
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-wasm-emscripten:
+    name: Pyodide wheel
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        submodules: true
+        fetch-depth: 0
+
+    - uses: pypa/cibuildwheel@v3.1
+      env:
+        PYODIDE_BUILD_EXPORTS: whole_archive
+      with:
+        package-dir: tests
+        only: cp312-pyodide_wasm32
+
+  build-ios:
+    name: iOS wheel ${{ matrix.runs-on }}
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        runs-on: [macos-14, macos-13]
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        submodules: true
+        fetch-depth: 0
+
+    # We have to uninstall first because GH is now using a local tap to build cmake<4, iOS needs cmake>=4
+    - run: brew uninstall cmake && brew install cmake
+
+    - uses: pypa/cibuildwheel@v3.1
+      env:
+        CIBW_PLATFORM: ios
+        CIBW_SKIP: cp314-*  # https://github.com/pypa/cibuildwheel/issues/2494
+      with:
+        package-dir: tests
+
+  build-android:
+    name: Android wheel ${{ matrix.runs-on }}
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        runs-on: [macos-latest, macos-13, ubuntu-latest]
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        submodules: true
+        fetch-depth: 0
+
+    # GitHub Actions can't currently run the Android emulator on macOS.
+    - name: Skip Android tests on macOS
+      if: contains(matrix.runs-on, 'macos')
+      run: echo "CIBW_TEST_COMMAND=" >> "$GITHUB_ENV"
+
+    # https://github.blog/changelog/2024-04-02-github-actions-hardware-accelerated-android-virtualization-now-available/
+    - name: Enable KVM for Android emulator
+      if: contains(matrix.runs-on, 'ubuntu')
+      run: |
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+
+    - run: pipx install patchelf
+
+    - uses: pypa/cibuildwheel@v3.1
+      env:
+        CIBW_PLATFORM: android
+      with:
+        package-dir: tests

@@ -9,11 +9,7 @@ It is recommended to use conventional commit format, see conventionalcommits.org
 
 ## Suggested changelog entry:
 
-<!-- Fill in the below block with the expected RestructuredText entry. Delete if no entry needed;
-     but do not delete header or rst block if an entry is needed! Will be collected via a script. -->
+<!-- Fill in the block below with the expected entry. Delete if no entry needed;
+     but do not delete the header if an entry is needed! Will be collected via a script. -->
 
-```rst
-
-```
-
-<!-- If the upgrade guide needs updating, note that here too -->
+* Placeholder.

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import multiprocessing
 import sys
+import sysconfig
 import threading
 import time
 
@@ -9,6 +10,14 @@ import pytest
 
 import env
 from pybind11_tests import gil_scoped as m
+
+# Test collection seems to hold the gil
+# These tests have rare flakes in nogil; since they
+# are testing the gil, they are skipped at the moment.
+skipif_not_free_threaded = pytest.mark.skipif(
+    sysconfig.get_config_var("Py_GIL_DISABLED"),
+    reason="Flaky without the GIL",
+)
 
 
 class ExtendedVirtClass(m.VirtClass):
@@ -108,6 +117,10 @@ def test_nested_acquire():
 
 
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
+@pytest.mark.skipif(
+    env.GRAALPY and sys.platform == "darwin",
+    reason="Transiently crashes on GraalPy on OS X",
+)
 def test_multi_acquire_release_cross_module():
     for bits in range(16 * 8):
         internals_ids = m.test_multi_acquire_release_cross_module(bits)
@@ -151,7 +164,7 @@ def _intentional_deadlock():
     m.intentional_deadlock()
 
 
-ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK = ALL_BASIC_TESTS + (_intentional_deadlock,)
+ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK = (*ALL_BASIC_TESTS, _intentional_deadlock)
 
 
 def _run_in_process(target, *args, **kwargs):
@@ -186,8 +199,14 @@ def _run_in_process(target, *args, **kwargs):
         if process.exitcode is None:
             assert t_delta > 0.9 * timeout
             msg = "DEADLOCK, most likely, exactly what this test is meant to detect."
-            if env.PYPY and env.WIN:
-                pytest.skip(msg)
+            soabi = sysconfig.get_config_var("SOABI")
+            if env.WIN and env.PYPY:
+                pytest.xfail(f"[TEST-GIL-SCOPED] {soabi} PyPy: " + msg)
+            if env.MACOS:
+                if not env.sys_is_gil_enabled():
+                    pytest.xfail(f"[TEST-GIL-SCOPED] {soabi} with GIL disabled: " + msg)
+                if env.PY_GIL_DISABLED:
+                    pytest.xfail(f"[TEST-GIL-SCOPED] {soabi}: " + msg)
             raise RuntimeError(msg)
         return process.exitcode
     finally:
@@ -223,6 +242,7 @@ def test_run_in_process_one_thread(test_fn):
     assert _run_in_process(_run_in_threads, test_fn, num_threads=1, parallel=False) == 0
 
 
+@skipif_not_free_threaded
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
 @pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK)
 @pytest.mark.skipif(
@@ -252,7 +272,13 @@ def test_run_in_process_multiple_threads_sequential(test_fn):
 
 
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
-@pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK)
+@pytest.mark.parametrize(
+    "test_fn",
+    [
+        *ALL_BASIC_TESTS,
+        pytest.param(_intentional_deadlock, marks=skipif_not_free_threaded),
+    ],
+)
 @pytest.mark.skipif(
     "env.GRAALPY",
     reason="GraalPy transiently complains about unfinished threads at process exit",

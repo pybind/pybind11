@@ -313,9 +313,8 @@ def test_smart_ptr_from_default():
     instance = m.HeldByDefaultHolder()
     with pytest.raises(RuntimeError) as excinfo:
         m.HeldByDefaultHolder.load_shared_ptr(instance)
-    assert (
-        "Unable to load a custom holder type from a "
-        "default-holder instance" in str(excinfo.value)
+    assert "Unable to load a custom holder type from a default-holder instance" in str(
+        excinfo.value
     )
 
 
@@ -327,3 +326,32 @@ def test_shared_ptr_gc():
     pytest.gc_collect()
     for i, v in enumerate(el.get()):
         assert i == v.value()
+
+
+def test_private_esft_tolerance():
+    # Regression test: binding a shared_ptr<T> member where T privately inherits
+    # enable_shared_from_this<T> must not cause a C++ compile error.
+    c = m.ContainerUsingPrivateESFT()
+    # The ptr member is not actually usable in any way, but this is how the
+    # pybind11 v2 release series worked.
+    with pytest.raises(TypeError):
+        _ = c.ptr  # getattr
+    with pytest.raises(TypeError):
+        c.ptr = None  # setattr
+
+
+def test_copyable_holder_caster_shared_ptr_with_smart_holder_support_enabled():
+    assert (
+        m.return_std_shared_ptr_example_drvd() == "copyable_holder_caster_traits_test"
+    )
+
+
+def test_move_only_holder_caster_shared_ptr_with_smart_holder_support_enabled():
+    assert (
+        m.return_std_unique_ptr_example_drvd() == "move_only_holder_caster_traits_test"
+    )
+
+
+def test_const_only_holder():
+    o = m.MyObject6("my_data")
+    assert o.value == "my_data"

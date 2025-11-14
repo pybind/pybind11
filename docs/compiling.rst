@@ -18,7 +18,7 @@ A Python extension module can be created with just a few lines of code:
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 3.15...3.30)
+    cmake_minimum_required(VERSION 3.15...4.0)
     project(example LANGUAGES CXX)
 
     set(PYBIND11_FINDPYTHON ON)
@@ -447,7 +447,7 @@ See the `Config file`_ docstring for details of relevant CMake variables.
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 3.15...3.30)
+    cmake_minimum_required(VERSION 3.15...4.0)
     project(example LANGUAGES CXX)
 
     find_package(pybind11 REQUIRED)
@@ -492,7 +492,7 @@ FindPython, pybind11 will detect this and use the existing targets instead:
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 3.15...3.30)
+    cmake_minimum_required(VERSION 3.15...4.0)
     project(example LANGUAGES CXX)
 
     find_package(Python 3.8 COMPONENTS Interpreter Development REQUIRED)
@@ -570,7 +570,7 @@ You can use these targets to build complex applications. For example, the
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 3.15...3.30)
+    cmake_minimum_required(VERSION 3.15...4.0)
     project(example LANGUAGES CXX)
 
     find_package(pybind11 REQUIRED)  # or add_subdirectory(pybind11)
@@ -628,7 +628,7 @@ information about usage in C++, see :doc:`/advanced/embedding`.
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 3.15...3.30)
+    cmake_minimum_required(VERSION 3.15...4.0)
     project(example LANGUAGES CXX)
 
     find_package(pybind11 REQUIRED)  # or add_subdirectory(pybind11)
@@ -712,12 +712,15 @@ classes or incorporating modern meta-programming constructs.
 
 .. [AutoWIG] https://github.com/StatisKit/AutoWIG
 
-[robotpy-build]_ is a is a pure python, cross platform build tool that aims to
-simplify creation of python wheels for pybind11 projects, and provide
-cross-project dependency management. Additionally, it is able to autogenerate
-customizable pybind11-based wrappers by parsing C++ header files.
+[semiwrap]_ is a build tool that makes it simpler to wrap C/C++ libraries with
+pybind11 by automating large portions of the wrapping process and handling some
+of the more complex aspects of creating pybind11 based wrappers (especially with
+trampolines to allow inheriting from C++ classes from Python). It includes a
+hatchling plugin that autogenerates meson.build files that can be built using
+meson, and those build files parse your wrapped headers and generate/compile
+pybind11 based wrappers into python extension modules.
 
-.. [robotpy-build] https://robotpy-build.readthedocs.io
+.. [semiwrap] https://semiwrap.readthedocs.io
 
 [litgen]_ is an automatic python bindings generator with a focus on generating
 documented and discoverable bindings: bindings will nicely reproduce the documentation

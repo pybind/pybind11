@@ -25,22 +25,22 @@ repos:
 
 # Clang format the codebase automatically
 - repo: https://github.com/pre-commit/mirrors-clang-format
-  rev: "v19.1.6"
+  rev: "v21.1.2"
   hooks:
   - id: clang-format
     types_or: [c++, c, cuda]
 
 # Ruff, the Python auto-correcting linter/formatter written in Rust
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.8.6
+  rev: v0.14.3
   hooks:
-  - id: ruff
+  - id: ruff-check
     args: ["--fix", "--show-fixes"]
   - id: ruff-format
 
 # Check static types with mypy
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: "v1.14.1"
+  rev: "v1.18.2"
   hooks:
   - id: mypy
     args: []
@@ -62,7 +62,7 @@ repos:
 
 # Standard hooks
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: "v5.0.0"
+  rev: "v6.0.0"
   hooks:
   - id: check-added-large-files
   - id: check-case-conflict
@@ -76,10 +76,11 @@ repos:
   - id: mixed-line-ending
   - id: requirements-txt-fixer
   - id: trailing-whitespace
+    exclude: \.patch?$
 
 # Also code format the docs
 - repo: https://github.com/adamchainz/blacken-docs
-  rev: "1.19.1"
+  rev: "1.20.0"
   hooks:
   - id: blacken-docs
     additional_dependencies:
@@ -90,10 +91,11 @@ repos:
   rev: "v1.5.5"
   hooks:
   - id: remove-tabs
+    exclude: (^docs/.*|\.patch)?$
 
 # Avoid directional quotes
 - repo: https://github.com/sirosen/texthooks
-  rev: "0.6.8"
+  rev: "0.7.1"
   hooks:
   - id: fix-ligatures
   - id: fix-smartquotes
@@ -106,20 +108,11 @@ repos:
   - id: rst-directive-colons
   - id: rst-inline-touching-normal
 
-# Checks the manifest for missing files (native support)
-- repo: https://github.com/mgedmin/check-manifest
-  rev: "0.50"
-  hooks:
-  - id: check-manifest
-    # This is a slow hook, so only run this if --hook-stage manual is passed
-    stages: [manual]
-    additional_dependencies: [cmake, ninja]
-
 # Check for spelling
 # Use tools/codespell_ignore_lines_from_errors.py
 # to rebuild .codespell-ignore-lines
 - repo: https://github.com/codespell-project/codespell
-  rev: "v2.3.0"
+  rev: "v2.4.1"
   hooks:
   - id: codespell
     exclude: ".supp$"
@@ -127,7 +120,7 @@ repos:
 
 # Check for common shell mistakes
 - repo: https://github.com/shellcheck-py/shellcheck-py
-  rev: "v0.10.0.1"
+  rev: "v0.11.0.1"
   hooks:
   - id: shellcheck
 
@@ -142,14 +135,14 @@ repos:
 
 # PyLint has native support - not always usable, but works for us
 - repo: https://github.com/PyCQA/pylint
-  rev: "v3.3.3"
+  rev: "v4.0.2"
   hooks:
   - id: pylint
     files: ^pybind11
 
 # Check schemas on some of our YAML files
 - repo: https://github.com/python-jsonschema/check-jsonschema
-  rev: 0.30.0
+  rev: 0.34.1
   hooks:
   - id: check-readthedocs
   - id: check-github-workflows

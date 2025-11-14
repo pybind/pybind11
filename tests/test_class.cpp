@@ -58,6 +58,13 @@ class ForwardClass;
 class Args : public py::args {};
 } // namespace pr5396_forward_declared_class
 
+struct ConvertibleFromAnything {
+    ConvertibleFromAnything() = default;
+    template <class T>
+    // NOLINTNEXTLINE(bugprone-forwarding-reference-overload,google-explicit-constructor)
+    ConvertibleFromAnything(T &&) {}
+};
+
 } // namespace test_class
 
 static_assert(py::detail::is_same_or_base_of<py::args, py::args>::value, "");
@@ -104,6 +111,12 @@ TEST_SUBMODULE(class_, m) {
         .def(py::init([]() { return nullptr; })) // Need a NOOP __init__
         .def_static("__new__",
                     [](const py::object &) { return NoConstructorNew::new_instance(); });
+
+    // test_pass_unique_ptr
+    struct ToBeHeldByUniquePtr {};
+    py::class_<ToBeHeldByUniquePtr, std::unique_ptr<ToBeHeldByUniquePtr>>(m, "ToBeHeldByUniquePtr")
+        .def(py::init<>());
+    m.def("pass_unique_ptr", [](std::unique_ptr<ToBeHeldByUniquePtr> &&) {});
 
     // test_inheritance
     class Pet {
@@ -213,7 +226,7 @@ TEST_SUBMODULE(class_, m) {
 
     m.def("get_type_of", [](py::object ob) { return py::type::of(std::move(ob)); });
 
-    m.def("get_type_classic", [](py::handle h) { return h.get_type(); });
+    m.def("get_type_classic", [](py::handle h) { return py::type::handle_of(h); });
 
     m.def("as_type", [](const py::object &ob) { return py::type(ob); });
 
@@ -227,11 +240,12 @@ TEST_SUBMODULE(class_, m) {
     m.def("mismatched_holder_1", []() {
         auto mod = py::module_::import("__main__");
         py::class_<MismatchBase1, std::shared_ptr<MismatchBase1>>(mod, "MismatchBase1");
-        py::class_<MismatchDerived1, MismatchBase1>(mod, "MismatchDerived1");
+        py::class_<MismatchDerived1, std::unique_ptr<MismatchDerived1>, MismatchBase1>(
+            mod, "MismatchDerived1");
     });
     m.def("mismatched_holder_2", []() {
         auto mod = py::module_::import("__main__");
-        py::class_<MismatchBase2>(mod, "MismatchBase2");
+        py::class_<MismatchBase2, std::unique_ptr<MismatchBase2>>(mod, "MismatchBase2");
         py::class_<MismatchDerived2, std::shared_ptr<MismatchDerived2>, MismatchBase2>(
             mod, "MismatchDerived2");
     });
@@ -514,6 +528,7 @@ TEST_SUBMODULE(class_, m) {
     // test_exception_rvalue_abort
     struct PyPrintDestructor {
         PyPrintDestructor() = default;
+        PyPrintDestructor(const PyPrintDestructor &) = default;
         ~PyPrintDestructor() { py::print("Print from destructor"); }
         void throw_something() { throw std::runtime_error("error"); }
     };
@@ -570,6 +585,11 @@ TEST_SUBMODULE(class_, m) {
     });
 
     test_class::pr4220_tripped_over_this::bind_empty0(m);
+
+    // Regression test for compiler error that showed up in #5866
+    m.def("return_universal_recipient", []() -> test_class::ConvertibleFromAnything {
+        return test_class::ConvertibleFromAnything{};
+    });
 }
 
 template <int N>
@@ -625,8 +645,10 @@ CHECK_NOALIAS(8);
 CHECK_HOLDER(1, unique);
 CHECK_HOLDER(2, unique);
 CHECK_HOLDER(3, unique);
+#ifndef PYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE
 CHECK_HOLDER(4, unique);
 CHECK_HOLDER(5, unique);
+#endif
 CHECK_HOLDER(6, shared);
 CHECK_HOLDER(7, shared);
 CHECK_HOLDER(8, shared);

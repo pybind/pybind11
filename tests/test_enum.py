@@ -5,11 +5,13 @@ import re
 
 import pytest
 
-import env  # noqa: F401
+import env
 from pybind11_tests import enums as m
 
 
-@pytest.mark.xfail("env.GRAALPY", reason="TODO should get fixed on GraalPy side")
+@pytest.mark.xfail(
+    env.GRAALPY and env.GRAALPY_VERSION < (24, 2), reason="Fixed in GraalPy 24.2"
+)
 def test_unscoped_enum():
     assert str(m.UnscopedEnum.EOne) == "UnscopedEnum.EOne"
     assert str(m.UnscopedEnum.ETwo) == "UnscopedEnum.ETwo"
@@ -57,15 +59,13 @@ def test_unscoped_enum():
         "EThree": m.UnscopedEnum.EThree,
     }
 
-    for docstring_line in """An unscoped enumeration
-
-Members:
-
-  EOne : Docstring for EOne
-
-  ETwo : Docstring for ETwo
-
-  EThree : Docstring for EThree""".split("\n"):
+    for docstring_line in [
+        "An unscoped enumeration",
+        "Members:",
+        "  EOne : Docstring for EOne",
+        "  ETwo : Docstring for ETwo",
+        "  EThree : Docstring for EThree",
+    ]:
         assert docstring_line in m.UnscopedEnum.__doc__
 
     # Unscoped enums will accept ==/!= int comparisons
@@ -197,7 +197,9 @@ def test_implicit_conversion():
     assert repr(x) == "{<EMode.EFirstMode: 1>: 3, <EMode.ESecondMode: 2>: 4}"
 
 
-@pytest.mark.xfail("env.GRAALPY", reason="TODO should get fixed on GraalPy side")
+@pytest.mark.xfail(
+    env.GRAALPY and env.GRAALPY_VERSION < (24, 2), reason="Fixed in GraalPy 24.2"
+)
 def test_binary_operators():
     assert int(m.Flags.Read) == 4
     assert int(m.Flags.Write) == 2
@@ -326,8 +328,17 @@ def test_generated_dunder_methods_pos_only():
         )
         assert (
             re.match(
-                r"^__setstate__\(self: [\w\.]+, state: [\w\.]+, /\)",
+                r"^__setstate__\(self: [\w\.]+, state: [\w\. \|]+, /\)",
                 enum_type.__setstate__.__doc__,
             )
             is not None
         )
+
+
+@pytest.mark.skipif(
+    isinstance(m.obj_cast_UnscopedEnum_ptr, str), reason=m.obj_cast_UnscopedEnum_ptr
+)
+def test_obj_cast_unscoped_enum_ptr():
+    assert m.obj_cast_UnscopedEnum_ptr(m.UnscopedEnum.ETwo) == 2
+    assert m.obj_cast_UnscopedEnum_ptr(m.UnscopedEnum.EOne) == 1
+    assert m.obj_cast_UnscopedEnum_ptr(None) == 0

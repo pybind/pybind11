@@ -133,7 +133,12 @@ object eval_file(str fname, object global = globals(), object local = object()) 
 
     int closeFile = 1;
     std::string fname_str = (std::string) fname;
-    FILE *f = _Py_fopen_obj(fname.ptr(), "r");
+    FILE *f =
+#    if PY_VERSION_HEX >= 0x030E0000
+        Py_fopen(fname.ptr(), "r");
+#    else
+        _Py_fopen_obj(fname.ptr(), "r");
+#    endif
     if (!f) {
         PyErr_Clear();
         pybind11_fail("File \"" + fname_str + "\" could not be opened!");

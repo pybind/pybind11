@@ -2,13 +2,30 @@
 
 from __future__ import annotations
 
-import exo_planet_c_api
-import exo_planet_pybind11
-import home_planet_very_lonely_traveler
+import importlib
+import sys
+
 import pytest
 
 import env
 from pybind11_tests import cpp_conduit as home_planet
+
+
+def import_warns_freethreaded(name):
+    if name not in sys.modules and not env.sys_is_gil_enabled():
+        with pytest.warns(
+            RuntimeWarning, match=f"has been enabled to load module '{name}'"
+        ):
+            return importlib.import_module(name)
+
+    return importlib.import_module(name)
+
+
+exo_planet_c_api = import_warns_freethreaded("exo_planet_c_api")
+exo_planet_pybind11 = import_warns_freethreaded("exo_planet_pybind11")
+home_planet_very_lonely_traveler = import_warns_freethreaded(
+    "home_planet_very_lonely_traveler"
+)
 
 
 def test_traveler_getattr_actually_exists():
@@ -134,8 +151,8 @@ def test_exo_planet_c_api_premium_traveler(premium_traveler_type):
 
 def test_home_planet_wrap_very_lonely_traveler():
     # This does not exercise the cpp_conduit feature, but is here to
-    # demonstrate that the cpp_conduit feature does not solve all
-    # cross-extension interoperability issues.
+    # demonstrate that the cpp_conduit feature does not solve
+    # cross-extension base-and-derived class interoperability issues.
     # Here is the proof that the following works for extensions with
     # matching `PYBIND11_INTERNALS_ID`s:
     #     test_cpp_conduit.cpp:

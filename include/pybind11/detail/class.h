@@ -98,7 +98,7 @@ inline PyTypeObject *make_static_property_type() {
         pybind11_fail("make_static_property_type(): failure in PyType_Ready()!");
     }
 
-    setattr((PyObject *) type, "__module__", str("pybind11_builtins"));
+    setattr((PyObject *) type, "__module__", str(PYBIND11_DUMMY_MODULE_NAME));
     PYBIND11_SET_OLDPY_QUALNAME(type, name_obj);
 
     return type;
@@ -221,10 +221,19 @@ extern "C" inline void pybind11_meta_dealloc(PyObject *obj) {
             auto tindex = std::type_index(*tinfo->cpptype);
             internals.direct_conversions.erase(tindex);
 
+            auto &local_internals = get_local_internals();
             if (tinfo->module_local) {
-                get_local_internals().registered_types_cpp.erase(tindex);
+                local_internals.registered_types_cpp.erase(tinfo->cpptype);
             } else {
                 internals.registered_types_cpp.erase(tindex);
+#if PYBIND11_INTERNALS_VERSION >= 12
+                internals.registered_types_cpp_fast.erase(tinfo->cpptype);
+                for (const std::type_info *alias : tinfo->alias_chain) {
+                    auto num_erased = internals.registered_types_cpp_fast.erase(alias);
+                    (void) num_erased;
+                    assert(num_erased > 0);
+                }
+#endif
             }
             internals.registered_types_py.erase(tinfo->type);
 
@@ -282,7 +291,7 @@ inline PyTypeObject *make_default_metaclass() {
         pybind11_fail("make_default_metaclass(): failure in PyType_Ready()!");
     }
 
-    setattr((PyObject *) type, "__module__", str("pybind11_builtins"));
+    setattr((PyObject *) type, "__module__", str(PYBIND11_DUMMY_MODULE_NAME));
     PYBIND11_SET_OLDPY_QUALNAME(type, name_obj);
 
     return type;
@@ -314,8 +323,9 @@ inline void traverse_offset_bases(void *valueptr,
 
 #ifdef Py_GIL_DISABLED
 inline void enable_try_inc_ref(PyObject *obj) {
-    // TODO: Replace with PyUnstable_Object_EnableTryIncRef when available.
-    // See https://github.com/python/cpython/issues/128844
+#    if PY_VERSION_HEX >= 0x030E00A4
+    PyUnstable_EnableTryIncRef(obj);
+#    else
     if (_Py_IsImmortal(obj)) {
         return;
     }
@@ -330,10 +340,12 @@ inline void enable_try_inc_ref(PyObject *obj) {
             return;
         }
     }
+#    endif
 }
 #endif
 
 inline bool register_instance_impl(void *ptr, instance *self) {
+    assert(ptr);
 #ifdef Py_GIL_DISABLED
     enable_try_inc_ref(reinterpret_cast<PyObject *>(self));
 #endif
@@ -341,6 +353,7 @@ inline bool register_instance_impl(void *ptr, instance *self) {
     return true; // unused, but gives the same signature as the deregister func
 }
 inline bool deregister_instance_impl(void *ptr, instance *self) {
+    assert(ptr);
     return with_instance_map(ptr, [&](instance_map &instances) {
         auto range = instances.equal_range(ptr);
         for (auto it = range.first; it != range.second; ++it) {
@@ -457,6 +470,8 @@ inline void clear_instance(PyObject *self) {
             if (instance->owned || v_h.holder_constructed()) {
                 v_h.type->dealloc(v_h);
             }
+        } else if (v_h.holder_constructed()) {
+            v_h.type->dealloc(v_h); // Disowned instance.
         }
     }
     // Deallocate the value/holder layout internals:
@@ -497,7 +512,12 @@ extern "C" inline void pybind11_object_dealloc(PyObject *self) {
     Py_DECREF(type);
 }
 
+PYBIND11_WARNING_PUSH
+PYBIND11_WARNING_DISABLE_GCC("-Wredundant-decls")
+
 std::string error_string();
+
+PYBIND11_WARNING_POP
 
 /** Create the type which can be used as a common base for all classes.  This is
     needed in order to satisfy Python's requirements for multiple inheritance.
@@ -537,7 +557,7 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass) {
         pybind11_fail("PyType_Ready failed in make_object_base_type(): " + error_string());
     }
 
-    setattr((PyObject *) type, "__module__", str("pybind11_builtins"));
+    setattr((PyObject *) type, "__module__", str(PYBIND11_DUMMY_MODULE_NAME));
     PYBIND11_SET_OLDPY_QUALNAME(type, name_obj);
 
     assert(!PyType_HasFeature(type, Py_TPFLAGS_HAVE_GC));
@@ -574,7 +594,7 @@ extern "C" inline int pybind11_clear(PyObject *self) {
 inline void enable_dynamic_attributes(PyHeapTypeObject *heap_type) {
     auto *type = &heap_type->ht_type;
     type->tp_flags |= Py_TPFLAGS_HAVE_GC;
-#if PY_VERSION_HEX < 0x030B0000
+#ifdef PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET
     type->tp_dictoffset = type->tp_basicsize;           // place dict at the end
     type->tp_basicsize += (ssize_t) sizeof(PyObject *); // and allocate enough space for it
 #else
@@ -714,15 +734,7 @@ inline PyObject *make_new_python_type(const type_record &rec) {
             PyUnicode_FromFormat("%U.%U", rec.scope.attr("__qualname__").ptr(), name.ptr()));
     }
 
-    object module_;
-    if (rec.scope) {
-        if (hasattr(rec.scope, "__module__")) {
-            module_ = rec.scope.attr("__module__");
-        } else if (hasattr(rec.scope, "__name__")) {
-            module_ = rec.scope.attr("__name__");
-        }
-    }
-
+    object module_ = get_module_name_if_available(rec.scope);
     const auto *full_name = c_str(
 #if !defined(PYPY_VERSION)
         module_ ? str(module_).cast<std::string>() + "." + rec.name :

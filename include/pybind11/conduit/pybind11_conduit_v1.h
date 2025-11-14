@@ -6,6 +6,11 @@
 
 * including pybind11 versions with different PYBIND11_INTERNALS_VERSION's.
 
+    * NOTE: The conduit feature
+            only covers    from-Python-to-C++ conversions, it
+            does not cover from-C++-to-Python conversions.
+            (For the latter, a different feature would have to be added.)
+
 The naming of the feature is a bit misleading:
 
 * The feature is in no way tied to pybind11 internals.

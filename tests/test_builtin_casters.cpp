@@ -236,6 +236,10 @@ TEST_SUBMODULE(builtin_casters, m) {
     m.def("int_passthrough", [](int arg) { return arg; });
     m.def("int_passthrough_noconvert", [](int arg) { return arg; }, py::arg{}.noconvert());
 
+    // test_float_convert
+    m.def("float_passthrough", [](float arg) { return arg; });
+    m.def("float_passthrough_noconvert", [](float arg) { return arg; }, py::arg{}.noconvert());
+
     // test_tuple
     m.def(
         "pair_passthrough",
@@ -359,6 +363,8 @@ TEST_SUBMODULE(builtin_casters, m) {
     m.def("complex_cast", [](float x) { return "{}"_s.format(x); });
     m.def("complex_cast",
           [](std::complex<float> x) { return "({}, {})"_s.format(x.real(), x.imag()); });
+    m.def("complex_convert", [](std::complex<float> x) { return x; });
+    m.def("complex_noconvert", [](std::complex<float> x) { return x; }, py::arg{}.noconvert());
 
     // test int vs. long (Python 2)
     m.def("int_cast", []() { return (int) 42; });

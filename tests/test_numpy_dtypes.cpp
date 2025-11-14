@@ -176,7 +176,7 @@ py::array_t<S, 0> create_recarray(size_t n) {
 }
 
 template <typename S>
-py::list print_recarray(py::array_t<S, 0> arr) {
+py::list print_recarray(const py::array_t<S, 0> &arr) {
     const auto req = arr.request();
     auto *const ptr = static_cast<S *>(req.ptr);
     auto l = py::list();
@@ -301,7 +301,7 @@ py::list test_dtype_ctors() {
 }
 
 template <typename T>
-py::array_t<T> dispatch_array_increment(py::array_t<T> arr) {
+py::array_t<T> dispatch_array_increment(const py::array_t<T> &arr) {
     py::array_t<T> res(arr.shape(0));
     for (py::ssize_t i = 0; i < arr.shape(0); ++i) {
         res.mutable_at(i) = T(arr.at(i) + 1);
@@ -512,7 +512,7 @@ TEST_SUBMODULE(numpy_dtypes, m) {
         py::list res;
 #define TEST_DTYPE(T) res.append(py::make_tuple(py::dtype::of<T>().num(), py::dtype::num_of<T>()));
         TEST_DTYPE(bool)
-        TEST_DTYPE(char)
+        TEST_DTYPE(signed char)
         TEST_DTYPE(unsigned char)
         TEST_DTYPE(short)
         TEST_DTYPE(unsigned short)
@@ -545,7 +545,7 @@ TEST_SUBMODULE(numpy_dtypes, m) {
     res.append(py::make_tuple(py::dtype(py::detail::npy_api::NT).normalized_num(),                \
                               py::dtype::num_of<T>()));
         TEST_DTYPE(NPY_BOOL_, bool)
-        TEST_DTYPE(NPY_BYTE_, char);
+        TEST_DTYPE(NPY_BYTE_, signed char);
         TEST_DTYPE(NPY_UBYTE_, unsigned char);
         TEST_DTYPE(NPY_SHORT_, short);
         TEST_DTYPE(NPY_USHORT_, unsigned short);

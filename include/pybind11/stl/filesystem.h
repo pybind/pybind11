@@ -12,22 +12,12 @@
 
 #include <string>
 
-#ifdef __has_include
-#    if defined(PYBIND11_CPP17)
-#        if __has_include(<filesystem>)
-#            include <filesystem>
-#            define PYBIND11_HAS_FILESYSTEM 1
-#        elif __has_include(<experimental/filesystem>)
-#            include <experimental/filesystem>
-#            define PYBIND11_HAS_EXPERIMENTAL_FILESYSTEM 1
-#        endif
-#    endif
-#endif
-
-#if !defined(PYBIND11_HAS_FILESYSTEM) && !defined(PYBIND11_HAS_EXPERIMENTAL_FILESYSTEM)           \
-    && !defined(PYBIND11_HAS_FILESYSTEM_IS_OPTIONAL)
-#    error                                                                                        \
-        "Neither #include <filesystem> nor #include <experimental/filesystem is available. (Use -DPYBIND11_HAS_FILESYSTEM_IS_OPTIONAL to ignore.)"
+#if defined(PYBIND11_HAS_FILESYSTEM)
+#    include <filesystem>
+#elif defined(PYBIND11_HAS_EXPERIMENTAL_FILESYSTEM)
+#    include <experimental/filesystem>
+#else
+#    error "Neither #include <filesystem> nor #include <experimental/filesystem> is available."
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
@@ -106,9 +96,7 @@ public:
         return true;
     }
 
-    PYBIND11_TYPE_CASTER(T, const_name("os.PathLike"));
-    static constexpr auto arg_name = const_name("Union[os.PathLike, str, bytes]");
-    static constexpr auto return_name = const_name("Path");
+    PYBIND11_TYPE_CASTER(T, io_name("os.PathLike | str | bytes", "pathlib.Path"));
 };
 
 #endif // PYBIND11_HAS_FILESYSTEM || defined(PYBIND11_HAS_EXPERIMENTAL_FILESYSTEM)

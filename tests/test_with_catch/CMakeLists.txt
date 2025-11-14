@@ -1,0 +1,62 @@
+possibly_uninitialized(PYTHON_MODULE_EXTENSION Python_INTERPRETER_ID)
+
+if("${PYTHON_MODULE_EXTENSION}" MATCHES "pypy"
+   OR "${Python_INTERPRETER_ID}" STREQUAL "PyPy"
+   OR "${PYTHON_MODULE_EXTENSION}" MATCHES "graalpy")
+  message(STATUS "Skipping embed test on PyPy or GraalPy")
+  add_custom_target(cpptest) # Dummy target on PyPy or GraalPy. Embedding is not supported.
+  set(_suppress_unused_variable_warning "${DOWNLOAD_CATCH}")
+  return()
+endif()
+
+if(TARGET Python::Module AND NOT TARGET Python::Python)
+  message(STATUS "Skipping embed test since no embed libs found")
+  add_custom_target(cpptest) # Dummy target since embedding is not supported.
+  set(_suppress_unused_variable_warning "${DOWNLOAD_CATCH}")
+  return()
+endif()
+
+find_package(Catch 2.13.10)
+
+if(CATCH_FOUND)
+  message(STATUS "Building interpreter tests using Catch v${CATCH_VERSION}")
+else()
+  message(STATUS "Catch not detected. Interpreter tests will be skipped. Install Catch headers"
+                 " manually or use `cmake -DDOWNLOAD_CATCH=ON` to fetch them automatically.")
+  return()
+endif()
+
+find_package(Threads REQUIRED)
+
+if(PYBIND11_TEST_SMART_HOLDER)
+  add_compile_definitions(
+    -DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE)
+endif()
+
+add_executable(test_with_catch catch.cpp test_args_convert_vector.cpp test_argument_vector.cpp
+                               test_interpreter.cpp test_subinterpreter.cpp)
+pybind11_enable_warnings(test_with_catch)
+
+target_link_libraries(test_with_catch PRIVATE pybind11::embed Catch2::Catch2 Threads::Threads)
+
+if(NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
+  file(COPY test_interpreter.py test_trampoline.py DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+endif()
+
+add_custom_target(
+  cpptest
+  COMMAND "$<TARGET_FILE:test_with_catch>"
+  DEPENDS test_with_catch
+  WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
+
+pybind11_add_module(external_module THIN_LTO external_module.cpp)
+set_target_properties(external_module PROPERTIES LIBRARY_OUTPUT_DIRECTORY
+                                                 "${CMAKE_CURRENT_BINARY_DIR}")
+foreach(config ${CMAKE_CONFIGURATION_TYPES})
+  string(TOUPPER ${config} config)
+  set_target_properties(external_module PROPERTIES LIBRARY_OUTPUT_DIRECTORY_${config}
+                                                   "${CMAKE_CURRENT_BINARY_DIR}")
+endforeach()
+add_dependencies(cpptest external_module)
+
+add_dependencies(check cpptest)

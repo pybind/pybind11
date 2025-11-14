@@ -88,7 +88,7 @@ buffer objects (e.g. a NumPy matrix).
             py::buffer_info info = b.request();
 
             /* Some basic validation checks ... */
-            if (info.format != py::format_descriptor<Scalar>::format())
+            if (!info.item_type_is_equivalent_to<Scalar>())
                 throw std::runtime_error("Incompatible format: expected a double array!");
 
             if (info.ndim != 2)
@@ -217,7 +217,7 @@ expects the type followed by field names:
     };
 
     // ...
-    PYBIND11_MODULE(test, m) {
+    PYBIND11_MODULE(test, m, py::mod_gil_not_used()) {
         // ...
 
         PYBIND11_NUMPY_DTYPE(A, x, y);
@@ -231,6 +231,46 @@ arrays and ``std::array`` are supported. While there is a static assertion to
 prevent many types of unsupported structures, it is still the user's
 responsibility to use only "plain" structures that can be safely manipulated as
 raw memory without violating invariants.
+
+Scalar types
+============
+
+In some cases we may want to accept or return NumPy scalar values such as
+``np.float32`` or ``np.float64``. We hope to be able to handle single-precision
+and double-precision on the C-side. However, both are bound to Python's
+double-precision builtin float by default, so they cannot be processed separately.
+We used the ``py::buffer`` trick to implement the previous approach, which
+will cause the readability of the code to drop significantly.
+
+Luckily, there's a helper type for this occasion - ``py::numpy_scalar``:
+
+.. code-block:: cpp
+
+    m.def("add", [](py::numpy_scalar<float> a, py::numpy_scalar<float> b) {
+        return py::make_scalar(a + b);
+    });
+    m.def("add", [](py::numpy_scalar<double> a, py::numpy_scalar<double> b) {
+        return py::make_scalar(a + b);
+    });
+
+This type is trivially convertible to and from the type it wraps; currently
+supported scalar types are NumPy arithmetic types: ``bool_``, ``int8``,
+``int16``, ``int32``, ``int64``, ``uint8``, ``uint16``, ``uint32``,
+``uint64``, ``float32``, ``float64``, ``complex64``, ``complex128``, all of
+them mapping to respective C++ counterparts.
+
+.. note::
+
+    ``py::numpy_scalar<T>`` strictly matches NumPy scalar types. For example,
+    ``py::numpy_scalar<int64_t>`` will accept ``np.int64(123)``,
+    but **not** a regular Python ``int`` like ``123``.
+
+.. note::
+
+    Native C types are mapped to NumPy types in a platform specific way: for
+    instance, ``char`` may be mapped to either ``np.int8`` or ``np.uint8``
+    and ``long`` may use 4 or 8 bytes depending on the platform. Unless you
+    clearly understand the difference and your needs, please use ``<cstdint>``.
 
 Vectorizing functions
 =====================
@@ -311,7 +351,7 @@ simply using ``vectorize``).
         return result;
     }
 
-    PYBIND11_MODULE(test, m) {
+    PYBIND11_MODULE(test, m, py::mod_gil_not_used()) {
         m.def("add_arrays", &add_arrays, "Add two NumPy arrays");
     }
 
