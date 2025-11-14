@@ -2176,6 +2176,7 @@ class simple_collector {
     // Disable warnings about useless comparisons when N == 0.
     PYBIND11_WARNING_PUSH
     PYBIND11_WARNING_DISABLE_GCC("-Wtype-limits")
+    PYBIND11_WARNING_DISABLE_INTEL(186)
 public:
     template <typename... Ts>
     explicit simple_collector(Ts &&...values) {
