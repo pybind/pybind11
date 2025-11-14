@@ -2219,7 +2219,11 @@ public:
 
     /// Call a Python function and pass the collected arguments
     object call(PyObject *ptr) const {
+#if PY_VERSION_HEX >= 0x03090000
         PyObject *result = PyObject_Vectorcall(ptr, m_args.data(), N, nullptr);
+#else
+        PyObject *result = PyObject_CallObject(ptr, args().ptr());
+#endif
         if (!result) {
             throw error_already_set();
         }
