@@ -34,11 +34,12 @@ def test_function_signatures(doc):
     )
     assert doc(m.args_function) == "args_function(*args) -> tuple"
     assert (
-        doc(m.args_kwargs_function) == "args_kwargs_function(*args, **kwargs) -> tuple"
+        doc(m.args_kwargs_function)
+        == "args_kwargs_function(*args, **kwargs) -> tuple[tuple, dict[str, typing.Any]]"
     )
     assert (
         doc(m.args_kwargs_subclass_function)
-        == "args_kwargs_subclass_function(*args: str, **kwargs: str) -> tuple"
+        == "args_kwargs_subclass_function(*args: str, **kwargs: str) -> tuple[tuple[str, ...], dict[str, str]]"
     )
     assert (
         doc(m.KWClass.foo0)
@@ -138,7 +139,7 @@ def test_mixed_args_and_kwargs(msg):
         msg(excinfo.value)
         == """
         mixed_plus_args(): incompatible function arguments. The following argument types are supported:
-            1. (arg0: typing.SupportsInt | typing.SupportsIndex, arg1: typing.SupportsFloat | typing.SupportsIndex, *args) -> tuple
+            1. (arg0: typing.SupportsInt | typing.SupportsIndex, arg1: typing.SupportsFloat | typing.SupportsIndex, *args) -> tuple[int, float, tuple]
 
         Invoked with: 1
     """
@@ -149,7 +150,7 @@ def test_mixed_args_and_kwargs(msg):
         msg(excinfo.value)
         == """
         mixed_plus_args(): incompatible function arguments. The following argument types are supported:
-            1. (arg0: typing.SupportsInt | typing.SupportsIndex, arg1: typing.SupportsFloat | typing.SupportsIndex, *args) -> tuple
+            1. (arg0: typing.SupportsInt | typing.SupportsIndex, arg1: typing.SupportsFloat | typing.SupportsIndex, *args) -> tuple[int, float, tuple]
 
         Invoked with:
     """
@@ -183,7 +184,7 @@ def test_mixed_args_and_kwargs(msg):
         msg(excinfo.value)
         == """
         mixed_plus_args_kwargs_defaults(): incompatible function arguments. The following argument types are supported:
-            1. (i: typing.SupportsInt | typing.SupportsIndex = 1, j: typing.SupportsFloat | typing.SupportsIndex = 3.14159, *args, **kwargs) -> tuple
+            1. (i: typing.SupportsInt | typing.SupportsIndex = 1, j: typing.SupportsFloat | typing.SupportsIndex = 3.14159, *args, **kwargs) -> tuple[int, float, tuple, dict[str, typing.Any]]
 
         Invoked with: 1; kwargs: i=1
     """
@@ -194,7 +195,7 @@ def test_mixed_args_and_kwargs(msg):
         msg(excinfo.value)
         == """
         mixed_plus_args_kwargs_defaults(): incompatible function arguments. The following argument types are supported:
-            1. (i: typing.SupportsInt | typing.SupportsIndex = 1, j: typing.SupportsFloat | typing.SupportsIndex = 3.14159, *args, **kwargs) -> tuple
+            1. (i: typing.SupportsInt | typing.SupportsIndex = 1, j: typing.SupportsFloat | typing.SupportsIndex = 3.14159, *args, **kwargs) -> tuple[int, float, tuple, dict[str, typing.Any]]
 
         Invoked with: 1, 2; kwargs: j=1
     """
@@ -211,7 +212,7 @@ def test_mixed_args_and_kwargs(msg):
         msg(excinfo.value)
         == """
         args_kwonly(): incompatible function arguments. The following argument types are supported:
-            1. (i: typing.SupportsInt | typing.SupportsIndex, j: typing.SupportsFloat | typing.SupportsIndex, *args, z: typing.SupportsInt | typing.SupportsIndex) -> tuple
+            1. (i: typing.SupportsInt | typing.SupportsIndex, j: typing.SupportsFloat | typing.SupportsIndex, *args, z: typing.SupportsInt | typing.SupportsIndex) -> tuple[int, float, tuple, int]
 
         Invoked with: 2, 2.5, 22
     """
@@ -233,12 +234,12 @@ def test_mixed_args_and_kwargs(msg):
     )
     assert (
         m.args_kwonly_kwargs.__doc__
-        == "args_kwonly_kwargs(i: typing.SupportsInt | typing.SupportsIndex, j: typing.SupportsFloat | typing.SupportsIndex, *args, z: typing.SupportsInt | typing.SupportsIndex, **kwargs) -> tuple\n"
+        == "args_kwonly_kwargs(i: typing.SupportsInt | typing.SupportsIndex, j: typing.SupportsFloat | typing.SupportsIndex, *args, z: typing.SupportsInt | typing.SupportsIndex, **kwargs) -> tuple[int, float, tuple, int, dict[str, typing.Any]]\n"
     )
 
     assert (
         m.args_kwonly_kwargs_defaults.__doc__
-        == "args_kwonly_kwargs_defaults(i: typing.SupportsInt | typing.SupportsIndex = 1, j: typing.SupportsFloat | typing.SupportsIndex = 3.14159, *args, z: typing.SupportsInt | typing.SupportsIndex = 42, **kwargs) -> tuple\n"
+        == "args_kwonly_kwargs_defaults(i: typing.SupportsInt | typing.SupportsIndex = 1, j: typing.SupportsFloat | typing.SupportsIndex = 3.14159, *args, z: typing.SupportsInt | typing.SupportsIndex = 42, **kwargs) -> tuple[int, float, tuple, int, dict[str, typing.Any]]\n"
     )
     assert m.args_kwonly_kwargs_defaults() == (1, 3.14159, (), 42, {})
     assert m.args_kwonly_kwargs_defaults(2) == (2, 3.14159, (), 42, {})
@@ -344,7 +345,7 @@ def test_positional_only_args():
     # Mix it with args and kwargs:
     assert (
         m.args_kwonly_full_monty.__doc__
-        == "args_kwonly_full_monty(arg0: typing.SupportsInt | typing.SupportsIndex = 1, arg1: typing.SupportsInt | typing.SupportsIndex = 2, /, j: typing.SupportsFloat | typing.SupportsIndex = 3.14159, *args, z: typing.SupportsInt | typing.SupportsIndex = 42, **kwargs) -> tuple\n"
+        == "args_kwonly_full_monty(arg0: typing.SupportsInt | typing.SupportsIndex = 1, arg1: typing.SupportsInt | typing.SupportsIndex = 2, /, j: typing.SupportsFloat | typing.SupportsIndex = 3.14159, *args, z: typing.SupportsInt | typing.SupportsIndex = 42, **kwargs) -> tuple[int, int, float, tuple, int, dict[str, typing.Any]]\n"
     )
     assert m.args_kwonly_full_monty() == (1, 2, 3.14159, (), 42, {})
     assert m.args_kwonly_full_monty(8) == (8, 2, 3.14159, (), 42, {})
@@ -394,23 +395,23 @@ def test_positional_only_args():
 def test_signatures():
     assert (
         m.kw_only_all.__doc__
-        == "kw_only_all(*, i: typing.SupportsInt | typing.SupportsIndex, j: typing.SupportsInt | typing.SupportsIndex) -> tuple\n"
+        == "kw_only_all(*, i: typing.SupportsInt | typing.SupportsIndex, j: typing.SupportsInt | typing.SupportsIndex) -> tuple[int, int]\n"
     )
     assert (
         m.kw_only_mixed.__doc__
-        == "kw_only_mixed(i: typing.SupportsInt | typing.SupportsIndex, *, j: typing.SupportsInt | typing.SupportsIndex) -> tuple\n"
+        == "kw_only_mixed(i: typing.SupportsInt | typing.SupportsIndex, *, j: typing.SupportsInt | typing.SupportsIndex) -> tuple[int, int]\n"
     )
     assert (
         m.pos_only_all.__doc__
-        == "pos_only_all(i: typing.SupportsInt | typing.SupportsIndex, j: typing.SupportsInt | typing.SupportsIndex, /) -> tuple\n"
+        == "pos_only_all(i: typing.SupportsInt | typing.SupportsIndex, j: typing.SupportsInt | typing.SupportsIndex, /) -> tuple[int, int]\n"
     )
     assert (
         m.pos_only_mix.__doc__
-        == "pos_only_mix(i: typing.SupportsInt | typing.SupportsIndex, /, j: typing.SupportsInt | typing.SupportsIndex) -> tuple\n"
+        == "pos_only_mix(i: typing.SupportsInt | typing.SupportsIndex, /, j: typing.SupportsInt | typing.SupportsIndex) -> tuple[int, int]\n"
     )
     assert (
         m.pos_kw_only_mix.__doc__
-        == "pos_kw_only_mix(i: typing.SupportsInt | typing.SupportsIndex, /, j: typing.SupportsInt | typing.SupportsIndex, *, k: typing.SupportsInt | typing.SupportsIndex) -> tuple\n"
+        == "pos_kw_only_mix(i: typing.SupportsInt | typing.SupportsIndex, /, j: typing.SupportsInt | typing.SupportsIndex, *, k: typing.SupportsInt | typing.SupportsIndex) -> tuple[int, int, int]\n"
     )
 
 
