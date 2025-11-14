@@ -347,9 +347,12 @@ public:
         return PyLong_FromUnsignedLongLong((unsigned long long) src);
     }
 
-    PYBIND11_TYPE_CASTER(T,
-                         io_name<std::is_integral<T>::value>(
-                             "typing.SupportsInt", "int", "typing.SupportsFloat", "float"));
+    PYBIND11_TYPE_CASTER(
+        T,
+        io_name<std::is_integral<T>::value>("typing.SupportsInt | typing.SupportsIndex",
+                                            "int",
+                                            "typing.SupportsFloat | typing.SupportsIndex",
+                                            "float"));
 };
 
 template <typename T>

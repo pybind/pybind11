@@ -20,11 +20,11 @@ def test_docstring_options():
 
     # options.enable_function_signatures()
     assert m.test_function3.__doc__.startswith(
-        "test_function3(a: typing.SupportsInt, b: typing.SupportsInt) -> None"
+        "test_function3(a: typing.SupportsInt | typing.SupportsIndex, b: typing.SupportsInt | typing.SupportsIndex) -> None"
     )
 
     assert m.test_function4.__doc__.startswith(
-        "test_function4(a: typing.SupportsInt, b: typing.SupportsInt) -> None"
+        "test_function4(a: typing.SupportsInt | typing.SupportsIndex, b: typing.SupportsInt | typing.SupportsIndex) -> None"
     )
     assert m.test_function4.__doc__.endswith("A custom docstring\n")
 
@@ -37,7 +37,7 @@ def test_docstring_options():
 
     # RAII destructor
     assert m.test_function7.__doc__.startswith(
-        "test_function7(a: typing.SupportsInt, b: typing.SupportsInt) -> None"
+        "test_function7(a: typing.SupportsInt | typing.SupportsIndex, b: typing.SupportsInt | typing.SupportsIndex) -> None"
     )
     assert m.test_function7.__doc__.endswith("A custom docstring\n")
 
