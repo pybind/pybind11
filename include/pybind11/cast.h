@@ -2203,6 +2203,11 @@ public:
         }
     }
 
+    simple_collector(const simple_collector &) = delete;
+    simple_collector(simple_collector &&) noexcept = delete;
+    simple_collector &operator=(const simple_collector &) = delete;
+    simple_collector &operator=(simple_collector &&) noexcept = delete;
+
     tuple args() const {
         tuple result(N);
         for (size_t i = 0; i < N; ++i) {
