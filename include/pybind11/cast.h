@@ -2176,7 +2176,7 @@ class simple_collector {
 public:
     template <typename... Ts>
     explicit simple_collector(Ts &&...values) {
-        static_assert(sizeof...(Ts) == N);
+        static_assert(sizeof...(Ts) == N, "");
         size_t i = 0;
         using expander = int[];
         (void) expander{
@@ -2204,9 +2204,9 @@ public:
     }
 
     simple_collector(const simple_collector &) = delete;
-    simple_collector(simple_collector &&) noexcept = delete;
+    simple_collector(simple_collector &&) noexcept = default;
     simple_collector &operator=(const simple_collector &) = delete;
-    simple_collector &operator=(simple_collector &&) noexcept = delete;
+    simple_collector &operator=(simple_collector &&) noexcept = default;
 
     tuple args() const {
         tuple result(N);
@@ -2222,7 +2222,8 @@ public:
 #if PY_VERSION_HEX >= 0x03090000
         PyObject *result = PyObject_Vectorcall(ptr, m_args.data(), N, nullptr);
 #else
-        PyObject *result = PyObject_CallObject(ptr, args().ptr());
+        // Use the old name for 3.8.
+        PyObject *result = _PyObject_Vectorcall(ptr, m_args.data(), N, nullptr);
 #endif
         if (!result) {
             throw error_already_set();
