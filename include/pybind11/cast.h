@@ -2171,12 +2171,12 @@ private:
 
 /// Helper class which collects only positional arguments for a Python function call.
 /// A fancier version below can collect any argument, but this one is optimal for simple calls.
+// Disable warnings about useless comparisons when N == 0.
+PYBIND11_WARNING_PUSH
+PYBIND11_WARNING_DISABLE_GCC("-Wtype-limits")
+PYBIND11_WARNING_DISABLE_INTEL(186)
 template <size_t N, return_value_policy policy>
 class simple_collector {
-    // Disable warnings about useless comparisons when N == 0.
-    PYBIND11_WARNING_PUSH
-    PYBIND11_WARNING_DISABLE_GCC("-Wtype-limits")
-    PYBIND11_WARNING_DISABLE_INTEL(186)
 public:
     template <typename... Ts>
     explicit simple_collector(Ts &&...values) {
