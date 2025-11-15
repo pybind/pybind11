@@ -2430,6 +2430,12 @@ public:
                                 const Extra &...extra) {
         static_assert(0 == detail::constexpr_sum(std::is_base_of<arg, Extra>::value...),
                       "Argument annotations are not allowed for properties");
+        static_assert(0 == detail::constexpr_sum(detail::is_call_guard<Extra>::value...),
+                      "def_property family does not currently support call_guard. Use a "
+                      "py::cpp_function instead.");
+        static_assert(0 == detail::constexpr_sum(detail::is_keep_alive<Extra>::value...),
+                      "def_property family does not currently support keep_alive. Use a "
+                      "py::cpp_function instead.");
         auto rec_fget = get_function_record(fget), rec_fset = get_function_record(fset);
         auto *rec_active = rec_fget;
         if (rec_fget) {
