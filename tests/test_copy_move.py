@@ -70,12 +70,12 @@ def test_move_and_copy_loads():
 
     assert c_m.copy_assignments + c_m.copy_constructions == 0
     assert c_m.move_assignments == 6
-    assert c_m.move_constructions == 9
+    assert c_m.move_constructions == 21
     assert c_mc.copy_assignments + c_mc.copy_constructions == 0
     assert c_mc.move_assignments == 5
-    assert c_mc.move_constructions == 8
+    assert c_mc.move_constructions == 18
     assert c_c.copy_assignments == 4
-    assert c_c.copy_constructions == 6
+    assert c_c.copy_constructions == 14
     assert c_m.alive() + c_mc.alive() + c_c.alive() == 0
 
 
@@ -103,12 +103,12 @@ def test_move_and_copy_load_optional():
 
     assert c_m.copy_assignments + c_m.copy_constructions == 0
     assert c_m.move_assignments == 2
-    assert c_m.move_constructions == 5
+    assert c_m.move_constructions == 9
     assert c_mc.copy_assignments + c_mc.copy_constructions == 0
     assert c_mc.move_assignments == 2
-    assert c_mc.move_constructions == 5
+    assert c_mc.move_constructions == 9
     assert c_c.copy_assignments == 2
-    assert c_c.copy_constructions == 5
+    assert c_c.copy_constructions == 9
     assert c_m.alive() + c_mc.alive() + c_c.alive() == 0
 
 

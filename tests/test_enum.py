@@ -296,9 +296,19 @@ def test_generated_dunder_methods_pos_only():
         ]:
             method = getattr(enum_type, binary_op, None)
             if method is not None:
+                # 1) The docs must start with the name of the op.
                 assert (
                     re.match(
-                        rf"^{binary_op}\(self: [\w\.]+, other: [\w\.]+, /\)",
+                        rf"^{binary_op}\(",
+                        method.__doc__,
+                    )
+                    is not None
+                )
+                # 2) The docs must contain the op's signature. This is a separate check
+                # and not anchored at the start because the op may be overloaded.
+                assert (
+                    re.search(
+                        rf"{binary_op}\(self: [\w\.]+, other: [\w\.]+, /\)",
                         method.__doc__,
                     )
                     is not None

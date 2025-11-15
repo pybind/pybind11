@@ -188,6 +188,7 @@ set(PYBIND11_HEADERS
     include/pybind11/detail/dynamic_raw_ptr_cast_if_possible.h
     include/pybind11/detail/exception_translation.h
     include/pybind11/detail/function_record_pyobject.h
+    include/pybind11/detail/function_ref.h
     include/pybind11/detail/holder_caster_foreign_helpers.h
     include/pybind11/detail/init.h
     include/pybind11/detail/internals.h
