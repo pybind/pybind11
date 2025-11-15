@@ -12,6 +12,7 @@
 #include "detail/class.h"
 #include "detail/dynamic_raw_ptr_cast_if_possible.h"
 #include "detail/exception_translation.h"
+#include "detail/foreign.h"
 #include "detail/function_record_pyobject.h"
 #include "detail/init.h"
 #include "detail/native_enum_data.h"
@@ -158,11 +159,11 @@ inline std::string generate_function_signature(const char *type_caster_name_fiel
             if (!t) {
                 pybind11_fail("Internal error while parsing type signature (1)");
             }
-            if (auto *tinfo = detail::get_type_info(*t)) {
-                handle th((PyObject *) tinfo->type);
-                signature += th.attr("__module__").cast<std::string>() + "."
-                             + th.attr("__qualname__").cast<std::string>();
-            } else if (auto th = detail::global_internals_native_enum_type_map_get_item(*t)) {
+            handle th = detail::get_type_handle(*t, false, true);
+            if (!th) {
+                th = detail::global_internals_native_enum_type_map_get_item(*t);
+            }
+            if (th) {
                 signature += th.attr("__module__").cast<std::string>() + "."
                              + th.attr("__qualname__").cast<std::string>();
             } else if (func_rec->is_new_style_constructor && arg_index == 0) {
@@ -242,12 +243,6 @@ inline std::string generate_type_signature() {
     return generate_function_signature(
         caster_name_field.text, &func_rec, descr_types.data(), type_index, arg_index);
 }
-
-#if defined(_MSC_VER)
-#    define PYBIND11_COMPAT_STRDUP _strdup
-#else
-#    define PYBIND11_COMPAT_STRDUP strdup
-#endif
 
 #define PYBIND11_READABLE_FUNCTION_SIGNATURE_EXPR                                                 \
     detail::const_name("(") + cast_in::arg_names + detail::const_name(") -> ") + cast_out::name
@@ -1706,6 +1701,11 @@ protected:
 #endif
             internals.registered_types_py[(PyTypeObject *) m_ptr] = {tinfo};
             PYBIND11_WARNING_POP
+
+            auto &interop_internals = get_interop_internals();
+            if (interop_internals.export_all) {
+                interop_internals.export_for_interop(rec.type, (PyTypeObject *) m_ptr, tinfo);
+            }
         });
 
         if (rec.bases.size() > 1 || rec.multiple_inheritance) {
@@ -2189,8 +2189,10 @@ public:
 
         generic_type::initialize(record);
 
-        if (has_alias) {
-            with_internals([&](internals &internals) {
+        with_internals([&](internals &internals) {
+            get_interop_internals().copy_move_ctors.emplace(
+                *record.type, detail::type_caster_base<type_>::copy_and_move_ctors());
+            if (has_alias) {
                 auto &local_internals = get_local_internals();
                 if (record.module_local) {
                     local_internals.registered_types_cpp[&typeid(type_alias)]
@@ -2203,8 +2205,8 @@ public:
                     internals.registered_types_cpp_fast[&typeid(type_alias)] = val;
 #endif
                 }
-            });
-        }
+            }
+        });
         def("_pybind11_conduit_v1_", cpp_conduit_method);
     }
 
@@ -2992,12 +2994,19 @@ PYBIND11_NOINLINE void keep_alive_impl(handle nurse, handle patient) {
         return; /* Nothing to keep alive or nothing to be kept alive by */
     }
 
-    auto tinfo = all_type_info(Py_TYPE(nurse.ptr()));
+    PyTypeObject *type = Py_TYPE(nurse.ptr());
+    auto tinfo = all_type_info(type);
     if (!tinfo.empty()) {
         /* It's a pybind-registered type, so we can store the patient in the
          * internal list. */
         add_patient(nurse.ptr(), patient.ptr());
     } else {
+        auto *binding = pymb_get_binding((PyObject *) type);
+        if (binding && binding->framework->keep_alive(nurse.ptr(), patient.ptr(), nullptr) != 0) {
+            // It's a foreign-registered type and the foreign framework was
+            // able to handle the keep_alive.
+            return;
+        }
         /* Fall back to clever approach based on weak references taken from
          * Boost.Python. This is not used for pybind-registered types because
          * the objects can be destroyed out-of-order in a GC pass. */
