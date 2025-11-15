@@ -501,9 +501,15 @@ template <typename Get,
           typename NewInstance,
           typename ArgState>
 struct pickle_factory<Get, Set, RetState(Self), NewInstance(ArgState)> {
-    static_assert(std::is_same<intrinsic_t<RetState>, intrinsic_t<ArgState>>::value,
-                  "The type returned by `__getstate__` must be the same "
-                  "as the argument accepted by `__setstate__`");
+    using Ret = intrinsic_t<RetState>;
+    using Arg = intrinsic_t<ArgState>;
+
+    // Subclasses are now allowed for support between type hint and generic versions of types
+    // (e.g.) typing::List <--> list
+    static_assert(std::is_same<Ret, Arg>::value || std::is_base_of<Ret, Arg>::value
+                      || std::is_base_of<Arg, Ret>::value,
+                  "The type returned by `__getstate__` must be the same or subclass of the "
+                  "argument accepted by `__setstate__`");
 
     remove_reference_t<Get> get;
     remove_reference_t<Set> set;

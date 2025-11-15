@@ -163,13 +163,13 @@ def test_qualname(doc):
     assert (
         doc(m.NestBase.Nested.fn)
         == """
-        fn(self: m.class_.NestBase.Nested, arg0: typing.SupportsInt, arg1: m.class_.NestBase, arg2: m.class_.NestBase.Nested) -> None
+        fn(self: m.class_.NestBase.Nested, arg0: typing.SupportsInt | typing.SupportsIndex, arg1: m.class_.NestBase, arg2: m.class_.NestBase.Nested) -> None
     """
     )
     assert (
         doc(m.NestBase.Nested.fa)
         == """
-        fa(self: m.class_.NestBase.Nested, a: typing.SupportsInt, b: m.class_.NestBase, c: m.class_.NestBase.Nested) -> None
+        fa(self: m.class_.NestBase.Nested, a: typing.SupportsInt | typing.SupportsIndex, b: m.class_.NestBase, c: m.class_.NestBase.Nested) -> None
     """
     )
     assert m.NestBase.__module__ == "pybind11_tests.class_"
