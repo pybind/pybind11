@@ -528,7 +528,7 @@ TEST_SUBMODULE(stl, m) {
     m.def("load_variant", [](const variant<int, std::string, double, std::nullptr_t> &v) {
         return py::detail::visit_helper<variant>::call(visitor(), v);
     });
-    m.def("load_variant_2pass", [](variant<double, int> v) {
+    m.def("load_variant_2pass", [](variant<int, double> v) {
         return py::detail::visit_helper<variant>::call(visitor(), v);
     });
     m.def("cast_variant", []() {

@@ -51,7 +51,9 @@ public:
         if (!src) {
             return false;
         }
-        if (!convert && !PyComplex_Check(src.ptr())) {
+        if (!convert
+            && !(PyComplex_Check(src.ptr()) || PyFloat_Check(src.ptr())
+                 || PYBIND11_LONG_CHECK(src.ptr()))) {
             return false;
         }
         handle src_or_index = src;

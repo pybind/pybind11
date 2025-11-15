@@ -315,6 +315,7 @@ def test_int_convert(doc):
     # Before Python 3.8, `PyLong_AsLong` does not pick up on `obj.__index__`,
     # but pybind11 "backports" this behavior.
     assert convert(Index()) == 42
+    assert isinstance(convert(Index()), int)
     assert noconvert(Index()) == 42
     assert convert(IntAndIndex()) == 0  # Fishy; `int(DoubleThought)` == 42
     assert noconvert(IntAndIndex()) == 0
@@ -322,6 +323,50 @@ def test_int_convert(doc):
     requires_conversion(RaisingTypeErrorOnIndex())
     assert convert(RaisingValueErrorOnIndex()) == 42
     requires_conversion(RaisingValueErrorOnIndex())
+
+    class IndexReturnsFloat:
+        def __index__(self):
+            return 3.14  # noqa: PLE0305  Wrong: should return int
+
+    class IntReturnsFloat:
+        def __int__(self):
+            return 3.14  # Wrong: should return int
+
+    class IndexFloatIntInt:
+        def __index__(self):
+            return 3.14  # noqa: PLE0305  Wrong: should return int
+
+        def __int__(self):
+            return 42  # Correct: returns int
+
+    class IndexIntIntFloat:
+        def __index__(self):
+            return 42  # Correct: returns int
+
+        def __int__(self):
+            return 3.14  # Wrong: should return int
+
+    class IndexFloatIntFloat:
+        def __index__(self):
+            return 3.14  # noqa: PLE0305  Wrong: should return int
+
+        def __int__(self):
+            return 2.71  # Wrong: should return int
+
+    cant_convert(IndexReturnsFloat())
+    requires_conversion(IndexReturnsFloat())
+
+    cant_convert(IntReturnsFloat())
+    requires_conversion(IntReturnsFloat())
+
+    assert convert(IndexFloatIntInt()) == 42  # convert: __index__ fails, uses __int__
+    requires_conversion(IndexFloatIntInt())  # noconvert: __index__ fails, no fallback
+
+    assert convert(IndexIntIntFloat()) == 42  # convert: __index__ succeeds
+    assert noconvert(IndexIntIntFloat()) == 42  # noconvert: __index__ succeeds
+
+    cant_convert(IndexFloatIntFloat())  # convert mode rejects (both fail)
+    requires_conversion(IndexFloatIntFloat())  # noconvert mode also rejects
 
 
 def test_float_convert(doc):
@@ -356,7 +401,7 @@ def test_float_convert(doc):
     assert pytest.approx(convert(Index())) == -7.0
     assert isinstance(convert(Float()), float)
     assert pytest.approx(convert(3)) == 3.0
-    requires_conversion(3)
+    assert pytest.approx(noconvert(3)) == 3.0
     cant_convert(Int())
 
 
@@ -505,6 +550,11 @@ def test_complex_cast(doc):
     assert m.complex_cast(Complex()) == "(5.0, 4.0)"
     assert m.complex_cast(2j) == "(0.0, 2.0)"
 
+    assert m.complex_cast_strict(1) == "(1.0, 0.0)"
+    assert m.complex_cast_strict(3.0) == "(3.0, 0.0)"
+    assert m.complex_cast_strict(complex(5, 4)) == "(5.0, 4.0)"
+    assert m.complex_cast_strict(2j) == "(0.0, 2.0)"
+
     convert, noconvert = m.complex_convert, m.complex_noconvert
 
     def requires_conversion(v):
@@ -529,12 +579,125 @@ def test_complex_cast(doc):
     assert convert(Index()) == 1
     assert isinstance(convert(Index()), complex)
 
-    requires_conversion(1)
-    requires_conversion(2.0)
+    assert noconvert(1) == 1.0
+    assert noconvert(2.0) == 2.0
     assert noconvert(1 + 5j) == 1.0 + 5.0j
     requires_conversion(Complex())
     requires_conversion(Float())
     requires_conversion(Index())
+
+
+def test_complex_index_handling():
+    """
+    Test __index__ handling in complex caster (added with PR #5879).
+
+    This test verifies that custom __index__ objects (not PyLong) work correctly
+    with complex conversion. The behavior should be consistent across CPython,
+    PyPy, and GraalPy.
+
+    - Custom __index__ objects work with convert (non-strict mode)
+    - Custom __index__ objects do NOT work with noconvert (strict mode)
+    - Regular int (PyLong) works with both convert and noconvert
+    """
+
+    class CustomIndex:
+        """Custom class with __index__ but not __int__ or __float__"""
+
+        def __index__(self) -> int:
+            return 42
+
+    class CustomIndexNegative:
+        """Custom class with negative __index__"""
+
+        def __index__(self) -> int:
+            return -17
+
+    convert, noconvert = m.complex_convert, m.complex_noconvert
+
+    # Test that regular int (PyLong) works
+    assert convert(5) == 5.0 + 0j
+    assert noconvert(5) == 5.0 + 0j
+
+    # Test that custom __index__ objects work with convert (non-strict mode)
+    # This exercises the PyPy-specific path in complex.h
+    assert convert(CustomIndex()) == 42.0 + 0j
+    assert convert(CustomIndexNegative()) == -17.0 + 0j
+
+    # With noconvert (strict mode), custom __index__ objects are NOT accepted
+    # Strict mode only accepts complex, float, or int (PyLong), not custom __index__ objects
+    def requires_conversion(v):
+        pytest.raises(TypeError, noconvert, v)
+
+    requires_conversion(CustomIndex())
+    requires_conversion(CustomIndexNegative())
+
+    # Verify the result is actually a complex
+    result = convert(CustomIndex())
+    assert isinstance(result, complex)
+    assert result.real == 42.0
+    assert result.imag == 0.0
+
+
+def test_overload_resolution_float_int():
+    """
+    Test overload resolution behavior when int can match float (added with PR #5879).
+
+    This test documents the breaking change in PR #5879: when a float overload is
+    registered before an int overload, passing a Python int will now match the float
+    overload (because int can be converted to float in strict mode per PEP 484).
+
+    Before PR #5879: int(42) would match int overload (if both existed)
+    After PR #5879: int(42) matches float overload (if registered first)
+
+    This is a breaking change because existing code that relied on int matching
+    int overloads may now match float overloads instead.
+    """
+    # Test 1: float overload registered first, int second
+    # When passing int(42), pybind11 tries overloads in order:
+    # 1. float overload - can int(42) be converted? Yes (with PR #5879 changes)
+    # 2. Match! Use float overload (int overload never checked)
+    result = m.overload_resolution_test(42)
+    assert result == "float: 42.000000", (
+        f"Expected int(42) to match float overload, got: {result}. "
+        "This documents the breaking change: int now matches float overloads."
+    )
+    assert m.overload_resolution_test(42.0) == "float: 42.000000"
+
+    # Test 2: With noconvert (strict mode) - this is the KEY breaking change
+    # Before PR #5879: int(42) would NOT match float overload with noconvert, would match int overload
+    # After PR #5879: int(42) DOES match float overload with noconvert (because int->float is now allowed)
+    result_strict = m.overload_resolution_strict(42)
+    assert result_strict == "float_strict: 42.000000", (
+        f"Expected int(42) to match float overload with noconvert, got: {result_strict}. "
+        "This is the key breaking change: int now matches float even in strict mode."
+    )
+    assert m.overload_resolution_strict(42.0) == "float_strict: 42.000000"
+
+    # Test 3: complex overload registered first, then float, then int
+    # When passing int(5), pybind11 tries overloads in order:
+    # 1. complex overload - can int(5) be converted? Yes (with PR #5879 changes)
+    # 2. Match! Use complex overload
+    assert m.overload_resolution_complex(5) == "complex: (5.000000, 0.000000)"
+    assert m.overload_resolution_complex(5.0) == "complex: (5.000000, 0.000000)"
+    assert (
+        m.overload_resolution_complex(complex(3, 4)) == "complex: (3.000000, 4.000000)"
+    )
+
+    # Verify that the overloads are registered in the expected order
+    # The docstring should show float overload before int overload
+    doc = m.overload_resolution_test.__doc__
+    assert doc is not None
+    # Check that float overload appears before int overload in docstring
+    # The docstring uses "typing.SupportsFloat" and "typing.SupportsInt"
+    float_pos = doc.find("SupportsFloat")
+    int_pos = doc.find("SupportsInt")
+    assert float_pos != -1, f"Could not find 'SupportsFloat' in docstring: {doc}"
+    assert int_pos != -1, f"Could not find 'SupportsInt' in docstring: {doc}"
+    assert float_pos < int_pos, (
+        f"Float overload should appear before int overload in docstring. "
+        f"Found 'SupportsFloat' at {float_pos}, 'SupportsInt' at {int_pos}. "
+        f"Docstring: {doc}"
+    )
 
 
 def test_bool_caster():

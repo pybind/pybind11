@@ -55,17 +55,7 @@ def test_noconvert_args(msg):
 
     assert m.floats_preferred(4) == 2.0
     assert m.floats_only(4.0) == 2.0
-    with pytest.raises(TypeError) as excinfo:
-        m.floats_only(4)
-    assert (
-        msg(excinfo.value)
-        == """
-        floats_only(): incompatible function arguments. The following argument types are supported:
-            1. (f: float) -> float
-
-        Invoked with: 4
-    """
-    )
+    assert m.floats_only(4) == 2.0
 
     assert m.ints_preferred(4) == 2
     assert m.ints_preferred(True) == 0
