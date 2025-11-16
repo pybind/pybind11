@@ -1101,27 +1101,27 @@ def test_generic(doc):
     assert doc(m.generic_T) == "generic_T[T]() -> None"
 
     assert (
-        doc(m.generic_bound_int) == "generic_bound_int[T: typing.SupportsInt]() -> None"
+        doc(m.generic_bound_int) == "generic_bound_int[T: typing.SupportsInt | typing.SupportsIndex]() -> None"
     )
 
     assert (
         doc(m.generic_constraints_int_str)
-        == "generic_constraints_int_str[T: (typing.SupportsInt, str)]() -> None"
+        == "generic_constraints_int_str[T: (typing.SupportsInt | typing.SupportsIndex, str)]() -> None"
     )
 
     assert (
         doc(m.generic_default_int)
-        == "generic_default_int[T = typing.SupportsInt]() -> None"
+        == "generic_default_int[T = typing.SupportsInt | typing.SupportsIndex]() -> None"
     )
 
     assert (
         doc(m.generic_bound_and_default_int)
-        == "generic_bound_and_default_int[T: typing.SupportsInt = typing.SupportsInt]() -> None"
+        == "generic_bound_and_default_int[T: typing.SupportsInt | typing.SupportsIndex = typing.SupportsInt | typing.SupportsIndex]() -> None"
     )
 
     assert (
         doc(m.generic_constraints_and_default)
-        == "generic_constraints_and_default[T: (list[typing.SupportsInt], str) = str]() -> None"
+        == "generic_constraints_and_default[T: (list[typing.SupportsInt | typing.SupportsIndex], str) = str]() -> None"
     )
 
 
@@ -1141,27 +1141,27 @@ def test_typevar(doc):
 
     assert (
         doc(m.typevar_bound_int)
-        == "typevar_bound_int[T: typing.SupportsInt](arg0: T) -> None"
+        == "typevar_bound_int[T: typing.SupportsInt | typing.SupportsIndex](arg0: T) -> None"
     )
 
     assert (
         doc(m.typevar_constraints_int_str)
-        == "typevar_constraints_int_str[T: (typing.SupportsInt, str)](arg0: T) -> None"
+        == "typevar_constraints_int_str[T: (typing.SupportsInt | typing.SupportsIndex, str)](arg0: T) -> None"
     )
 
     assert (
         doc(m.typevar_default_int)
-        == "typevar_default_int[T = typing.SupportsInt](arg0: T) -> None"
+        == "typevar_default_int[T = typing.SupportsInt | typing.SupportsIndex](arg0: T) -> None"
     )
 
     assert (
         doc(m.typevar_bound_and_default_int)
-        == "typevar_bound_and_default_int[T: typing.SupportsInt = typing.SupportsInt](arg0: T) -> None"
+        == "typevar_bound_and_default_int[T: typing.SupportsInt | typing.SupportsIndex = typing.SupportsInt | typing.SupportsIndex](arg0: T) -> None"
     )
 
     assert (
         doc(m.typevar_constraints_and_default)
-        == "typevar_constraints_and_default[T: (list[typing.SupportsInt], str) = str](arg0: T) -> None"
+        == "typevar_constraints_and_default[T: (list[typing.SupportsInt | typing.SupportsIndex], str) = str](arg0: T) -> None"
     )
 
 
