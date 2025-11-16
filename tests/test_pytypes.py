@@ -1101,7 +1101,8 @@ def test_generic(doc):
     assert doc(m.generic_T) == "generic_T[T]() -> None"
 
     assert (
-        doc(m.generic_bound_int) == "generic_bound_int[T: typing.SupportsInt | typing.SupportsIndex]() -> None"
+        doc(m.generic_bound_int)
+        == "generic_bound_int[T: typing.SupportsInt | typing.SupportsIndex]() -> None"
     )
 
     assert (
