@@ -1094,18 +1094,76 @@ def test_literal(doc):
 
 
 @pytest.mark.skipif(
+    not m.defined_PYBIND11_TEST_PTYPES_HAS_OPTIONAL,
+    reason="use of optional feature not available.",
+)
+def test_generic(doc):
+    assert doc(m.generic_T) == "generic_T[T]() -> None"
+
+    assert (
+        doc(m.generic_bound_int)
+        == "generic_bound_int[T: typing.SupportsInt | typing.SupportsIndex]() -> None"
+    )
+
+    assert (
+        doc(m.generic_constraints_int_str)
+        == "generic_constraints_int_str[T: (typing.SupportsInt | typing.SupportsIndex, str)]() -> None"
+    )
+
+    assert (
+        doc(m.generic_default_int)
+        == "generic_default_int[T = typing.SupportsInt | typing.SupportsIndex]() -> None"
+    )
+
+    assert (
+        doc(m.generic_bound_and_default_int)
+        == "generic_bound_and_default_int[T: typing.SupportsInt | typing.SupportsIndex = typing.SupportsInt | typing.SupportsIndex]() -> None"
+    )
+
+    assert (
+        doc(m.generic_constraints_and_default)
+        == "generic_constraints_and_default[T: (list[typing.SupportsInt | typing.SupportsIndex], str) = str]() -> None"
+    )
+
+
+@pytest.mark.skipif(
     not m.defined_PYBIND11_TYPING_H_HAS_STRING_LITERAL,
     reason="C++20 non-type template args feature not available.",
 )
 def test_typevar(doc):
     assert (
         doc(m.annotate_generic_containers)
-        == "annotate_generic_containers(arg0: list[T]) -> list[V]"
+        == "annotate_generic_containers[T, V](arg0: list[T]) -> list[V]"
     )
 
-    assert doc(m.annotate_listT_to_T) == "annotate_listT_to_T(arg0: list[T]) -> T"
+    assert doc(m.annotate_listT_to_T) == "annotate_listT_to_T[T](arg0: list[T]) -> T"
 
-    assert doc(m.annotate_object_to_T) == "annotate_object_to_T(arg0: object) -> T"
+    assert doc(m.annotate_object_to_T) == "annotate_object_to_T[T](arg0: object) -> T"
+
+    assert (
+        doc(m.typevar_bound_int)
+        == "typevar_bound_int[T: typing.SupportsInt | typing.SupportsIndex](arg0: T) -> None"
+    )
+
+    assert (
+        doc(m.typevar_constraints_int_str)
+        == "typevar_constraints_int_str[T: (typing.SupportsInt | typing.SupportsIndex, str)](arg0: T) -> None"
+    )
+
+    assert (
+        doc(m.typevar_default_int)
+        == "typevar_default_int[T = typing.SupportsInt | typing.SupportsIndex](arg0: T) -> None"
+    )
+
+    assert (
+        doc(m.typevar_bound_and_default_int)
+        == "typevar_bound_and_default_int[T: typing.SupportsInt | typing.SupportsIndex = typing.SupportsInt | typing.SupportsIndex](arg0: T) -> None"
+    )
+
+    assert (
+        doc(m.typevar_constraints_and_default)
+        == "typevar_constraints_and_default[T: (list[typing.SupportsInt | typing.SupportsIndex], str) = str](arg0: T) -> None"
+    )
 
 
 @pytest.mark.skipif(

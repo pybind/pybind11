@@ -101,6 +101,50 @@ inline std::string replace_newlines_and_squash(const char *text) {
     return result.substr(str_begin, str_range);
 }
 
+#if defined(PYBIND11_HAS_OPTIONAL)
+/* Generate the pep695 typevariable part of function signatures */
+inline std::string generate_typevariable_component(std::vector<detail::typevar_record> type_vars) {
+    std::string signature;
+
+    for (auto it = type_vars.begin(); it != type_vars.end(); ++it) {
+        const auto &type_var = *it;
+        signature += type_var.name;
+
+        if (type_var.bound != std::nullopt) {
+            signature += ": ";
+            signature += *type_var.bound;
+        }
+
+        auto constraints = type_var.constraints;
+        if (!constraints.empty()) {
+            signature += ": (";
+            for (size_t j = 0; j < constraints.size(); ++j) {
+                signature += constraints[j];
+                if (j != constraints.size() - 1) {
+                    signature += ", ";
+                }
+            }
+            signature += ")";
+        }
+
+        if (type_var.default_ != std::nullopt) {
+            signature += " = ";
+            signature += *type_var.default_;
+        }
+
+        if (std::next(it) != type_vars.end()) {
+            signature += ", ";
+        }
+    }
+
+    return "[" + signature + "]";
+}
+#else
+inline std::string generate_typevariable_component(std::vector<detail::typevar_record> &) {
+    return "";
+}
+#endif
+
 /* Generate a proper function signature */
 inline std::string generate_function_signature(const char *type_caster_name_field,
                                                detail::function_record *func_rec,
@@ -116,6 +160,10 @@ inline std::string generate_function_signature(const char *type_caster_name_fiel
     // The following characters have special meaning in the signature parsing. Literals
     // containing these are escaped with `!`.
     std::string special_chars("!@%{}-");
+
+    if (!func_rec->type_vars.empty()) {
+        signature += generate_typevariable_component(func_rec->type_vars);
+    }
     for (const auto *pc = type_caster_name_field; *pc != '\0'; ++pc) {
         const auto c = *pc;
         if (c == '{') {
