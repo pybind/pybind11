@@ -164,6 +164,7 @@ def test_map_string_double():
     keys = mm.keys()
     values = mm.values()
     items = mm.items()
+    assert keys & {"a", "c"} == {"a"}
     assert list(keys) == ["a", "b"]
     assert len(keys) == 2
     assert "a" in keys
