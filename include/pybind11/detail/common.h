@@ -209,9 +209,10 @@
 #    define PYBIND11_HAS_VARIANT 1
 #endif
 
-#if defined(PYBIND11_CPP17)                                                                       \
-    && ((defined(__has_include) && __has_include(<string_view>)) || defined(_MSC_VER))
-#    define PYBIND11_HAS_STRING_VIEW 1
+#if defined(PYBIND11_CPP17)
+#    if (defined(__has_include) && __has_include(<string_view>)) || defined(_MSC_VER)
+#        define PYBIND11_HAS_STRING_VIEW 1
+#    endif
 #endif
 
 #if (defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)) && !defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
