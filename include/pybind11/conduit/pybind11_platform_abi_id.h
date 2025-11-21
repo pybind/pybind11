@@ -71,6 +71,8 @@
 #        define PYBIND11_BUILD_ABI                                                                \
             "_libstdcpp_gxx_abi_1xxx_use_cxx11_abi_" PYBIND11_PLATFORM_ABI_ID_TOSTRING(           \
                 _GLIBCXX_USE_CXX11_ABI)
+#    elif defined(__GNUC__) && (__GNUC__ < 5)
+#        define PYBIND11_BUILD_ABI "_gcc_4.x"
 #    else
 #        error "Unknown platform or compiler: PLEASE REVISE THIS CODE."
 #    endif
