@@ -20,12 +20,12 @@ jobs:
     if: github.repository_owner == 'pybind'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
 
       - name: Build SDist and wheels
         run: |
@@ -33,7 +33,7 @@ jobs:
           nox -s build
           nox -s build_global
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: Packages
           path: dist/*
@@ -44,7 +44,7 @@ jobs:
     needs: [build_wheel]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           name: Packages
           path: dist
