@@ -35,7 +35,7 @@ jobs:
         - runs-on: ubuntu-24.04
           cmake: "3.29"
 
-        - runs-on: macos-13
+        - runs-on: macos-15-intel
           cmake: "3.15"
 
         - runs-on: macos-14
