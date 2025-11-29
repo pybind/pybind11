@@ -70,10 +70,13 @@ jobs:
       if: contains(matrix.runs-on, 'macos')
       run: echo "CIBW_TEST_COMMAND=" >> "$GITHUB_ENV"
 
-    # NOTE: Android cibuildwheel tests are currently disabled.
-    # See https://github.com/pybind/pybind11/issues/5913.
-    - name: "NOTE: Android tests are disabled"
-      run: echo '::warning::Android cibuildwheel tests are disabled (CIBW_TEST_COMMAND is empty). See issue 5913.'
+    # Temporarily disable Android tests on ubuntu-latest due to emulator issues.
+    # See https://github.com/pybind/pybind11/pull/5914.
+    - name: "NOTE: Android tests are disabled on ubuntu-latest"
+      if: contains(matrix.runs-on, 'ubuntu')
+      run: |
+        echo "CIBW_TEST_COMMAND=" >> "$GITHUB_ENV"
+        echo '::warning::Android cibuildwheel tests are disabled on ubuntu-latest (CIBW_TEST_COMMAND is empty). See PR 5914.'
 
     # https://github.blog/changelog/2024-04-02-github-actions-hardware-accelerated-android-virtualization-now-available/
     - name: Enable KVM for Android emulator
@@ -88,6 +91,5 @@ jobs:
     - uses: pypa/cibuildwheel@v3.3
       env:
         CIBW_PLATFORM: android
-        CIBW_TEST_COMMAND: ""  # Temporarily disable Android tests; emulator setup is broken (see #5913).
       with:
         package-dir: tests
