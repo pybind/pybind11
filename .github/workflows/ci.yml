@@ -182,7 +182,7 @@ jobs:
     timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Setup Python ${{ matrix.python-version }}
       uses: actions/setup-python@v6
@@ -191,7 +191,7 @@ jobs:
         allow-prereleases: true
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v6
+      uses: astral-sh/setup-uv@v7
       with:
         enable-cache: true
 
@@ -245,7 +245,7 @@ jobs:
     timeout-minutes: 40
     container: quay.io/pypa/musllinux_1_2_x86_64:latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -283,7 +283,7 @@ jobs:
     timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Setup Python ${{ matrix.python-version }} (deadsnakes)
       uses: deadsnakes/action@v3.2.0
@@ -371,7 +371,7 @@ jobs:
     timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Add wget and python3
       run: apt-get update && apt-get install -y python3-dev python3-numpy python3-pytest libeigen3-dev
@@ -409,7 +409,7 @@ jobs:
     timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     # tzdata will try to ask for the timezone, so set the DEBIAN_FRONTEND
     - name: Install 🐍 3
@@ -433,7 +433,7 @@ jobs:
 #    container: centos:8
 #
 #    steps:
-#    - uses: actions/checkout@v5
+#    - uses: actions/checkout@v6
 #
 #    - name: Add Python 3 and a few requirements
 #      run: yum update -y && yum install -y git python3-devel python3-numpy python3-pytest make environment-modules
@@ -480,7 +480,7 @@ jobs:
       # tzdata will try to ask for the timezone, so set the DEBIAN_FRONTEND
       DEBIAN_FRONTEND: 'noninteractive'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Add NVHPC Repo
       run: |
@@ -542,7 +542,7 @@ jobs:
     timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Add Python 3
       run: apt-get update; apt-get install -y python3-dev python3-numpy python3-pytest python3-pip libeigen3-dev
@@ -606,7 +606,7 @@ jobs:
     name: "🐍 3 • ICC latest • x64"
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Add apt repo
       run: |
@@ -720,7 +720,7 @@ jobs:
 
     steps:
     - name: Latest actions/checkout
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
 
     - name: Add Python 3.8
       if: matrix.container == 'almalinux:8'
@@ -823,7 +823,7 @@ jobs:
     timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - uses: actions/setup-python@v6
       with:
@@ -870,7 +870,7 @@ jobs:
     timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Setup Python ${{ matrix.python }}
       uses: actions/setup-python@v6
@@ -923,7 +923,7 @@ jobs:
     timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Setup Python ${{ matrix.python }}
       uses: actions/setup-python@v6
@@ -972,7 +972,7 @@ jobs:
     timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Setup Python ${{ matrix.python }}
       uses: actions/setup-python@v6
@@ -1059,7 +1059,7 @@ jobs:
           mingw-w64-${{matrix.env}}-catch
           ${{ matrix.extra_install }}
 
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Configure C++11
       # LTO leads to many undefined reference like
@@ -1150,7 +1150,7 @@ jobs:
         run: env
 
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Set up Clang
         uses: egor-tensin/setup-clang@v1
