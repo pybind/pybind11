@@ -135,8 +135,8 @@ versions of a tested compiler or platform will often work as well in practice,
 but we cannot promise to validate every possible combination. If a
 configuration you rely on is missing from the matrix or regresses, issues and
 pull requests to extend coverage are very welcome. At the same time, we need
-to balance the size of the test matrix with the available CI resources (for
-example, GitHub's free minutes).
+to balance the size of the test matrix with the available CI resources,
+such as GitHub's limits on concurrent jobs under the free tier.
 
 About
 -----
