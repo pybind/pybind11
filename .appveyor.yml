@@ -2,6 +2,8 @@ version: 1.0.{build}
 image:
 - Visual Studio 2017
 test: off
+skip_commits:
+  message: /.*/  # Skip ALL commits.
 skip_branch_with_pr: true
 build:
   parallel: true
