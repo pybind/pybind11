@@ -85,7 +85,7 @@ The following table provides an overview of available policies:
 |                                                  | (the implicit ``this``, or ``self`` argument of the called method or       |
 |                                                  | property) is kept alive for at least the lifespan of the return value.     |
 |                                                  | **Otherwise this policy falls back to** :enum:`return_value_policy::move`  |
-|                                                  | **(see #5528).** Internally, this policy works just like                   |
+|                                                  | (see #5528). Internally, this policy works just like                       |
 |                                                  | :enum:`return_value_policy::reference` but additionally applies a          |
 |                                                  | ``keep_alive<0, 1>`` *call policy* (described in the next section) that    |
 |                                                  | prevents the parent object from being garbage collected as long as the     |
