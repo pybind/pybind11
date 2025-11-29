@@ -1,11 +1,6 @@
 version: 1.0.{build}
 image:
 - Visual Studio 2017
-
-branches:
-  except:
-    - gha_fixes
-
 test: off
 skip_branch_with_pr: true
 build:
