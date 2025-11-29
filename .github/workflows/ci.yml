@@ -96,22 +96,22 @@ jobs:
             python-version: 'graalpy-24.1'
 
           # No SciPy for macOS ARM
-          - runs-on: macos-13
+          - runs-on: macos-15-intel
             python-version: '3.8'
             cmake-args: -DCMAKE_CXX_STANDARD=14
-          - runs-on: macos-13
+          - runs-on: macos-15-intel
             python-version: '3.11'
             cmake-args: -DPYBIND11_TEST_SMART_HOLDER=ON
           - runs-on: macos-latest
             python-version: '3.12'
             cmake-args: -DCMAKE_CXX_STANDARD=17 -DPYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION=ON
-          - runs-on: macos-13
+          - runs-on: macos-15-intel
             python-version: '3.13t'
             cmake-args: -DCMAKE_CXX_STANDARD=11
           - runs-on: macos-latest
             python-version: '3.14t'
             cmake-args: -DCMAKE_CXX_STANDARD=20
-          - runs-on: macos-13
+          - runs-on: macos-15-intel
             python-version: 'pypy-3.10'
             cmake-args: -DCMAKE_CXX_STANDARD=17
           - runs-on: macos-latest
