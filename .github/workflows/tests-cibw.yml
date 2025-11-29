@@ -73,7 +73,7 @@ jobs:
     # NOTE: Android cibuildwheel tests are currently disabled.
     # See https://github.com/pybind/pybind11/issues/5913.
     - name: "NOTE: Android tests are disabled"
-      run: echo '::warning::Android cibuildwheel tests are disabled (CIBW_TEST_COMMAND is empty). See issue #5913.'
+      run: echo '"::warning::Android cibuildwheel tests are disabled (CIBW_TEST_COMMAND is empty). See issue #5913."'
 
     # https://github.blog/changelog/2024-04-02-github-actions-hardware-accelerated-android-virtualization-now-available/
     - name: Enable KVM for Android emulator
