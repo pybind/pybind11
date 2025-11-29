@@ -14,8 +14,8 @@ concurrency:
 
 jobs:
   build-android:
-    name: Android wheel ubuntu-latest
-    runs-on: ubuntu-latest
+    name: Android wheel ubuntu-22.04
+    runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v5
       with:
