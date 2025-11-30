@@ -2162,6 +2162,11 @@ private:
 
     template <size_t... Is>
     bool load_impl_sequence(function_call &call, index_sequence<Is...>) {
+        PYBIND11_WARNING_PUSH
+#if !defined(__clang__) && defined(__GNUC__) && __GNUC__ >= 13
+        // Work around a GCC -Warray-bounds false positive in argument_vector usage.
+        PYBIND11_WARNING_DISABLE_GCC("-Warray-bounds")
+#endif
 #ifdef __cpp_fold_expressions
         if ((... || !std::get<Is>(argcasters).load(call.args[Is], call.args_convert[Is]))) {
             return false;
@@ -2173,6 +2178,7 @@ private:
             }
         }
 #endif
+        PYBIND11_WARNING_POP
         return true;
     }
 
