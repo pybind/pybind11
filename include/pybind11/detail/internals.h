@@ -176,6 +176,12 @@ struct type_equal_to {
 };
 #endif
 
+// For now, we don't bother adding a fancy hash for pointers and just
+// let the standard library use the identity hash function if that's
+// what it wants to do (e.g., as in libstdc++).
+template <typename value_type>
+using fast_type_map = std::unordered_map<const std::type_info *, value_type>;
+
 template <typename value_type>
 using type_map = std::unordered_map<std::type_index, value_type, type_hash, type_equal_to>;
 
@@ -236,6 +242,15 @@ struct internals {
     pymutex mutex;
     pymutex exception_translator_mutex;
 #endif
+#if PYBIND11_INTERNALS_VERSION >= 12
+    // non-normative but fast "hint" for registered_types_cpp. Meant
+    // to be used as the first level of a two-level lookup: successful
+    // lookups are correct, but unsuccessful lookups need to try
+    // registered_types_cpp and then backfill this map if they find
+    // anything.
+    fast_type_map<type_info *> registered_types_cpp_fast;
+#endif
+
     // std::type_index -> pybind11's type information
     type_map<type_info *> registered_types_cpp;
     // PyTypeObject* -> base type_info(s)
@@ -260,7 +275,9 @@ struct internals {
     PyObject *instance_base = nullptr;
     // Unused if PYBIND11_SIMPLE_GIL_MANAGEMENT is defined:
     thread_specific_storage<PyThreadState> tstate;
-    thread_specific_storage<loader_life_support> loader_life_support_tls;
+#if PYBIND11_INTERNALS_VERSION <= 11
+    thread_specific_storage<loader_life_support> loader_life_support_tls; // OBSOLETE (PR #5830)
+#endif
     // Unused if PYBIND11_SIMPLE_GIL_MANAGEMENT is defined:
     PyInterpreterState *istate = nullptr;
 
@@ -269,8 +286,8 @@ struct internals {
     internals()
         : static_property_type(make_static_property_type()),
           default_metaclass(make_default_metaclass()) {
+        tstate.set(nullptr); // See PR #5870
         PyThreadState *cur_tstate = PyThreadState_Get();
-        tstate = cur_tstate;
 
         istate = cur_tstate->interp;
         registered_exception_translators.push_front(&translate_exception);
@@ -301,7 +318,11 @@ struct internals {
 // impact any other modules, because the only things accessing the local internals is the
 // module that contains them.
 struct local_internals {
-    type_map<type_info *> registered_types_cpp;
+    // It should be safe to use fast_type_map here because this entire
+    // data structure is scoped to our single module, and thus a single
+    // DSO and single instance of type_info for any particular type.
+    fast_type_map<type_info *> registered_types_cpp;
+
     std::forward_list<ExceptionTranslator> registered_exception_translators;
     PyTypeObject *function_record_py_type = nullptr;
 };
@@ -336,6 +357,20 @@ struct type_info {
     void *get_buffer_data = nullptr;
     void *(*module_local_load)(PyObject *, const type_info *) = nullptr;
     holder_enum_t holder_enum_v = holder_enum_t::undefined;
+
+#if PYBIND11_INTERNALS_VERSION >= 12
+    // When a type appears in multiple DSOs,
+    // internals::registered_types_cpp_fast will have multiple distinct
+    // keys (the std::type_info from each DSO) mapped to the same
+    // detail::type_info*. We need to keep track of these aliases so that we clean
+    // them up when our type is deallocated. A linked list is appropriate
+    // because it is expected to be 1) usually empty and 2)
+    // when it's not empty, usually very small. See also `struct
+    // nb_alias_chain` added in
+    // https://github.com/wjakob/nanobind/commit/b515b1f7f2f4ecc0357818e6201c94a9f4cbfdc2
+    std::forward_list<const std::type_info *> alias_chain;
+#endif
+
     /* A simple type never occurs as a (direct or indirect) parent
      * of a class that makes use of multiple inheritance.
      * A type can be simple even if it has non-simple ancestors as long as it has no descendants.
@@ -345,6 +380,24 @@ struct type_info {
     bool simple_ancestors : 1;
     /* true if this is a type registered with py::module_local */
     bool module_local : 1;
+};
+
+/// Information stored in a capsule on py::native_enum() types. Since we don't
+/// create a type_info record for native enums, we must store here any
+/// information we will need about the enum at runtime.
+///
+/// If you make backward-incompatible changes to this structure, you must
+/// change the `attribute_name()` so that native enums from older version of
+/// pybind11 don't have their records reinterpreted. Better would be to keep
+/// the changes backward-compatible (i.e., only add new fields at the end)
+/// and detect/indicate their presence using the currently-unused `version`.
+struct native_enum_record {
+    const std::type_info *cpptype;
+    uint32_t size_bytes;
+    bool is_signed;
+    const uint8_t version = 1;
+
+    static const char *attribute_name() { return "__pybind11_native_enum__"; }
 };
 
 #define PYBIND11_INTERNALS_ID                                                                     \
@@ -501,8 +554,11 @@ template <typename InternalsType>
 class internals_pp_manager {
 public:
     using on_fetch_function = void(InternalsType *);
-    internals_pp_manager(char const *id, on_fetch_function *on_fetch)
-        : holder_id_(id), on_fetch_(on_fetch) {}
+
+    inline static internals_pp_manager &get_instance(char const *id, on_fetch_function *on_fetch) {
+        static internals_pp_manager instance(id, on_fetch);
+        return instance;
+    }
 
     /// Get the current pointer-to-pointer, allocating it if it does not already exist.  May
     /// acquire the GIL. Will never return nullptr.
@@ -513,15 +569,15 @@ public:
             // internals_pp so that it can be pulled from the interpreter's state dict.  That is
             // slow, so we use the current PyThreadState to check if it is necessary.
             auto *tstate = get_thread_state_unchecked();
-            if (!tstate || tstate->interp != last_istate_.get()) {
+            if (!tstate || tstate->interp != last_istate_tls()) {
                 gil_scoped_acquire_simple gil;
                 if (!tstate) {
                     tstate = get_thread_state_unchecked();
                 }
-                last_istate_ = tstate->interp;
-                internals_tls_p_ = get_or_create_pp_in_state_dict();
+                last_istate_tls() = tstate->interp;
+                internals_p_tls() = get_or_create_pp_in_state_dict();
             }
-            return internals_tls_p_.get();
+            return internals_p_tls();
         }
 #endif
         if (!internals_singleton_pp_) {
@@ -535,8 +591,8 @@ public:
     void unref() {
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
         if (get_num_interpreters_seen() > 1) {
-            last_istate_.reset();
-            internals_tls_p_.reset();
+            last_istate_tls() = nullptr;
+            internals_p_tls() = nullptr;
             return;
         }
 #endif
@@ -548,8 +604,8 @@ public:
         if (get_num_interpreters_seen() > 1) {
             auto *tstate = get_thread_state_unchecked();
             // this could be called without an active interpreter, just use what was cached
-            if (!tstate || tstate->interp == last_istate_.get()) {
-                auto tpp = internals_tls_p_.get();
+            if (!tstate || tstate->interp == last_istate_tls()) {
+                auto tpp = internals_p_tls();
                 if (tpp) {
                     delete tpp;
                 }
@@ -563,6 +619,9 @@ public:
     }
 
 private:
+    internals_pp_manager(char const *id, on_fetch_function *on_fetch)
+        : holder_id_(id), on_fetch_(on_fetch) {}
+
     std::unique_ptr<InternalsType> *get_or_create_pp_in_state_dict() {
         error_scope err_scope;
         dict state_dict = get_python_state_dict();
@@ -588,12 +647,20 @@ private:
         return pp;
     }
 
+#ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
+    static PyInterpreterState *&last_istate_tls() {
+        static thread_local PyInterpreterState *last_istate = nullptr;
+        return last_istate;
+    }
+
+    static std::unique_ptr<InternalsType> *&internals_p_tls() {
+        static thread_local std::unique_ptr<InternalsType> *internals_p = nullptr;
+        return internals_p;
+    }
+#endif
+
     char const *holder_id_ = nullptr;
     on_fetch_function *on_fetch_ = nullptr;
-#ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
-    thread_specific_storage<PyInterpreterState> last_istate_;
-    thread_specific_storage<std::unique_ptr<InternalsType>> internals_tls_p_;
-#endif
     std::unique_ptr<InternalsType> *internals_singleton_pp_;
 };
 
@@ -623,10 +690,8 @@ inline internals_pp_manager<internals> &get_internals_pp_manager() {
 #else
 #    define ON_FETCH_FN &check_internals_local_exception_translator
 #endif
-    static internals_pp_manager<internals> internals_pp_manager(PYBIND11_INTERNALS_ID,
-                                                                ON_FETCH_FN);
+    return internals_pp_manager<internals>::get_instance(PYBIND11_INTERNALS_ID, ON_FETCH_FN);
 #undef ON_FETCH_FN
-    return internals_pp_manager;
 }
 
 /// Return a reference to the current `internals` data
@@ -654,9 +719,7 @@ inline internals_pp_manager<local_internals> &get_local_internals_pp_manager() {
     static const std::string this_module_idstr
         = PYBIND11_MODULE_LOCAL_ID
           + std::to_string(reinterpret_cast<uintptr_t>(&this_module_idstr));
-    static internals_pp_manager<local_internals> local_internals_pp_manager(
-        this_module_idstr.c_str(), nullptr);
-    return local_internals_pp_manager;
+    return internals_pp_manager<local_internals>::get_instance(this_module_idstr.c_str(), nullptr);
 }
 
 /// Works like `get_internals`, but for things which are locally registered.

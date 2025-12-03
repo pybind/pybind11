@@ -19,7 +19,7 @@
 /* -- start version constants -- */
 #define PYBIND11_VERSION_MAJOR 3
 #define PYBIND11_VERSION_MINOR 0
-#define PYBIND11_VERSION_MICRO 1
+#define PYBIND11_VERSION_MICRO 2
 // ALPHA = 0xA, BETA = 0xB, GAMMA = 0xC (release candidate), FINAL = 0xF (stable release)
 // - The release level is set to "alpha" for development versions.
 //   Use 0xA0 (LEVEL=0xA, SERIAL=0) for development versions.
@@ -27,7 +27,7 @@
 #define PYBIND11_VERSION_RELEASE_LEVEL PY_RELEASE_LEVEL_ALPHA
 #define PYBIND11_VERSION_RELEASE_SERIAL 0
 // String version of (micro, release level, release serial), e.g.: 0a0, 0b1, 0rc1, 0
-#define PYBIND11_VERSION_PATCH 1a0
+#define PYBIND11_VERSION_PATCH 2a0
 /* -- end version constants -- */
 
 #if !defined(Py_PACK_FULL_VERSION)
@@ -101,6 +101,10 @@
 #else
 #    define PYBIND11_CONSTINIT
 #    define PYBIND11_DTOR_CONSTEXPR
+#endif
+
+#if defined(PYBIND11_CPP20) && defined(__has_include) && __has_include(<barrier>)
+#    define PYBIND11_HAS_STD_BARRIER 1
 #endif
 
 // Compiler version assertions
@@ -322,6 +326,13 @@
 #define PYBIND11_BYTES_AS_STRING PyBytes_AsString
 #define PYBIND11_BYTES_SIZE PyBytes_Size
 #define PYBIND11_LONG_CHECK(o) PyLong_Check(o)
+// In PyPy 7.3.3, `PyIndex_Check` is implemented by calling `__index__`,
+// while CPython only considers the existence of `nb_index`/`__index__`.
+#if !defined(PYPY_VERSION)
+#    define PYBIND11_INDEX_CHECK(o) PyIndex_Check(o)
+#else
+#    define PYBIND11_INDEX_CHECK(o) hasattr(o, "__index__")
+#endif
 #define PYBIND11_LONG_AS_LONGLONG(o) PyLong_AsLongLong(o)
 #define PYBIND11_LONG_FROM_SIGNED(o) PyLong_FromSsize_t((ssize_t) (o))
 #define PYBIND11_LONG_FROM_UNSIGNED(o) PyLong_FromSize_t((size_t) (o))
@@ -1293,8 +1304,7 @@ template <typename... Args>
 #if defined(_MSC_VER) && _MSC_VER < 1920 // MSVC 2017
 constexpr
 #endif
-    inline void
-    silence_unused_warnings(Args &&...) {
+    inline void silence_unused_warnings(Args &&...) {
 }
 
 // MSVC warning C4100: Unreferenced formal parameter

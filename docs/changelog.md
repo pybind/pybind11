@@ -12,6 +12,92 @@ versioning](http://semver.org) policy.
 Changes will be added here periodically from the "Suggested changelog
 entry" block in pull request descriptions.
 
+
+## Version 3.0.1 (August 22, 2025)
+
+Bug fixes:
+
+- Fixed compilation error in `type_caster_enum_type` when casting
+  pointer-to-enum types. Added pointer overload to handle dereferencing before
+  enum conversion.
+  [#5776](https://github.com/pybind/pybind11/pull/5776)
+
+- Implement binary version of `make_index_sequence` to reduce template depth
+  requirements for functions with many parameters.
+  [#5751](https://github.com/pybind/pybind11/pull/5751)
+
+- Subinterpreter-specific exception handling code was removed to resolve segfaults.
+  [#5795](https://github.com/pybind/pybind11/pull/5795)
+
+- Fixed issue that caused ``PYBIND11_MODULE`` code to run again if the module
+  was re-imported after being deleted from ``sys.modules``.
+  [#5782](https://github.com/pybind/pybind11/pull/5782)
+
+- Prevent concurrent creation of sub-interpreters as a workaround for stdlib
+  concurrency issues in Python 3.12.
+  [#5779](https://github.com/pybind/pybind11/pull/5779)
+
+- Fixed potential crash when using `cpp_function` objects with sub-interpreters.
+  [#5771](https://github.com/pybind/pybind11/pull/5771)
+
+- Fixed non-entrant check in `implicitly_convertible()`.
+  [#5777](https://github.com/pybind/pybind11/pull/5777)
+
+- Support C++20 on platforms that have older c++ runtimes.
+  [#5761](https://github.com/pybind/pybind11/pull/5761)
+
+- Fix compilation with clang on msys2.
+  [#5757](https://github.com/pybind/pybind11/pull/5757)
+
+- Avoid `nullptr` dereference warning with GCC 13.3.0 and python 3.11.13.
+  [#5756](https://github.com/pybind/pybind11/pull/5756)
+
+- Fix potential warning about number of threads being too large.
+  [#5807](https://github.com/pybind/pybind11/pull/5807)
+
+
+<!-- fix(cmake) -->
+
+- Fix gcc 11.4+ warning about serial compilation using CMake.
+  [#5791](https://github.com/pybind/pybind11/pull/5791)
+
+
+Documentation:
+
+- Improve `buffer_info` type checking in numpy docs.
+  [#5805](https://github.com/pybind/pybind11/pull/5805)
+
+- Replace `robotpy-build` with `semiwrap` in the binding tool list.
+  [#5804](https://github.com/pybind/pybind11/pull/5804)
+
+- Show nogil in most examples.
+  [#5770](https://github.com/pybind/pybind11/pull/5770)
+
+- Fix `py::trampoline_self_life_support` visibility in docs.
+  [#5766](https://github.com/pybind/pybind11/pull/5766)
+
+
+Tests:
+
+- Avoid a spurious warning about `DOWNLOAD_CATCH` being manually specified.
+  [#5803](https://github.com/pybind/pybind11/pull/5803)
+
+- Fix an IsolatedConfig test.
+  [#5768](https://github.com/pybind/pybind11/pull/5768)
+
+
+CI:
+
+- Add CI testing for Android.
+  [#5714](https://github.com/pybind/pybind11/pull/5714)
+
+
+Internal:
+
+- Rename internal variables to avoid the word `slots` (reads better).
+  [#5793](https://github.com/pybind/pybind11/pull/5793)
+
+
 ## Version 3.0.0 (July 10, 2025)
 
 Pybind11 3.0 includes an ABI bump, the first required bump in many years

@@ -16,6 +16,7 @@ import sys
 import sysconfig
 import textwrap
 import traceback
+import weakref
 from typing import Callable
 
 import pytest
@@ -208,19 +209,54 @@ def pytest_assertrepr_compare(op, left, right):  # noqa: ARG001
     return None
 
 
+# Number of times we think repeatedly collecting garbage might do anything.
+# The only reason to do more than once is because finalizers executed during
+# one GC pass could create garbage that can't be collected until a future one.
+# This quickly produces diminishing returns, and GC passes can be slow, so this
+# value is a tradeoff between non-flakiness and fast tests. (It errs on the
+# side of non-flakiness; many uses of this idiom only do 3 passes.)
+num_gc_collect = 5
+
+
 def gc_collect():
-    """Run the garbage collector three times (needed when running
+    """Run the garbage collector several times (needed when running
     reference counting tests with PyPy)"""
-    gc.collect()
-    gc.collect()
-    gc.collect()
-    gc.collect()
-    gc.collect()
+    for _ in range(num_gc_collect):
+        gc.collect()
+
+
+def delattr_and_ensure_destroyed(*specs):
+    """For each of the given *specs* (a tuple of the form ``(scope, name)``),
+    perform ``delattr(scope, name)``, then do enough GC collections that the
+    deleted reference has actually caused the target to be destroyed. This is
+    typically used to test what happens when a type object is destroyed; if you
+    use it for that, you should be aware that extension types, or all types,
+    are immortal on some Python versions. See ``env.TYPES_ARE_IMMORTAL``.
+    """
+    wrs = []
+    for mod, name in specs:
+        wrs.append(weakref.ref(getattr(mod, name)))
+        delattr(mod, name)
+
+    for _ in range(num_gc_collect):
+        gc.collect()
+        if all(wr() is None for wr in wrs):
+            break
+    else:
+        # If this fires, most likely something is still holding a reference
+        # to the object you tried to destroy - for example, it's a type that
+        # still has some instances alive. Try setting a breakpoint here and
+        # examining `gc.get_referrers(wrs[0]())`. It's vaguely possible that
+        # num_gc_collect needs to be increased also.
+        pytest.fail(
+            f"Could not delete bindings such as {next(wr for wr in wrs if wr() is not None)!r}"
+        )
 
 
 def pytest_configure():
     pytest.suppress = contextlib.suppress
     pytest.gc_collect = gc_collect
+    pytest.delattr_and_ensure_destroyed = delattr_and_ensure_destroyed
 
 
 def pytest_report_header():

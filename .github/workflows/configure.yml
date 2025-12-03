@@ -35,7 +35,7 @@ jobs:
         - runs-on: ubuntu-24.04
           cmake: "3.29"
 
-        - runs-on: macos-13
+        - runs-on: macos-15-intel
           cmake: "3.15"
 
         - runs-on: macos-14
@@ -48,15 +48,15 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Setup Python 3.11
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: 3.11
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v6
+      uses: astral-sh/setup-uv@v7
 
     - name: Prepare env
       run: uv pip install --python=python --system -r tests/requirements.txt

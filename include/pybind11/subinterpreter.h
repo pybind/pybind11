@@ -271,7 +271,7 @@ inline subinterpreter_scoped_activate::subinterpreter_scoped_activate(subinterpr
     // make the interpreter active and acquire the GIL
     old_tstate_ = PyThreadState_Swap(tstate_);
 
-    // save this in internals for scoped_gil calls
+    // save this in internals for scoped_gil calls (see also: PR #5870)
     detail::get_internals().tstate = tstate_;
 }
 
