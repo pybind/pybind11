@@ -139,7 +139,11 @@
 
 #if !defined(PYBIND11_EXPORT)
 #    if defined(WIN32) || defined(_WIN32)
-#        define PYBIND11_EXPORT __declspec(dllexport)
+#        if defined(__aarch64__)
+#            define PYBIND11_EXPORT __declspec(dllexport) __attribute__((visibility("default")))
+#        else
+#            define PYBIND11_EXPORT __declspec(dllexport)
+#        endif
 #    else
 #        define PYBIND11_EXPORT __attribute__((visibility("default")))
 #    endif
