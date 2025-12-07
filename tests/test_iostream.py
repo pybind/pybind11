@@ -288,11 +288,7 @@ def test_redirect_both(capfd):
 def test_threading():
     with m.ostream_redirect(stdout=True, stderr=False):
         # start some threads
-        threads = []
-
-        # start some threads
-        for _j in range(20):
-            threads.append(m.TestThread())
+        threads = [m.TestThread() for _j in range(20)]
 
         # give the threads some time to fail
         threads[0].sleep()
