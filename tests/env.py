@@ -8,6 +8,7 @@ ANDROID = sys.platform.startswith("android")
 LINUX = sys.platform.startswith("linux")
 MACOS = sys.platform.startswith("darwin")
 WIN = sys.platform.startswith("win32") or sys.platform.startswith("cygwin")
+FREEBSD = sys.platform.startswith("freebsd")
 
 CPYTHON = platform.python_implementation() == "CPython"
 PYPY = platform.python_implementation() == "PyPy"
