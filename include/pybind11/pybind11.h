@@ -811,9 +811,9 @@ protected:
             // so they cannot be freed. Once the function has been created, they can.
             // Check `make_function_record` for more details.
             if (free_strings) {
-                std::free((char *) rec->name);
-                std::free((char *) rec->doc);
-                std::free((char *) rec->signature);
+                std::free(rec->name);
+                std::free(rec->doc);
+                std::free(rec->signature);
                 for (auto &arg : rec->args) {
                     std::free(const_cast<char *>(arg.name));
                     std::free(const_cast<char *>(arg.descr));
@@ -2486,8 +2486,7 @@ private:
     static void init_holder_from_existing(const detail::value_and_holder &v_h,
                                           const holder_type *holder_ptr,
                                           std::true_type /*is_copy_constructible*/) {
-        new (std::addressof(v_h.holder<holder_type>()))
-            holder_type(*reinterpret_cast<const holder_type *>(holder_ptr));
+        new (std::addressof(v_h.holder<holder_type>())) holder_type(*holder_ptr);
     }
 
     static void init_holder_from_existing(const detail::value_and_holder &v_h,

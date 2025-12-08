@@ -87,7 +87,7 @@ public:
 
 private:
     alignas(T) char storage_[sizeof(T)] = {};
-    std::once_flag once_flag_ = {};
+    std::once_flag once_flag_;
 #ifdef Py_GIL_DISABLED
     std::atomic_bool
 #else
