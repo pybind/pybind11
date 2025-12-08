@@ -92,6 +92,8 @@ def test_independent_subinterpreters():
         pytest.skip("Does not have subinterpreter support compiled in")
 
     code = """
+import sys
+sys.path.append('.')
 import mod_per_interpreter_gil as m
 import pickle
 with open(pipeo, 'wb') as f:
@@ -100,7 +102,10 @@ with open(pipeo, 'wb') as f:
 
     with create() as interp1, create() as interp2:
         try:
-            res0 = run_string(interp1, "import mod_shared_interpreter_gil")
+            res0 = run_string(
+                interp1,
+                "import sys; sys.path.append('.'); import mod_shared_interpreter_gil",
+            )
             if res0 is not None:
                 res0 = str(res0)
         except Exception as e:
@@ -141,6 +146,8 @@ def test_independent_subinterpreters_modern():
     from concurrent import interpreters
 
     code = """
+import sys
+sys.path.append('.')
 import mod_per_interpreter_gil as m
 
 values.put_nowait(m.internals_at())
@@ -153,7 +160,9 @@ values.put_nowait(m.internals_at())
             interpreters.ExecutionFailed,
             match="does not support loading in subinterpreters",
         ):
-            interp1.exec("import mod_shared_interpreter_gil")
+            interp1.exec(
+                "import sys; sys.path.append('.'); import mod_shared_interpreter_gil"
+            )
 
         values = interpreters.create_queue()
         interp1.prepare_main(values=values)
@@ -185,6 +194,8 @@ def test_dependent_subinterpreters():
         pytest.skip("Does not have subinterpreter support compiled in")
 
     code = """
+import sys
+sys.path.append('.')
 import mod_shared_interpreter_gil as m
 import pickle
 with open(pipeo, 'wb') as f:

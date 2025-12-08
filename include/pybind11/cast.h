@@ -86,10 +86,7 @@ public:
     bool load(handle src, bool convert) {
         handle native_enum
             = global_internals_native_enum_type_map_get_item(std::type_index(typeid(EnumType)));
-        if (native_enum) {
-            if (!isinstance(src, native_enum)) {
-                return false;
-            }
+        if (native_enum && isinstance(src, native_enum)) {
             type_caster<Underlying> underlying_caster;
             if (!underlying_caster.load(src.attr("value"), convert)) {
                 pybind11_fail("native_enum internal consistency failure.");
@@ -124,7 +121,7 @@ public:
 private:
     EnumType native_value; // if loading a py::native_enum
     bool native_loaded = false;
-    EnumType *legacy_ptr = nullptr; // if loading a py::enum_
+    EnumType *legacy_ptr = nullptr; // if loading a py::enum_ or foreign
 };
 
 template <typename EnumType, typename SFINAE = void>
@@ -2388,11 +2385,11 @@ object object_api<Derived>::call(Args &&...args) const {
 PYBIND11_NAMESPACE_END(detail)
 
 template <typename T>
-handle type::handle_of() {
+handle type::handle_of(bool foreign_ok) {
     static_assert(std::is_base_of<detail::type_caster_generic, detail::make_caster<T>>::value,
-                  "py::type::of<T> only supports the case where T is a registered C++ types.");
+                  "py::type::of<T> only supports the case where T is a registered C++ type.");
 
-    return detail::get_type_handle(typeid(T), true);
+    return detail::get_type_handle(typeid(T), true, foreign_ok);
 }
 
 #define PYBIND11_MAKE_OPAQUE(...)                                                                 \

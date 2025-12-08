@@ -24,6 +24,10 @@
 #include <mutex>
 #include <thread>
 
+struct pymb_binding;
+struct pymb_framework;
+struct pymb_registry;
+
 /// Tracks the `internals` and `type_info` ABI version independent of the main library version.
 ///
 /// Some portions of the code use an ABI that is conditional depending on this
@@ -39,6 +43,7 @@
 /// further ABI-incompatible changes may be made before the ABI is officially
 /// changed to the new version.
 #ifndef PYBIND11_INTERNALS_VERSION
+//   REMINDER for next version bump: merge interop_internals into internals
 #    define PYBIND11_INTERNALS_VERSION 11
 #endif
 
@@ -311,6 +316,147 @@ struct internals {
     ~internals() = default;
 };
 
+using copy_or_move_ctor = void *(*) (const void *);
+
+// Information to support working with types from other binding frameworks or
+// other ABI versions of pybind11, and sharing our types with them. This should
+// logically be part of `internals`, but we want to support it without an ABI
+// version bump. If it gets incorpoprated into `internals` in a later ABI
+// version, it would be good for performance to also add a flag to `type_info`
+// indicating whether any foreign bindings are also known for its C++ type;
+// that way we can avoid an extra lookup when conversion to a native type fails.
+struct interop_internals {
+    // A vector optimized for the case of storing one element.
+    class binding_list {
+    public:
+        binding_list() : single(nullptr) {}
+        binding_list(const binding_list &) = delete;
+        binding_list(binding_list &&other) noexcept : vec(other.vec) { other.vec = 0; }
+        ~binding_list() {
+            if (is_vec()) {
+                delete as_vec();
+            }
+        }
+
+        bool empty() const { return single == nullptr; }
+        pymb_binding **begin() {
+            return empty() ? nullptr : is_vec() ? as_vec()->data() : &single;
+        }
+        pymb_binding **end() {
+            return empty()    ? nullptr
+                   : is_vec() ? as_vec()->data() + as_vec()->size()
+                              : &single + 1;
+        }
+        void append(pymb_binding *binding) {
+            if (empty()) {
+                single = binding;
+            } else if (!is_vec()) {
+                vec = uintptr_t(new Vec{single, binding}) | uintptr_t(1);
+            } else {
+                as_vec()->push_back(binding);
+            }
+        }
+        bool erase(pymb_binding *binding) {
+            if (is_vec()) {
+                Vec *v = as_vec();
+                for (auto it = v->begin(); it != v->end(); ++it) {
+                    if (*it == binding) {
+                        v->erase(it);
+                        if (v->size() == 1) {
+                            single = (*v)[0];
+                            delete v;
+                        }
+                        return true;
+                    }
+                }
+            } else if (single == binding) {
+                single = nullptr;
+                return true;
+            }
+            return false;
+        }
+
+    private:
+        // Discriminated pointer: points to pymb_binding if the low bit is clear,
+        // or to std::vector<pymb_binding> if the low bit is set.
+        using Vec = std::vector<pymb_binding *>;
+        union {
+            pymb_binding *single;
+            uintptr_t vec;
+        };
+        bool is_vec() const { return (vec & uintptr_t(1)) != 0; }
+        // NOLINTNEXTLINE(performance-no-int-to-ptr)
+        Vec *as_vec() const { return (Vec *) (vec & ~uintptr_t(1)); }
+    };
+
+    // Registered pymetabind bindings for each C++ type, including both our
+    // own (exported) and other frameworks' (imported).
+    // Protected by internals::mutex.
+    type_map<binding_list> bindings;
+
+    // For each C++ type with a native binding, store pointers to its
+    // copy and move constructors. These would ideally move inside `type_info`
+    // on an ABI bump. Protected by internals::mutex.
+    type_map<std::pair<copy_or_move_ctor, copy_or_move_ctor>> copy_move_ctors;
+
+    // List of frameworks that provide exception translators.
+    // Protected by internals::exception_translator_mutex.
+    // If this is non-empty, there is a single translator in the penultimate
+    // position of internals::registered_exception_translators that calls the
+    // translate_exception methods of each framework in this list.
+    std::forward_list<pymb_framework *> exc_frameworks;
+
+    // Hooks allowing other frameworks to interact with us.
+    // Protected by internals::mutex; constant once becoming non-null.
+    std::unique_ptr<pymb_framework> self;
+
+    // Remember the C++ type associated with each binding by
+    // import_for_interop(), so we can clean up `bindings` properly.
+    // Protected by internals::mutex.
+    std::unordered_map<pymb_binding *, const std::type_info *> manual_imports;
+
+    // Pointer to `detail::export_for_interop` in foreign.h, or nullptr if
+    // export_all is false. This indirection is vital to avoid having every
+    // compilation unit with a py::class_ pull in the callback methods in
+    // foreign.h. Instead, only compilation units that call
+    // interoperate_by_default(), import_for_interop(), or
+    // export_for_interop() will emit that code.
+    void (*export_for_interop)(const std::type_info *, PyTypeObject *, type_info *);
+
+    // Should we automatically advertise our types to other binding frameworks,
+    // or only when requested via pybind11::export_for_interop()?
+    // Never becomes false once it is set to true.
+    bool export_all = false;
+
+    // Should we automatically use types advertised by other frameworks as
+    // a fallback when we can't do a cast using pybind11 types, or only when
+    // requested via pybind11::import_for_interop()?
+    // Never becomes false once it is set to true.
+    bool import_all = false;
+
+    // Are there any entries in `bindings` that don't correspond to our
+    // own types?
+    bool imported_any = false;
+
+    // Number of times the `bindings` map has been modified. Used to detect
+    // cases where the iterator in try_foreign_bindings() may have been
+    // invalidated. Protected by internals::mutex.
+    uint32_t bindings_update_count = 0;
+
+    inline ~interop_internals();
+
+    // Returns true if we initialized, false if someone else already did.
+    inline bool initialize_if_needed() {
+        if (self) {
+            return false;
+        }
+        return initialize();
+    }
+
+private:
+    bool initialize();
+};
+
 // the internals struct (above) is shared between all the modules. local_internals are only
 // for a single module. Any changes made to internals may require an update to
 // PYBIND11_INTERNALS_VERSION, breaking backwards compatibility. local_internals is, by design,
@@ -400,13 +546,12 @@ struct native_enum_record {
     static const char *attribute_name() { return "__pybind11_native_enum__"; }
 };
 
-#define PYBIND11_INTERNALS_ID                                                                     \
-    "__pybind11_internals_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                        \
-        PYBIND11_COMPILER_TYPE_LEADING_UNDERSCORE PYBIND11_PLATFORM_ABI_ID "__"
+#define PYBIND11_ABI_TAG                                                                          \
+    "v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                                             \
+        PYBIND11_COMPILER_TYPE_LEADING_UNDERSCORE PYBIND11_PLATFORM_ABI_ID
 
-#define PYBIND11_MODULE_LOCAL_ID                                                                  \
-    "__pybind11_module_local_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                     \
-        PYBIND11_COMPILER_TYPE_LEADING_UNDERSCORE PYBIND11_PLATFORM_ABI_ID "__"
+#define PYBIND11_INTERNALS_ID "__pybind11_internals_" PYBIND11_ABI_TAG "__"
+#define PYBIND11_MODULE_LOCAL_ID "__pybind11_module_local_v" PYBIND11_ABI_TAG "__"
 
 inline PyThreadState *get_thread_state_unchecked() {
 #if defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
@@ -756,6 +901,20 @@ inline auto with_exception_translators(const F &cb)
     auto &local_internals = get_local_internals();
     return cb(internals.registered_exception_translators,
               local_internals.registered_exception_translators);
+}
+
+inline internals_pp_manager<interop_internals> &get_interop_internals_pp_manager() {
+    return internals_pp_manager<interop_internals>::get_instance(PYBIND11_INTERNALS_ID "interop",
+                                                                 nullptr);
+}
+
+inline interop_internals &get_interop_internals() {
+    auto &ppmgr = get_interop_internals_pp_manager();
+    auto &ptr = *ppmgr.get_pp();
+    if (!ptr) {
+        ptr.reset(new interop_internals());
+    }
+    return *ptr;
 }
 
 inline std::uint64_t mix64(std::uint64_t z) {
