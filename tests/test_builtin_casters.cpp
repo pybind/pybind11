@@ -367,7 +367,7 @@ TEST_SUBMODULE(builtin_casters, m) {
     m.def("complex_noconvert", [](std::complex<float> x) { return x; }, py::arg{}.noconvert());
 
     // test int vs. long (Python 2)
-    m.def("int_cast", []() { return (int) 42; });
+    m.def("int_cast", []() { return 42; });
     m.def("long_cast", []() { return (long) 42; });
     m.def("longlong_cast", []() { return ULLONG_MAX; });
 

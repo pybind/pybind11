@@ -73,7 +73,7 @@ public:
 // Inheritance test
 class TestFactory4 : public TestFactory3 {
 public:
-    TestFactory4() : TestFactory3() { print_default_created(this); }
+    TestFactory4() { print_default_created(this); }
     explicit TestFactory4(int v) : TestFactory3(v) { print_created(this, v); }
     ~TestFactory4() override { print_destroyed(this); }
 };

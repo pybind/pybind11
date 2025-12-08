@@ -994,7 +994,7 @@ inline PyObject *dict_getitem(PyObject *v, PyObject *key) {
 
 inline PyObject *dict_getitemstringref(PyObject *v, const char *key) {
 #if PY_VERSION_HEX >= 0x030D0000
-    PyObject *rv;
+    PyObject *rv = nullptr;
     if (PyDict_GetItemStringRef(v, key, &rv) < 0) {
         throw error_already_set();
     }

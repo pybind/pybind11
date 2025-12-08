@@ -220,7 +220,7 @@ struct SharedPtrRef {
         ~A() { print_destroyed(this); }
     };
 
-    A value = {};
+    A value;
     std::shared_ptr<A> shared = std::make_shared<A>();
 };
 
@@ -228,13 +228,14 @@ struct SharedPtrRef {
 struct SharedFromThisRef {
     struct B : std::enable_shared_from_this<B> {
         B() { print_created(this); }
-        // NOLINTNEXTLINE(bugprone-copy-constructor-init)
+        // NOLINTNEXTLINE(bugprone-copy-constructor-init, readability-redundant-member-init)
         B(const B &) : std::enable_shared_from_this<B>() { print_copy_created(this); }
+        // NOLINTNEXTLINE(readability-redundant-member-init)
         B(B &&) noexcept : std::enable_shared_from_this<B>() { print_move_created(this); }
         ~B() { print_destroyed(this); }
     };
 
-    B value = {};
+    B value;
     std::shared_ptr<B> shared = std::make_shared<B>();
 };
 

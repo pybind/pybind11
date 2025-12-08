@@ -556,7 +556,7 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
     });
 
     m.def("count_nonzeros", [](const py::dict &d) {
-        return std::count_if(d.begin(), d.end(), [](std::pair<py::handle, py::handle> p) {
+        return std::count_if(d.begin(), d.end(), [](const std::pair<py::handle, py::handle> &p) {
             return p.second.cast<int>() != 0;
         });
     });
