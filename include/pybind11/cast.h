@@ -475,7 +475,7 @@ public:
 
 private:
     // Test if an object is a NumPy boolean (without fetching the type).
-    static inline bool is_numpy_bool(handle object) {
+    static bool is_numpy_bool(handle object) {
         const char *type_name = Py_TYPE(object.ptr())->tp_name;
         // Name changed to `numpy.bool` in NumPy 2, `numpy.bool_` is needed for 1.x support
         return std::strcmp("numpy.bool", type_name) == 0

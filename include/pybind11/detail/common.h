@@ -590,14 +590,10 @@ enum class return_value_policy : uint8_t {
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-inline static constexpr int log2(size_t n, int k = 0) {
-    return (n <= 1) ? k : log2(n >> 1, k + 1);
-}
+static constexpr int log2(size_t n, int k = 0) { return (n <= 1) ? k : log2(n >> 1, k + 1); }
 
 // Returns the size as a multiple of sizeof(void *), rounded up.
-inline static constexpr size_t size_in_ptrs(size_t s) {
-    return 1 + ((s - 1) >> log2(sizeof(void *)));
-}
+static constexpr size_t size_in_ptrs(size_t s) { return 1 + ((s - 1) >> log2(sizeof(void *))); }
 
 /**
  * The space to allocate for simple layout instance holders (see below) in multiple of the size of

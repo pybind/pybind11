@@ -186,7 +186,7 @@ template <typename value_type>
 using type_map = std::unordered_map<std::type_index, value_type, type_hash, type_equal_to>;
 
 struct override_hash {
-    inline size_t operator()(const std::pair<const PyObject *, const char *> &v) const {
+    size_t operator()(const std::pair<const PyObject *, const char *> &v) const {
         size_t value = std::hash<const void *>()(v.first);
         value ^= std::hash<const void *>()(v.second) + 0x9e3779b9 + (value << 6) + (value >> 2);
         return value;
@@ -555,7 +555,7 @@ class internals_pp_manager {
 public:
     using on_fetch_function = void(InternalsType *);
 
-    inline static internals_pp_manager &get_instance(char const *id, on_fetch_function *on_fetch) {
+    static internals_pp_manager &get_instance(char const *id, on_fetch_function *on_fetch) {
         static internals_pp_manager instance(id, on_fetch);
         return instance;
     }

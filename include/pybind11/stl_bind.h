@@ -244,7 +244,7 @@ void vector_modifiers(
             }
 
             auto *seq = new Vector();
-            seq->reserve((size_t) slicelength);
+            seq->reserve(slicelength);
 
             for (size_t i = 0; i < slicelength; ++i) {
                 seq->push_back(v[start]);

@@ -861,7 +861,7 @@ bool isinstance(handle obj) {
 }
 
 template <>
-inline bool isinstance<handle>(handle) = delete;
+bool isinstance<handle>(handle) = delete;
 template <>
 inline bool isinstance<object>(handle obj) {
     return obj.ptr() != nullptr;
@@ -994,7 +994,7 @@ inline PyObject *dict_getitem(PyObject *v, PyObject *key) {
 
 inline PyObject *dict_getitemstringref(PyObject *v, const char *key) {
 #if PY_VERSION_HEX >= 0x030D0000
-    PyObject *rv;
+    PyObject *rv = nullptr;
     if (PyDict_GetItemStringRef(v, key, &rv) < 0) {
         throw error_already_set();
     }
@@ -1555,7 +1555,7 @@ private:
     }
 
 private:
-    object value = {};
+    object value;
 };
 
 class type : public object {
@@ -1914,7 +1914,7 @@ public:
         }
     }
     // NOLINTNEXTLINE(google-explicit-constructor)
-    float_(double value = .0) : object(PyFloat_FromDouble((double) value), stolen_t{}) {
+    float_(double value = .0) : object(PyFloat_FromDouble(value), stolen_t{}) {
         if (!m_ptr) {
             pybind11_fail("Could not allocate float object!");
         }
@@ -1922,7 +1922,7 @@ public:
     // NOLINTNEXTLINE(google-explicit-constructor)
     operator float() const { return (float) PyFloat_AsDouble(m_ptr); }
     // NOLINTNEXTLINE(google-explicit-constructor)
-    operator double() const { return (double) PyFloat_AsDouble(m_ptr); }
+    operator double() const { return PyFloat_AsDouble(m_ptr); }
 };
 
 class weakref : public object {
