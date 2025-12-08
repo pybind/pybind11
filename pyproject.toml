@@ -152,6 +152,8 @@ extend-select = [
   "C4",          # flake8-comprehensions
   "EM",          # flake8-errmsg
   "ICN",         # flake8-import-conventions
+  "ISC",         # flake8-implicit-str-concat
+  "PERF",        # Perflint
   "PGH",         # pygrep-hooks
   "PIE",         # flake8-pie
   "PL",          # pylint
