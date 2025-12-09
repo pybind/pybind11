@@ -62,6 +62,12 @@
 #    define PYBIND11_WARNING_DISABLE_INTEL(name)
 #endif
 
+#ifdef __CUDACC__
+#    define PYBIND11_WARNING_DISABLE_NVCC(name) PYBIND11_PRAGMA(nv_diag_suppress name)
+#else
+#    define PYBIND11_WARNING_DISABLE_NVCC(name)
+#endif
+
 #define PYBIND11_NAMESPACE_BEGIN(name)                                                            \
     namespace name {                                                                              \
     PYBIND11_WARNING_PUSH
