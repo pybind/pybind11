@@ -14,15 +14,23 @@ function(pybind11_guess_python_module_extension python)
           STRING
           "Extension suffix for Python extension modules (Initialized from SETUPTOOLS_EXT_SUFFIX)")
   endif()
+
+  # The final extension depends on the system
+  set(_PY_BUILD_EXTENSION "${CMAKE_SHARED_MODULE_SUFFIX}")
+  if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    set(_PY_BUILD_EXTENSION ".pyd")
+  endif()
+
+  # If running under scikit-build-core, use the SKBUILD_SOABI variable:
+  if(NOT DEFINED PYTHON_MODULE_EXT_SUFFIX AND DEFINED SKBUILD_SOABI)
+    message(STATUS "Determining Python extension suffix based on SKBUILD_SOABI: ${SKBUILD_SOABI}")
+    set(PYTHON_MODULE_EXT_SUFFIX ".${SKBUILD_SOABI}${_PY_BUILD_EXTENSION}")
+  endif()
+
   # If that didn't work, use the Python_SOABI variable:
   if(NOT DEFINED PYTHON_MODULE_EXT_SUFFIX AND DEFINED ${python}_SOABI)
     message(
       STATUS "Determining Python extension suffix based on ${python}_SOABI: ${${python}_SOABI}")
-    # The final extension depends on the system
-    set(_PY_BUILD_EXTENSION "${CMAKE_SHARED_MODULE_SUFFIX}")
-    if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-      set(_PY_BUILD_EXTENSION ".pyd")
-    endif()
     # If the SOABI already has an extension, use it as the full suffix
     # (used for debug versions of Python on Windows)
     if(${python}_SOABI MATCHES "\\.")
@@ -43,9 +51,9 @@ function(pybind11_guess_python_module_extension python)
 
   # If we could not deduce the extension suffix, unset the results:
   if(NOT DEFINED PYTHON_MODULE_EXT_SUFFIX)
-    unset(PYTHON_MODULE_DEBUG_POSTFIX PARENT_SCOPE)
-    unset(PYTHON_MODULE_EXTENSION PARENT_SCOPE)
-    unset(PYTHON_IS_DEBUG PARENT_SCOPE)
+    unset(PYTHON_MODULE_DEBUG_POSTFIX CACHE)
+    unset(PYTHON_MODULE_EXTENSION CACHE)
+    unset(PYTHON_IS_DEBUG CACHE)
     return()
   endif()
 
@@ -75,12 +83,12 @@ function(pybind11_guess_python_module_extension python)
   # Return results
   set(PYTHON_MODULE_DEBUG_POSTFIX
       "${_PYTHON_MODULE_DEBUG_POSTFIX}"
-      PARENT_SCOPE)
+      CACHE INTERNAL "")
   set(PYTHON_MODULE_EXTENSION
       "${_PYTHON_MODULE_EXTENSION}"
-      PARENT_SCOPE)
+      CACHE INTERNAL "")
   set(PYTHON_IS_DEBUG
       "${_PYTHON_IS_DEBUG}"
-      PARENT_SCOPE)
+      CACHE INTERNAL "")
 
 endfunction()
