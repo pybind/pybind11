@@ -125,7 +125,7 @@ PYBIND11_NOINLINE void all_type_info_populate(PyTypeObject *t, std::vector<type_
     assert(bases.empty());
     std::vector<PyTypeObject *> check;
     for (handle parent : reinterpret_borrow<tuple>(t->tp_bases)) {
-        check.push_back((PyTypeObject *) parent.ptr());
+        check.push_back(reinterpret_cast<PyTypeObject *>(parent.ptr()));
     }
     auto const &type_dict = get_internals().registered_types_py;
     for (size_t i = 0; i < check.size(); i++) {
@@ -168,7 +168,7 @@ PYBIND11_NOINLINE void all_type_info_populate(PyTypeObject *t, std::vector<type_
                 i--;
             }
             for (handle parent : reinterpret_borrow<tuple>(type->tp_bases)) {
-                check.push_back((PyTypeObject *) parent.ptr());
+                check.push_back(reinterpret_cast<PyTypeObject *>(parent.ptr()));
             }
         }
     }
@@ -286,7 +286,7 @@ PYBIND11_NOINLINE detail::type_info *get_type_info(const std::type_info &tp,
 
 PYBIND11_NOINLINE handle get_type_handle(const std::type_info &tp, bool throw_if_missing) {
     detail::type_info *type_info = get_type_info(tp, throw_if_missing);
-    return handle(type_info ? ((PyObject *) type_info->type) : nullptr);
+    return handle(type_info ? (reinterpret_cast<PyObject *>(type_info->type)) : nullptr);
 }
 
 inline bool try_incref(PyObject *obj) {
@@ -506,7 +506,7 @@ PYBIND11_NOINLINE void instance::allocate_layout() {
         // efficient for small allocations like the one we're doing here;
         // for larger allocations they are just wrappers around malloc.
         // TODO: is this still true for pure Python 3.6?
-        nonsimple.values_and_holders = (void **) PyMem_Calloc(space, sizeof(void *));
+        nonsimple.values_and_holders = static_cast<void **>(PyMem_Calloc(space, sizeof(void *)));
         if (!nonsimple.values_and_holders) {
             throw std::bad_alloc();
         }
@@ -537,7 +537,7 @@ PYBIND11_NOINLINE handle get_object_handle(const void *ptr, const detail::type_i
         for (auto it = range.first; it != range.second; ++it) {
             for (const auto &vh : values_and_holders(it->second)) {
                 if (vh.type == type) {
-                    return handle((PyObject *) it->second);
+                    return handle(reinterpret_cast<PyObject *>(it->second));
                 }
             }
         }
@@ -1700,7 +1700,7 @@ inline std::string quote_cpp_type_name(const std::string &cpp_type_name) {
 
 PYBIND11_NOINLINE std::string type_info_description(const std::type_info &ti) {
     if (auto *type_data = get_type_info(ti)) {
-        handle th((PyObject *) type_data->type);
+        handle th(reinterpret_cast<PyObject *>(type_data->type));
         return th.attr("__module__").cast<std::string>() + '.'
                + th.attr("__qualname__").cast<std::string>();
     }
