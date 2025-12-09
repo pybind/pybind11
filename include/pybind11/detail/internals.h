@@ -607,7 +607,7 @@ public:
             if (!tstate || tstate->interp == last_istate_tls()) {
                 auto tpp = internals_p_tls();
 
-                    delete tpp;
+                delete tpp;
             }
             unref();
             return;
