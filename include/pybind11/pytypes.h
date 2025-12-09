@@ -547,7 +547,7 @@ struct error_fetch_and_normalize {
         // The presence of __notes__ is likely due to exception normalization
         // errors, although that is not necessarily true, therefore insert a
         // hint only:
-        if (PyObject_HasAttrString(m_value.ptr(), "__notes__")) {
+        if (PyObject_HasAttrString(m_value.ptr(), "__notes__") == 1) {
             m_lazy_error_string += "[WITH __notes__]";
         }
 #else
