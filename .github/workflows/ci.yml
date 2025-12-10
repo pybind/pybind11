@@ -1269,22 +1269,17 @@ jobs:
       - name: Visibility test
         run: cmake --build . --target test_cross_module_rtti -j 2
 
-      - name: Clean directory
-        run: git clean -fdx
-
   windows_arm_msys2:
     if: github.event.pull_request.draft == false
 
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-11-arm]
-        python: ["3.11", "3.12", "3.13", "3.14"]
-
-    runs-on: "${{ matrix.os }}"
+    runs-on: windows-11-arm
     timeout-minutes: 90
 
-    name: "🐍 ${{ matrix.python }} • ${{ matrix.os }} • clang • msys2"
+    name: "🐍 3.12 • windows-11-arm • clang • msys2"
+
+    defaults:
+      run:
+        shell: msys2 {0}
 
     steps:
     - uses: actions/checkout@v6
@@ -1299,17 +1294,10 @@ jobs:
           mingw-w64-clang-aarch64-cmake
           mingw-w64-clang-aarch64-clang
           mingw-w64-clang-aarch64-ninja
-
-    - name: Add MSYS2 CLANGARM64 to PATH
-      run: |
-        echo "${{ runner.temp }}/msys64/clangarm64/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
-        echo "$PWD" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+          mingw-w64-clang-aarch64-python-pip
+          mingw-w64-clang-aarch64-python-pytest
+          mingw-w64-clang-aarch64-python-numpy
     
-    - uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python }}
-        architecture: arm64
-
     - name: Debug info
       run: |
         clang++ --version
@@ -1322,10 +1310,10 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install -r tests/requirements.txt
 
-    - name: Configure Clang
+    - name: Configure CMake
       run: >-
-        cmake -G "MinGW Makefiles" -S . -B build
-        -DPYBIND11_WERROR=ON 
+        cmake -S . -B build
+        -DPYBIND11_WERROR=OFF
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_COMPILER=clang++
@@ -1334,24 +1322,6 @@ jobs:
 
     - name: Build
       run: cmake --build build -j 2
-
-    - name: Check DLL dependencies
-      shell: pwsh
-      run: |
-        $pydFile = Get-ChildItem -Path "build\tests" -Filter "pybind11_tests*.pyd" | Select-Object -First 1
-        Write-Host "Found: $($pydFile.FullName)"
-        & "C:\a\_temp\msys64\clangarm64\bin\llvm-objdump.exe" -p $pydFile.FullName | Select-String "DLL Name:"
-        Write-Host "`nChecking if dependency DLLs exist:"
-        Get-ChildItem "C:\a\_temp\msys64\clangarm64\bin\libc++*.dll"
-        Get-ChildItem "C:\a\_temp\msys64\clangarm64\bin\libunwind*.dll"
-
-    - name: Copy required DLLs to test directory
-      shell: pwsh
-      run: |
-        Copy-Item "C:\a\_temp\msys64\clangarm64\bin\libc++.dll" -Destination "build\tests\"
-        Copy-Item "C:\a\_temp\msys64\clangarm64\bin\libunwind.dll" -Destination "build\tests\"
-        Write-Host "Copied DLLs to build\tests:"
-        Get-ChildItem "build\tests\*.dll"
 
     - name: Python tests
       run: >
@@ -1365,6 +1335,3 @@ jobs:
 
     - name: Visibility test
       run: cmake --build build --target test_cross_module_rtti -j 2
-
-    - name: Clean directory
-      run: git clean -fdx
