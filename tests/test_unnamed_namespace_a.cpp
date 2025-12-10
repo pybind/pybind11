@@ -34,4 +34,10 @@ TEST_SUBMODULE(unnamed_namespace_a, m) {
 #else
         false;
 #endif
+    m.attr("defined___aarch64__") =
+#if defined(__aarch64__) || defined(_M_ARM64)
+        true;
+#else
+        false;
+#endif
 }
