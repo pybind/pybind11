@@ -1242,7 +1242,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r tests/requirements.txt
 
-      - name: Configure Clang
+      - name: Configure CMake
         run: >
           cmake -G Ninja -S . -B .
           -DPYBIND11_WERROR=OFF
@@ -1324,11 +1324,10 @@ jobs:
       run: cmake --build build -j 2
 
     - name: Python tests
-      run: >
-        cmake --build build --target pytest -j 2
+      run: cmake --build build --target pytest -j 2
 
     - name: C++ tests
-      run: cmake --build build --target cpptest -j 2
+      run: PYTHONHOME=/clangarm64 PYTHONPATH=/clangarm64 cmake --build build --target cpptest -j 2
 
     - name: Interface test
       run: cmake --build build --target test_cmake_build -j 2
