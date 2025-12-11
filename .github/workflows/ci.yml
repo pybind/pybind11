@@ -1248,7 +1248,6 @@ jobs:
           -DCMAKE_CXX_COMPILER=clang++
           -DCMAKE_CXX_STANDARD=20
           -DPython_ROOT_DIR="$env:Python_ROOT_DIR"
-        shell: pwsh
 
       - name: Build
         run: cmake --build . -j 2
