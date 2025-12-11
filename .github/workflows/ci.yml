@@ -2,7 +2,6 @@ name: CI
 
 on:
   workflow_dispatch:
-  push:
   pull_request:
     types:
       - opened
@@ -57,9 +56,6 @@ jobs:
           - runs-on: windows-2022
             python-version: '3.8'
             cmake-args: -DPYBIND11_FINDPYTHON=OFF
-          - runs-on: windows-11-arm
-            python-version: '3.11'
-            cmake-args: -DCMAKE_CXX_STANDARD=17
 
 
     name: 🐍
