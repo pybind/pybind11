@@ -115,8 +115,15 @@ repos:
   rev: "v2.4.1"
   hooks:
   - id: codespell
-    exclude: ".supp$"
+    exclude: "(.supp|^pyproject.toml)$"
     args: ["-x.codespell-ignore-lines", "-Lccompiler,intstruct"]
+
+# Also check spelling
+- repo: https://github.com/crate-ci/typos
+  rev: v1.40.0
+  hooks:
+  - id: typos
+    args: []
 
 # Check for common shell mistakes
 - repo: https://github.com/shellcheck-py/shellcheck-py
