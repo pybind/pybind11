@@ -1250,7 +1250,7 @@ jobs:
           -DDOWNLOAD_CATCH=ON
           -DDOWNLOAD_EIGEN=ON
           -DCMAKE_CXX_COMPILER=clang++
-          -DCMAKE_CXX_STANDARD=17
+          -DCMAKE_CXX_STANDARD=20
           -DPython_ROOT_DIR="$env:Python_ROOT_DIR"
         shell: pwsh
 
@@ -1317,7 +1317,7 @@ jobs:
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_COMPILER=clang++
-        -DCMAKE_CXX_STANDARD=17
+        -DCMAKE_CXX_STANDARD=20
         -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")
 
     - name: Build
