@@ -1206,7 +1206,8 @@ jobs:
       - name: Clean directory
         run: git clean -fdx
 
-  windows_arm:
+  # Clang with MSVC/Windows SDK toolchain + python.org CPython (Windows ARM)
+  windows_arm_clang_msvc:
     if: github.event.pull_request.draft == false
 
     strategy:
@@ -1218,7 +1219,7 @@ jobs:
     runs-on: "${{ matrix.os }}"
     timeout-minutes: 90
 
-    name: "🐍 ${{ matrix.python }} • ${{ matrix.os }} • clang"
+    name: "🐍 ${{ matrix.python }} • ${{ matrix.os }} • clang-msvc"
 
     steps:
       - name: Show env
@@ -1264,13 +1265,14 @@ jobs:
       - name: Visibility test
         run: cmake --build . --target test_cross_module_rtti -j 2
 
-  windows_arm_msys2:
+  # Clang in MSYS2/MinGW-w64 CLANGARM64 toolchain + MSYS2 Python (Windows ARM)
+  windows_arm_clang_msys2:
     if: github.event.pull_request.draft == false
 
     runs-on: windows-11-arm
     timeout-minutes: 90
 
-    name: "🐍 3.12 • windows-11-arm • clang • msys2"
+    name: "🐍 3.12 • windows-11-arm • clang-msys2"
 
     defaults:
       run:
