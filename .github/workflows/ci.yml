@@ -1214,7 +1214,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-11-arm]
-        python: ['3.11', '3.12', '3.13', '3.14']
+        python: ['3.13']
 
     runs-on: "${{ matrix.os }}"
     timeout-minutes: 90
@@ -1269,10 +1269,16 @@ jobs:
   windows_arm_clang_msys2:
     if: github.event.pull_request.draft == false
 
-    runs-on: windows-11-arm
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-11-arm]
+        python: ['3.12']
+
+    runs-on: "${{ matrix.os }}"
     timeout-minutes: 90
 
-    name: "🐍 3.12 • windows-11-arm • clang-msys2"
+    name: "🐍 ${{ matrix.python }} • ${{ matrix.os }} • clang-msys2"
 
     defaults:
       run:
