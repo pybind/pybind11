@@ -167,7 +167,7 @@ New Features:
   [#5665](https://github.com/pybind/pybind11/pull/5665) and consolidate code
   [#5670](https://github.com/pybind/pybind11/pull/5670).
 
-- Added API in `pybind11/subinterpreter.h` for embedding sub-intepreters (requires Python 3.12+).
+- Added API in `pybind11/subinterpreter.h` for embedding sub-interpreters (requires Python 3.12+).
   [#5666](https://github.com/pybind/pybind11/pull/5666)
 
 - `py::native_enum` was added, for conversions between Python's native
@@ -1213,7 +1213,7 @@ Performance and style:
 - Optimize Eigen sparse matrix casting by removing unnecessary
   temporary. [#4064](https://github.com/pybind/pybind11/pull/4064)
 - Avoid potential implicit copy/assignment constructors causing double
-  free in `strdup_gaurd`.
+  free in `strdup_guard`.
   [#3905](https://github.com/pybind/pybind11/pull/3905)
 - Enable clang-tidy checks `misc-definitions-in-headers`,
   `modernize-loop-convert`, and `modernize-use-nullptr`.

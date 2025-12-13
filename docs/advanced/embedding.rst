@@ -302,7 +302,7 @@ Activating a Sub-interpreter
 
 Once a sub-interpreter is created, you can "activate" it on a thread (and
 acquire its GIL) by creating a :class:`subinterpreter_scoped_activate`
-instance and passing it the sub-intepreter to be activated.  The function
+instance and passing it the sub-interpreter to be activated.  The function
 will acquire the sub-interpreter's GIL and make the sub-interpreter the
 current active interpreter on the current thread for the lifetime of the
 instance. When the :class:`subinterpreter_scoped_activate` instance goes out

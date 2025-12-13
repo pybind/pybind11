@@ -165,7 +165,7 @@ The valid options are:
 * Use `cmake --build build -j12` to build with 12 cores (for example).
 * Use `-G` and the name of a generator to use something different. `cmake
   --help` lists the generators available.
-      - On Unix, setting `CMAKE_GENERATER=Ninja` in your environment will give
+      - On Unix, setting `CMAKE_GENERATOR=Ninja` in your environment will give
         you automatic multithreading on all your CMake projects!
 * Open the `CMakeLists.txt` with QtCreator to generate for that IDE.
 * You can use `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON` to generate the `.json` file
