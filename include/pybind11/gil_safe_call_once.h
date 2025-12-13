@@ -8,8 +8,12 @@
 #include <cassert>
 #include <mutex>
 
-#ifdef Py_GIL_DISABLED
+#if defined(Py_GIL_DISABLED) || defined(PYBIND11_HAS_SUBINTERPRETER_SUPPORT)
 #    include <atomic>
+
+using atomic_bool = std::atomic_bool;
+#else
+using atomic_bool = bool;
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
@@ -53,7 +57,8 @@ class gil_safe_call_once_and_store {
 public:
     // PRECONDITION: The GIL must be held when `call_once_and_store_result()` is called.
     template <typename Callable>
-    gil_safe_call_once_and_store &call_once_and_store_result(Callable &&fn) {
+    gil_safe_call_once_and_store &call_once_and_store_result(Callable &&fn,
+                                                             void (*finalize_fn)(T &) = nullptr) {
         if (!is_initialized_) { // This read is guarded by the GIL.
             // Multiple threads may enter here, because the GIL is released in the next line and
             // CPython API calls in the `fn()` call below may release and reacquire the GIL.
@@ -61,8 +66,9 @@ public:
             std::call_once(once_flag_, [&] {
                 // Only one thread will ever enter here.
                 gil_scoped_acquire gil_acq;
-                ::new (storage_) T(fn()); // fn may release, but will reacquire, the GIL.
-                is_initialized_ = true;   // This write is guarded by the GIL.
+                ::new (storage_) T(fn());   // fn may release, but will reacquire, the GIL.
+                finalize_fn_ = finalize_fn; // Store the finalizer.
+                is_initialized_ = true;     // This write is guarded by the GIL.
             });
             // All threads will observe `is_initialized_` as true here.
         }
@@ -83,20 +89,21 @@ public:
     }
 
     constexpr gil_safe_call_once_and_store() = default;
-    PYBIND11_DTOR_CONSTEXPR ~gil_safe_call_once_and_store() = default;
+    PYBIND11_DTOR_CONSTEXPR ~gil_safe_call_once_and_store() {
+        if (is_initialized_ && finalize_fn_ != nullptr) {
+            finalize_fn_(*reinterpret_cast<T *>(storage_));
+        }
+    }
 
 private:
     alignas(T) char storage_[sizeof(T)] = {};
     std::once_flag once_flag_;
-#ifdef Py_GIL_DISABLED
-    std::atomic_bool
-#else
-    bool
-#endif
-        is_initialized_{false};
+    void (*finalize_fn_)(T &) = nullptr;
+
     // The `is_initialized_`-`storage_` pair is very similar to `std::optional`,
     // but the latter does not have the triviality properties of former,
     // therefore `std::optional` is not a viable alternative here.
+    atomic_bool is_initialized_{false};
 };
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
