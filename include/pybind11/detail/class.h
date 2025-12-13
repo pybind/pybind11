@@ -71,7 +71,7 @@ inline PyTypeObject *make_static_property_type() {
        issue no Python C API calls which could potentially invoke the
        garbage collector (the GC will call type_traverse(), which will in
        turn find the newly constructed type in an invalid state) */
-    auto *heap_type = (PyHeapTypeObject *) PyType_Type.tp_alloc(&PyType_Type, 0);
+    auto *heap_type = reinterpret_cast<PyHeapTypeObject *>(PyType_Type.tp_alloc(&PyType_Type, 0));
     if (!heap_type) {
         pybind11_fail("make_static_property_type(): error allocating type!");
     }
@@ -98,7 +98,7 @@ inline PyTypeObject *make_static_property_type() {
         pybind11_fail("make_static_property_type(): failure in PyType_Ready()!");
     }
 
-    setattr((PyObject *) type, "__module__", str(PYBIND11_DUMMY_MODULE_NAME));
+    setattr(reinterpret_cast<PyObject *>(type), "__module__", str(PYBIND11_DUMMY_MODULE_NAME));
     PYBIND11_SET_OLDPY_QUALNAME(type, name_obj);
 
     return type;
@@ -265,7 +265,7 @@ inline PyTypeObject *make_default_metaclass() {
        issue no Python C API calls which could potentially invoke the
        garbage collector (the GC will call type_traverse(), which will in
        turn find the newly constructed type in an invalid state) */
-    auto *heap_type = (PyHeapTypeObject *) PyType_Type.tp_alloc(&PyType_Type, 0);
+    auto *heap_type = reinterpret_cast<PyHeapTypeObject *>(PyType_Type.tp_alloc(&PyType_Type, 0));
     if (!heap_type) {
         pybind11_fail("make_default_metaclass(): error allocating metaclass!");
     }
@@ -291,7 +291,7 @@ inline PyTypeObject *make_default_metaclass() {
         pybind11_fail("make_default_metaclass(): failure in PyType_Ready()!");
     }
 
-    setattr((PyObject *) type, "__module__", str(PYBIND11_DUMMY_MODULE_NAME));
+    setattr(reinterpret_cast<PyObject *>(type), "__module__", str(PYBIND11_DUMMY_MODULE_NAME));
     PYBIND11_SET_OLDPY_QUALNAME(type, name_obj);
 
     return type;
@@ -306,7 +306,7 @@ inline void traverse_offset_bases(void *valueptr,
                                   instance *self,
                                   bool (*f)(void * /*parentptr*/, instance * /*self*/)) {
     for (handle h : reinterpret_borrow<tuple>(tinfo->type->tp_bases)) {
-        if (auto *parent_tinfo = get_type_info((PyTypeObject *) h.ptr())) {
+        if (auto *parent_tinfo = get_type_info(reinterpret_cast<PyTypeObject *>(h.ptr()))) {
             for (auto &c : parent_tinfo->implicit_casts) {
                 if (c.first == tinfo->cpptype) {
                     auto *parentptr = c.second(valueptr);
@@ -530,7 +530,7 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass) {
        issue no Python C API calls which could potentially invoke the
        garbage collector (the GC will call type_traverse(), which will in
        turn find the newly constructed type in an invalid state) */
-    auto *heap_type = (PyHeapTypeObject *) metaclass->tp_alloc(metaclass, 0);
+    auto *heap_type = reinterpret_cast<PyHeapTypeObject *>(metaclass->tp_alloc(metaclass, 0));
     if (!heap_type) {
         pybind11_fail("make_object_base_type(): error allocating type!");
     }
@@ -557,11 +557,11 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass) {
         pybind11_fail("PyType_Ready failed in make_object_base_type(): " + error_string());
     }
 
-    setattr((PyObject *) type, "__module__", str(PYBIND11_DUMMY_MODULE_NAME));
+    setattr(reinterpret_cast<PyObject *>(type), "__module__", str(PYBIND11_DUMMY_MODULE_NAME));
     PYBIND11_SET_OLDPY_QUALNAME(type, name_obj);
 
     assert(!PyType_HasFeature(type, Py_TPFLAGS_HAVE_GC));
-    return (PyObject *) heap_type;
+    return reinterpret_cast<PyObject *>(heap_type);
 }
 
 /// dynamic_attr: Allow the garbage collector to traverse the internal instance `__dict__`.
@@ -746,7 +746,7 @@ inline PyObject *make_new_python_type(const type_record &rec) {
         /* Allocate memory for docstring (Python will free this later on) */
         size_t size = std::strlen(rec.doc) + 1;
 #if PY_VERSION_HEX >= 0x030D0000
-        tp_doc = (char *) PyMem_MALLOC(size);
+        tp_doc = static_cast<char *>(PyMem_MALLOC(size));
 #else
         tp_doc = (char *) PyObject_MALLOC(size);
 #endif
@@ -761,10 +761,10 @@ inline PyObject *make_new_python_type(const type_record &rec) {
        issue no Python C API calls which could potentially invoke the
        garbage collector (the GC will call type_traverse(), which will in
        turn find the newly constructed type in an invalid state) */
-    auto *metaclass
-        = rec.metaclass.ptr() ? (PyTypeObject *) rec.metaclass.ptr() : internals.default_metaclass;
+    auto *metaclass = rec.metaclass.ptr() ? reinterpret_cast<PyTypeObject *>(rec.metaclass.ptr())
+                                          : internals.default_metaclass;
 
-    auto *heap_type = (PyHeapTypeObject *) metaclass->tp_alloc(metaclass, 0);
+    auto *heap_type = reinterpret_cast<PyHeapTypeObject *>(metaclass->tp_alloc(metaclass, 0));
     if (!heap_type) {
         pybind11_fail(std::string(rec.name) + ": Unable to create type object!");
     }
@@ -777,7 +777,7 @@ inline PyObject *make_new_python_type(const type_record &rec) {
     auto *type = &heap_type->ht_type;
     type->tp_name = full_name;
     type->tp_doc = tp_doc;
-    type->tp_base = type_incref((PyTypeObject *) base);
+    type->tp_base = type_incref(reinterpret_cast<PyTypeObject *>(base));
     type->tp_basicsize = static_cast<ssize_t>(sizeof(instance));
     if (!bases.empty()) {
         type->tp_bases = bases.release().ptr();
@@ -818,18 +818,18 @@ inline PyObject *make_new_python_type(const type_record &rec) {
 
     /* Register type with the parent scope */
     if (rec.scope) {
-        setattr(rec.scope, rec.name, (PyObject *) type);
+        setattr(rec.scope, rec.name, reinterpret_cast<PyObject *>(type));
     } else {
         Py_INCREF(type); // Keep it alive forever (reference leak)
     }
 
     if (module_) { // Needed by pydoc
-        setattr((PyObject *) type, "__module__", module_);
+        setattr(reinterpret_cast<PyObject *>(type), "__module__", module_);
     }
 
     PYBIND11_SET_OLDPY_QUALNAME(type, qualname);
 
-    return (PyObject *) type;
+    return reinterpret_cast<PyObject *>(type);
 }
 
 PYBIND11_NAMESPACE_END(detail)

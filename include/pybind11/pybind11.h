@@ -159,7 +159,7 @@ inline std::string generate_function_signature(const char *type_caster_name_fiel
                 pybind11_fail("Internal error while parsing type signature (1)");
             }
             if (auto *tinfo = detail::get_type_info(*t)) {
-                handle th((PyObject *) tinfo->type);
+                handle th(reinterpret_cast<PyObject *>(tinfo->type));
                 signature += th.attr("__module__").cast<std::string>() + "."
                              + th.attr("__qualname__").cast<std::string>();
             } else if (auto th = detail::global_internals_native_enum_type_map_get_item(*t)) {
@@ -642,7 +642,7 @@ protected:
 
         rec->signature = guarded_strdup(signature.c_str());
         rec->args.shrink_to_fit();
-        rec->nargs = (std::uint16_t) args;
+        rec->nargs = static_cast<std::uint16_t>(args);
 
         if (rec->sibling && PYBIND11_INSTANCE_METHOD_CHECK(rec->sibling.ptr())) {
             rec->sibling = PYBIND11_INSTANCE_METHOD_GET_FUNCTION(rec->sibling.ptr());
@@ -681,7 +681,7 @@ protected:
             rec->def->ml_flags = METH_VARARGS | METH_KEYWORDS;
 
             object py_func_rec = detail::function_record_PyObject_New();
-            ((detail::function_record_PyObject *) py_func_rec.ptr())->cpp_func_rec
+            (reinterpret_cast<detail::function_record_PyObject *>(py_func_rec.ptr()))->cpp_func_rec
                 = unique_rec.release();
             guarded_strdup.release();
 
@@ -715,8 +715,8 @@ protected:
                 // chain.
                 chain_start = rec;
                 rec->next = chain;
-                auto *py_func_rec
-                    = (detail::function_record_PyObject *) PyCFunction_GET_SELF(m_ptr);
+                auto *py_func_rec = reinterpret_cast<detail::function_record_PyObject *>(
+                    PyCFunction_GET_SELF(m_ptr));
                 py_func_rec->cpp_func_rec = unique_rec.release();
                 guarded_strdup.release();
             } else {
@@ -776,7 +776,7 @@ protected:
             }
         }
 
-        auto *func = (PyCFunctionObject *) m_ptr;
+        auto *func = reinterpret_cast<PyCFunctionObject *>(m_ptr);
         // Install docstring if it's non-empty (when at least one option is enabled)
         auto *doc = signatures.empty() ? nullptr : PYBIND11_COMPAT_STRDUP(signatures.c_str());
         std::free(const_cast<char *>(PYBIND11_PYCFUNCTION_GET_DOC(func)));
@@ -851,7 +851,7 @@ protected:
 
         /* Need to know how many arguments + keyword arguments there are to pick the right
            overload */
-        const auto n_args_in = (size_t) PyTuple_GET_SIZE(args_in);
+        const auto n_args_in = static_cast<size_t>(PyTuple_GET_SIZE(args_in));
 
         handle parent = n_args_in > 0 ? PyTuple_GET_ITEM(args_in, 0) : nullptr,
                result = PYBIND11_TRY_NEXT_OVERLOAD;
@@ -865,7 +865,8 @@ protected:
                 return nullptr;
             }
 
-            auto *const tinfo = get_type_info((PyTypeObject *) overloads->scope.ptr());
+            auto *const tinfo
+                = get_type_info(reinterpret_cast<PyTypeObject *>(overloads->scope.ptr()));
             auto *const pi = reinterpret_cast<instance *>(parent.ptr());
             self_value_and_holder = pi->get_value_and_holder(tinfo, true);
 
@@ -1296,7 +1297,7 @@ PYBIND11_NAMESPACE_BEGIN(function_record_PyTypeObject_methods)
 
 // This implementation needs the definition of `class cpp_function`.
 inline void tp_dealloc_impl(PyObject *self) {
-    auto *py_func_rec = (function_record_PyObject *) self;
+    auto *py_func_rec = reinterpret_cast<function_record_PyObject *>(self);
     cpp_function::destruct(py_func_rec->cpp_func_rec);
     py_func_rec->cpp_func_rec = nullptr;
 }
@@ -1669,7 +1670,7 @@ protected:
 
         /* Register supplemental type information in C++ dict */
         auto *tinfo = new detail::type_info();
-        tinfo->type = (PyTypeObject *) m_ptr;
+        tinfo->type = reinterpret_cast<PyTypeObject *>(m_ptr);
         tinfo->cpptype = rec.type;
         tinfo->type_size = rec.type_size;
         tinfo->type_align = rec.type_align;
@@ -1704,7 +1705,7 @@ protected:
             PYBIND11_WARNING_DISABLE_GCC("-Warray-bounds")
             PYBIND11_WARNING_DISABLE_GCC("-Wstringop-overread")
 #endif
-            internals.registered_types_py[(PyTypeObject *) m_ptr] = {tinfo};
+            internals.registered_types_py[reinterpret_cast<PyTypeObject *>(m_ptr)] = {tinfo};
             PYBIND11_WARNING_POP
         });
 
@@ -1712,7 +1713,8 @@ protected:
             mark_parents_nonsimple(tinfo->type);
             tinfo->simple_ancestors = false;
         } else if (rec.bases.size() == 1) {
-            auto *parent_tinfo = get_type_info((PyTypeObject *) rec.bases[0].ptr());
+            auto *parent_tinfo
+                = get_type_info(reinterpret_cast<PyTypeObject *>(rec.bases[0].ptr()));
             assert(parent_tinfo != nullptr);
             bool parent_simple_ancestors = parent_tinfo->simple_ancestors;
             tinfo->simple_ancestors = parent_simple_ancestors;
@@ -1731,17 +1733,17 @@ protected:
     void mark_parents_nonsimple(PyTypeObject *value) {
         auto t = reinterpret_borrow<tuple>(value->tp_bases);
         for (handle h : t) {
-            auto *tinfo2 = get_type_info((PyTypeObject *) h.ptr());
+            auto *tinfo2 = get_type_info(reinterpret_cast<PyTypeObject *>(h.ptr()));
             if (tinfo2) {
                 tinfo2->simple_type = false;
             }
-            mark_parents_nonsimple((PyTypeObject *) h.ptr());
+            mark_parents_nonsimple(reinterpret_cast<PyTypeObject *>(h.ptr()));
         }
     }
 
     void install_buffer_funcs(buffer_info *(*get_buffer)(PyObject *, void *),
                               void *get_buffer_data) {
-        auto *type = (PyHeapTypeObject *) m_ptr;
+        auto *type = reinterpret_cast<PyHeapTypeObject *>(m_ptr);
         auto *tinfo = detail::get_type_info(&type->ht_type);
 
         if (!type->ht_type.tp_as_buffer) {
@@ -1763,8 +1765,8 @@ protected:
         const auto is_static = (rec_func != nullptr) && !(rec_func->is_method && rec_func->scope);
         const auto has_doc = (rec_func != nullptr) && (rec_func->doc != nullptr)
                              && pybind11::options::show_user_defined_docstrings();
-        auto property = handle(
-            (PyObject *) (is_static ? get_internals().static_property_type : &PyProperty_Type));
+        auto property = handle(reinterpret_cast<PyObject *>(
+            is_static ? get_internals().static_property_type : &PyProperty_Type));
         attr(name) = property(fget.ptr() ? fget : none(),
                               fset.ptr() ? fset : none(),
                               /*deleter*/ none(),
@@ -2698,8 +2700,9 @@ struct enum_base {
 
     PYBIND11_NOINLINE void init(bool is_arithmetic, bool is_convertible) {
         m_base.attr("__entries") = dict();
-        auto property = handle((PyObject *) &PyProperty_Type);
-        auto static_property = handle((PyObject *) get_internals().static_property_type);
+        auto property = handle(reinterpret_cast<PyObject *>(&PyProperty_Type));
+        auto static_property
+            = handle(reinterpret_cast<PyObject *>(get_internals().static_property_type));
 
         m_base.attr("__repr__") = cpp_function(
             [](const object &arg) -> str {
@@ -2730,7 +2733,7 @@ struct enum_base {
                     [](handle arg) -> std::string {
                         std::string docstring;
                         dict entries = arg.attr("__entries");
-                        if (((PyTypeObject *) arg.ptr())->tp_doc) {
+                        if ((reinterpret_cast<PyTypeObject *>(arg.ptr()))->tp_doc) {
                             docstring += std::string(
                                 reinterpret_cast<PyTypeObject *>(arg.ptr())->tp_doc);
                             docstring += "\n\n";
@@ -2856,7 +2859,7 @@ struct enum_base {
         dict entries = m_base.attr("__entries");
         str name(name_);
         if (entries.contains(name)) {
-            std::string type_name = (std::string) str(m_base.attr("__name__"));
+            std::string type_name = std::string(str(m_base.attr("__name__")));
             throw value_error(std::move(type_name) + ": element \"" + std::string(name_)
                               + "\" already exists!");
         }
@@ -3051,7 +3054,7 @@ all_type_info_get_cache(PyTypeObject *type) {
     if (res.second) {
         // New cache entry created; set up a weak reference to automatically remove it if the type
         // gets destroyed:
-        weakref((PyObject *) type, cpp_function([type](handle wr) {
+        weakref(reinterpret_cast<PyObject *>(type), cpp_function([type](handle wr) {
                     with_internals([type](internals &internals) {
                         internals.registered_types_py.erase(type);
 
@@ -3292,7 +3295,7 @@ void implicitly_convertible() {
         }
         tuple args(1);
         args[0] = obj;
-        PyObject *result = PyObject_Call((PyObject *) type, args.ptr(), nullptr);
+        PyObject *result = PyObject_Call(reinterpret_cast<PyObject *>(type), args.ptr(), nullptr);
         if (result == nullptr) {
             PyErr_Clear();
         }
@@ -3508,7 +3511,7 @@ get_type_override(const void *this_ptr, const type_info *this_type, const char *
     if (frame != nullptr) {
         PyCodeObject *f_code = PyFrame_GetCode(frame);
         // f_code is guaranteed to not be NULL
-        if ((std::string) str(f_code->co_name) == name && f_code->co_argcount > 0) {
+        if (std::string(str(f_code->co_name)) == name && f_code->co_argcount > 0) {
 #        if PY_VERSION_HEX >= 0x030d0000
             PyObject *locals = PyEval_GetFrameLocals();
 #        else
