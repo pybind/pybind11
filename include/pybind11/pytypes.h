@@ -1563,7 +1563,9 @@ public:
     PYBIND11_OBJECT(type, object, PyType_Check)
 
     /// Return a type handle from a handle or an object
-    static handle handle_of(handle h) { return handle((PyObject *) Py_TYPE(h.ptr())); }
+    static handle handle_of(handle h) {
+        return handle(reinterpret_cast<PyObject *>(Py_TYPE(h.ptr())));
+    }
 
     /// Return a type object from a handle or an object
     static type of(handle h) { return type(type::handle_of(h), borrowed_t{}); }
@@ -1661,7 +1663,7 @@ public:
         if (PyBytes_AsStringAndSize(temp.ptr(), &buffer, &length) != 0) {
             throw error_already_set();
         }
-        return std::string(buffer, (size_t) length);
+        return std::string(buffer, static_cast<size_t>(length));
     }
 
     template <typename... Args>
@@ -1861,10 +1863,12 @@ template <typename Unsigned>
 Unsigned as_unsigned(PyObject *o) {
     if (sizeof(Unsigned) <= sizeof(unsigned long)) {
         unsigned long v = PyLong_AsUnsignedLong(o);
-        return v == (unsigned long) -1 && PyErr_Occurred() ? (Unsigned) -1 : (Unsigned) v;
+        return v == static_cast<unsigned long>(-1) && PyErr_Occurred() ? (Unsigned) -1
+                                                                       : (Unsigned) v;
     }
     unsigned long long v = PyLong_AsUnsignedLongLong(o);
-    return v == (unsigned long long) -1 && PyErr_Occurred() ? (Unsigned) -1 : (Unsigned) v;
+    return v == static_cast<unsigned long long>(-1) && PyErr_Occurred() ? (Unsigned) -1
+                                                                        : (Unsigned) v;
 }
 PYBIND11_NAMESPACE_END(detail)
 
@@ -1908,7 +1912,7 @@ public:
     PYBIND11_OBJECT_CVT(float_, object, PyFloat_Check, PyNumber_Float)
     // Allow implicit conversion from float/double:
     // NOLINTNEXTLINE(google-explicit-constructor)
-    float_(float value) : object(PyFloat_FromDouble((double) value), stolen_t{}) {
+    float_(float value) : object(PyFloat_FromDouble(static_cast<double>(value)), stolen_t{}) {
         if (!m_ptr) {
             pybind11_fail("Could not allocate float object!");
         }
@@ -1920,7 +1924,7 @@ public:
         }
     }
     // NOLINTNEXTLINE(google-explicit-constructor)
-    operator float() const { return (float) PyFloat_AsDouble(m_ptr); }
+    operator float() const { return static_cast<float>(PyFloat_AsDouble(m_ptr)); }
     // NOLINTNEXTLINE(google-explicit-constructor)
     operator double() const { return PyFloat_AsDouble(m_ptr); }
 };
@@ -2122,7 +2126,7 @@ public:
             pybind11_fail("Could not allocate tuple object!");
         }
     }
-    size_t size() const { return (size_t) PyTuple_Size(m_ptr); }
+    size_t size() const { return static_cast<size_t>(PyTuple_Size(m_ptr)); }
     bool empty() const { return size() == 0; }
     detail::tuple_accessor operator[](size_t index) const { return {*this, index}; }
     template <typename T, detail::enable_if_t<detail::is_pyobject<T>::value, int> = 0>
@@ -2156,7 +2160,7 @@ public:
               typename collector = detail::deferred_t<detail::unpacking_collector<>, Args...>>
     explicit dict(Args &&...args) : dict(collector(std::forward<Args>(args)...).kwargs()) {}
 
-    size_t size() const { return (size_t) PyDict_Size(m_ptr); }
+    size_t size() const { return static_cast<size_t>(PyDict_Size(m_ptr)); }
     bool empty() const { return size() == 0; }
     detail::dict_iterator begin() const { return {*this, 0}; }
     detail::dict_iterator end() const { return {}; }
@@ -2176,7 +2180,8 @@ private:
         if (PyDict_Check(op)) {
             return handle(op).inc_ref().ptr();
         }
-        return PyObject_CallFunctionObjArgs((PyObject *) &PyDict_Type, op, nullptr);
+        return PyObject_CallFunctionObjArgs(
+            reinterpret_cast<PyObject *>(&PyDict_Type), op, nullptr);
     }
 };
 
@@ -2188,7 +2193,7 @@ public:
         if (result == -1) {
             throw error_already_set();
         }
-        return (size_t) result;
+        return static_cast<size_t>(result);
     }
     bool empty() const { return size() == 0; }
     detail::sequence_accessor operator[](size_t index) const { return {*this, index}; }
@@ -2211,7 +2216,7 @@ public:
             pybind11_fail("Could not allocate list object!");
         }
     }
-    size_t size() const { return (size_t) PyList_Size(m_ptr); }
+    size_t size() const { return static_cast<size_t>(PyList_Size(m_ptr)); }
     bool empty() const { return size() == 0; }
     detail::list_accessor operator[](size_t index) const { return {*this, index}; }
     template <typename T, detail::enable_if_t<detail::is_pyobject<T>::value, int> = 0>
@@ -2497,7 +2502,7 @@ inline size_t len(handle h) {
     if (result < 0) {
         throw error_already_set();
     }
-    return (size_t) result;
+    return static_cast<size_t>(result);
 }
 
 /// Get the length hint of a Python object.
@@ -2510,7 +2515,7 @@ inline size_t len_hint(handle h) {
         PyErr_Clear();
         return 0;
     }
-    return (size_t) result;
+    return static_cast<size_t>(result);
 }
 
 inline str repr(handle h) {
