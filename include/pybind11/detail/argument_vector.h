@@ -231,7 +231,7 @@ public:
             new (&m_repr.hvector) typename repr_type::heap_vector(count, value);
         } else {
             auto &inline_arr = m_repr.iarray;
-            inline_arr.arr.fill(value ? std::size_t(-1) : 0);
+            inline_arr.arr.fill(value ? static_cast<std::size_t>(-1) : 0);
             inline_arr.size = static_cast<decltype(inline_arr.size)>(count);
         }
     }
@@ -273,9 +273,9 @@ public:
                 assert(wbi.word < kWords);
                 assert(wbi.bit < kBitsPerWord);
                 if (b) {
-                    ha.arr[wbi.word] |= (std::size_t(1) << wbi.bit);
+                    ha.arr[wbi.word] |= (static_cast<std::size_t>(1) << wbi.bit);
                 } else {
-                    ha.arr[wbi.word] &= ~(std::size_t(1) << wbi.bit);
+                    ha.arr[wbi.word] &= ~(static_cast<std::size_t>(1) << wbi.bit);
                 }
                 assert(operator[](ha.size - 1) == b);
             }
@@ -300,7 +300,7 @@ private:
         const auto wbi = word_and_bit_index(idx);
         assert(wbi.word < kWords);
         assert(wbi.bit < kBitsPerWord);
-        return m_repr.iarray.arr[wbi.word] & (std::size_t(1) << wbi.bit);
+        return m_repr.iarray.arr[wbi.word] & (static_cast<std::size_t>(1) << wbi.bit);
     }
 
     PYBIND11_NOINLINE void move_to_heap_vector_with_reserved_size(std::size_t reserved_size) {
