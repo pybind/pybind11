@@ -1273,12 +1273,11 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-11-arm]
-        python: ['3.12']
 
     runs-on: "${{ matrix.os }}"
     timeout-minutes: 90
 
-    name: "🐍 ${{ matrix.python }} • ${{ matrix.os }} • clang-msys2"
+    name: "${{ matrix.os }} • clang-msys2"
 
     defaults:
       run:
