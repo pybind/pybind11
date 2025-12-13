@@ -48,7 +48,7 @@ def test_docstring_options():
     assert not m.DocstringTestFoo.__doc__
     assert not m.DocstringTestFoo.value_prop.__doc__
 
-    # Check existig behaviour of enum docstings
+    # Check existing behaviour of enum docstings
     assert (
         m.DocstringTestEnum1.__doc__
         == "Enum docstring\n\nMembers:\n\n  Member1\n\n  Member2"
