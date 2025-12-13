@@ -606,9 +606,8 @@ public:
             // this could be called without an active interpreter, just use what was cached
             if (!tstate || tstate->interp == last_istate_tls()) {
                 auto tpp = internals_p_tls();
-                if (tpp) {
-                    delete tpp;
-                }
+
+                delete tpp;
             }
             unref();
             return;

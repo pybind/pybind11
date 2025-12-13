@@ -66,10 +66,11 @@ struct buffer_info {
                 bool readonly = false)
         : ptr(ptr), itemsize(itemsize), size(1), format(format), ndim(ndim),
           shape(std::move(shape_in)), strides(std::move(strides_in)), readonly(readonly) {
-        if (ndim != (ssize_t) shape.size() || ndim != (ssize_t) strides.size()) {
+        if (ndim != static_cast<ssize_t>(shape.size())
+            || ndim != static_cast<ssize_t>(strides.size())) {
             pybind11_fail("buffer_info: ndim doesn't match shape and/or strides length");
         }
-        for (size_t i = 0; i < (size_t) ndim; ++i) {
+        for (size_t i = 0; i < static_cast<size_t>(ndim); ++i) {
             size *= shape[i];
         }
     }
@@ -195,7 +196,7 @@ struct compare_buffer_info {
 template <typename T>
 struct compare_buffer_info<T, detail::enable_if_t<std::is_integral<T>::value>> {
     static bool compare(const buffer_info &b) {
-        return (size_t) b.itemsize == sizeof(T)
+        return static_cast<size_t>(b.itemsize) == sizeof(T)
                && (b.format == format_descriptor<T>::value
                    || ((sizeof(T) == sizeof(long))
                        && b.format == (std::is_unsigned<T>::value ? "L" : "l"))
