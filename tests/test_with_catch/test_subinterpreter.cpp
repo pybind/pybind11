@@ -7,7 +7,6 @@
 PYBIND11_WARNING_DISABLE_MSVC(4996)
 
 #    include <catch.hpp>
-#    include <cstdio>
 #    include <cstdlib>
 #    include <fstream>
 #    include <functional>
@@ -16,16 +15,6 @@ PYBIND11_WARNING_DISABLE_MSVC(4996)
 
 namespace py = pybind11;
 using namespace py::literals;
-
-namespace {
-inline void debug_look(const char *file, int line) {
-    fflush(stderr);
-    std::fprintf(stdout, "\nLOOOK %s:%d\n", file, line);
-    fflush(stdout);
-}
-} // namespace
-
-#    define DEBUG_LOOK() debug_look(__FILE__, __LINE__)
 
 bool has_state_dict_internals_obj();
 uintptr_t get_details_as_uintptr();
@@ -103,48 +92,30 @@ TEST_CASE("Single Subinterpreter") {
 
 #    if PY_VERSION_HEX >= 0x030D0000
 TEST_CASE("Move Subinterpreter") {
-    DEBUG_LOOK();
     std::unique_ptr<py::subinterpreter> sub(new py::subinterpreter(py::subinterpreter::create()));
-    DEBUG_LOOK();
 
     // on this thread, use the subinterpreter and import some non-trivial junk
     {
-        DEBUG_LOOK();
         py::subinterpreter_scoped_activate activate(*sub);
-        DEBUG_LOOK();
 
         py::list(py::module_::import("sys").attr("path")).append(py::str("."));
-        DEBUG_LOOK();
         py::module_::import("datetime");
-        DEBUG_LOOK();
         py::module_::import("threading");
-        DEBUG_LOOK();
         py::module_::import("external_module");
-        DEBUG_LOOK();
     }
 
-    DEBUG_LOOK();
     std::thread([&]() {
-        DEBUG_LOOK();
         // Use it again
         {
-            DEBUG_LOOK();
             py::subinterpreter_scoped_activate activate(*sub);
-            DEBUG_LOOK();
             py::module_::import("external_module");
-            DEBUG_LOOK();
         }
-        DEBUG_LOOK();
         sub.reset();
-        DEBUG_LOOK();
     }).join();
-    DEBUG_LOOK();
 
     REQUIRE(!sub);
-    DEBUG_LOOK();
 
     unsafe_reset_internals_for_single_interpreter();
-    DEBUG_LOOK();
 }
 #    endif
 
