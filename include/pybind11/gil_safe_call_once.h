@@ -130,7 +130,6 @@ public:
             // CPython API calls in the `fn()` call below may release and reacquire the GIL.
             gil_scoped_release gil_rel; // Needed to establish lock ordering.
             {
-                gil_scoped_acquire gil_acq;
                 detail::with_internals([&](detail::internals &internals) {
                     // The concurrency control is done inside `detail::with_internals`.
                     // At most one thread will enter here at a time.
@@ -141,10 +140,11 @@ public:
                     // already created.
                     auto it = storage_map.find(k);
                     if (it == storage_map.end()) {
+                        gil_scoped_acquire gil_acq;
                         auto v = new detail::call_once_storage<T>{};
                         ::new (v->storage) T(fn()); // fn may release, but will reacquire, the GIL.
                         v->finalize = finalize_fn;
-                        last_storage_ = reinterpret_cast<T *>(v->storage);
+                        last_storage_ptr_ = reinterpret_cast<T *>(v->storage);
                         v->is_initialized = true;
                         storage_map.emplace(k, v);
                     }
@@ -159,13 +159,13 @@ public:
 
     // This must only be called after `call_once_and_store_result()` was called.
     T &get_stored() {
-        T *result = last_storage_;
+        T *result = last_storage_ptr_;
         if (!is_last_storage_valid()) {
             detail::with_internals([&](detail::internals &internals) {
                 const void *k = reinterpret_cast<const void *>(this);
                 auto &storage_map = internals.call_once_storage_map;
                 auto *v = static_cast<detail::call_once_storage<T> *>(storage_map.at(k));
-                result = last_storage_ = reinterpret_cast<T *>(v->storage);
+                result = last_storage_ptr_ = reinterpret_cast<T *>(v->storage);
             });
         }
         assert(result != nullptr);
@@ -181,7 +181,7 @@ public:
 private:
     bool is_last_storage_valid() const {
         return is_initialized_by_atleast_one_interpreter_
-               && detail::get_num_interpreters_seen() <= 1 && last_storage_ != nullptr;
+               && detail::get_num_interpreters_seen() <= 1;
     }
 
     // No storage needed when subinterpreter support is enabled.
@@ -190,7 +190,7 @@ private:
 
     // Fast local cache to avoid repeated lookups when there are no multiple interpreters.
     // This is only valid if there is a single interpreter. Otherwise, it is not used.
-    T *last_storage_ = nullptr;
+    T *last_storage_ptr_ = nullptr;
     // This flag is true if the value has been initialized by any interpreter (may not be the
     // current one).
     atomic_bool is_initialized_by_atleast_one_interpreter_{false};
