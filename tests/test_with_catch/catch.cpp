@@ -21,6 +21,8 @@ namespace py = pybind11;
 // Simple progress reporter that prints a line per test case.
 namespace {
 
+bool g_printed_python_version = false;
+
 class ProgressReporter : public Catch::CumulativeReporterBase<ProgressReporter> {
 public:
     using CumulativeReporterBase::CumulativeReporterBase;
@@ -28,6 +30,12 @@ public:
     static std::string getDescription() { return "Simple progress reporter (one line per test)"; }
 
     void testCaseStarting(Catch::TestCaseInfo const &testInfo) override {
+        if (!g_printed_python_version) {
+            g_printed_python_version = true;
+            const char *version = Py_GetVersion();
+            stream << "[ PYTHON   ] " << version << '\n';
+            stream.flush();
+        }
         stream << "[ RUN      ] " << testInfo.name << '\n';
         stream.flush();
         CumulativeReporterBase::testCaseStarting(testInfo);
