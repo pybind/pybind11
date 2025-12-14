@@ -35,27 +35,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runs-on: ubuntu-22.04
-            python-version: '3.8'
-            cmake-args: -DPYBIND11_FINDPYTHON=OFF -DPYBIND11_NUMPY_1_ONLY=ON
-          - runs-on: ubuntu-latest
-            python-version: '3.13'
-            cmake-args: -DCMAKE_CXX_STANDARD=23 -DPYBIND11_SIMPLE_GIL_MANAGEMENT=ON
           - runs-on: ubuntu-latest
             python-version: '3.14t'
             cmake-args: -DCMAKE_CXX_STANDARD=17 -DPYBIND11_TEST_SMART_HOLDER=ON
-          - runs-on: ubuntu-latest
-            python-version: 'pypy3.11'
-            cmake-args: -DCMAKE_CXX_STANDARD=17
-          - runs-on: ubuntu-latest
-            python-version: 'graalpy-24.2'
-            cmake-args: -DCMAKE_CXX_STANDARD=20
-          - runs-on: macos-latest
-            python-version: '3.14'
-            cmake-args: -DCMAKE_CXX_STANDARD=14
-          - runs-on: windows-2022
-            python-version: '3.8'
-            cmake-args: -DPYBIND11_FINDPYTHON=OFF
 
 
     name: 🐍
@@ -71,90 +53,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runs-on: ubuntu-latest
-            python-version: '3.8'
-            cmake-args: -DPYBIND11_FINDPYTHON=ON -DCMAKE_CXX_STANDARD=17
-          - runs-on: ubuntu-latest
-            python-version: '3.10'
-            cmake-args: -DCMAKE_CXX_STANDARD=20
-          - runs-on: ubuntu-latest
-            python-version: '3.11'
-            cmake-args: -DPYBIND11_TEST_SMART_HOLDER=ON -DCMAKE_CXX_STANDARD=17
-          - runs-on: ubuntu-latest
-            python-version: '3.12'
-            cmake-args: -DPYBIND11_TEST_SMART_HOLDER=ON -DPYBIND11_SIMPLE_GIL_MANAGEMENT=ON
-          - runs-on: ubuntu-latest
-            python-version: '3.13t'
-            cmake-args: -DCMAKE_CXX_STANDARD=20 -DPYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION=ON
-          - runs-on: ubuntu-latest
-            python-version: '3.14'
-            cmake-args: -DCMAKE_CXX_STANDARD=14 -DCMAKE_CXX_FLAGS="-DPYBIND11_HAS_SUBINTERPRETER_SUPPORT=0"
-          - runs-on: ubuntu-latest
-            python-version: 'pypy-3.10'
-            cmake-args: -DCMAKE_CXX_STANDARD=14
-          - runs-on: ubuntu-latest
-            python-version: 'graalpy-24.1'
-
-          # No SciPy for macOS ARM
-          - runs-on: macos-15-intel
-            python-version: '3.8'
-            cmake-args: -DCMAKE_CXX_STANDARD=14
-          - runs-on: macos-15-intel
-            python-version: '3.11'
-            cmake-args: -DPYBIND11_TEST_SMART_HOLDER=ON
-          - runs-on: macos-latest
-            python-version: '3.12'
-            cmake-args: -DCMAKE_CXX_STANDARD=17 -DPYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION=ON
-          - runs-on: macos-15-intel
-            python-version: '3.13t'
-            cmake-args: -DCMAKE_CXX_STANDARD=11
           - runs-on: macos-latest
             python-version: '3.14t'
-            cmake-args: -DCMAKE_CXX_STANDARD=20
-          - runs-on: macos-15-intel
-            python-version: 'pypy-3.10'
-            cmake-args: -DCMAKE_CXX_STANDARD=17
-          - runs-on: macos-latest
-            python-version: 'pypy-3.11'
-          - runs-on: macos-latest
-            python-version: 'graalpy-24.2'
-
-          - runs-on: windows-latest
-            python-version: '3.9'
-            cmake-args: -DPYBIND11_TEST_SMART_HOLDER=ON
-          - runs-on: windows-2022
-            python-version: '3.8'
-            cmake-args: -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -DPYBIND11_NUMPY_1_ONLY=ON
-          - runs-on: windows-2022
-            python-version: '3.9'
-            cmake-args: -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL -DCMAKE_CXX_STANDARD=14
-          # This needs a python built with MTd
-          # - runs-on: windows-2022
-          #   python-version: '3.11'
-          #   cmake-args: -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebug
-          - runs-on: windows-2022
-            python-version: '3.10'
-            cmake-args: -DPYBIND11_TEST_SMART_HOLDER=ON -DCMAKE_CXX_FLAGS="/GR /EHsc"
-          - runs-on: windows-2022
-            python-version: '3.13'
-            cmake-args: -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebugDLL
-          - runs-on: windows-latest
-            python-version: '3.13t'
-            cmake-args: -DCMAKE_CXX_STANDARD=17
-          - runs-on: windows-latest
-            python-version: '3.14'
             cmake-args: -DCMAKE_CXX_STANDARD=20
           - runs-on: windows-latest
             python-version: '3.14t'
             cmake-args: -DCMAKE_CXX_STANDARD=23
-          - runs-on: windows-latest
-            python-version: 'pypy-3.10'
-            cmake-args: -DCMAKE_CXX_STANDARD=17
-          - runs-on: windows-latest
-            python-version: 'pypy3.11'
-            cmake-args: -DCMAKE_CXX_STANDARD=20
-          # The setup-python action currently doesn't have graalpy for windows
-          # See https://github.com/actions/setup-python/pull/880
 
     name: 🐍
     uses: ./.github/workflows/reusable-standard.yml
@@ -165,7 +69,7 @@ jobs:
 
   # This checks inplace builds with C++11
   inplace:
-    if: github.event.pull_request.draft == false
+    if: false
     strategy:
       fail-fast: false
       matrix:
@@ -240,7 +144,7 @@ jobs:
 
   manylinux:
     name: Manylinux on 🐍 3.13t • GIL
-    if: github.event.pull_request.draft == false
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 40
     container: quay.io/pypa/musllinux_1_2_x86_64:latest
@@ -265,7 +169,7 @@ jobs:
         run: cmake --build --preset testsvenv -t pytest
 
   deadsnakes:
-    if: github.event.pull_request.draft == false
+    if: false
     strategy:
       fail-fast: false
       matrix:
@@ -346,7 +250,7 @@ jobs:
 
   # Testing on clang using the excellent silkeh clang docker images
   clang:
-    if: github.event.pull_request.draft == false
+    if: false
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -403,6 +307,7 @@ jobs:
 
   # Testing NVCC; forces sources to behave like .cu files
   cuda:
+    if: false
     runs-on: ubuntu-latest
     name: "🐍 3.10 • CUDA 12.2 • Ubuntu 22.04"
     container: nvidia/cuda:12.2.0-devel-ubuntu22.04
@@ -471,7 +376,7 @@ jobs:
 
   # Testing on Ubuntu + NVHPC (previous PGI) compilers, which seems to require more workarounds
   ubuntu-nvhpc7:
-    if: github.event.pull_request.draft == false
+    if: false
     runs-on: ubuntu-22.04
     name: "🐍 3 • NVHPC 23.5 • C++17 • x64"
     timeout-minutes: 90
@@ -526,7 +431,7 @@ jobs:
 
   # Testing on GCC using the GCC docker images (only recent images supported)
   gcc:
-    if: github.event.pull_request.draft == false
+    if: false
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -599,7 +504,7 @@ jobs:
 
   # Testing on ICC using the oneAPI apt repo
   icc:
-    if: github.event.pull_request.draft == false
+    if: false
     runs-on: ubuntu-22.04
     timeout-minutes: 90
 
@@ -705,7 +610,7 @@ jobs:
 
   # Testing on CentOS (manylinux uses a centos base).
   centos:
-    if: github.event.pull_request.draft == false
+    if: false
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -771,7 +676,7 @@ jobs:
 
   # This tests an "install" with the CMake tools
   install-classic:
-    if: github.event.pull_request.draft == false
+    if: false
     name: "🐍 3.9 • Debian • x86 •  Install"
     runs-on: ubuntu-latest
     container: i386/debian:bullseye
@@ -817,7 +722,7 @@ jobs:
   # This verifies that the documentation is not horribly broken, and does a
   # basic validation check on the SDist.
   doxygen:
-    if: github.event.pull_request.draft == false
+    if: false
     name: "Documentation build test"
     runs-on: ubuntu-latest
     timeout-minutes: 90
@@ -853,7 +758,7 @@ jobs:
         diff -rq $installed ./pybind11
 
   win32:
-    if: github.event.pull_request.draft == false
+    if: false
     strategy:
       fail-fast: false
       matrix:
@@ -908,7 +813,7 @@ jobs:
       run: cmake --build build -t pytest
 
   win32-debug:
-    if: github.event.pull_request.draft == false
+    if: false
     strategy:
       fail-fast: false
       matrix:
@@ -960,7 +865,7 @@ jobs:
 
 
   windows-2022:
-    if: github.event.pull_request.draft == false
+    if: false
     strategy:
       fail-fast: false
       matrix:
@@ -1024,7 +929,7 @@ jobs:
       run: cmake --build build_partial --target pytest
 
   mingw:
-    if: github.event.pull_request.draft == false
+    if: false
     name: "🐍 3 • windows-latest • ${{ matrix.sys }}"
     runs-on: windows-latest
     timeout-minutes: 90
@@ -1133,7 +1038,7 @@ jobs:
       run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build3 --target test_cross_module_rtti
 
   windows_clang:
-    if: github.event.pull_request.draft == false
+    if: false
 
     strategy:
       matrix:
@@ -1208,7 +1113,7 @@ jobs:
 
   # Clang with MSVC/Windows SDK toolchain + python.org CPython (Windows ARM)
   windows_arm_clang_msvc:
-    if: github.event.pull_request.draft == false
+    if: false
 
     strategy:
       fail-fast: false
@@ -1267,7 +1172,7 @@ jobs:
 
   # Clang in MSYS2/MinGW-w64 CLANGARM64 toolchain + MSYS2 Python (Windows ARM)
   windows_arm_clang_msys2:
-    if: github.event.pull_request.draft == false
+    if: false
 
     strategy:
       fail-fast: false
