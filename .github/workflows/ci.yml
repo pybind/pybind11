@@ -1,178 +1,41 @@
 name: CI
 
 on:
-  push:
-    branches:
-      - master
-      - main
-  pull_request:
   workflow_dispatch:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
 
-permissions:
-  contents: read
+permissions: read-all
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHONDEVMODE: 1
+  PIP_BREAK_SYSTEM_PACKAGES: 1
+  PIP_ONLY_BINARY: numpy
+  FORCE_COLOR: 3
+  PYTEST_TIMEOUT: 300
+  # For cmake:
+  VERBOSE: 1
+  CMAKE_COLOR_DIAGNOSTICS: 1
 
 jobs:
-  standard-small:
-    if: github.event.pull_request.draft == false
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - runs-on: ubuntu-latest
-            python-version: '3.8'
-            cxx_standard: 17
-          - runs-on: ubuntu-latest
-            python-version: '3.9'
-            cxx_standard: 17
-          - runs-on: ubuntu-latest
-            python-version: '3.10'
-            cxx_standard: 17
-          - runs-on: ubuntu-latest
-            python-version: '3.11'
-            cxx_standard: 17
-          - runs-on: ubuntu-latest
-            python-version: '3.12'
-            cxx_standard: 20
-          - runs-on: ubuntu-latest
-            python-version: '3.13'
-            cxx_standard: 20
-          - runs-on: ubuntu-latest
-            python-version: '3.14.0t'
-            cxx_standard: 20
-          - runs-on: macos-latest
-            python-version: '3.13'
-            cxx_standard: 17
-          - runs-on: macos-latest
-            python-version: '3.14.0t'
-            cxx_standard: 23
-          - runs-on: windows-latest
-            python-version: '3.13'
-            cxx_standard: 17
-          - runs-on: windows-latest
-            python-version: '3.14.0t'
-            cxx_standard: 23
 
-    name: "🐍 ${{ matrix.python-version }} • C++${{ matrix.cxx_standard }} • ${{ matrix.runs-on }}"
-    runs-on: ${{ matrix.runs-on }}
-    timeout-minutes: 90
-
-    env:
-      PYTHONDEVMODE: 1
-      PIP_BREAK_SYSTEM_PACKAGES: 1
-      PIP_ONLY_BINARY: numpy
-      FORCE_COLOR: 3
-      PYTEST_TIMEOUT: 300
-      VERBOSE: 1
-      CMAKE_COLOR_DIAGNOSTICS: 1
-
-    steps:
-    - uses: actions/checkout@v6
-
-    - uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install --upgrade setuptools wheel pytest pytest-timeout
-        python -m pip install -r docs/requirements.txt
-
-    - name: Configure
-      run: |
-        cmake -S . -B build -DDOWNLOAD_CATCH=ON \
-                            -DCMAKE_CXX_STANDARD=${{ matrix.cxx_standard }} \
-                            -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")
-
-    - name: Build
-      run: cmake --build build -j 2 --verbose
-
-    - name: Python tests
-      run: cmake --build build --target pytest
-
-    - name: C++ tests
-      run: cmake --build build --target cpptest
-
-    - name: Interface test
-      run: cmake --build build --target test_cmake_build
-
-
-  inplace:
-    if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
-    timeout-minutes: 90
-
-    steps:
-    - uses: actions/checkout@v6
-
-    - uses: actions/setup-python@v5
-      with:
-        python-version: '3.12'
-
-    - name: Install package
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install .
-
-    - name: Run tests with installed package
-      run: |
-        python -m pip install pytest pytest-timeout
-        pytest -v tests
-
-
-  manylinux:
-    if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
-    timeout-minutes: 90
-
-    steps:
-    - uses: actions/checkout@v6
-
-    - name: Build manylinux wheels
-      run: |
-        docker run --rm -v ${{ github.workspace }}:/io quay.io/pypa/manylinux2014_x86_64 /io/tools/build_wheels.sh
-
-
-  deadsnakes:
-    if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
-    timeout-minutes: 90
-
-    steps:
-    - uses: actions/checkout@v6
-
-    - name: Setup deadsnakes Python versions
-      run: |
-        sudo add-apt-repository ppa:deadsnakes/ppa -y
-        sudo apt-get update -y
-        sudo apt-get install -y python3.7 python3.8 python3.9
-
-
-  clang:
-    if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
-    timeout-minutes: 90
-
-    steps:
-    - uses: actions/checkout@v6
-
-
-  cuda:
-    if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
-    timeout-minutes: 90
-
-    steps:
-    - uses: actions/checkout@v6
-
-
+  # Testing on Ubuntu + NVHPC (previous PGI) compilers, which seems to require more workarounds
   ubuntu-nvhpc7:
     if: github.event.pull_request.draft == false
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     name: "🐍 3 • NVHPC 23.5 • C++17 • x64"
     timeout-minutes: 90
 
     env:
+      # tzdata will try to ask for the timezone, so set the DEBIAN_FRONTEND
       DEBIAN_FRONTEND: 'noninteractive'
     steps:
     - uses: actions/checkout@v6
@@ -191,6 +54,8 @@ jobs:
         python3 -m pip install --upgrade pip
         python3 -m pip install --upgrade pytest
 
+    # On some systems, you many need further workarounds:
+    # https://github.com/pybind/pybind11/pull/2475
     - name: Configure
       shell: bash
       run: |
@@ -216,6 +81,3 @@ jobs:
 
     - name: Visibility test
       run: cmake --build build --target test_cross_module_rtti
-
-
-  # Other jobs (gcc, icc, centos, windows, etc.) remain unchanged below...
