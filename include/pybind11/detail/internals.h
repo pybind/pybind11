@@ -339,8 +339,8 @@ struct internals {
     internals &operator=(const internals &other) = delete;
     internals &operator=(internals &&other) = delete;
     ~internals() {
-        for (auto &[_, storage_ptr] : call_once_storage_map) {
-            delete storage_ptr;
+        for (auto &entry : call_once_storage_map) {
+            delete entry.second;
         }
         call_once_storage_map.clear();
     }
