@@ -42,7 +42,7 @@ jobs:
             python-version: '3.13'
             cmake-args: -DCMAKE_CXX_STANDARD=23 -DPYBIND11_SIMPLE_GIL_MANAGEMENT=ON
           - runs-on: ubuntu-latest
-            python-version: '3.14t'
+            python-version: '3.14.0t'
             cmake-args: -DCMAKE_CXX_STANDARD=17 -DPYBIND11_TEST_SMART_HOLDER=ON
           - runs-on: ubuntu-latest
             python-version: 'pypy3.11'
@@ -109,7 +109,7 @@ jobs:
             python-version: '3.13t'
             cmake-args: -DCMAKE_CXX_STANDARD=11
           - runs-on: macos-latest
-            python-version: '3.14t'
+            python-version: '3.14.0t'
             cmake-args: -DCMAKE_CXX_STANDARD=20
           - runs-on: macos-15-intel
             python-version: 'pypy-3.10'
@@ -145,7 +145,7 @@ jobs:
             python-version: '3.14'
             cmake-args: -DCMAKE_CXX_STANDARD=20
           - runs-on: windows-latest
-            python-version: '3.14t'
+            python-version: '3.14.0t'
             cmake-args: -DCMAKE_CXX_STANDARD=23
           - runs-on: windows-latest
             python-version: 'pypy-3.10'
