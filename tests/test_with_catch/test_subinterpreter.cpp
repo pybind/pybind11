@@ -7,7 +7,6 @@
 PYBIND11_WARNING_DISABLE_MSVC(4996)
 
 #    include <catch.hpp>
-#    include <chrono>
 #    include <cstdlib>
 #    include <fstream>
 #    include <functional>
@@ -310,9 +309,6 @@ TEST_CASE("Per-Subinterpreter GIL") {
     sync = 0;
     failure = 0;
 
-    using clock = std::chrono::steady_clock;
-    constexpr auto wait_timeout = std::chrono::seconds(10);
-
 // REQUIRE throws on failure, so we can't use it within the thread
 #        define T_REQUIRE(status)                                                                 \
             do {                                                                                  \
@@ -322,16 +318,8 @@ TEST_CASE("Per-Subinterpreter GIL") {
             } while (0)
 
     auto &&thread_main = [&](int num) {
-        {
-            auto deadline = clock::now() + wait_timeout;
-            while (started == 0) {
-                if (clock::now() > deadline) {
-                    T_REQUIRE(false);
-                    return;
-                }
-                std::this_thread::sleep_for(std::chrono::microseconds(1));
-            }
-        }
+        while (started == 0)
+            std::this_thread::sleep_for(std::chrono::microseconds(1));
         ++started;
 
         py::gil_scoped_acquire gil;
@@ -382,31 +370,15 @@ TEST_CASE("Per-Subinterpreter GIL") {
 
             // wait for something to set sync to our thread number
             // we are holding our subinterpreter's GIL
-            {
-                auto deadline = clock::now() + wait_timeout;
-                while (sync != num) {
-                    if (clock::now() > deadline) {
-                        T_REQUIRE(false);
-                        return;
-                    }
-                    std::this_thread::sleep_for(std::chrono::microseconds(1));
-                }
-            }
+            while (sync != num)
+                std::this_thread::sleep_for(std::chrono::microseconds(1));
 
             // now change it so the next thread can move on
             ++sync;
 
             // but keep holding the GIL until after the next thread moves on as well
-            {
-                auto deadline = clock::now() + wait_timeout;
-                while (sync == num + 1) {
-                    if (clock::now() > deadline) {
-                        T_REQUIRE(false);
-                        return;
-                    }
-                    std::this_thread::sleep_for(std::chrono::microseconds(1));
-                }
-            }
+            while (sync == num + 1)
+                std::this_thread::sleep_for(std::chrono::microseconds(1));
 
             // one last check before quitting the thread, the internals should be different
             auto sub_int
@@ -423,15 +395,8 @@ TEST_CASE("Per-Subinterpreter GIL") {
     ++started;
 
     // ok now wait for the threads to start
-    {
-        auto deadline = clock::now() + wait_timeout;
-        while (started != 3) {
-            if (clock::now() > deadline) {
-                FAIL("Timeout while waiting for worker threads to start");
-            }
-            std::this_thread::sleep_for(std::chrono::microseconds(1));
-        }
-    }
+    while (started != 3)
+        std::this_thread::sleep_for(std::chrono::microseconds(1));
 
     // we still hold the main GIL, at this point both threads are waiting on the main GIL
     // IN THE CASE of free threading, the threads are waiting on sync (because there is no GIL)
@@ -449,15 +414,8 @@ TEST_CASE("Per-Subinterpreter GIL") {
         sync = 1;
 
         // wait for thread 2 to advance
-        {
-            auto deadline = clock::now() + wait_timeout;
-            while (sync != 3) {
-                if (clock::now() > deadline) {
-                    FAIL("Timeout while waiting for sync to reach 3");
-                }
-                std::this_thread::sleep_for(std::chrono::microseconds(1));
-            }
-        }
+        while (sync != 3)
+            std::this_thread::sleep_for(std::chrono::microseconds(1));
 
         // we know now that thread 1 has run and may be finishing
         // and thread 2 is waiting for permission to advance
