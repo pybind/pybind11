@@ -54,6 +54,11 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 //
 // For in-depth background, see docs/advanced/deadlock.md
 #ifndef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
+// Subinterpreter support is disabled.
+// In this case, we can store the result globally, because there is only a single interpreter.
+//
+// The life span of the stored result is the entire process lifetime. It is leaked on process
+// termination to avoid destructor calls after the Python interpreter was finalized.
 template <typename T>
 class gil_safe_call_once_and_store {
 public:
@@ -107,9 +112,12 @@ private:
 };
 #else
 // Subinterpreter support is enabled.
-// In this case, we should store the result per-interpreter instead of globally, because
-// each subinterpreter has its own separate state. The cached object may not shareable
-// across interpreters (e.g., imported modules and their members).
+// In this case, we should store the result per-interpreter instead of globally, because each
+// subinterpreter has its own separate state. The cached result may not shareable across
+// interpreters (e.g., imported modules and their members).
+//
+// The life span of the stored result is the entire interpreter lifetime. An additional
+// `finalize_fn` can be provided to clean up the stored result when the interpreter is destroyed.
 template <typename T>
 class gil_safe_call_once_and_store {
 public:
@@ -117,26 +125,32 @@ public:
     template <typename Callable>
     gil_safe_call_once_and_store &call_once_and_store_result(Callable &&fn,
                                                              void (*finalize_fn)(T &) = nullptr) {
-        if (!is_initialized_by_atleast_one_interpreter_
-            || detail::get_num_interpreters_seen() > 1) {
-            detail::with_internals([&](detail::internals &internals) {
-                const void *k = reinterpret_cast<const void *>(this);
-                auto &storage_map = internals.call_once_storage_map;
-                auto it = storage_map.find(k);
-                if (it == storage_map.end()) {
-                    gil_scoped_release gil_rel; // Needed to establish lock ordering.
-                    {
-                        // Only one thread will ever enter here.
-                        gil_scoped_acquire gil_acq;
+        if (!is_last_storage_valid()) {
+            // Multiple threads may enter here, because the GIL is released in the next line and
+            // CPython API calls in the `fn()` call below may release and reacquire the GIL.
+            gil_scoped_release gil_rel; // Needed to establish lock ordering.
+            {
+                gil_scoped_acquire gil_acq;
+                detail::with_internals([&](detail::internals &internals) {
+                    // The concurrency control is done inside `detail::with_internals`.
+                    // At most one thread will enter here at a time.
+                    const void *k = reinterpret_cast<const void *>(this);
+                    auto &storage_map = internals.call_once_storage_map;
+                    // There can be multiple threads going through here, but only one each at a
+                    // time. So only one thread will create the storage. Other threads will find it
+                    // already created.
+                    auto it = storage_map.find(k);
+                    if (it == storage_map.end()) {
                         auto v = new detail::call_once_storage<T>{};
                         ::new (v->storage) T(fn()); // fn may release, but will reacquire, the GIL.
                         v->finalize = finalize_fn;
                         last_storage_ = reinterpret_cast<T *>(v->storage);
+                        v->is_initialized = true;
                         storage_map.emplace(k, v);
-                    };
-                }
-                is_initialized_by_atleast_one_interpreter_ = true;
-            });
+                    }
+                    is_initialized_by_atleast_one_interpreter_ = true;
+                });
+            }
             // All threads will observe `is_initialized_by_atleast_one_interp_` as true here.
         }
         // Intentionally not returning `T &` to ensure the calling code is self-documenting.
@@ -146,8 +160,7 @@ public:
     // This must only be called after `call_once_and_store_result()` was called.
     T &get_stored() {
         T *result = last_storage_;
-        if (!is_initialized_by_atleast_one_interpreter_
-            || detail::get_num_interpreters_seen() > 1) {
+        if (!is_last_storage_valid()) {
             detail::with_internals([&](detail::internals &internals) {
                 const void *k = reinterpret_cast<const void *>(this);
                 auto &storage_map = internals.call_once_storage_map;
@@ -159,13 +172,18 @@ public:
         return *result;
     }
 
-    constexpr gil_safe_call_once_and_store() = default;
+    gil_safe_call_once_and_store() = default;
     // The instance is a global static, so its destructor runs when the process
     // is terminating. Therefore, do nothing here because the Python interpreter
     // may have been finalized already.
     PYBIND11_DTOR_CONSTEXPR ~gil_safe_call_once_and_store() = default;
 
 private:
+    bool is_last_storage_valid() const {
+        return is_initialized_by_atleast_one_interpreter_
+               && detail::get_num_interpreters_seen() <= 1 && last_storage_ != nullptr;
+    }
+
     // No storage needed when subinterpreter support is enabled.
     // The actual storage is stored in the per-interpreter state dict in
     // `internals.call_once_storage_map`.

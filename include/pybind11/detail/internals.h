@@ -247,14 +247,17 @@ template <typename T>
 struct call_once_storage : call_once_storage_base {
     void (*finalize)(T &) = nullptr;
     alignas(T) char storage[sizeof(T)] = {0};
+    std::atomic_bool is_initialized{false};
 
     call_once_storage() = default;
     ~call_once_storage() override {
-        if (finalize != nullptr) {
-            finalize(*reinterpret_cast<T *>(storage));
+        if (is_initialized) {
+            if (finalize != nullptr) {
+                finalize(*reinterpret_cast<T *>(storage));
+            } else {
+                reinterpret_cast<T *>(storage)->~T();
+            }
         }
-        memset(storage, 0, sizeof(T));
-        finalize = nullptr;
     };
     call_once_storage(const call_once_storage &) = delete;
     call_once_storage(call_once_storage &&) = delete;
