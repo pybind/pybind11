@@ -60,8 +60,7 @@ public:
     // PRECONDITION: The GIL must be held when `call_once_and_store_result()` is called.
     template <typename Callable>
     gil_safe_call_once_and_store &call_once_and_store_result(Callable &&fn,
-                                                             void (*finalize_fn)(T &) = nullptr) {
-
+                                                             void (*)(T &) /*unused*/ = nullptr) {
         if (!is_initialized_) { // This read is guarded by the GIL.
             // Multiple threads may enter here, because the GIL is released in the next line and
             // CPython API calls in the `fn()` call below may release and reacquire the GIL.
@@ -69,9 +68,8 @@ public:
             std::call_once(once_flag_, [&] {
                 // Only one thread will ever enter here.
                 gil_scoped_acquire gil_acq;
-                ::new (storage_) T(fn());   // fn may release, but will reacquire, the GIL.
-                finalize_fn_ = finalize_fn; // Store the finalizer.
-                is_initialized_ = true;     // This write is guarded by the GIL.
+                ::new (storage_) T(fn()); // fn may release, but will reacquire, the GIL.
+                is_initialized_ = true;   // This write is guarded by the GIL.
             });
             // All threads will observe `is_initialized_` as true here.
         }
@@ -92,17 +90,15 @@ public:
     }
 
     constexpr gil_safe_call_once_and_store() = default;
-    PYBIND11_DTOR_CONSTEXPR ~gil_safe_call_once_and_store() {
-        if (is_initialized_ && finalize_fn_ != nullptr) {
-            finalize_fn_(*reinterpret_cast<T *>(storage_));
-        }
-    }
+    // The instance is a global static, so its destructor runs when the process
+    // is terminating. Therefore, do nothing here because the Python interpreter
+    // may have been finalized already.
+    PYBIND11_DTOR_CONSTEXPR ~gil_safe_call_once_and_store() = default;
 
 private:
     // Global static storage (per process) when subinterpreter support is disabled.
     alignas(T) char storage_[sizeof(T)] = {};
     std::once_flag once_flag_;
-    void (*finalize_fn_)(T &) = nullptr;
 
     // The `is_initialized_`-`storage_` pair is very similar to `std::optional`,
     // but the latter does not have the triviality properties of former,
@@ -124,19 +120,19 @@ public:
         if (!is_initialized_by_atleast_one_interpreter_
             || detail::get_num_interpreters_seen() > 1) {
             detail::with_internals([&](detail::internals &internals) {
-                const void *key = reinterpret_cast<const void *>(this);
+                const void *k = reinterpret_cast<const void *>(this);
                 auto &storage_map = internals.call_once_storage_map;
-                auto it = storage_map.find(key);
+                auto it = storage_map.find(k);
                 if (it == storage_map.end()) {
                     gil_scoped_release gil_rel; // Needed to establish lock ordering.
                     {
                         // Only one thread will ever enter here.
                         gil_scoped_acquire gil_acq;
-                        auto s = new detail::call_once_storage<T>{};
-                        ::new (s->storage) T(fn()); // fn may release, but will reacquire, the GIL.
-                        s->finalize = finalize_fn;
-                        last_storage_ = reinterpret_cast<T *>(s->storage);
-                        storage_map.emplace(key, s);
+                        auto v = new detail::call_once_storage<T>{};
+                        ::new (v->storage) T(fn()); // fn may release, but will reacquire, the GIL.
+                        v->finalize = finalize_fn;
+                        last_storage_ = reinterpret_cast<T *>(v->storage);
+                        storage_map.emplace(k, v);
                     };
                 }
                 is_initialized_by_atleast_one_interpreter_ = true;
@@ -153,12 +149,10 @@ public:
         if (!is_initialized_by_atleast_one_interpreter_
             || detail::get_num_interpreters_seen() > 1) {
             detail::with_internals([&](detail::internals &internals) {
-                const void *key = reinterpret_cast<const void *>(this);
+                const void *k = reinterpret_cast<const void *>(this);
                 auto &storage_map = internals.call_once_storage_map;
-                auto it = storage_map.find(key);
-                assert(it != storage_map.end());
-                auto *s = static_cast<detail::call_once_storage<T> *>(it->second);
-                result = last_storage_ = reinterpret_cast<T *>(s->storage);
+                auto *v = static_cast<detail::call_once_storage<T> *>(storage_map.at(k));
+                result = last_storage_ = reinterpret_cast<T *>(v->storage);
             });
         }
         assert(result != nullptr);
@@ -166,19 +160,10 @@ public:
     }
 
     constexpr gil_safe_call_once_and_store() = default;
-    PYBIND11_DTOR_CONSTEXPR ~gil_safe_call_once_and_store() {
-        if (is_initialized_by_atleast_one_interpreter_) {
-            detail::with_internals([&](detail::internals &internals) {
-                const void *key = reinterpret_cast<const void *>(this);
-                auto &storage_map = internals.call_once_storage_map;
-                auto it = storage_map.find(key);
-                if (it != storage_map.end()) {
-                    delete it->second;
-                    storage_map.erase(it);
-                }
-            });
-        }
-    }
+    // The instance is a global static, so its destructor runs when the process
+    // is terminating. Therefore, do nothing here because the Python interpreter
+    // may have been finalized already.
+    PYBIND11_DTOR_CONSTEXPR ~gil_safe_call_once_and_store() = default;
 
 private:
     // No storage needed when subinterpreter support is enabled.
