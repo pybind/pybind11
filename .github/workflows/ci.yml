@@ -30,7 +30,7 @@ jobs:
   # Testing on Ubuntu + NVHPC (previous PGI) compilers, which seems to require more workarounds
   ubuntu-nvhpc7:
     if: github.event.pull_request.draft == false
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     name: "🐍 3 • NVHPC 23.5 • C++17 • x64"
     timeout-minutes: 90
 
