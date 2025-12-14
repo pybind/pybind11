@@ -36,7 +36,7 @@ jobs:
       matrix:
         include:
           - runs-on: ubuntu-latest
-            python-version: '3.14.0t'
+            python-version: '3.14t'
             cmake-args: -DCMAKE_CXX_STANDARD=17 -DPYBIND11_TEST_SMART_HOLDER=ON
 
 
@@ -54,10 +54,10 @@ jobs:
       matrix:
         include:
           - runs-on: macos-latest
-            python-version: '3.14.0t'
+            python-version: '3.14t'
             cmake-args: -DCMAKE_CXX_STANDARD=20
           - runs-on: windows-latest
-            python-version: '3.14.0t'
+            python-version: '3.14t'
             cmake-args: -DCMAKE_CXX_STANDARD=23
 
     name: 🐍
