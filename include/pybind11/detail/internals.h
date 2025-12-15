@@ -42,8 +42,8 @@
 #    define PYBIND11_INTERNALS_VERSION 12
 #endif
 
-#if PYBIND11_INTERNALS_VERSION < 11
-#    error "PYBIND11_INTERNALS_VERSION 11 is the minimum for all platforms for pybind11v3."
+#if PYBIND11_INTERNALS_VERSION < 12
+#    error "PYBIND11_INTERNALS_VERSION 12 is the minimum for all platforms for pybind11v3."
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
@@ -273,14 +273,12 @@ struct internals {
     pymutex mutex;
     pymutex exception_translator_mutex;
 #endif
-#if PYBIND11_INTERNALS_VERSION >= 12
     // non-normative but fast "hint" for registered_types_cpp. Meant
     // to be used as the first level of a two-level lookup: successful
     // lookups are correct, but unsuccessful lookups need to try
     // registered_types_cpp and then backfill this map if they find
     // anything.
     fast_type_map<type_info *> registered_types_cpp_fast;
-#endif
 
     // std::type_index -> pybind11's type information
     type_map<type_info *> registered_types_cpp;
@@ -306,9 +304,6 @@ struct internals {
     PyObject *instance_base = nullptr;
     // Unused if PYBIND11_SIMPLE_GIL_MANAGEMENT is defined:
     thread_specific_storage<PyThreadState> tstate;
-#if PYBIND11_INTERNALS_VERSION <= 11
-    thread_specific_storage<loader_life_support> loader_life_support_tls; // OBSOLETE (PR #5830)
-#endif
     // Unused if PYBIND11_SIMPLE_GIL_MANAGEMENT is defined:
     PyInterpreterState *istate = nullptr;
 
@@ -396,7 +391,6 @@ struct type_info {
     void *(*module_local_load)(PyObject *, const type_info *) = nullptr;
     holder_enum_t holder_enum_v = holder_enum_t::undefined;
 
-#if PYBIND11_INTERNALS_VERSION >= 12
     // When a type appears in multiple DSOs,
     // internals::registered_types_cpp_fast will have multiple distinct
     // keys (the std::type_info from each DSO) mapped to the same
@@ -407,7 +401,6 @@ struct type_info {
     // nb_alias_chain` added in
     // https://github.com/wjakob/nanobind/commit/b515b1f7f2f4ecc0357818e6201c94a9f4cbfdc2
     std::forward_list<const std::type_info *> alias_chain;
-#endif
 
     /* A simple type never occurs as a (direct or indirect) parent
      * of a class that makes use of multiple inheritance.

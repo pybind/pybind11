@@ -227,32 +227,26 @@ inline detail::type_info *get_global_type_info_lock_held(const std::type_info &t
     // next time.
     detail::type_info *type_info = nullptr;
     auto &internals = get_internals();
-#if PYBIND11_INTERNALS_VERSION >= 12
     auto &fast_types = internals.registered_types_cpp_fast;
-#endif
     auto &types = internals.registered_types_cpp;
-#if PYBIND11_INTERNALS_VERSION >= 12
     auto fast_it = fast_types.find(&tp);
     if (fast_it != fast_types.end()) {
-#    ifndef NDEBUG
+#ifndef NDEBUG
         auto types_it = types.find(std::type_index(tp));
         assert(types_it != types.end());
         assert(types_it->second == fast_it->second);
-#    endif
+#endif
         return fast_it->second;
     }
-#endif // PYBIND11_INTERNALS_VERSION >= 12
 
     auto it = types.find(std::type_index(tp));
     if (it != types.end()) {
-#if PYBIND11_INTERNALS_VERSION >= 12
         // We found the type in the slow map but not the fast one, so
         // some other DSO added it (otherwise it would be in the fast
         // map under &tp) and therefore we must be an alias. Record
         // that.
         it->second->alias_chain.push_front(&tp);
         fast_types.emplace(&tp, it->second);
-#endif
         type_info = it->second;
     }
     return type_info;

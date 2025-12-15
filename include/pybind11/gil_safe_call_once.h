@@ -196,4 +196,5 @@ private:
     atomic_bool is_initialized_by_atleast_one_interpreter_{false};
 };
 #endif
+
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
