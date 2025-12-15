@@ -21,49 +21,53 @@ namespace py = pybind11;
 // Simple progress reporter that prints a line per test case.
 namespace {
 
-bool g_printed_python_version = false;
-
-class ProgressReporter : public Catch::CumulativeReporterBase<ProgressReporter> {
+class ProgressReporter : public Catch::StreamingReporterBase<ProgressReporter> {
 public:
-    using CumulativeReporterBase::CumulativeReporterBase;
+    using StreamingReporterBase<ProgressReporter>::StreamingReporterBase;
 
     static std::string getDescription() { return "Simple progress reporter (one line per test)"; }
 
     void testCaseStarting(Catch::TestCaseInfo const &testInfo) override {
-        if (!g_printed_python_version) {
-            g_printed_python_version = true;
-            const char *version = Py_GetVersion();
-            stream << "[ PYTHON   ] " << version << '\n';
-            stream.flush();
-        }
-        stream << "[ RUN      ] " << testInfo.name << '\n';
-        stream.flush();
-        CumulativeReporterBase::testCaseStarting(testInfo);
+        print_python_version_once();
+        auto &os = Catch::cout();
+        os << "[ RUN      ] " << testInfo.name << '\n';
+        os.flush();
     }
 
-    void testCaseEnded(Catch::TestCaseStats const &testCaseStats) override {
-        auto const &info = testCaseStats.testInfo;
-        bool failed = (testCaseStats.totals.assertions.failed > 0);
-        stream << (failed ? "[  FAILED  ] " : "[       OK ] ") << info.name << '\n';
-        stream.flush();
-        CumulativeReporterBase::testCaseEnded(testCaseStats);
+    void testCaseEnded(Catch::TestCaseStats const &stats) override {
+        bool failed = stats.totals.assertions.failed > 0;
+        auto &os = Catch::cout();
+        os << (failed ? "[  FAILED  ] " : "[       OK ] ") << stats.testInfo.name << '\n';
+        os.flush();
     }
-
-    static std::set<Catch::Verbosity> getSupportedVerbosities() {
-        return {Catch::Verbosity::Normal};
-    }
-
-    void testRunEndedCumulative() override {}
 
     void noMatchingTestCases(std::string const &spec) override {
-        stream << "[  NO TEST ] no matching test cases for spec: " << spec << '\n';
-        stream.flush();
+        auto &os = Catch::cout();
+        os << "[  NO TEST ] no matching test cases for spec: " << spec << '\n';
+        os.flush();
     }
 
     void reportInvalidArguments(std::string const &arg) override {
-        stream << "[   ERROR  ] invalid Catch2 arguments: " << arg << '\n';
-        stream.flush();
+        auto &os = Catch::cout();
+        os << "[   ERROR  ] invalid Catch2 arguments: " << arg << '\n';
+        os.flush();
     }
+
+    void assertionStarting(Catch::AssertionInfo const &) override {}
+
+    bool assertionEnded(Catch::AssertionStats const &) override { return false; }
+
+private:
+    void print_python_version_once() {
+        if (printed_)
+            return;
+        printed_ = true;
+        auto &os = Catch::cout();
+        os << "[ PYTHON   ] " << Py_GetVersion() << '\n';
+        os.flush();
+    }
+
+    bool printed_ = false;
 };
 
 } // namespace
