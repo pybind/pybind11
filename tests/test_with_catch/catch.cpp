@@ -59,8 +59,9 @@ public:
 
 private:
     void print_python_version_once() {
-        if (printed_)
+        if (printed_) {
             return;
+        }
         printed_ = true;
         auto &os = Catch::cout();
         os << "[ PYTHON   ] " << Py_GetVersion() << '\n';
