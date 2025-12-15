@@ -13,62 +13,9 @@ PYBIND11_WARNING_DISABLE_MSVC(4996)
 #endif
 
 #define CATCH_CONFIG_RUNNER
-#define CATCH_CONFIG_DEFAULT_REPORTER "progress"
 #include <catch.hpp>
 
 namespace py = pybind11;
-
-// Simple progress reporter that prints a line per test case.
-namespace {
-
-bool g_printed_python_version = false;
-
-class ProgressReporter : public Catch::CumulativeReporterBase<ProgressReporter> {
-public:
-    using CumulativeReporterBase::CumulativeReporterBase;
-
-    static std::string getDescription() { return "Simple progress reporter (one line per test)"; }
-
-    void testCaseStarting(Catch::TestCaseInfo const &testInfo) override {
-        if (!g_printed_python_version) {
-            g_printed_python_version = true;
-            const char *version = Py_GetVersion();
-            stream << "[ PYTHON   ] " << version << '\n';
-            stream.flush();
-        }
-        stream << "[ RUN      ] " << testInfo.name << '\n';
-        stream.flush();
-        CumulativeReporterBase::testCaseStarting(testInfo);
-    }
-
-    void testCaseEnded(Catch::TestCaseStats const &testCaseStats) override {
-        auto const &info = testCaseStats.testInfo;
-        bool failed = (testCaseStats.totals.assertions.failed > 0);
-        stream << (failed ? "[  FAILED  ] " : "[       OK ] ") << info.name << '\n';
-        stream.flush();
-        CumulativeReporterBase::testCaseEnded(testCaseStats);
-    }
-
-    static std::set<Catch::Verbosity> getSupportedVerbosities() {
-        return {Catch::Verbosity::Normal};
-    }
-
-    void testRunEndedCumulative() override {}
-
-    void noMatchingTestCases(std::string const &spec) override {
-        stream << "[  NO TEST ] no matching test cases for spec: " << spec << '\n';
-        stream.flush();
-    }
-
-    void reportInvalidArguments(std::string const &arg) override {
-        stream << "[   ERROR  ] invalid Catch2 arguments: " << arg << '\n';
-        stream.flush();
-    }
-};
-
-} // namespace
-
-CATCH_REGISTER_REPORTER("progress", ProgressReporter)
 
 int main(int argc, char *argv[]) {
     // Setup for TEST_CASE in test_interpreter.cpp, tagging on a large random number:
