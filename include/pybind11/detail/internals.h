@@ -602,6 +602,19 @@ public:
     /// acquire the GIL. Will never return nullptr.
     std::unique_ptr<InternalsType> *get_pp() {
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
+        // WARNING: We cannot use `get_num_interpreters_seen() > 1` here to create a fast path for
+        //          the single-interpreter case.
+        //
+        // For multi-interpreter support, the subinterpreters can be initialized concurrently, and
+        // the first time this function may not be called in the main interpreter.
+        // For example, a clean main interpreter that does not import any pybind11 module and then
+        // spawns multiple subinterpreters using `InterpreterPoolExecutor` that each imports a
+        // pybind11 module concurrently.
+        //
+        // Multiple subinterpreters may observe `get_num_interpreters_seen() <= 1` at the same
+        // time, while `get_num_interpreters_seen() += 1` in `PYBIND11_MODULE(...)` is called
+        // later.
+
         // Whenever the interpreter changes on the current thread we need to invalidate the
         // internals_pp so that it can be pulled from the interpreter's state dict.  That is
         // slow, so we use the current PyThreadState to check if it is necessary.
