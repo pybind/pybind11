@@ -129,28 +129,34 @@ public:
             // Multiple threads may enter here, because the GIL is released in the next line and
             // CPython API calls in the `fn()` call below may release and reacquire the GIL.
             gil_scoped_release gil_rel; // Needed to establish lock ordering.
-            {
-                detail::with_internals([&](detail::internals &internals) {
-                    const void *key = reinterpret_cast<const void *>(this);
-                    auto &storage_map = internals.call_once_storage_map;
-                    // There can be multiple threads going through here.
-                    if (storage_map.find(key) == storage_map.end()) {
-                        gil_scoped_acquire gil_acq;
-                        // Only one thread will enter here at a time.
-                        // Fast recheck to avoid double work.
-                        if (storage_map.find(key) == storage_map.end()) {
-                            auto value = new detail::call_once_storage<T>{};
-                            // fn may release, but will reacquire, the GIL.
-                            ::new (value->storage) T(fn());
-                            value->finalize = finalize_fn;
-                            value->is_initialized = true;
-                            storage_map.emplace(key, value);
-                            last_storage_ptr_ = reinterpret_cast<T *>(value->storage);
-                        }
+            detail::with_internals([&](detail::internals &internals) {
+                const void *key = reinterpret_cast<const void *>(this);
+                auto &storage_map = internals.call_once_storage_map;
+                // There can be multiple threads going through here.
+                detail::call_once_storage<T> *value = nullptr;
+                {
+                    gil_scoped_acquire gil_acq;
+                    // Only one thread will enter here at a time.
+                    const auto it = storage_map.find(key);
+                    if (it != storage_map.end()) {
+                        value = static_cast<detail::call_once_storage<T> *>(it->second);
+                    } else {
+                        value = new detail::call_once_storage<T>{};
+                        storage_map.emplace(key, value);
                     }
+                }
+                assert(value != nullptr);
+                std::call_once(value->once_flag, [&] {
+                    // Only one thread will ever enter here.
+                    gil_scoped_acquire gil_acq;
+                    // fn may release, but will reacquire, the GIL.
+                    ::new (value->storage) T(fn());
+                    value->finalize = finalize_fn;
+                    value->is_initialized = true;
+                    last_storage_ptr_ = reinterpret_cast<T *>(value->storage);
                     is_initialized_by_atleast_one_interpreter_ = true;
                 });
-            }
+            });
             // All threads will observe `is_initialized_by_atleast_one_interp_` as true here.
         }
         // Intentionally not returning `T &` to ensure the calling code is self-documenting.
@@ -162,10 +168,10 @@ public:
         T *result = last_storage_ptr_;
         if (!is_last_storage_valid()) {
             detail::with_internals([&](detail::internals &internals) {
-                const void *k = reinterpret_cast<const void *>(this);
+                const void *key = reinterpret_cast<const void *>(this);
                 auto &storage_map = internals.call_once_storage_map;
-                auto *v = static_cast<detail::call_once_storage<T> *>(storage_map.at(k));
-                result = last_storage_ptr_ = reinterpret_cast<T *>(v->storage);
+                auto *value = static_cast<detail::call_once_storage<T> *>(storage_map.at(key));
+                result = last_storage_ptr_ = reinterpret_cast<T *>(value->storage);
             });
         }
         assert(result != nullptr);

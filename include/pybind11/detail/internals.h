@@ -245,7 +245,8 @@ struct call_once_storage_base {
 
 template <typename T>
 struct call_once_storage : call_once_storage_base {
-    alignas(T) char storage[sizeof(T)] = {0};
+    alignas(T) char storage[sizeof(T)] = {};
+    std::once_flag once_flag;
     void (*finalize)(T &) = nullptr;
     std::atomic_bool is_initialized{false};
 
