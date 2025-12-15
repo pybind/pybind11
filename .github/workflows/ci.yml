@@ -296,7 +296,7 @@ jobs:
 
     - name: Valgrind cache
       if: matrix.valgrind
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       id: cache-valgrind
       with:
         path: valgrind
@@ -778,7 +778,7 @@ jobs:
     timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v1  # v1 is required to run inside docker
+    - uses: actions/checkout@v6  # v1 is required to run inside docker
 
     - name: Install requirements
       run: |
