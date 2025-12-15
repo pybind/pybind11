@@ -131,22 +131,22 @@ public:
             gil_scoped_release gil_rel; // Needed to establish lock ordering.
             {
                 detail::with_internals([&](detail::internals &internals) {
-                    // The concurrency control is done inside `detail::with_internals`.
-                    // At most one thread will enter here at a time.
-                    const void *k = reinterpret_cast<const void *>(this);
+                    const void *key = reinterpret_cast<const void *>(this);
                     auto &storage_map = internals.call_once_storage_map;
-                    // There can be multiple threads going through here, but only one each at a
-                    // time. So only one thread will create the storage. Other threads will find it
-                    // already created.
-                    auto it = storage_map.find(k);
-                    if (it == storage_map.end()) {
+                    // There can be multiple threads going through here.
+                    if (storage_map.find(key) == storage_map.end()) {
                         gil_scoped_acquire gil_acq;
-                        auto v = new detail::call_once_storage<T>{};
-                        ::new (v->storage) T(fn()); // fn may release, but will reacquire, the GIL.
-                        v->finalize = finalize_fn;
-                        last_storage_ptr_ = reinterpret_cast<T *>(v->storage);
-                        v->is_initialized = true;
-                        storage_map.emplace(k, v);
+                        // Only one thread will enter here at a time.
+                        // Fast recheck to avoid double work.
+                        if (storage_map.find(key) == storage_map.end()) {
+                            auto value = new detail::call_once_storage<T>{};
+                            // fn may release, but will reacquire, the GIL.
+                            ::new (value->storage) T(fn());
+                            value->finalize = finalize_fn;
+                            value->is_initialized = true;
+                            storage_map.emplace(key, value);
+                            last_storage_ptr_ = reinterpret_cast<T *>(value->storage);
+                        }
                     }
                     is_initialized_by_atleast_one_interpreter_ = true;
                 });

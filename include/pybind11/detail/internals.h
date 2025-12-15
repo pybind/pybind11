@@ -245,8 +245,8 @@ struct call_once_storage_base {
 
 template <typename T>
 struct call_once_storage : call_once_storage_base {
-    void (*finalize)(T &) = nullptr;
     alignas(T) char storage[sizeof(T)] = {0};
+    void (*finalize)(T &) = nullptr;
     std::atomic_bool is_initialized{false};
 
     call_once_storage() = default;
@@ -337,7 +337,7 @@ struct internals {
     internals &operator=(const internals &other) = delete;
     internals &operator=(internals &&other) = delete;
     ~internals() {
-        for (auto &entry : call_once_storage_map) {
+        for (const auto &entry : call_once_storage_map) {
             delete entry.second;
         }
         call_once_storage_map.clear();
