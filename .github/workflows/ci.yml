@@ -470,7 +470,7 @@ jobs:
 
 
   # Testing on Ubuntu + NVHPC (previous PGI) compilers, which seems to require more workarounds
-  ubuntu-nvhpc7:
+  ubuntu-nvhpc:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-24.04
     name: "🐍 3 • NVHPC 25.11 • C++17 • x64"
