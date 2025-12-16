@@ -130,7 +130,7 @@ public:
             // CPython API calls in the `fn()` call below may release and reacquire the GIL.
             gil_scoped_release gil_rel; // Needed to establish lock ordering.
             detail::with_internals([&](detail::internals &internals) {
-                const void *key = reinterpret_cast<const void *>(this);
+                const void *const key = reinterpret_cast<const void *>(this);
                 auto &storage_map = internals.call_once_storage_map;
                 // There can be multiple threads going through here.
                 detail::call_once_storage<T> *value = nullptr;
@@ -168,7 +168,7 @@ public:
         T *result = last_storage_ptr_;
         if (!is_last_storage_valid()) {
             detail::with_internals([&](detail::internals &internals) {
-                const void *key = reinterpret_cast<const void *>(this);
+                const void *const key = reinterpret_cast<const void *>(this);
                 auto &storage_map = internals.call_once_storage_map;
                 auto *value = static_cast<detail::call_once_storage<T> *>(storage_map.at(key));
                 result = last_storage_ptr_ = reinterpret_cast<T *>(value->storage);
