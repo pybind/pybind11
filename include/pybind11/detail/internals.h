@@ -234,38 +234,6 @@ inline uint64_t round_up_to_next_pow2(uint64_t x) {
 
 class loader_life_support;
 
-struct call_once_storage_base {
-    call_once_storage_base() = default;
-    virtual ~call_once_storage_base() = default;
-    call_once_storage_base(const call_once_storage_base &) = delete;
-    call_once_storage_base(call_once_storage_base &&) = delete;
-    call_once_storage_base &operator=(const call_once_storage_base &) = delete;
-    call_once_storage_base &operator=(call_once_storage_base &&) = delete;
-};
-
-template <typename T>
-struct call_once_storage : call_once_storage_base {
-    alignas(T) char storage[sizeof(T)] = {};
-    std::once_flag once_flag;
-    void (*finalize)(T &) = nullptr;
-    std::atomic_bool is_initialized{false};
-
-    call_once_storage() = default;
-    ~call_once_storage() override {
-        if (is_initialized) {
-            if (finalize != nullptr) {
-                finalize(*reinterpret_cast<T *>(storage));
-            } else {
-                reinterpret_cast<T *>(storage)->~T();
-            }
-        }
-    };
-    call_once_storage(const call_once_storage &) = delete;
-    call_once_storage(call_once_storage &&) = delete;
-    call_once_storage &operator=(const call_once_storage &) = delete;
-    call_once_storage &operator=(call_once_storage &&) = delete;
-};
-
 /// Internal data structure used to track registered instances and types.
 /// Whenever binary incompatible changes are made to this structure,
 /// `PYBIND11_INTERNALS_VERSION` must be incremented.
@@ -310,8 +278,6 @@ struct internals {
 
     type_map<PyObject *> native_enum_type_map;
 
-    std::unordered_map<const void *, call_once_storage_base *> call_once_storage_map;
-
     internals()
         : static_property_type(make_static_property_type()),
           default_metaclass(make_default_metaclass()) {
@@ -337,12 +303,7 @@ struct internals {
     internals(internals &&other) = delete;
     internals &operator=(const internals &other) = delete;
     internals &operator=(internals &&other) = delete;
-    ~internals() {
-        for (const auto &entry : call_once_storage_map) {
-            delete entry.second;
-        }
-        call_once_storage_map.clear();
-    }
+    ~internals() = default;
 };
 
 // the internals struct (above) is shared between all the modules. local_internals are only

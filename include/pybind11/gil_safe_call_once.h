@@ -115,7 +115,45 @@ private:
 // In this case, we should store the result per-interpreter instead of globally, because each
 // subinterpreter has its own separate state. The cached result may not shareable across
 // interpreters (e.g., imported modules and their members).
-//
+
+struct call_once_storage_base {
+    call_once_storage_base() = default;
+    virtual ~call_once_storage_base() = default;
+    call_once_storage_base(const call_once_storage_base &) = delete;
+    call_once_storage_base(call_once_storage_base &&) = delete;
+    call_once_storage_base &operator=(const call_once_storage_base &) = delete;
+    call_once_storage_base &operator=(call_once_storage_base &&) = delete;
+};
+
+template <typename T>
+struct call_once_storage : call_once_storage_base {
+    alignas(T) char storage[sizeof(T)] = {};
+    std::once_flag once_flag;
+    void (*finalize)(T &) = nullptr;
+    std::atomic_bool is_initialized{false};
+
+    call_once_storage() = default;
+    ~call_once_storage() override {
+        if (is_initialized) {
+            if (finalize != nullptr) {
+                finalize(*reinterpret_cast<T *>(storage));
+            } else {
+                reinterpret_cast<T *>(storage)->~T();
+            }
+        }
+    };
+    call_once_storage(const call_once_storage &) = delete;
+    call_once_storage(call_once_storage &&) = delete;
+    call_once_storage &operator=(const call_once_storage &) = delete;
+    call_once_storage &operator=(call_once_storage &&) = delete;
+};
+
+/// Storage map for `gil_safe_call_once_and_store`. Stored in a capsule in the interpreter's state
+/// dict with proper destructor to ensure cleanup when the interpreter is destroyed.
+using call_once_storage_map_type = std::unordered_map<const void *, call_once_storage_base *>;
+
+#    define PYBIND11_CALL_ONCE_STORAGE_MAP_ID PYBIND11_INTERNALS_ID "_call_once_storage_map__"
+
 // The life span of the stored result is the entire interpreter lifetime. An additional
 // `finalize_fn` can be provided to clean up the stored result when the interpreter is destroyed.
 template <typename T>
@@ -129,35 +167,33 @@ public:
             // Multiple threads may enter here, because the GIL is released in the next line and
             // CPython API calls in the `fn()` call below may release and reacquire the GIL.
             gil_scoped_release gil_rel; // Needed to establish lock ordering.
-            detail::with_internals([&](detail::internals &internals) {
-                const void *const key = reinterpret_cast<const void *>(this);
-                auto &storage_map = internals.call_once_storage_map;
-                // There can be multiple threads going through here.
-                detail::call_once_storage<T> *value = nullptr;
-                {
-                    gil_scoped_acquire gil_acq;
-                    // Only one thread will enter here at a time.
-                    const auto it = storage_map.find(key);
-                    if (it != storage_map.end()) {
-                        value = static_cast<detail::call_once_storage<T> *>(it->second);
-                    } else {
-                        value = new detail::call_once_storage<T>{};
-                        storage_map.emplace(key, value);
-                    }
+            const void *const key = reinterpret_cast<const void *>(this);
+            // There can be multiple threads going through here.
+            call_once_storage<T> *value = nullptr;
+            {
+                gil_scoped_acquire gil_acq;
+                // Only one thread will enter here at a time.
+                auto &storage_map = *get_or_create_call_once_storage_map();
+                const auto it = storage_map.find(key);
+                if (it != storage_map.end()) {
+                    value = static_cast<call_once_storage<T> *>(it->second);
+                } else {
+                    value = new call_once_storage<T>{};
+                    storage_map.emplace(key, value);
                 }
-                assert(value != nullptr);
-                std::call_once(value->once_flag, [&] {
-                    // Only one thread will ever enter here.
-                    gil_scoped_acquire gil_acq;
-                    // fn may release, but will reacquire, the GIL.
-                    ::new (value->storage) T(fn());
-                    value->finalize = finalize_fn;
-                    value->is_initialized = true;
-                    last_storage_ptr_ = reinterpret_cast<T *>(value->storage);
-                    is_initialized_by_atleast_one_interpreter_ = true;
-                });
+            }
+            assert(value != nullptr);
+            std::call_once(value->once_flag, [&] {
+                // Only one thread will ever enter here.
+                gil_scoped_acquire gil_acq;
+                // fn may release, but will reacquire, the GIL.
+                ::new (value->storage) T(fn());
+                value->finalize = finalize_fn;
+                value->is_initialized = true;
+                last_storage_ptr_ = reinterpret_cast<T *>(value->storage);
+                is_initialized_by_atleast_one_interpreter_ = true;
             });
-            // All threads will observe `is_initialized_by_atleast_one_interp_` as true here.
+            // All threads will observe `is_initialized_by_atleast_one_interpreter_` as true here.
         }
         // Intentionally not returning `T &` to ensure the calling code is self-documenting.
         return *this;
@@ -167,12 +203,11 @@ public:
     T &get_stored() {
         T *result = last_storage_ptr_;
         if (!is_last_storage_valid()) {
-            detail::with_internals([&](detail::internals &internals) {
-                const void *const key = reinterpret_cast<const void *>(this);
-                auto &storage_map = internals.call_once_storage_map;
-                auto *value = static_cast<detail::call_once_storage<T> *>(storage_map.at(key));
-                result = last_storage_ptr_ = reinterpret_cast<T *>(value->storage);
-            });
+            gil_scoped_acquire gil_acq;
+            const void *const key = reinterpret_cast<const void *>(this);
+            auto &storage_map = *get_or_create_call_once_storage_map();
+            auto *value = static_cast<call_once_storage<T> *>(storage_map.at(key));
+            result = last_storage_ptr_ = reinterpret_cast<T *>(value->storage);
         }
         assert(result != nullptr);
         return *result;
@@ -187,12 +222,43 @@ public:
 private:
     bool is_last_storage_valid() const {
         return is_initialized_by_atleast_one_interpreter_
-               && detail::get_num_interpreters_seen() <= 1;
+               && detail::get_num_interpreters_seen() == 1;
+    }
+
+    static call_once_storage_map_type *get_or_create_call_once_storage_map() {
+        error_scope err_scope;
+        dict state_dict = detail::get_python_state_dict();
+        auto storage_map_obj = reinterpret_steal<object>(
+            detail::dict_getitemstringref(state_dict.ptr(), PYBIND11_CALL_ONCE_STORAGE_MAP_ID));
+        call_once_storage_map_type *storage_map = nullptr;
+        if (storage_map_obj) {
+            void *raw_ptr = PyCapsule_GetPointer(storage_map_obj.ptr(), /*name=*/nullptr);
+            if (!raw_ptr) {
+                raise_from(PyExc_SystemError,
+                           "pybind11::gil_safe_call_once_and_store::"
+                           "get_or_create_call_once_storage_map() FAILED");
+                throw error_already_set();
+            }
+            storage_map = reinterpret_cast<call_once_storage_map_type *>(raw_ptr);
+        } else {
+            storage_map = new call_once_storage_map_type();
+            // Create capsule with destructor to clean up the storage map when the interpreter
+            // shuts down
+            state_dict[PYBIND11_CALL_ONCE_STORAGE_MAP_ID]
+                = capsule(storage_map, [](void *ptr) noexcept {
+                      auto *map = reinterpret_cast<call_once_storage_map_type *>(ptr);
+                      for (const auto &entry : *map) {
+                          delete entry.second;
+                      }
+                      delete map;
+                  });
+        }
+        return storage_map;
     }
 
     // No storage needed when subinterpreter support is enabled.
-    // The actual storage is stored in the per-interpreter state dict in
-    // `internals.call_once_storage_map`.
+    // The actual storage is stored in the per-interpreter state dict via
+    // `get_or_create_call_once_storage_map()`.
 
     // Fast local cache to avoid repeated lookups when there are no multiple interpreters.
     // This is only valid if there is a single interpreter. Otherwise, it is not used.
