@@ -564,15 +564,6 @@ public:
     /// acquire the GIL. Will never return nullptr.
     std::unique_ptr<InternalsType> *get_pp() {
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
-        // FIXME: We cannot use `get_num_interpreters_seen() > 1` here to create a fast path for
-        // the multi-interpreter case. The singleton may be initialized by a subinterpreter not the
-        // main interpreter.
-        //
-        // For multi-interpreter support, the subinterpreters can be initialized concurrently, and
-        // the first time this function may not be called in the main interpreter.
-        // For example, a clean main interpreter that does not import any pybind11 module and then
-        // spawns multiple subinterpreters using `InterpreterPoolExecutor` that each imports a
-        // pybind11 module concurrently.
         if (get_num_interpreters_seen() > 1) {
             // Whenever the interpreter changes on the current thread we need to invalidate the
             // internals_pp so that it can be pulled from the interpreter's state dict.  That is
@@ -589,29 +580,15 @@ public:
             return internals_p_tls();
         }
 #endif
-        return get_pp_for_main_interpreter();
-    }
-
-    /// Get the pointer-to-pointer for the main interpreter, allocating it if it does not already
-    /// exist.  May acquire the GIL. Will never return nullptr.
-    std::unique_ptr<InternalsType> *get_pp_for_main_interpreter() {
-        if (!seen_main_interpreter_) {
-            // The first call to this function **MUST** be from the main interpreter.
-            // Here we **ASSUME** that the current thread is running in the main interpreter.
-            // The caller is responsible for ensuring this.
-            std::call_once(seen_main_interpreter_flag_, [&] {
-                gil_scoped_acquire_simple gil;
-                internals_singleton_pp_ = get_or_create_pp_in_state_dict();
-                seen_main_interpreter_ = true;
-            });
+        if (!internals_singleton_pp_) {
+            gil_scoped_acquire_simple gil;
+            internals_singleton_pp_ = get_or_create_pp_in_state_dict();
         }
-        // This is shared between all threads and all interpreters.
         return internals_singleton_pp_;
     }
 
     /// Drop all the references we're currently holding.
     void unref() {
-        // See comment in get_pp() above.
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
         if (get_num_interpreters_seen() > 1) {
             last_istate_tls() = nullptr;
@@ -623,7 +600,6 @@ public:
     }
 
     void destroy() {
-        // See comment in get_pp() above.
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
         if (get_num_interpreters_seen() > 1) {
             auto *tstate = get_thread_state_unchecked();
@@ -684,10 +660,9 @@ private:
 
     char const *holder_id_ = nullptr;
     on_fetch_function *on_fetch_ = nullptr;
-    // Pointer to the singleton internals for the main interpreter
+    // Pointer-to-pointer to the singleton internals for the first seen interpreter (may not be the
+    // main interpreter)
     std::unique_ptr<InternalsType> *internals_singleton_pp_;
-    std::once_flag seen_main_interpreter_flag_;
-    std::atomic_bool seen_main_interpreter_{false};
 };
 
 // If We loaded the internals through `state_dict`, our `error_already_set`
