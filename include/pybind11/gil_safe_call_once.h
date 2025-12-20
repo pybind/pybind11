@@ -257,8 +257,8 @@ private:
         } else {
             // Use unique_ptr for exception safety: if capsule creation throws,
             // the map is automatically deleted.
-            auto storage_map_ptr = std::unique_ptr<call_once_storage_map_type>(
-                new call_once_storage_map_type());
+            auto storage_map_ptr
+                = std::unique_ptr<call_once_storage_map_type>(new call_once_storage_map_type());
             // Create capsule with destructor to clean up the storage map when the interpreter
             // shuts down
             state_dict[PYBIND11_CALL_ONCE_STORAGE_MAP_ID]
