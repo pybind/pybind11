@@ -148,7 +148,7 @@ struct call_once_storage : call_once_storage_base {
                 reinterpret_cast<T *>(storage)->~T();
             }
         }
-    };
+    }
     call_once_storage(const call_once_storage &) = delete;
     call_once_storage(call_once_storage &&) = delete;
     call_once_storage &operator=(const call_once_storage &) = delete;
