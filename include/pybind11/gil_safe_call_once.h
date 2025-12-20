@@ -12,6 +12,9 @@
 #if defined(Py_GIL_DISABLED) || defined(PYBIND11_HAS_SUBINTERPRETER_SUPPORT)
 #    include <atomic>
 #endif
+#ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
+#    include <unordered_map>
+#endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
