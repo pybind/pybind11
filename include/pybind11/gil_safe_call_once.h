@@ -11,13 +11,17 @@
 
 #if defined(Py_GIL_DISABLED) || defined(PYBIND11_HAS_SUBINTERPRETER_SUPPORT)
 #    include <atomic>
+#endif
 
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+
+namespace detail {
+#if defined(Py_GIL_DISABLED) || defined(PYBIND11_HAS_SUBINTERPRETER_SUPPORT)
 using atomic_bool = std::atomic_bool;
 #else
 using atomic_bool = bool;
 #endif
-
-PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+} // namespace detail
 
 // Use the `gil_safe_call_once_and_store` class below instead of the naive
 //
@@ -108,7 +112,7 @@ private:
     // The `is_initialized_`-`storage_` pair is very similar to `std::optional`,
     // but the latter does not have the triviality properties of former,
     // therefore `std::optional` is not a viable alternative here.
-    atomic_bool is_initialized_{false};
+    detail::atomic_bool is_initialized_{false};
 };
 #else
 // Subinterpreter support is enabled.
@@ -265,7 +269,7 @@ private:
     T *last_storage_ptr_ = nullptr;
     // This flag is true if the value has been initialized by any interpreter (may not be the
     // current one).
-    atomic_bool is_initialized_by_atleast_one_interpreter_{false};
+    detail::atomic_bool is_initialized_by_atleast_one_interpreter_{false};
 };
 #endif
 
