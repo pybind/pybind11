@@ -13,6 +13,7 @@
 #    include <atomic>
 #endif
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
+#    include <memory>
 #    include <unordered_map>
 #endif
 
@@ -254,17 +255,22 @@ private:
             }
             storage_map = reinterpret_cast<call_once_storage_map_type *>(raw_ptr);
         } else {
-            storage_map = new call_once_storage_map_type();
+            // Use unique_ptr for exception safety: if capsule creation throws,
+            // the map is automatically deleted.
+            auto storage_map_ptr = std::unique_ptr<call_once_storage_map_type>(
+                new call_once_storage_map_type());
             // Create capsule with destructor to clean up the storage map when the interpreter
             // shuts down
             state_dict[PYBIND11_CALL_ONCE_STORAGE_MAP_ID]
-                = capsule(storage_map, [](void *ptr) noexcept {
+                = capsule(storage_map_ptr.get(), [](void *ptr) noexcept {
                       auto *map = reinterpret_cast<call_once_storage_map_type *>(ptr);
                       for (const auto &entry : *map) {
                           delete entry.second;
                       }
                       delete map;
                   });
+            // Capsule now owns the storage map, release from unique_ptr
+            storage_map = storage_map_ptr.release();
         }
         return storage_map;
     }
