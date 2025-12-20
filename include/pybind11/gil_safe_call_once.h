@@ -70,6 +70,9 @@ template <typename T>
 class gil_safe_call_once_and_store {
 public:
     // PRECONDITION: The GIL must be held when `call_once_and_store_result()` is called.
+    // Note: The second parameter (finalize callback) is intentionally unused when subinterpreter
+    // support is disabled. In that case, storage is process-global and intentionally leaked to
+    // avoid calling destructors after the Python interpreter has been finalized.
     template <typename Callable>
     gil_safe_call_once_and_store &call_once_and_store_result(Callable &&fn,
                                                              void (*)(T &) /*unused*/ = nullptr) {
