@@ -236,6 +236,9 @@ private:
     }
 
     static call_once_storage_map_type *get_or_create_call_once_storage_map() {
+        // Preserve any existing Python error state. dict_getitemstringref may clear
+        // errors or set new ones when the key is not found; we restore the original
+        // error state when this scope exits.
         error_scope err_scope;
         dict state_dict = detail::get_python_state_dict();
         auto storage_map_obj = reinterpret_steal<object>(
