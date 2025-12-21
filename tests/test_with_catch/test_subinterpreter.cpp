@@ -40,6 +40,30 @@ void unsafe_reset_internals_for_single_interpreter() {
     py::detail::get_local_internals();
 }
 
+py::object &get_dict_type_object() {
+    PYBIND11_CONSTINIT static py::gil_safe_call_once_and_store<py::object> storage;
+    return storage
+        .call_once_and_store_result(
+            []() -> py::object { return py::module_::import("builtins").attr("dict"); })
+        .get_stored();
+}
+
+py::object &get_ordered_dict_type_object() {
+    PYBIND11_CONSTINIT static py::gil_safe_call_once_and_store<py::object> storage;
+    return storage
+        .call_once_and_store_result(
+            []() -> py::object { return py::module_::import("collections").attr("OrderedDict"); })
+        .get_stored();
+}
+
+py::object &get_default_dict_type_object() {
+    PYBIND11_CONSTINIT static py::gil_safe_call_once_and_store<py::object> storage;
+    return storage
+        .call_once_and_store_result(
+            []() -> py::object { return py::module_::import("collections").attr("defaultdict"); })
+        .get_stored();
+}
+
 TEST_CASE("Single Subinterpreter") {
     unsafe_reset_internals_for_single_interpreter();
 
@@ -324,8 +348,14 @@ TEST_CASE("gil_safe_call_once_and_store per-interpreter isolation") {
                            .get_stored();
     REQUIRE(main_value.cast<py::interpid_t>() == main_interp_id);
 
+    py::object dict_type = get_dict_type_object();
+    py::object ordered_dict_type = get_ordered_dict_type_object();
+    py::object default_dict_type = get_default_dict_type_object();
+
     py::interpid_t sub_interp_id = -1;
     py::interpid_t sub_cached_value = -1;
+
+    bool sub_default_dict_type_destroyed = false;
 
     // Create a subinterpreter and check that it gets its own storage
     {
@@ -351,11 +381,45 @@ TEST_CASE("gil_safe_call_once_and_store per-interpreter isolation") {
         // This would fail without per-interpreter storage.
         REQUIRE(sub_cached_value == sub_interp_id);
         REQUIRE(sub_cached_value != main_interp_id);
+
+        py::object sub_dict_type = get_dict_type_object();
+        py::object sub_ordered_dict_type = get_ordered_dict_type_object();
+        py::object sub_default_dict_type = get_default_dict_type_object();
+
+        // Verify that the subinterpreter has its own cached type objects.
+        // For static types, they should be the same object across interpreters.
+        // See also: https://docs.python.org/3/c-api/typeobj.html#static-types
+        REQUIRE(sub_dict_type.is(dict_type));                 // dict is a static type
+        REQUIRE(sub_ordered_dict_type.is(ordered_dict_type)); // OrderedDict is a static type
+        // For heap types, they are dynamically created per-interpreter.
+        // See also: https://docs.python.org/3/c-api/typeobj.html#heap-types
+        REQUIRE_FALSE(sub_default_dict_type.is(default_dict_type)); // defaultdict is a heap type
+
+        // Set up a weakref callback to detect when the subinterpreter's cached default_dict_type
+        // is destroyed so the gil_safe_call_once_and_store storage is not leaked when the
+        // subinterpreter is shutdown.
+        (void) py::weakref(sub_default_dict_type,
+                           py::cpp_function([&](py::handle weakref) -> void {
+                               sub_default_dict_type_destroyed = true;
+                               weakref.dec_ref();
+                           }))
+            .release();
     }
 
     // Back in main interpreter, verify main's value is unchanged
     auto &main_value_after = storage.get_stored();
     REQUIRE(main_value_after.cast<py::interpid_t>() == main_interp_id);
+
+    // Verify that the types cached in main are unchanged
+    py::object dict_type_after = get_dict_type_object();
+    py::object ordered_dict_type_after = get_ordered_dict_type_object();
+    py::object default_dict_type_after = get_default_dict_type_object();
+    REQUIRE(dict_type_after.is(dict_type));
+    REQUIRE(ordered_dict_type_after.is(ordered_dict_type));
+    REQUIRE(default_dict_type_after.is(default_dict_type));
+
+    // Verify that the subinterpreter's cached default_dict_type was destroyed
+    REQUIRE(sub_default_dict_type_destroyed);
 
     unsafe_reset_internals_for_single_interpreter();
 }
