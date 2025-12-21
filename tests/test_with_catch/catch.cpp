@@ -3,6 +3,11 @@
 
 #include <pybind11/embed.h>
 
+#include <chrono>
+#include <ctime>
+#include <iomanip>
+#include <sstream>
+
 // Silence MSVC C++17 deprecation warning from Catch regarding std::uncaught_exceptions (up to
 // catch 2.0.1; this should be fixed in the next catch release after 2.0.1).
 PYBIND11_WARNING_DISABLE_MSVC(4996)
@@ -75,6 +80,28 @@ private:
 
 CATCH_REGISTER_REPORTER("progress", ProgressReporter)
 
+namespace {
+
+std::string get_utc_timestamp() {
+    auto now = std::chrono::system_clock::now();
+    auto time_t_now = std::chrono::system_clock::to_time_t(now);
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+
+    std::tm utc_tm{};
+#if defined(_WIN32)
+    gmtime_s(&utc_tm, &time_t_now);
+#else
+    gmtime_r(&time_t_now, &utc_tm);
+#endif
+
+    std::ostringstream oss;
+    oss << std::put_time(&utc_tm, "%Y-%m-%d %H:%M:%S") << '.' << std::setfill('0') << std::setw(3)
+        << ms.count() << 'Z';
+    return oss.str();
+}
+
+} // namespace
+
 int main(int argc, char *argv[]) {
     // Setup for TEST_CASE in test_interpreter.cpp, tagging on a large random number:
     std::string updated_pythonpath("pybind11_test_with_catch_PYTHONPATH_2099743835476552");
@@ -93,9 +120,14 @@ int main(int argc, char *argv[]) {
     setenv("PYTHONPATH", updated_pythonpath.c_str(), /*replace=*/1);
 #endif
 
+    std::cout << "[ STARTING ] " << get_utc_timestamp() << std::endl;
+
     py::scoped_interpreter guard{};
 
     auto result = Catch::Session().run(argc, argv);
+
+    std::cout << "[ DONE     ] " << get_utc_timestamp() << " (result " << result << ")"
+              << std::endl;
 
     return result < 0xff ? result : 0xff;
 }
