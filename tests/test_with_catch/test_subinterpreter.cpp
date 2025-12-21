@@ -346,14 +346,14 @@ TEST_CASE("gil_safe_call_once_and_store per-interpreter isolation") {
                                return py::int_(PyInterpreterState_GetID(PyInterpreterState_Get()));
                            })
                            .get_stored();
-    REQUIRE(main_value.cast<py::interpid_t>() == main_interp_id);
+    REQUIRE(main_value.cast<int64_t>() == main_interp_id);
 
     py::object dict_type = get_dict_type_object();
     py::object ordered_dict_type = get_ordered_dict_type_object();
     py::object default_dict_type = get_default_dict_type_object();
 
-    py::interpid_t sub_interp_id = -1;
-    py::interpid_t sub_cached_value = -1;
+    int64_t sub_interp_id = -1;
+    int64_t sub_cached_value = -1;
 
     bool sub_default_dict_type_destroyed = false;
 
@@ -375,7 +375,7 @@ TEST_CASE("gil_safe_call_once_and_store per-interpreter isolation") {
                   })
                   .get_stored();
 
-        sub_cached_value = sub_value.cast<py::interpid_t>();
+        sub_cached_value = sub_value.cast<int64_t>();
 
         // The cached value should be the SUBINTERPRETER's ID, not the main interpreter's.
         // This would fail without per-interpreter storage.
@@ -408,7 +408,7 @@ TEST_CASE("gil_safe_call_once_and_store per-interpreter isolation") {
 
     // Back in main interpreter, verify main's value is unchanged
     auto &main_value_after = storage.get_stored();
-    REQUIRE(main_value_after.cast<py::interpid_t>() == main_interp_id);
+    REQUIRE(main_value_after.cast<int64_t>() == main_interp_id);
 
     // Verify that the types cached in main are unchanged
     py::object dict_type_after = get_dict_type_object();
