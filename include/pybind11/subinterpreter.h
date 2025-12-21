@@ -13,6 +13,7 @@
 #include "detail/internals.h"
 #include "gil.h"
 
+#include <cstdint>
 #include <stdexcept>
 
 #ifndef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
@@ -29,6 +30,8 @@ inline PyInterpreterState *get_interpreter_state_unchecked() {
     return nullptr;
 }
 PYBIND11_NAMESPACE_END(detail)
+
+using interpid_t = std::int64_t;
 
 class subinterpreter;
 
@@ -214,7 +217,7 @@ public:
     }
 
     /// Get the numerical identifier for the sub-interpreter
-    int64_t id() const {
+    interpid_t id() const {
         if (istate_ != nullptr) {
             return PyInterpreterState_GetID(istate_);
         }
