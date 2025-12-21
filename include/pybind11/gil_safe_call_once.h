@@ -202,9 +202,9 @@ public:
                 value->finalize = finalize_fn;
                 value->is_initialized = true;
                 last_storage_ptr_ = reinterpret_cast<T *>(value->storage);
-                is_initialized_by_atleast_one_interpreter_ = true;
+                is_initialized_by_at_least_one_interpreter_ = true;
             });
-            // All threads will observe `is_initialized_by_atleast_one_interpreter_` as true here.
+            // All threads will observe `is_initialized_by_at_least_one_interpreter_` as true here.
         }
         // Intentionally not returning `T &` to ensure the calling code is self-documenting.
         return *this;
@@ -232,7 +232,7 @@ public:
 
 private:
     bool is_last_storage_valid() const {
-        return is_initialized_by_atleast_one_interpreter_
+        return is_initialized_by_at_least_one_interpreter_
                && detail::get_num_interpreters_seen() == 1;
     }
 
@@ -284,7 +284,7 @@ private:
     T *last_storage_ptr_ = nullptr;
     // This flag is true if the value has been initialized by any interpreter (may not be the
     // current one).
-    detail::atomic_bool is_initialized_by_atleast_one_interpreter_{false};
+    detail::atomic_bool is_initialized_by_at_least_one_interpreter_{false};
 };
 #endif
 
