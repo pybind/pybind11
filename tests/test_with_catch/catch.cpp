@@ -112,7 +112,8 @@ std::string get_utc_timestamp() {
 void termination_signal_handler(int sig) {
     const char *msg = "[  SIGNAL  ] Process received SIGTERM\n";
     // write() is async-signal-safe, unlike std::cout
-    (void) write(STDOUT_FILENO, msg, strlen(msg));
+    ssize_t written = write(STDOUT_FILENO, msg, strlen(msg));
+    (void) written; // suppress "unused variable" warnings
     // Re-raise with default handler to get proper exit status
     std::signal(sig, SIG_DFL);
     std::raise(sig);
