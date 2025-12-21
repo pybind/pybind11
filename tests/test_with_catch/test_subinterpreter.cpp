@@ -1,5 +1,6 @@
 #include <pybind11/embed.h>
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
+#    include <pybind11/gil_safe_call_once.h>
 #    include <pybind11/subinterpreter.h>
 
 // Silence MSVC C++17 deprecation warning from Catch regarding std::uncaught_exceptions (up to
@@ -298,6 +299,63 @@ TEST_CASE("Multiple Subinterpreters") {
 
     REQUIRE(py::cast<std::string>(py::module_::import("external_module").attr("multi_interp"))
             == "1");
+
+    unsafe_reset_internals_for_single_interpreter();
+}
+
+// Test that gil_safe_call_once_and_store provides per-interpreter storage.
+// Without the per-interpreter storage fix, the subinterpreter would see the value
+// cached by the main interpreter, which is invalid (different interpreter's object).
+TEST_CASE("gil_safe_call_once_and_store per-interpreter isolation") {
+    unsafe_reset_internals_for_single_interpreter();
+
+    // This static simulates a typical usage pattern where a module caches
+    // an imported object using gil_safe_call_once_and_store.
+    PYBIND11_CONSTINIT static py::gil_safe_call_once_and_store<py::object> storage;
+
+    // Get the interpreter ID in the main interpreter
+    auto main_interp_id = PyInterpreterState_GetID(PyInterpreterState_Get());
+
+    // Store a value in the main interpreter - we'll store the interpreter ID as a Python int
+    auto &main_value = storage
+                           .call_once_and_store_result([]() {
+                               return py::int_(PyInterpreterState_GetID(PyInterpreterState_Get()));
+                           })
+                           .get_stored();
+    REQUIRE(main_value.cast<int64_t>() == main_interp_id);
+
+    int64_t sub_interp_id = -1;
+    int64_t sub_cached_value = -1;
+
+    // Create a subinterpreter and check that it gets its own storage
+    {
+        py::scoped_subinterpreter ssi;
+
+        sub_interp_id = PyInterpreterState_GetID(PyInterpreterState_Get());
+        REQUIRE(sub_interp_id != main_interp_id);
+
+        // Access the same static storage from the subinterpreter.
+        // With per-interpreter storage, this should call the lambda again
+        // and cache a NEW value for this interpreter.
+        // Without per-interpreter storage, this would return main's cached value.
+        auto &sub_value
+            = storage
+                  .call_once_and_store_result([]() {
+                      return py::int_(PyInterpreterState_GetID(PyInterpreterState_Get()));
+                  })
+                  .get_stored();
+
+        sub_cached_value = sub_value.cast<int64_t>();
+
+        // The cached value should be the SUBINTERPRETER's ID, not the main interpreter's.
+        // This would fail without per-interpreter storage.
+        REQUIRE(sub_cached_value == sub_interp_id);
+        REQUIRE(sub_cached_value != main_interp_id);
+    }
+
+    // Back in main interpreter, verify main's value is unchanged
+    auto &main_value_after = storage.get_stored();
+    REQUIRE(main_value_after.cast<int64_t>() == main_interp_id);
 
     unsafe_reset_internals_for_single_interpreter();
 }
