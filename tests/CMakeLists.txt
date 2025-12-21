@@ -157,7 +157,7 @@ set(PYBIND11_TEST_FILES
     test_methods_and_attributes
     test_modules
     test_multiple_inheritance
-    test_multiple_interpreters.py
+    test_multiple_interpreters/test_multiple_interpreters.py
     test_native_enum
     test_numpy_array
     test_numpy_dtypes
@@ -578,24 +578,8 @@ add_custom_target(
   USES_TERMINAL)
 
 if(NOT PYBIND11_CUDA_TESTS)
-  # This module doesn't get mixed with other test modules because those aren't subinterpreter safe.
-  pybind11_add_module(mod_per_interpreter_gil THIN_LTO mod_per_interpreter_gil.cpp)
-  pybind11_add_module(mod_shared_interpreter_gil THIN_LTO mod_shared_interpreter_gil.cpp)
-  set_target_properties(mod_per_interpreter_gil PROPERTIES LIBRARY_OUTPUT_DIRECTORY
-                                                           "$<1:${CMAKE_CURRENT_BINARY_DIR}>")
-  set_target_properties(mod_shared_interpreter_gil PROPERTIES LIBRARY_OUTPUT_DIRECTORY
-                                                              "$<1:${CMAKE_CURRENT_BINARY_DIR}>")
-  if(PYBIND11_TEST_SMART_HOLDER)
-    target_compile_definitions(
-      mod_per_interpreter_gil
-      PUBLIC -DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE
-    )
-    target_compile_definitions(
-      mod_shared_interpreter_gil
-      PUBLIC -DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE
-    )
-  endif()
-  add_dependencies(pytest mod_per_interpreter_gil mod_shared_interpreter_gil)
+  # Multiple interpreters tests are in a separate subdirectory
+  add_subdirectory(test_multiple_interpreters)
 endif()
 
 if(PYBIND11_TEST_OVERRIDE)
