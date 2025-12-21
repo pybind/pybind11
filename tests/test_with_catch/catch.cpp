@@ -120,14 +120,15 @@ int main(int argc, char *argv[]) {
     setenv("PYTHONPATH", updated_pythonpath.c_str(), /*replace=*/1);
 #endif
 
-    std::cout << "[ STARTING ] " << get_utc_timestamp() << std::endl;
+    std::cout << "[ STARTING ] " << get_utc_timestamp() << '\n';
+    std::cout.flush();
 
     py::scoped_interpreter guard{};
 
     auto result = Catch::Session().run(argc, argv);
 
-    std::cout << "[ DONE     ] " << get_utc_timestamp() << " (result " << result << ")"
-              << std::endl;
+    std::cout << "[ DONE     ] " << get_utc_timestamp() << " (result " << result << ")\n";
+    std::cout.flush();
 
     return result < 0xff ? result : 0xff;
 }
