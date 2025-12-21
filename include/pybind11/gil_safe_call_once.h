@@ -174,7 +174,7 @@ public:
     template <typename Callable>
     gil_safe_call_once_and_store &call_once_and_store_result(Callable &&fn,
                                                              void (*finalize_fn)(T &) = nullptr) {
-        if (!is_last_storage_valid()) {
+        if (!is_last_storage_tls_valid()) {
             // Multiple threads may enter here, because the GIL is released in the next line and
             // CPython API calls in the `fn()` call below may release and reacquire the GIL.
             gil_scoped_release gil_rel; // Needed to establish lock ordering.
@@ -201,10 +201,10 @@ public:
                 ::new (value->storage) T(fn());
                 value->finalize = finalize_fn;
                 value->is_initialized = true;
-                last_storage_ptr_ = reinterpret_cast<T *>(value->storage);
                 is_initialized_by_at_least_one_interpreter_ = true;
             });
             // All threads will observe `is_initialized_by_at_least_one_interpreter_` as true here.
+            update_storage_tls_cache(reinterpret_cast<T *>(value->storage));
         }
         // Intentionally not returning `T &` to ensure the calling code is self-documenting.
         return *this;
@@ -212,13 +212,14 @@ public:
 
     // This must only be called after `call_once_and_store_result()` was called.
     T &get_stored() {
-        T *result = last_storage_ptr_;
-        if (!is_last_storage_valid()) {
+        T *result = get_storage_tls_cache();
+        if (!is_last_storage_tls_valid()) {
             gil_scoped_acquire gil_acq;
             const void *const key = reinterpret_cast<const void *>(this);
             auto &storage_map = *get_or_create_call_once_storage_map();
             auto *value = static_cast<call_once_storage<T> *>(storage_map.at(key));
-            result = last_storage_ptr_ = reinterpret_cast<T *>(value->storage);
+            result = reinterpret_cast<T *>(value->storage);
+            update_storage_tls_cache(result);
         }
         assert(result != nullptr);
         return *result;
@@ -231,9 +232,55 @@ public:
     PYBIND11_DTOR_CONSTEXPR ~gil_safe_call_once_and_store() = default;
 
 private:
-    bool is_last_storage_valid() const {
-        return is_initialized_by_at_least_one_interpreter_
-               && detail::get_num_interpreters_seen() == 1;
+    // Fast local cache to avoid repeated lookups when the interpreter has not changed on the
+    // current thread. Similar to `internals_pp_manager::{internals_p_tls,last_istate_tls}`.
+    static T *&last_storage_ptr_tls() {
+        static thread_local T *last_storage_ptr = nullptr;
+        return last_storage_ptr;
+    }
+
+    static PyInterpreterState *&last_istate_tls() {
+        static thread_local PyInterpreterState *last_istate = nullptr;
+        return last_istate;
+    }
+
+    // See also: internals_pp_manager::get_pp()
+    T *get_storage_tls_cache() const {
+        // The caller should be aware that the cached pointer may be invalid.
+        // It can only be used after checking `is_last_storage_tls_valid()`.
+        if (detail::get_num_interpreters_seen() > 1) {
+            return last_storage_ptr_tls();
+        }
+        return last_storage_ptr_singleton_;
+    }
+
+    void update_storage_tls_cache(T *ptr) {
+        gil_scoped_acquire_simple gil;
+        if (detail::get_num_interpreters_seen() > 1) {
+            auto *tstate = detail::get_thread_state_unchecked();
+            if (tstate) {
+                last_istate_tls() = tstate->interp;
+            }
+            last_storage_ptr_tls() = ptr;
+        } else {
+            last_storage_ptr_singleton_ = ptr;
+        }
+    }
+
+    bool is_last_storage_tls_valid() const {
+        if (!is_initialized_by_at_least_one_interpreter_) {
+            return false;
+        }
+        if (detail::get_num_interpreters_seen() > 1) {
+            // Whenever the interpreter changes on the current thread we need to invalidate the
+            // cached storage pointer so that it can be pulled from the interpreter's state dict.
+            auto *tstate = detail::get_thread_state_unchecked();
+            if (!tstate || tstate->interp != last_istate_tls()) {
+                return false;
+            }
+            return last_storage_ptr_tls() != nullptr;
+        }
+        return last_storage_ptr_singleton_ != nullptr;
     }
 
     static call_once_storage_map_type *get_or_create_call_once_storage_map() {
@@ -257,8 +304,7 @@ private:
         } else {
             // Use unique_ptr for exception safety: if capsule creation throws,
             // the map is automatically deleted.
-            auto storage_map_ptr
-                = std::unique_ptr<call_once_storage_map_type>(new call_once_storage_map_type());
+            auto storage_map_ptr = std::make_unique<call_once_storage_map_type>();
             // Create capsule with destructor to clean up the storage map when the interpreter
             // shuts down
             state_dict[PYBIND11_CALL_ONCE_STORAGE_MAP_ID]
@@ -281,7 +327,9 @@ private:
 
     // Fast local cache to avoid repeated lookups when there are no multiple interpreters.
     // This is only valid if there is a single interpreter. Otherwise, it is not used.
-    T *last_storage_ptr_ = nullptr;
+    // This is separate from the thread-local cache above and maybe not initialized by the main
+    // interpreter.
+    T *last_storage_ptr_singleton_ = nullptr;
     // This flag is true if the value has been initialized by any interpreter (may not be the
     // current one).
     detail::atomic_bool is_initialized_by_at_least_one_interpreter_{false};
