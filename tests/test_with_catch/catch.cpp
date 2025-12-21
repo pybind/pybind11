@@ -4,6 +4,7 @@
 #include <pybind11/embed.h>
 
 #include <chrono>
+#include <cstdio>
 #include <ctime>
 #include <iomanip>
 #include <sstream>
@@ -103,6 +104,11 @@ std::string get_utc_timestamp() {
 } // namespace
 
 int main(int argc, char *argv[]) {
+    // Disable stdout buffering to ensure output appears immediately in CI logs.
+    // Without this, output may be lost if the process is killed by a timeout.
+    std::cout.setf(std::ios::unitbuf);
+    setvbuf(stdout, nullptr, _IONBF, 0);
+
     // Setup for TEST_CASE in test_interpreter.cpp, tagging on a large random number:
     std::string updated_pythonpath("pybind11_test_with_catch_PYTHONPATH_2099743835476552");
     const char *preexisting_pythonpath = getenv("PYTHONPATH");
