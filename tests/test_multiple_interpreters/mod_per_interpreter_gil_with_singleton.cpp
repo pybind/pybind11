@@ -15,6 +15,10 @@ class MySingleton {
 public:
     MySingleton() = default;
     ~MySingleton() = default;
+    MySingleton(const MySingleton &) = delete;
+    MySingleton &operator=(const MySingleton &) = delete;
+    MySingleton(MySingleton &&) = default;
+    MySingleton &operator=(MySingleton &&) = default;
 
     static MySingleton &get_instance() {
         PYBIND11_CONSTINIT static py::gil_safe_call_once_and_store<MySingleton> storage;
