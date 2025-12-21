@@ -4,9 +4,15 @@
 #include <pybind11/embed.h>
 
 #include <chrono>
+#include <csignal>
+#include <cstring>
 #include <ctime>
 #include <iomanip>
 #include <sstream>
+
+#ifndef _WIN32
+#    include <unistd.h>
+#endif
 
 // Silence MSVC C++17 deprecation warning from Catch regarding std::uncaught_exceptions (up to
 // catch 2.0.1; this should be fixed in the next catch release after 2.0.1).
@@ -100,9 +106,26 @@ std::string get_utc_timestamp() {
     return oss.str();
 }
 
+#ifndef _WIN32
+// Signal handler to print a message when the process is terminated.
+// Uses only async-signal-safe functions.
+void termination_signal_handler(int sig) {
+    const char *msg = "[  SIGNAL  ] Process received SIGTERM\n";
+    // write() is async-signal-safe, unlike std::cout
+    (void) write(STDOUT_FILENO, msg, strlen(msg));
+    // Re-raise with default handler to get proper exit status
+    std::signal(sig, SIG_DFL);
+    std::raise(sig);
+}
+#endif
+
 } // namespace
 
 int main(int argc, char *argv[]) {
+#ifndef _WIN32
+    std::signal(SIGTERM, termination_signal_handler);
+#endif
+
     // Setup for TEST_CASE in test_interpreter.cpp, tagging on a large random number:
     std::string updated_pythonpath("pybind11_test_with_catch_PYTHONPATH_2099743835476552");
     const char *preexisting_pythonpath = getenv("PYTHONPATH");
