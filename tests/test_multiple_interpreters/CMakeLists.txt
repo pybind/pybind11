@@ -7,29 +7,32 @@
 
 set(PYBIND11_MULTIPLE_INTERPRETERS_TEST_FILES test_multiple_interpreters.py)
 
+set(modules mod_per_interpreter_gil mod_shared_interpreter_gil
+            mod_per_interpreter_gil_with_singleton)
+
 # These modules don't get mixed with other test modules because those aren't subinterpreter safe.
-pybind11_add_module(mod_per_interpreter_gil THIN_LTO mod_per_interpreter_gil.cpp)
-pybind11_add_module(mod_shared_interpreter_gil THIN_LTO mod_shared_interpreter_gil.cpp)
-pybind11_enable_warnings(mod_per_interpreter_gil)
-pybind11_enable_warnings(mod_shared_interpreter_gil)
+foreach(mod IN LISTS modules)
+  pybind11_add_module("${mod}" THIN_LTO "${mod}.cpp")
+  pybind11_enable_warnings("${mod}")
+endforeach()
 
 # Put the built modules next to `pybind11_tests.so` so that the test scripts can find them.
 get_target_property(pybind11_tests_output_directory pybind11_tests LIBRARY_OUTPUT_DIRECTORY)
-set_target_properties(mod_per_interpreter_gil PROPERTIES LIBRARY_OUTPUT_DIRECTORY
-                                                         "${pybind11_tests_output_directory}")
-set_target_properties(mod_shared_interpreter_gil PROPERTIES LIBRARY_OUTPUT_DIRECTORY
-                                                            "${pybind11_tests_output_directory}")
+foreach(mod IN LISTS modules)
+  set_target_properties("${mod}" PROPERTIES LIBRARY_OUTPUT_DIRECTORY
+                                            "${pybind11_tests_output_directory}")
+endforeach()
 
 if(PYBIND11_TEST_SMART_HOLDER)
-  target_compile_definitions(
-    mod_per_interpreter_gil
-    PUBLIC -DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE)
-  target_compile_definitions(
-    mod_shared_interpreter_gil
-    PUBLIC -DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE)
+  foreach(mod IN LISTS modules)
+    target_compile_definitions(
+      "${mod}"
+      PUBLIC -DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE
+    )
+  endforeach()
 endif()
 
-add_dependencies(pytest mod_per_interpreter_gil mod_shared_interpreter_gil)
+add_dependencies(pytest ${modules})
 
 # Convert relative to full file names and add to pytest test files
 list(TRANSFORM PYBIND11_MULTIPLE_INTERPRETERS_TEST_FILES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")

@@ -3,7 +3,9 @@ from __future__ import annotations
 import contextlib
 import os
 import pickle
+import subprocess
 import sys
+import textwrap
 
 import pytest
 
@@ -91,12 +93,14 @@ def test_independent_subinterpreters():
     if not m.defined_PYBIND11_HAS_SUBINTERPRETER_SUPPORT:
         pytest.skip("Does not have subinterpreter support compiled in")
 
-    code = """
-import mod_per_interpreter_gil as m
-import pickle
-with open(pipeo, 'wb') as f:
-    pickle.dump(m.internals_at(), f)
-"""
+    code = textwrap.dedent(
+        """
+        import mod_per_interpreter_gil as m
+        import pickle
+        with open(pipeo, 'wb') as f:
+            pickle.dump(m.internals_at(), f)
+        """
+    ).strip()
 
     with create() as interp1, create() as interp2:
         try:
@@ -140,11 +144,13 @@ def test_independent_subinterpreters_modern():
 
     from concurrent import interpreters
 
-    code = """
-import mod_per_interpreter_gil as m
+    code = textwrap.dedent(
+        """
+        import mod_per_interpreter_gil as m
 
-values.put_nowait(m.internals_at())
-"""
+        values.put_nowait(m.internals_at())
+        """
+    ).strip()
 
     with contextlib.closing(interpreters.create()) as interp1, contextlib.closing(
         interpreters.create()
@@ -184,12 +190,14 @@ def test_dependent_subinterpreters():
     if not m.defined_PYBIND11_HAS_SUBINTERPRETER_SUPPORT:
         pytest.skip("Does not have subinterpreter support compiled in")
 
-    code = """
-import mod_shared_interpreter_gil as m
-import pickle
-with open(pipeo, 'wb') as f:
-    pickle.dump(m.internals_at(), f)
-"""
+    code = textwrap.dedent(
+        """
+        import mod_shared_interpreter_gil as m
+        import pickle
+        with open(pipeo, 'wb') as f:
+            pickle.dump(m.internals_at(), f)
+        """
+    ).strip()
 
     with create("legacy") as interp1:
         pipei, pipeo = os.pipe()
@@ -198,3 +206,200 @@ with open(pipeo, 'wb') as f:
             res1 = pickle.load(f)
 
     assert res1 != m.internals_at(), "internals should differ from main interpreter"
+
+
+@pytest.mark.skipif(
+    sys.platform.startswith("emscripten"), reason="Requires loadable modules"
+)
+@pytest.mark.skipif(not CONCURRENT_INTERPRETERS_SUPPORT, reason="Requires 3.14.0b3+")
+def test_import_module_with_singleton_per_interpreter():
+    """Tests that a singleton storing Python objects works correctly per-interpreter"""
+
+    sys.path.append(".")
+
+    from concurrent import interpreters
+
+    code = textwrap.dedent(
+        """
+        import collections
+        import mod_per_interpreter_gil_with_singleton as m
+
+        objects = m.get_objects_in_singleton()
+        assert objects == [
+            type(None),
+            tuple,
+            list,
+            dict,
+            collections.OrderedDict,
+            collections.defaultdict,
+            collections.deque,
+        ]
+
+        assert hasattr(m, 'MyClass')
+        assert hasattr(m, 'MyGlobalError')
+        assert hasattr(m, 'MyLocalError')
+        assert hasattr(m, 'MyEnum')
+        """
+    ).strip()
+
+    with contextlib.closing(interpreters.create()) as interp:
+        interp.exec(code)
+
+
+def check_script_success(code: str, *, rerun: int = 5) -> None:
+    code = textwrap.dedent(code).strip()
+    try:
+        for _ in range(rerun):  # run flakily failing test multiple times
+            subprocess.check_output(
+                [sys.executable, "-c", code],
+                cwd=os.getcwd(),
+                stderr=subprocess.STDOUT,
+                text=True,
+            )
+    except subprocess.CalledProcessError as ex:
+        pytest.fail(
+            f"Subprocess failed with exit code {ex.returncode}.\nOutput:\n{ex.output}"
+        )
+
+
+@pytest.mark.skipif(
+    sys.platform.startswith("emscripten"), reason="Requires loadable modules"
+)
+@pytest.mark.skipif(not CONCURRENT_INTERPRETERS_SUPPORT, reason="Requires 3.14.0b3+")
+def test_import_in_subinterpreter_before_after():
+    """Tests that importing a module in a subinterpreter after the main interpreter works correctly"""
+    check_script_success(
+        """
+        import contextlib
+        import gc
+        import sys
+        from concurrent import interpreters
+
+        sys.path.append('.')
+
+        def test():
+            import collections
+            import mod_per_interpreter_gil_with_singleton as m
+
+            objects = m.get_objects_in_singleton()
+            assert objects == [
+                type(None),
+                tuple,
+                list,
+                dict,
+                collections.OrderedDict,
+                collections.defaultdict,
+                collections.deque,
+            ]
+
+            assert hasattr(m, 'MyClass')
+            assert hasattr(m, 'MyGlobalError')
+            assert hasattr(m, 'MyLocalError')
+            assert hasattr(m, 'MyEnum')
+
+        test()
+
+        interp = None
+        with contextlib.closing(interpreters.create()) as interp:
+            interp.call(test)
+        del interp
+
+        for _ in range(5):
+            gc.collect()
+        """
+    )
+
+
+@pytest.mark.skipif(
+    sys.platform.startswith("emscripten"), reason="Requires loadable modules"
+)
+@pytest.mark.skipif(not CONCURRENT_INTERPRETERS_SUPPORT, reason="Requires 3.14.0b3+")
+def test_import_in_subinterpreter_before_main():
+    """Tests that importing a module in a subinterpreter before the main interpreter works correctly"""
+    check_script_success(
+        """
+        import contextlib
+        import gc
+        import sys
+        from concurrent import interpreters
+
+        sys.path.append('.')
+
+        def test():
+            import collections
+            import mod_per_interpreter_gil_with_singleton as m
+
+            objects = m.get_objects_in_singleton()
+            assert objects == [
+                type(None),
+                tuple,
+                list,
+                dict,
+                collections.OrderedDict,
+                collections.defaultdict,
+                collections.deque,
+            ]
+
+            assert hasattr(m, 'MyClass')
+            assert hasattr(m, 'MyGlobalError')
+            assert hasattr(m, 'MyLocalError')
+            assert hasattr(m, 'MyEnum')
+
+        interp = None
+        with contextlib.closing(interpreters.create()) as interp:
+            interp.call(test)
+        del interp
+
+        test()
+
+        for _ in range(5):
+            gc.collect()
+        """
+    )
+
+
+@pytest.mark.skipif(
+    sys.platform.startswith("emscripten"), reason="Requires loadable modules"
+)
+@pytest.mark.skipif(not CONCURRENT_INTERPRETERS_SUPPORT, reason="Requires 3.14.0b3+")
+def test_import_in_subinterpreter_concurrently():
+    """Tests that importing a module in multiple subinterpreters concurrently works correctly"""
+    check_script_success(
+        """
+        import gc
+        import sys
+        from concurrent.futures import InterpreterPoolExecutor, as_completed
+
+        sys.path.append('.')
+
+        def test():
+            import collections
+            import mod_per_interpreter_gil_with_singleton as m
+
+            objects = m.get_objects_in_singleton()
+            assert objects == [
+                type(None),
+                tuple,
+                list,
+                dict,
+                collections.OrderedDict,
+                collections.defaultdict,
+                collections.deque,
+            ]
+
+            assert hasattr(m, 'MyClass')
+            assert hasattr(m, 'MyGlobalError')
+            assert hasattr(m, 'MyLocalError')
+            assert hasattr(m, 'MyEnum')
+
+        futures = future = None
+        with InterpreterPoolExecutor(max_workers=16) as executor:
+            futures = [executor.submit(test) for _ in range(32)]
+            for future in as_completed(futures):
+                future.result()
+        del futures, future, executor
+
+        for _ in range(5):
+            gc.collect()
+        """
+    )
