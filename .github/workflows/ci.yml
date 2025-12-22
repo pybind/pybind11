@@ -778,7 +778,8 @@ jobs:
     timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v1  # v1 is required to run inside docker
+    # v1 required for i386/debian container; pinned to SHA to prevent dependabot updates
+    - uses: actions/checkout@544eadc6bf3d226fd7a7a9f0dc5b5bf7ca0675b9  # v1
 
     - name: Install requirements
       run: |
