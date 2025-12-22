@@ -208,19 +208,13 @@ def test_dependent_subinterpreters():
     assert res1 != m.internals_at(), "internals should differ from main interpreter"
 
 
-@pytest.mark.skipif(
-    sys.platform.startswith("emscripten"), reason="Requires loadable modules"
-)
-@pytest.mark.skipif(not CONCURRENT_INTERPRETERS_SUPPORT, reason="Requires 3.14.0b3+")
-def test_import_module_with_singleton_per_interpreter():
-    """Tests that a singleton storing Python objects works correctly per-interpreter"""
+PREAMBLE_CODE = textwrap.dedent(
+    """
+    import sys
 
-    sys.path.append(".")
+    sys.path.append('.')
 
-    from concurrent import interpreters
-
-    code = textwrap.dedent(
-        """
+    def test():
         import collections
         import mod_per_interpreter_gil_with_singleton as m
 
@@ -239,14 +233,26 @@ def test_import_module_with_singleton_per_interpreter():
         assert hasattr(m, 'MyGlobalError')
         assert hasattr(m, 'MyLocalError')
         assert hasattr(m, 'MyEnum')
-        """
-    ).strip()
+    """
+).lstrip()
+
+
+@pytest.mark.skipif(
+    sys.platform.startswith("emscripten"), reason="Requires loadable modules"
+)
+@pytest.mark.skipif(not CONCURRENT_INTERPRETERS_SUPPORT, reason="Requires 3.14.0b3+")
+def test_import_module_with_singleton_per_interpreter():
+    """Tests that a singleton storing Python objects works correctly per-interpreter"""
+    from concurrent import interpreters
+
+    code = f"{PREAMBLE_CODE.strip()}\n\ntest()\n"
 
     with contextlib.closing(interpreters.create()) as interp:
         interp.exec(code)
 
 
-def check_script_success(code: str, *, rerun: int = 5) -> None:
+def check_script_success_in_subprocess(code: str, *, rerun: int = 8) -> None:
+    """Runs the given code in a subprocess."""
     code = textwrap.dedent(code).strip()
     try:
         for _ in range(rerun):  # run flakily failing test multiple times
@@ -266,47 +272,55 @@ def check_script_success(code: str, *, rerun: int = 5) -> None:
     sys.platform.startswith("emscripten"), reason="Requires loadable modules"
 )
 @pytest.mark.skipif(not CONCURRENT_INTERPRETERS_SUPPORT, reason="Requires 3.14.0b3+")
-def test_import_in_subinterpreter_before_after():
+def test_import_in_subinterpreter_after_main():
     """Tests that importing a module in a subinterpreter after the main interpreter works correctly"""
-    check_script_success(
-        """
-        import contextlib
-        import gc
-        import sys
-        from concurrent import interpreters
+    check_script_success_in_subprocess(
+        PREAMBLE_CODE
+        + textwrap.dedent(
+            """
+            import contextlib
+            import gc
+            from concurrent import interpreters
 
-        sys.path.append('.')
+            test()
 
-        def test():
-            import collections
-            import mod_per_interpreter_gil_with_singleton as m
+            interp = None
+            with contextlib.closing(interpreters.create()) as interp:
+                interp.call(test)
 
-            objects = m.get_objects_in_singleton()
-            assert objects == [
-                type(None),
-                tuple,
-                list,
-                dict,
-                collections.OrderedDict,
-                collections.defaultdict,
-                collections.deque,
-            ]
+            del interp
+            for _ in range(5):
+                gc.collect()
+            """
+        )
+    )
 
-            assert hasattr(m, 'MyClass')
-            assert hasattr(m, 'MyGlobalError')
-            assert hasattr(m, 'MyLocalError')
-            assert hasattr(m, 'MyEnum')
+    check_script_success_in_subprocess(
+        PREAMBLE_CODE
+        + textwrap.dedent(
+            """
+            import contextlib
+            import gc
+            import random
+            from concurrent import interpreters
 
-        test()
+            test()
 
-        interp = None
-        with contextlib.closing(interpreters.create()) as interp:
-            interp.call(test)
-        del interp
+            interps = interp = None
+            with contextlib.ExitStack() as stack:
+                interps = [
+                    stack.enter_context(contextlib.closing(interpreters.create()))
+                    for _ in range(4)
+                ]
+                random.shuffle(interps)
+                for interp in interps:
+                    interp.call(test)
 
-        for _ in range(5):
-            gc.collect()
-        """
+            del interps, interp, stack
+            for _ in range(5):
+                gc.collect()
+            """
+        )
     )
 
 
@@ -316,45 +330,77 @@ def test_import_in_subinterpreter_before_after():
 @pytest.mark.skipif(not CONCURRENT_INTERPRETERS_SUPPORT, reason="Requires 3.14.0b3+")
 def test_import_in_subinterpreter_before_main():
     """Tests that importing a module in a subinterpreter before the main interpreter works correctly"""
-    check_script_success(
-        """
-        import contextlib
-        import gc
-        import sys
-        from concurrent import interpreters
+    check_script_success_in_subprocess(
+        PREAMBLE_CODE
+        + textwrap.dedent(
+            """
+            import contextlib
+            import gc
+            from concurrent import interpreters
 
-        sys.path.append('.')
+            interp = None
+            with contextlib.closing(interpreters.create()) as interp:
+                interp.call(test)
 
-        def test():
-            import collections
-            import mod_per_interpreter_gil_with_singleton as m
+            test()
 
-            objects = m.get_objects_in_singleton()
-            assert objects == [
-                type(None),
-                tuple,
-                list,
-                dict,
-                collections.OrderedDict,
-                collections.defaultdict,
-                collections.deque,
-            ]
+            del interp
+            for _ in range(5):
+                gc.collect()
+            """
+        )
+    )
 
-            assert hasattr(m, 'MyClass')
-            assert hasattr(m, 'MyGlobalError')
-            assert hasattr(m, 'MyLocalError')
-            assert hasattr(m, 'MyEnum')
+    check_script_success_in_subprocess(
+        PREAMBLE_CODE
+        + textwrap.dedent(
+            """
+            import contextlib
+            import gc
+            from concurrent import interpreters
 
-        interp = None
-        with contextlib.closing(interpreters.create()) as interp:
-            interp.call(test)
-        del interp
+            interps = interp = None
+            with contextlib.ExitStack() as stack:
+                interps = [
+                    stack.enter_context(contextlib.closing(interpreters.create()))
+                    for _ in range(4)
+                ]
+                for interp in interps:
+                    interp.call(test)
 
-        test()
+            test()
 
-        for _ in range(5):
-            gc.collect()
-        """
+            del interps, interp, stack
+            for _ in range(5):
+                gc.collect()
+            """
+        )
+    )
+
+    check_script_success_in_subprocess(
+        PREAMBLE_CODE
+        + textwrap.dedent(
+            """
+            import contextlib
+            import gc
+            from concurrent import interpreters
+
+            interps = interp = None
+            with contextlib.ExitStack() as stack:
+                interps = [
+                    stack.enter_context(contextlib.closing(interpreters.create()))
+                    for _ in range(4)
+                ]
+                for interp in interps:
+                    interp.call(test)
+
+                test()
+
+            del interps, interp, stack
+            for _ in range(5):
+                gc.collect()
+            """
+        )
     )
 
 
@@ -364,7 +410,7 @@ def test_import_in_subinterpreter_before_main():
 @pytest.mark.skipif(not CONCURRENT_INTERPRETERS_SUPPORT, reason="Requires 3.14.0b3+")
 def test_import_in_subinterpreter_concurrently():
     """Tests that importing a module in multiple subinterpreters concurrently works correctly"""
-    check_script_success(
+    check_script_success_in_subprocess(
         """
         import gc
         import sys
