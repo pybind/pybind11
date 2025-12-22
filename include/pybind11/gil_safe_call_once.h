@@ -19,13 +19,13 @@
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
-namespace detail {
+PYBIND11_NAMESPACE_BEGIN(detail)
 #if defined(Py_GIL_DISABLED) || defined(PYBIND11_HAS_SUBINTERPRETER_SUPPORT)
 using atomic_bool = std::atomic_bool;
 #else
 using atomic_bool = bool;
 #endif
-} // namespace detail
+PYBIND11_NAMESPACE_END(detail)
 
 // Use the `gil_safe_call_once_and_store` class below instead of the naive
 //
@@ -127,6 +127,7 @@ private:
 // subinterpreter has its own separate state. The cached result may not shareable across
 // interpreters (e.g., imported modules and their members).
 
+PYBIND11_NAMESPACE_BEGIN(detail)
 struct call_once_storage_base {
     call_once_storage_base() = default;
     virtual ~call_once_storage_base() = default;
@@ -159,9 +160,7 @@ struct call_once_storage : call_once_storage_base {
     call_once_storage &operator=(call_once_storage &&) = delete;
 };
 
-/// Storage map for `gil_safe_call_once_and_store`. Stored in a capsule in the interpreter's state
-/// dict with proper destructor to ensure cleanup when the interpreter is destroyed.
-using call_once_storage_map_type = std::unordered_map<const void *, call_once_storage_base *>;
+PYBIND11_NAMESPACE_END(detail)
 
 #    define PYBIND11_CALL_ONCE_STORAGE_MAP_ID PYBIND11_INTERNALS_ID "_call_once_storage_map__"
 
@@ -178,18 +177,18 @@ public:
             // Multiple threads may enter here, because the GIL is released in the next line and
             // CPython API calls in the `fn()` call below may release and reacquire the GIL.
             gil_scoped_release gil_rel; // Needed to establish lock ordering.
-            const void *const key = reinterpret_cast<const void *>(this);
+            const void *const key = this;
             // There can be multiple threads going through here.
-            call_once_storage<T> *value = nullptr;
+            storage_type *value = nullptr;
             {
                 gil_scoped_acquire gil_acq;
                 // Only one thread will enter here at a time.
                 auto &storage_map = *get_or_create_call_once_storage_map();
                 const auto it = storage_map.find(key);
                 if (it != storage_map.end()) {
-                    value = static_cast<call_once_storage<T> *>(it->second);
+                    value = static_cast<storage_type *>(it->second);
                 } else {
-                    value = new call_once_storage<T>{};
+                    value = new storage_type{};
                     storage_map.emplace(key, value);
                 }
             }
@@ -215,9 +214,9 @@ public:
         T *result = last_storage_ptr_;
         if (!is_last_storage_valid()) {
             gil_scoped_acquire gil_acq;
-            const void *const key = reinterpret_cast<const void *>(this);
+            const void *const key = this;
             auto &storage_map = *get_or_create_call_once_storage_map();
-            auto *value = static_cast<call_once_storage<T> *>(storage_map.at(key));
+            auto *value = static_cast<storage_type *>(storage_map.at(key));
             result = last_storage_ptr_ = reinterpret_cast<T *>(value->storage);
         }
         assert(result != nullptr);
@@ -231,20 +230,27 @@ public:
     PYBIND11_DTOR_CONSTEXPR ~gil_safe_call_once_and_store() = default;
 
 private:
+    using storage_base_type = detail::call_once_storage_base;
+    using storage_type = detail::call_once_storage<T>;
+    // Use base type pointer for polymorphism
+    using storage_map_type = std::unordered_map<const void *, storage_base_type *>;
+
     bool is_last_storage_valid() const {
         return is_initialized_by_at_least_one_interpreter_
                && detail::get_num_interpreters_seen() == 1;
     }
 
-    static call_once_storage_map_type *get_or_create_call_once_storage_map() {
+    // Storage map for `gil_safe_call_once_and_store`. Stored in a capsule in the interpreter's
+    // state dict with proper destructor to ensure cleanup when the interpreter is destroyed.
+    static storage_map_type *get_or_create_call_once_storage_map() {
         // Preserve any existing Python error state. dict_getitemstringref may clear
         // errors or set new ones when the key is not found; we restore the original
         // error state when this scope exits.
         error_scope err_scope;
-        dict state_dict = detail::get_python_state_dict();
+        auto state_dict = reinterpret_borrow<dict>(detail::get_python_state_dict());
         auto storage_map_obj = reinterpret_steal<object>(
             detail::dict_getitemstringref(state_dict.ptr(), PYBIND11_CALL_ONCE_STORAGE_MAP_ID));
-        call_once_storage_map_type *storage_map = nullptr;
+        storage_map_type *storage_map = nullptr;
         if (storage_map_obj) {
             void *raw_ptr = PyCapsule_GetPointer(storage_map_obj.ptr(), /*name=*/nullptr);
             if (!raw_ptr) {
@@ -253,21 +259,22 @@ private:
                            "get_or_create_call_once_storage_map() FAILED");
                 throw error_already_set();
             }
-            storage_map = reinterpret_cast<call_once_storage_map_type *>(raw_ptr);
+            storage_map = static_cast<storage_map_type *>(raw_ptr);
         } else {
             // Use unique_ptr for exception safety: if capsule creation throws,
             // the map is automatically deleted.
-            auto storage_map_ptr
-                = std::unique_ptr<call_once_storage_map_type>(new call_once_storage_map_type());
+            auto storage_map_ptr = std::unique_ptr<storage_map_type>(new storage_map_type());
             // Create capsule with destructor to clean up the storage map when the interpreter
             // shuts down
             state_dict[PYBIND11_CALL_ONCE_STORAGE_MAP_ID]
                 = capsule(storage_map_ptr.get(), [](void *ptr) noexcept {
-                      auto *map = reinterpret_cast<call_once_storage_map_type *>(ptr);
-                      for (const auto &entry : *map) {
-                          delete entry.second;
+                      auto *map = static_cast<storage_map_type *>(ptr);
+                      while (!map->empty()) {
+                          auto it = map->begin();
+                          const auto *storage_ptr = it->second;
+                          map->erase(it);
+                          delete storage_ptr;
                       }
-                      delete map;
                   });
             // Capsule now owns the storage map, release from unique_ptr
             storage_map = storage_map_ptr.release();
