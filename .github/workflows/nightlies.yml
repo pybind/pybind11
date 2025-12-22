@@ -33,7 +33,7 @@ jobs:
           nox -s build
           nox -s build_global
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           name: Packages
           path: dist/*
@@ -44,7 +44,7 @@ jobs:
     needs: [build_wheel]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v6
+      - uses: actions/download-artifact@v7
         with:
           name: Packages
           path: dist
@@ -53,7 +53,7 @@ jobs:
         run: ls -lha dist/*.whl
 
       - name: Upload wheel to Anaconda Cloud as nightly
-        uses: scientific-python/upload-nightly-action@b36e8c0c10dbcfd2e05bf95f17ef8c14fd708dbf # 0.6.2
+        uses: scientific-python/upload-nightly-action@5748273c71e2d8d3a61f3a11a16421c8954f9ecf # 0.6.3
         with:
           artifacts_path: dist
           anaconda_nightly_upload_token: ${{ secrets.ANACONDA_ORG_UPLOAD_TOKEN }}
