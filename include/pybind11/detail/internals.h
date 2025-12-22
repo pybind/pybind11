@@ -420,8 +420,8 @@ inline PyThreadState *get_thread_state_unchecked() {
 
 /// We use this counter to figure out if there are or have been multiple subinterpreters active at
 /// any point. This must never decrease while any interpreter may be running in any thread!
-inline std::atomic<int> &get_num_interpreters_seen() {
-    static std::atomic<int> counter(0);
+inline std::atomic<int64_t> &get_num_interpreters_seen() {
+    static std::atomic<int64_t> counter(0);
     return counter;
 }
 
