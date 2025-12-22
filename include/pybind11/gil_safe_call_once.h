@@ -13,8 +13,9 @@
 #    include <atomic>
 #endif
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
+#    include <cstdint>
 #    include <memory>
-#    include <unordered_map>
+#    include <string>
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
@@ -111,6 +112,12 @@ public:
     // may have been finalized already.
     PYBIND11_DTOR_CONSTEXPR ~gil_safe_call_once_and_store() = default;
 
+    // Disable copy and move operations.
+    gil_safe_call_once_and_store(const gil_safe_call_once_and_store &) = delete;
+    gil_safe_call_once_and_store(gil_safe_call_once_and_store &&) = delete;
+    gil_safe_call_once_and_store &operator=(const gil_safe_call_once_and_store &) = delete;
+    gil_safe_call_once_and_store &operator=(gil_safe_call_once_and_store &&) = delete;
+
 private:
     // Global static storage (per process) when subinterpreter support is disabled.
     alignas(T) char storage_[sizeof(T)] = {};
@@ -128,24 +135,16 @@ private:
 // interpreters (e.g., imported modules and their members).
 
 PYBIND11_NAMESPACE_BEGIN(detail)
-struct call_once_storage_base {
-    call_once_storage_base() = default;
-    virtual ~call_once_storage_base() = default;
-    call_once_storage_base(const call_once_storage_base &) = delete;
-    call_once_storage_base(call_once_storage_base &&) = delete;
-    call_once_storage_base &operator=(const call_once_storage_base &) = delete;
-    call_once_storage_base &operator=(call_once_storage_base &&) = delete;
-};
 
 template <typename T>
-struct call_once_storage : call_once_storage_base {
+struct call_once_storage {
     alignas(T) char storage[sizeof(T)] = {};
     std::once_flag once_flag;
     void (*finalize)(T &) = nullptr;
     std::atomic_bool is_initialized{false};
 
     call_once_storage() = default;
-    ~call_once_storage() override {
+    ~call_once_storage() {
         if (is_initialized) {
             if (finalize != nullptr) {
                 finalize(*reinterpret_cast<T *>(storage));
@@ -162,7 +161,8 @@ struct call_once_storage : call_once_storage_base {
 
 PYBIND11_NAMESPACE_END(detail)
 
-#    define PYBIND11_CALL_ONCE_STORAGE_MAP_ID PYBIND11_INTERNALS_ID "_call_once_storage_map__"
+// Prefix for storage keys in the interpreter state dict.
+#    define PYBIND11_CALL_ONCE_STORAGE_KEY_PREFIX PYBIND11_INTERNALS_ID "_call_once_storage__"
 
 // The life span of the stored result is the entire interpreter lifetime. An additional
 // `finalize_fn` can be provided to clean up the stored result when the interpreter is destroyed.
@@ -177,20 +177,12 @@ public:
             // Multiple threads may enter here, because the GIL is released in the next line and
             // CPython API calls in the `fn()` call below may release and reacquire the GIL.
             gil_scoped_release gil_rel; // Needed to establish lock ordering.
-            const void *const key = this;
             // There can be multiple threads going through here.
             storage_type *value = nullptr;
             {
                 gil_scoped_acquire gil_acq;
                 // Only one thread will enter here at a time.
-                auto &storage_map = *get_or_create_call_once_storage_map();
-                const auto it = storage_map.find(key);
-                if (it != storage_map.end()) {
-                    value = static_cast<storage_type *>(it->second);
-                } else {
-                    value = new storage_type{};
-                    storage_map.emplace(key, value);
-                }
+                value = get_or_create_storage_in_state_dict();
             }
             assert(value != nullptr);
             std::call_once(value->once_flag, [&] {
@@ -214,9 +206,7 @@ public:
         T *result = last_storage_ptr_;
         if (!is_last_storage_valid()) {
             gil_scoped_acquire gil_acq;
-            const void *const key = this;
-            auto &storage_map = *get_or_create_call_once_storage_map();
-            auto *value = static_cast<storage_type *>(storage_map.at(key));
+            auto *value = get_or_create_storage_in_state_dict();
             result = last_storage_ptr_ = reinterpret_cast<T *>(value->storage);
         }
         assert(result != nullptr);
@@ -229,62 +219,115 @@ public:
     // may have been finalized already.
     PYBIND11_DTOR_CONSTEXPR ~gil_safe_call_once_and_store() = default;
 
-private:
-    using storage_base_type = detail::call_once_storage_base;
-    using storage_type = detail::call_once_storage<T>;
-    // Use base type pointer for polymorphism
-    using storage_map_type = std::unordered_map<const void *, storage_base_type *>;
+    // Disable copy and move operations because the memory address is used as key.
+    gil_safe_call_once_and_store(const gil_safe_call_once_and_store &) = delete;
+    gil_safe_call_once_and_store(gil_safe_call_once_and_store &&) = delete;
+    gil_safe_call_once_and_store &operator=(const gil_safe_call_once_and_store &) = delete;
+    gil_safe_call_once_and_store &operator=(gil_safe_call_once_and_store &&) = delete;
 
+private:
+    using storage_type = detail::call_once_storage<T>;
+
+    // Indicator of fast path for single-interpreter case.
     bool is_last_storage_valid() const {
         return is_initialized_by_at_least_one_interpreter_
                && detail::get_num_interpreters_seen() == 1;
     }
 
-    // Storage map for `gil_safe_call_once_and_store`. Stored in a capsule in the interpreter's
-    // state dict with proper destructor to ensure cleanup when the interpreter is destroyed.
-    static storage_map_type *get_or_create_call_once_storage_map() {
-        // Preserve any existing Python error state. dict_getitemstringref may clear
-        // errors or set new ones when the key is not found; we restore the original
-        // error state when this scope exits.
-        error_scope err_scope;
+    // Get the unique key for this storage instance in the interpreter's state dict.
+    // Do not change the type of this to py::str because PyObject is interpreter-dependent.
+    std::string get_storage_key() const {
+        // The instance are expected to be global static, so using its address as unique
+        // identifier. The typical usage is like:
+        //
+        //   PYBIND11_CONSTINIT static gil_safe_call_once_and_store<T> storage;
+        //
+        return PYBIND11_CALL_ONCE_STORAGE_KEY_PREFIX
+               + std::to_string(reinterpret_cast<std::uintptr_t>(this));
+    }
+
+    // Get or create per-storage capsule. Uses test-and-set pattern with `PyDict_SetDefault` for
+    // thread-safe concurrent access.
+    storage_type *get_or_create_storage_in_state_dict() {
+        error_scope err_scope; // preserve any existing Python error states
+
         auto state_dict = reinterpret_borrow<dict>(detail::get_python_state_dict());
-        auto storage_map_obj = reinterpret_steal<object>(
-            detail::dict_getitemstringref(state_dict.ptr(), PYBIND11_CALL_ONCE_STORAGE_MAP_ID));
-        storage_map_type *storage_map = nullptr;
-        if (storage_map_obj) {
-            void *raw_ptr = PyCapsule_GetPointer(storage_map_obj.ptr(), /*name=*/nullptr);
+        const std::string key = get_storage_key();
+        PyObject *result = nullptr;
+
+        // First, try to get existing storage (fast path).
+        {
+            result = detail::dict_getitemstring(state_dict.ptr(), key.c_str());
+            if (result != nullptr) {
+                // Storage already exists, get the storage pointer from the existing capsule.
+                void *raw_ptr = PyCapsule_GetPointer(result, /*name=*/nullptr);
+                if (!raw_ptr) {
+                    raise_from(PyExc_SystemError,
+                               "pybind11::gil_safe_call_once_and_store::"
+                               "get_or_create_storage_in_state_dict() FAILED "
+                               "(get existing)");
+                    throw error_already_set();
+                }
+                return static_cast<storage_type *>(raw_ptr);
+            }
+            if (PyErr_Occurred()) {
+                throw error_already_set();
+            }
+        }
+
+        // Storage doesn't exist yet, create a new one。
+        // Use unique_ptr for exception safety: if capsule creation throws,
+        // the storage is automatically deleted.
+        auto storage_ptr = std::unique_ptr<storage_type>(new storage_type{});
+        // Create capsule with destructor to clean up when the interpreter shuts down.
+        auto new_capsule = capsule(
+            storage_ptr.get(), [](void *ptr) -> void { delete static_cast<storage_type *>(ptr); });
+
+        // Use `PyDict_SetDefault` for atomic test-and-set:
+        //   - If key doesn't exist, inserts our capsule and returns it.
+        //   - If key exists (another thread inserted first), returns the existing value.
+        // This is thread-safe because `PyDict_SetDefault` will hold a lock on the dict.
+        //
+        // NOTE: Here we use `dict_setdefaultstring` instead of `dict_setdefaultstringref` because
+        // the capsule is kept alive until interpreter shutdown, so we do not need to handle incref
+        // and decref here.
+        result = detail::dict_setdefaultstring(state_dict.ptr(), key.c_str(), new_capsule.ptr());
+        if (result == nullptr) {
+            throw error_already_set();
+        }
+
+        // Check whether we inserted our new capsule or another thread did.
+        if (result == new_capsule.ptr()) {
+            // We successfully inserted our new capsule, release ownership from unique_ptr.
+            return storage_ptr.release();
+        }
+        // Another thread already inserted a capsule, use theirs and discard ours.
+        {
+            // Disable the destructor of our unused capsule to prevent double-free:
+            // unique_ptr will clean up the storage on function exit, and the capsule should not.
+            if (PyCapsule_SetDestructor(new_capsule.ptr(), nullptr) != 0) {
+                raise_from(PyExc_SystemError,
+                           "pybind11::gil_safe_call_once_and_store::"
+                           "get_or_create_storage_in_state_dict() FAILED "
+                           "(clear destructor of unused capsule)");
+                throw error_already_set();
+            }
+            // Get the storage pointer from the existing capsule.
+            void *raw_ptr = PyCapsule_GetPointer(result, /*name=*/nullptr);
             if (!raw_ptr) {
                 raise_from(PyExc_SystemError,
                            "pybind11::gil_safe_call_once_and_store::"
-                           "get_or_create_call_once_storage_map() FAILED");
+                           "get_or_create_storage_in_state_dict() FAILED "
+                           "(get after setdefault)");
                 throw error_already_set();
             }
-            storage_map = static_cast<storage_map_type *>(raw_ptr);
-        } else {
-            // Use unique_ptr for exception safety: if capsule creation throws,
-            // the map is automatically deleted.
-            auto storage_map_ptr = std::unique_ptr<storage_map_type>(new storage_map_type());
-            // Create capsule with destructor to clean up the storage map when the interpreter
-            // shuts down
-            state_dict[PYBIND11_CALL_ONCE_STORAGE_MAP_ID]
-                = capsule(storage_map_ptr.get(), [](void *ptr) noexcept {
-                      auto *map = static_cast<storage_map_type *>(ptr);
-                      while (!map->empty()) {
-                          auto it = map->begin();
-                          const auto *storage_ptr = it->second;
-                          map->erase(it);
-                          delete storage_ptr;
-                      }
-                  });
-            // Capsule now owns the storage map, release from unique_ptr
-            storage_map = storage_map_ptr.release();
+            return static_cast<storage_type *>(raw_ptr);
         }
-        return storage_map;
     }
 
     // No storage needed when subinterpreter support is enabled.
     // The actual storage is stored in the per-interpreter state dict via
-    // `get_or_create_call_once_storage_map()`.
+    // `get_or_create_storage_in_state_dict()`.
 
     // Fast local cache to avoid repeated lookups when there are no multiple interpreters.
     // This is only valid if there is a single interpreter. Otherwise, it is not used.
