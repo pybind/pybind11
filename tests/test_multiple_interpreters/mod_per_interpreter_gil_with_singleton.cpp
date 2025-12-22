@@ -51,6 +51,7 @@ public:
     static void init() {
         // Ensure the singleton is created
         auto &instance = get_instance();
+        (void) instance; // suppress unused variable warning
         assert(instance.objects.size() == 7);
         // Register cleanup at interpreter exit
         py::module_::import("atexit").attr("register")(py::cpp_function(&MySingleton::clear));
@@ -58,6 +59,7 @@ public:
 
     static void clear() {
         auto &instance = get_instance();
+        (void) instance; // suppress unused variable warning
         assert(instance.objects.size() == 7);
         for (const auto &obj : instance.objects) {
             obj.dec_ref();
