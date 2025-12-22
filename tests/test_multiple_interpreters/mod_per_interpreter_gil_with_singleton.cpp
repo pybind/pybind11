@@ -23,7 +23,7 @@ public:
     static MySingleton &get_instance() {
         PYBIND11_CONSTINIT static py::gil_safe_call_once_and_store<MySingleton> storage;
         return storage
-            .call_once_and_store_result([]() {
+            .call_once_and_store_result([]() -> MySingleton {
                 MySingleton instance{};
 
                 auto emplace = [&instance](const py::handle &obj) -> void {
@@ -39,6 +39,8 @@ public:
                 emplace(py::module_::import("collections").attr("OrderedDict")); // static type
                 emplace(py::module_::import("collections").attr("defaultdict")); // heap type
                 emplace(py::module_::import("collections").attr("deque"));       // heap type
+
+                assert(instance.objects.size() == 7);
                 return instance;
             })
             .get_stored();
@@ -47,14 +49,16 @@ public:
     std::vector<py::handle> &get_objects() { return objects; }
 
     static void init() {
-        // Ensures the singleton is created
-        get_instance();
+        // Ensure the singleton is created
+        auto &instance = get_instance();
+        assert(instance.objects.size() == 7);
         // Register cleanup at interpreter exit
         py::module_::import("atexit").attr("register")(py::cpp_function(&MySingleton::clear));
     }
 
     static void clear() {
         auto &instance = get_instance();
+        assert(instance.objects.size() == 7);
         for (const auto &obj : instance.objects) {
             obj.dec_ref();
         }

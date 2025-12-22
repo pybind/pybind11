@@ -3,6 +3,7 @@
 #pragma once
 
 #include "detail/common.h"
+#include "detail/internals.h"
 #include "gil.h"
 
 #include <cassert>
