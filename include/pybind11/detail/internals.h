@@ -421,7 +421,7 @@ inline PyThreadState *get_thread_state_unchecked() {
 /// We use this counter to figure out if there are or have been multiple subinterpreters active at
 /// any point. This must never decrease while any interpreter may be running in any thread!
 inline std::atomic<int64_t> &get_num_interpreters_seen() {
-    static std::atomic<int64_t> counter(0);
+    static std::atomic<int64_t> counter(2); // !FIXME!: hack for `get_num_interpreters_seen() > 1`
     return counter;
 }
 
@@ -564,6 +564,10 @@ public:
     /// acquire the GIL. Will never return nullptr.
     std::unique_ptr<InternalsType> *get_pp() {
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
+        // !FIXME!: If the module is imported from subinterpreter before the main interpreter,
+        // (get_num_interpreters_seen() == 1) will be true here.
+        // This is causing bugs like:
+        // https://github.com/pybind/pybind11/pull/5933#discussion_r2638712777
         if (get_num_interpreters_seen() > 1) {
             // Whenever the interpreter changes on the current thread we need to invalidate the
             // internals_pp so that it can be pulled from the interpreter's state dict.  That is
