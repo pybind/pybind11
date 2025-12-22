@@ -564,7 +564,7 @@ public:
     /// acquire the GIL. Will never return nullptr.
     std::unique_ptr<InternalsType> *get_pp() {
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
-        if (get_num_interpreters_seen() > 1) {
+        if (get_num_interpreters_seen() > 1 || last_istate_tls() == nullptr) {
             // Whenever the interpreter changes on the current thread we need to invalidate the
             // internals_pp so that it can be pulled from the interpreter's state dict.  That is
             // slow, so we use the current PyThreadState to check if it is necessary.
@@ -590,11 +590,8 @@ public:
     /// Drop all the references we're currently holding.
     void unref() {
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
-        if (get_num_interpreters_seen() > 1) {
-            last_istate_tls() = nullptr;
-            internals_p_tls() = nullptr;
-            return;
-        }
+        last_istate_tls() = nullptr;
+        internals_p_tls() = nullptr;
 #endif
         internals_singleton_pp_ = nullptr;
     }
@@ -606,7 +603,6 @@ public:
             // this could be called without an active interpreter, just use what was cached
             if (!tstate || tstate->interp == last_istate_tls()) {
                 auto tpp = internals_p_tls();
-
                 delete tpp;
             }
             unref();
