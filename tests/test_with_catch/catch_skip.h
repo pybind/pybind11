@@ -9,7 +9,7 @@
 #define PYBIND11_CATCH2_SKIP_IF(condition, reason)                                                \
     do {                                                                                          \
         if (condition) {                                                                          \
-            Catch::cout() << "[ SKIPPED  ] " << reason << '\n';                                   \
+            Catch::cout() << "[ SKIPPED  ] " << (reason) << '\n';                                 \
             Catch::cout().flush();                                                                \
             return;                                                                               \
         }                                                                                         \
