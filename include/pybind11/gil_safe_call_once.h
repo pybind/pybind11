@@ -3,7 +3,6 @@
 #pragma once
 
 #include "detail/common.h"
-#include "detail/internals.h"
 #include "gil.h"
 
 #include <cassert>
@@ -72,7 +71,8 @@ template <typename T>
 class gil_safe_call_once_and_store {
 public:
     // PRECONDITION: The GIL must be held when `call_once_and_store_result()` is called.
-    // Note: The second parameter (finalize callback) is intentionally unused when subinterpreter
+    //
+    // NOTE: The second parameter (finalize callback) is intentionally unused when subinterpreter
     // support is disabled. In that case, storage is process-global and intentionally leaked to
     // avoid calling destructors after the Python interpreter has been finalized.
     template <typename Callable>
@@ -119,7 +119,7 @@ public:
     gil_safe_call_once_and_store &operator=(gil_safe_call_once_and_store &&) = delete;
 
 private:
-    // Global static storage (per process) when subinterpreter support is disabled.
+    // The global static storage (per-process) when subinterpreter support is disabled.
     alignas(T) char storage_[sizeof(T)] = {};
     std::once_flag once_flag_;
 
@@ -235,10 +235,10 @@ private:
     }
 
     // Get the unique key for this storage instance in the interpreter's state dict.
-    // Do not change the type of this to py::str because PyObject is interpreter-dependent.
+    // The return type should not be `py::str` because PyObject is interpreter-dependent.
     std::string get_storage_key() const {
-        // The instance are expected to be global static, so using its address as unique
-        // identifier. The typical usage is like:
+        // The instance is expected to be global static, so using its address as unique identifier.
+        // The typical usage is like:
         //
         //   PYBIND11_CONSTINIT static gil_safe_call_once_and_store<T> storage;
         //
@@ -246,21 +246,21 @@ private:
                + std::to_string(reinterpret_cast<std::uintptr_t>(this));
     }
 
-    // Get or create per-storage capsule. Uses test-and-set pattern with `PyDict_SetDefault` for
-    // thread-safe concurrent access.
+    // Get or create per-storage capsule in the current interpreter's state dict.
+    // Use test-and-set pattern with `PyDict_SetDefault` for thread-safe concurrent access.
     storage_type *get_or_create_storage_in_state_dict() {
         error_scope err_scope; // preserve any existing Python error states
 
         auto state_dict = reinterpret_borrow<dict>(detail::get_python_state_dict());
         const std::string key = get_storage_key();
-        PyObject *result = nullptr;
+        PyObject *capsule_obj = nullptr;
 
         // First, try to get existing storage (fast path).
         {
-            result = detail::dict_getitemstring(state_dict.ptr(), key.c_str());
-            if (result != nullptr) {
+            capsule_obj = detail::dict_getitemstring(state_dict.ptr(), key.c_str());
+            if (capsule_obj != nullptr) {
                 // Storage already exists, get the storage pointer from the existing capsule.
-                void *raw_ptr = PyCapsule_GetPointer(result, /*name=*/nullptr);
+                void *raw_ptr = PyCapsule_GetPointer(capsule_obj, /*name=*/nullptr);
                 if (!raw_ptr) {
                     raise_from(PyExc_SystemError,
                                "pybind11::gil_safe_call_once_and_store::"
@@ -291,13 +291,14 @@ private:
         // NOTE: Here we use `dict_setdefaultstring` instead of `dict_setdefaultstringref` because
         // the capsule is kept alive until interpreter shutdown, so we do not need to handle incref
         // and decref here.
-        result = detail::dict_setdefaultstring(state_dict.ptr(), key.c_str(), new_capsule.ptr());
-        if (result == nullptr) {
+        capsule_obj
+            = detail::dict_setdefaultstring(state_dict.ptr(), key.c_str(), new_capsule.ptr());
+        if (capsule_obj == nullptr) {
             throw error_already_set();
         }
 
         // Check whether we inserted our new capsule or another thread did.
-        if (result == new_capsule.ptr()) {
+        if (capsule_obj == new_capsule.ptr()) {
             // We successfully inserted our new capsule, release ownership from unique_ptr.
             return storage_ptr.release();
         }
@@ -313,7 +314,7 @@ private:
                 throw error_already_set();
             }
             // Get the storage pointer from the existing capsule.
-            void *raw_ptr = PyCapsule_GetPointer(result, /*name=*/nullptr);
+            void *raw_ptr = PyCapsule_GetPointer(capsule_obj, /*name=*/nullptr);
             if (!raw_ptr) {
                 raise_from(PyExc_SystemError,
                            "pybind11::gil_safe_call_once_and_store::"
