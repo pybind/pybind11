@@ -7,6 +7,8 @@
 // catch 2.0.1; this should be fixed in the next catch release after 2.0.1).
 PYBIND11_WARNING_DISABLE_MSVC(4996)
 
+#    include "catch_skip.h"
+
 #    include <catch.hpp>
 #    include <cstdlib>
 #    include <fstream>
@@ -120,6 +122,13 @@ TEST_CASE("Single Subinterpreter") {
 // than it was created on. See: https://github.com/pybind/pybind11/pull/5940
 #    if PY_VERSION_HEX >= 0x030D0000 && !(PY_VERSION_HEX >= 0x030E0000 && defined(Py_GIL_DISABLED))
 TEST_CASE("Move Subinterpreter") {
+    // Test is skipped on free-threaded Python 3.14+ due to a hang in Py_EndInterpreter()
+    // when the subinterpreter is destroyed from a different thread than it was created on.
+    // See: https://github.com/pybind/pybind11/pull/5940
+#        if PY_VERSION_HEX >= 0x030E0000 && defined(Py_GIL_DISABLED)
+    PYBIND11_CATCH2_SKIP_IF(true, "Skipped on free-threaded Python 3.14+ (see PR #5940)");
+#        endif
+
     std::unique_ptr<py::subinterpreter> sub(new py::subinterpreter(py::subinterpreter::create()));
 
     // on this thread, use the subinterpreter and import some non-trivial junk

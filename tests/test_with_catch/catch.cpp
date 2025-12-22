@@ -25,6 +25,8 @@ PYBIND11_WARNING_DISABLE_MSVC(4996)
 
 #define CATCH_CONFIG_RUNNER
 #define CATCH_CONFIG_DEFAULT_REPORTER "progress"
+#include "catch_skip.h"
+
 #include <catch.hpp>
 
 namespace py = pybind11;
@@ -67,6 +69,21 @@ public:
     void assertionStarting(Catch::AssertionInfo const &) override {}
 
     bool assertionEnded(Catch::AssertionStats const &) override { return false; }
+
+    void testRunEnded(Catch::TestRunStats const &stats) override {
+        auto &os = Catch::cout();
+        auto passed = stats.totals.testCases.passed;
+        auto failed = stats.totals.testCases.failed;
+        auto total = passed + failed;
+        auto assertions = stats.totals.assertions.passed + stats.totals.assertions.failed;
+        if (failed == 0) {
+            os << "[  PASSED  ] " << total << " test cases, " << assertions << " assertions.\n";
+        } else {
+            os << "[  FAILED  ] " << failed << " of " << total << " test cases, " << assertions
+               << " assertions.\n";
+        }
+        os.flush();
+    }
 
 private:
     void print_python_version_once() {
