@@ -310,6 +310,12 @@ TEST_CASE("Multiple Subinterpreters") {
 
 #    ifdef Py_MOD_PER_INTERPRETER_GIL_SUPPORTED
 TEST_CASE("Per-Subinterpreter GIL") {
+    // Test is skipped on free-threaded Python because the pybind11 compat mutex
+    // (which restores GIL-like mutual exclusion) conflicts with per-interpreter GILs.
+#        ifdef Py_GIL_DISABLED
+    PYBIND11_CATCH2_SKIP_IF(true, "Skipped: compat mutex conflicts with per-interpreter GILs");
+#        endif
+
     auto main_int
         = py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>();
 
