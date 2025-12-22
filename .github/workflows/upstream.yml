@@ -66,6 +66,7 @@ jobs:
       run: cmake --build build11 --target pytest -j 2
 
     - name: C++11 tests
+      timeout-minutes: 3
       run: cmake --build build11  --target cpptest -j 2
 
     - name: Interface test C++11
@@ -87,6 +88,7 @@ jobs:
       run: cmake --build build17 --target pytest
 
     - name: C++17 tests
+      timeout-minutes: 3
       run: cmake --build build17 --target cpptest
 
     # Third build - C++17 mode with unstable ABI
