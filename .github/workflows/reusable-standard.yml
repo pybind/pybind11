@@ -83,6 +83,7 @@ jobs:
         run: cmake --build build --target pytest
 
       - name: C++ tests
+        timeout-minutes: 3
         run: cmake --build build --target cpptest
 
       - name: Interface test
