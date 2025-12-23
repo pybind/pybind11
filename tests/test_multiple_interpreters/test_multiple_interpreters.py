@@ -9,6 +9,8 @@ import textwrap
 
 import pytest
 
+import pybind11_tests
+
 # 3.14.0b3+, though sys.implementation.supports_isolated_interpreters is being added in b4
 # Can be simplified when we drop support for the first three betas
 CONCURRENT_INTERPRETERS_SUPPORT = (
@@ -84,7 +86,7 @@ def get_interpreters(*, modern: bool):
 def test_independent_subinterpreters():
     """Makes sure the internals object differs across independent subinterpreters"""
 
-    sys.path.append(".")
+    sys.path.insert(0, os.path.dirname(pybind11_tests.__file__))
 
     run_string, create = get_interpreters(modern=True)
 
@@ -135,7 +137,7 @@ def test_independent_subinterpreters():
 def test_independent_subinterpreters_modern():
     """Makes sure the internals object differs across independent subinterpreters. Modern (3.14+) syntax."""
 
-    sys.path.append(".")
+    sys.path.insert(0, os.path.dirname(pybind11_tests.__file__))
 
     m = pytest.importorskip("mod_per_interpreter_gil")
 
@@ -181,7 +183,7 @@ def test_independent_subinterpreters_modern():
 def test_dependent_subinterpreters():
     """Makes sure the internals object differs across subinterpreters"""
 
-    sys.path.append(".")
+    sys.path.insert(0, os.path.dirname(pybind11_tests.__file__))
 
     run_string, create = get_interpreters(modern=False)
 
@@ -209,11 +211,11 @@ def test_dependent_subinterpreters():
 
 
 PREAMBLE_CODE = textwrap.dedent(
-    """
+    f"""
     def test():
         import sys
 
-        sys.path.append('.')
+        sys.path.insert(0, {os.path.dirname(pybind11_tests.__file__)!r})
 
         import collections
         import mod_per_interpreter_gil_with_singleton as m
@@ -316,7 +318,7 @@ def test_import_in_subinterpreter_after_main():
             with contextlib.ExitStack() as stack:
                 interps = [
                     stack.enter_context(contextlib.closing(interpreters.create()))
-                    for _ in range(4)
+                    for _ in range(8)
                 ]
                 random.shuffle(interps)
                 for interp in interps:
@@ -369,7 +371,7 @@ def test_import_in_subinterpreter_before_main():
             with contextlib.ExitStack() as stack:
                 interps = [
                     stack.enter_context(contextlib.closing(interpreters.create()))
-                    for _ in range(4)
+                    for _ in range(8)
                 ]
                 for interp in interps:
                     interp.call(test)
@@ -395,7 +397,7 @@ def test_import_in_subinterpreter_before_main():
             with contextlib.ExitStack() as stack:
                 interps = [
                     stack.enter_context(contextlib.closing(interpreters.create()))
-                    for _ in range(4)
+                    for _ in range(8)
                 ]
                 for interp in interps:
                     interp.call(test)
@@ -417,41 +419,21 @@ def test_import_in_subinterpreter_before_main():
 def test_import_in_subinterpreter_concurrently():
     """Tests that importing a module in multiple subinterpreters concurrently works correctly"""
     check_script_success_in_subprocess(
-        """
-        import gc
-        import sys
-        from concurrent.futures import InterpreterPoolExecutor, as_completed
+        PREAMBLE_CODE
+        + textwrap.dedent(
+            """
+            import gc
+            from concurrent.futures import InterpreterPoolExecutor, as_completed
 
-        sys.path.append('.')
+            futures = future = None
+            with InterpreterPoolExecutor(max_workers=16) as executor:
+                futures = [executor.submit(test) for _ in range(32)]
+                for future in as_completed(futures):
+                    future.result()
+            del futures, future, executor
 
-        def test():
-            import collections
-            import mod_per_interpreter_gil_with_singleton as m
-
-            objects = m.get_objects_in_singleton()
-            assert objects == [
-                type(None),
-                tuple,
-                list,
-                dict,
-                collections.OrderedDict,
-                collections.defaultdict,
-                collections.deque,
-            ]
-
-            assert hasattr(m, 'MyClass')
-            assert hasattr(m, 'MyGlobalError')
-            assert hasattr(m, 'MyLocalError')
-            assert hasattr(m, 'MyEnum')
-
-        futures = future = None
-        with InterpreterPoolExecutor(max_workers=16) as executor:
-            futures = [executor.submit(test) for _ in range(32)]
-            for future in as_completed(futures):
-                future.result()
-        del futures, future, executor
-
-        for _ in range(5):
-            gc.collect()
-        """
+            for _ in range(5):
+                gc.collect()
+            """
+        )
     )
