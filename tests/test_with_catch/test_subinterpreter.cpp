@@ -94,13 +94,6 @@ TEST_CASE("Single Subinterpreter") {
 
 #    if PY_VERSION_HEX >= 0x030D0000
 TEST_CASE("Move Subinterpreter") {
-    // Test is skipped on free-threaded Python 3.14+ due to a hang in Py_EndInterpreter()
-    // when the subinterpreter is destroyed from a different thread than it was created on.
-    // See: https://github.com/pybind/pybind11/pull/5940
-#        if PY_VERSION_HEX >= 0x030E0000 && defined(Py_GIL_DISABLED)
-    PYBIND11_CATCH2_SKIP_IF(true, "Skipped on free-threaded Python 3.14+ (see PR #5940)");
-#        endif
-
     std::unique_ptr<py::subinterpreter> sub(new py::subinterpreter(py::subinterpreter::create()));
 
     // on this thread, use the subinterpreter and import some non-trivial junk
@@ -113,14 +106,21 @@ TEST_CASE("Move Subinterpreter") {
         py::module_::import("external_module");
     }
 
-    std::thread([&]() {
+    auto t = std::thread([&]() {
         // Use it again
         {
             py::subinterpreter_scoped_activate activate(*sub);
             py::module_::import("external_module");
         }
         sub.reset();
-    }).join();
+    });
+
+    // on 3.14.1+ destructing a sub-interpreter does a stop-the-world.  we need to detach our
+    // thread state in order for that to be possible.
+    {
+        py::gil_scoped_release nogil;
+        t.join();
+    }
 
     REQUIRE(!sub);
 

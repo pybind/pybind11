@@ -492,4 +492,8 @@ Best Practices for sub-interpreter safety
   So you must still consider the thread safety of your C++ code.  Remember, in Python 3.12
   sub-interpreters must be destroyed on the same thread that they were created on.
 
+- When using sub-interpreters in free-threaded python builds, note that creating and destroying
+  sub-interpreters may initiate a "stop-the-world".  Be sure to detach long-running C++ threads
+  from Python thread state (similar to releasing the GIL) to avoid deadlocks.
+
 - Familiarize yourself with :ref:`misc_concurrency`.
