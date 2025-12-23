@@ -604,15 +604,16 @@ Payload *atomic_get_or_create_in_state_dict(const char *key) {
         if (capsule_obj == nullptr) {
             throw error_already_set();
         }
-        if (LeakOnInterpreterShutdown) {
-            if (capsule_obj == new_capsule.ptr()) {
-                // Our capsule was inserted.
-                // Remove the destructor to leak the storage on interpreter shutdown.
-                if (PyCapsule_SetDestructor(capsule_obj, nullptr) < 0) {
-                    throw error_already_set();
-                }
+        PYBIND11_WARNING_PUSH
+        PYBIND11_WARNING_DISABLE_MSVC(4127) // maybe constant condition
+        if (LeakOnInterpreterShutdown && capsule_obj == new_capsule.ptr()) {
+            // Our capsule was inserted.
+            // Remove the destructor to leak the storage on interpreter shutdown.
+            if (PyCapsule_SetDestructor(capsule_obj, nullptr) < 0) {
+                throw error_already_set();
             }
         }
+        PYBIND11_WARNING_POP
         // - If key already existed, our `new_capsule` is not inserted, it will be destructed
         //   when going out of scope here, which will also free the storage.
         // - Otherwise, our `new_capsule` is now in the dict, and it owns the storage and the
