@@ -604,7 +604,7 @@ Payload *atomic_get_or_create_in_state_dict(const char *key) {
         if (capsule_obj == nullptr) {
             throw error_already_set();
         }
-        if PYBIND11_MAYBE_CONSTEXPR (LeakOnInterpreterShutdown) {
+        if (LeakOnInterpreterShutdown) {
             if (capsule_obj == new_capsule.ptr()) {
                 // Our capsule was inserted.
                 // Remove the destructor to leak the storage on interpreter shutdown.
