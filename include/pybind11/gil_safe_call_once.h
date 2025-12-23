@@ -279,16 +279,16 @@ private:
             // At this point, the capsule object is created successfully.
             // Release the unique_ptr and let the capsule object own the storage to avoid
             // double-free.
-            storage_ptr.reset();
+            (void) storage_ptr.release();
 
             // Use `PyDict_SetDefault` for atomic test-and-set:
             //   - If key doesn't exist, inserts our capsule and returns it.
             //   - If key exists (another thread inserted first), returns the existing value.
             // This is thread-safe because `PyDict_SetDefault` will hold a lock on the dict.
             //
-            // NOTE: Here we use `dict_setdefaultstring` instead of `dict_setdefaultstringref`
-            // because the capsule is kept alive until interpreter shutdown, so we do not need to
-            // handle incref and decref here.
+            // NOTE: Here we use `PyDict_SetDefault` instead of `PyDict_SetDefaultRef` because the
+            // capsule is kept alive until interpreter shutdown, so we do not need to handle incref
+            // and decref here.
             capsule_obj
                 = detail::dict_setdefaultstring(state_dict.ptr(), key.c_str(), new_capsule.ptr());
             if (capsule_obj == nullptr) {
