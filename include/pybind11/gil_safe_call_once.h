@@ -181,8 +181,8 @@ public:
             // There can be multiple threads going through here.
             storage_type *value = nullptr;
             {
-                gil_scoped_acquire gil_acq;
-                // Only one thread will enter here at a time.
+                gil_scoped_acquire gil_acq; // Restore lock ordering.
+                // This function is thread-safe under free-threading.
                 value = get_or_create_storage_in_state_dict();
             }
             assert(value != nullptr);
@@ -259,72 +259,56 @@ private:
         // First, try to get existing storage (fast path).
         {
             capsule_obj = detail::dict_getitemstring(state_dict.ptr(), key.c_str());
-            if (capsule_obj != nullptr) {
-                // Storage already exists, get the storage pointer from the existing capsule.
-                void *raw_ptr = PyCapsule_GetPointer(capsule_obj, /*name=*/nullptr);
-                if (!raw_ptr) {
-                    raise_from(PyExc_SystemError,
-                               "pybind11::gil_safe_call_once_and_store::"
-                               "get_or_create_storage_in_state_dict() FAILED "
-                               "(get existing)");
-                    throw error_already_set();
-                }
-                return static_cast<storage_type *>(raw_ptr);
-            }
-            if (PyErr_Occurred()) {
+            if (capsule_obj == nullptr && PyErr_Occurred()) {
                 throw error_already_set();
             }
+            // Fallthrough if capsule_obj is nullptr (not found).
+            // Otherwise, we have found the existing storage (most common case) and return it
+            // below.
         }
 
-        // Storage doesn't exist yet, create a new one。
-        // Use unique_ptr for exception safety: if capsule creation throws,
-        // the storage is automatically deleted.
-        auto storage_ptr = std::unique_ptr<storage_type>(new storage_type{});
-        // Create capsule with destructor to clean up when the interpreter shuts down.
-        auto new_capsule = capsule(
-            storage_ptr.get(), [](void *ptr) -> void { delete static_cast<storage_type *>(ptr); });
-
-        // Use `PyDict_SetDefault` for atomic test-and-set:
-        //   - If key doesn't exist, inserts our capsule and returns it.
-        //   - If key exists (another thread inserted first), returns the existing value.
-        // This is thread-safe because `PyDict_SetDefault` will hold a lock on the dict.
-        //
-        // NOTE: Here we use `dict_setdefaultstring` instead of `dict_setdefaultstringref` because
-        // the capsule is kept alive until interpreter shutdown, so we do not need to handle incref
-        // and decref here.
-        capsule_obj
-            = detail::dict_setdefaultstring(state_dict.ptr(), key.c_str(), new_capsule.ptr());
         if (capsule_obj == nullptr) {
+            // Storage doesn't exist yet, create a new one.
+            // Use unique_ptr for exception safety: if capsule creation throws, the storage is
+            // automatically deleted.
+            auto storage_ptr = std::unique_ptr<storage_type>(new storage_type{});
+            // Create capsule with destructor to clean up when the interpreter shuts down.
+            auto new_capsule = capsule(storage_ptr.get(), [](void *ptr) -> void {
+                delete static_cast<storage_type *>(ptr);
+            });
+            // At this point, the capsule object is created successfully.
+            // Release the unique_ptr and let the capsule object own the storage to avoid
+            // double-free.
+            storage_ptr.reset();
+
+            // Use `PyDict_SetDefault` for atomic test-and-set:
+            //   - If key doesn't exist, inserts our capsule and returns it.
+            //   - If key exists (another thread inserted first), returns the existing value.
+            // This is thread-safe because `PyDict_SetDefault` will hold a lock on the dict.
+            //
+            // NOTE: Here we use `dict_setdefaultstring` instead of `dict_setdefaultstringref`
+            // because the capsule is kept alive until interpreter shutdown, so we do not need to
+            // handle incref and decref here.
+            capsule_obj
+                = detail::dict_setdefaultstring(state_dict.ptr(), key.c_str(), new_capsule.ptr());
+            if (capsule_obj == nullptr) {
+                throw error_already_set();
+            }
+            // - If key already existed, our `new_capsule` is not inserted, it will be destructed
+            //   when going out of scope here, which will also free the storage.
+            // - Otherwise, our `new_capsule` is now in the dict, and it owns the storage and the
+            //   state dict will incref it.
+        }
+
+        // Get the storage pointer from the capsule.
+        void *raw_ptr = PyCapsule_GetPointer(capsule_obj, /*name=*/nullptr);
+        if (!raw_ptr) {
+            raise_from(PyExc_SystemError,
+                       "pybind11::gil_safe_call_once_and_store::"
+                       "get_or_create_storage_in_state_dict() FAILED");
             throw error_already_set();
         }
-
-        // Check whether we inserted our new capsule or another thread did.
-        if (capsule_obj == new_capsule.ptr()) {
-            // We successfully inserted our new capsule, release ownership from unique_ptr.
-            return storage_ptr.release();
-        }
-        // Another thread already inserted a capsule, use theirs and discard ours.
-        {
-            // Disable the destructor of our unused capsule to prevent double-free:
-            // unique_ptr will clean up the storage on function exit, and the capsule should not.
-            if (PyCapsule_SetDestructor(new_capsule.ptr(), nullptr) != 0) {
-                raise_from(PyExc_SystemError,
-                           "pybind11::gil_safe_call_once_and_store::"
-                           "get_or_create_storage_in_state_dict() FAILED "
-                           "(clear destructor of unused capsule)");
-                throw error_already_set();
-            }
-            // Get the storage pointer from the existing capsule.
-            void *raw_ptr = PyCapsule_GetPointer(capsule_obj, /*name=*/nullptr);
-            if (!raw_ptr) {
-                raise_from(PyExc_SystemError,
-                           "pybind11::gil_safe_call_once_and_store::"
-                           "get_or_create_storage_in_state_dict() FAILED "
-                           "(get after setdefault)");
-                throw error_already_set();
-            }
-            return static_cast<storage_type *>(raw_ptr);
-        }
+        return static_cast<storage_type *>(raw_ptr);
     }
 
     // No storage needed when subinterpreter support is enabled.

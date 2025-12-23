@@ -264,7 +264,13 @@ def check_script_success_in_subprocess(code: str, *, rerun: int = 8) -> None:
             )
     except subprocess.CalledProcessError as ex:
         pytest.fail(
-            f"Subprocess failed with exit code {ex.returncode}.\nOutput:\n{ex.output}"
+            f"Subprocess failed with exit code {ex.returncode}.\n\n"
+            f"Code:\n"
+            f"```python\n"
+            f"{code}\n"
+            f"```\n\n"
+            f"Output:\n"
+            f"{ex.output}"
         )
 
 
