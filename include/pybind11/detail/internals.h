@@ -604,11 +604,13 @@ Payload *atomic_get_or_create_in_state_dict(const char *key) {
         if (capsule_obj == nullptr) {
             throw error_already_set();
         }
-        if (LeakOnInterpreterShutdown && capsule_obj == new_capsule.ptr()) {
-            // Our capsule was inserted.
-            // Remove the destructor to leak the storage on interpreter shutdown.
-            if (PyCapsule_SetDestructor(capsule_obj, nullptr) < 0) {
-                throw error_already_set();
+        if PYBIND11_MAYBE_CONSTEXPR (LeakOnInterpreterShutdown) {
+            if (capsule_obj == new_capsule.ptr()) {
+                // Our capsule was inserted.
+                // Remove the destructor to leak the storage on interpreter shutdown.
+                if (PyCapsule_SetDestructor(capsule_obj, nullptr) < 0) {
+                    throw error_already_set();
+                }
             }
         }
         // - If key already existed, our `new_capsule` is not inserted, it will be destructed
