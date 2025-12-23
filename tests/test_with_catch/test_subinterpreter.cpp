@@ -106,14 +106,21 @@ TEST_CASE("Move Subinterpreter") {
         py::module_::import("external_module");
     }
 
-    std::thread([&]() {
+    auto t = std::thread([&]() {
         // Use it again
         {
             py::subinterpreter_scoped_activate activate(*sub);
             py::module_::import("external_module");
         }
         sub.reset();
-    }).join();
+    });
+
+    // on 3.14.1+ destructing a sub-interpreter does a stop-the-world.  we need to detach our
+    // thread state in order for that to be possible.
+    {
+        py::gil_scoped_release nogil;
+        t.join();
+    }
 
     REQUIRE(!sub);
 
