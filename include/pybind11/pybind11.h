@@ -43,6 +43,12 @@ PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
 #    include <cxxabi.h>
 #endif
 
+#if defined(__cpp_if_constexpr) && __cpp_if_constexpr >= 201606
+#    define PYBIND11_MAYBE_CONSTEXPR constexpr
+#else
+#    define PYBIND11_MAYBE_CONSTEXPR
+#endif
+
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 /* https://stackoverflow.com/questions/46798456/handling-gccs-noexcept-type-warning
@@ -3606,13 +3612,15 @@ function get_override(const T *this_ptr, const char *name) {
             auto o = override(__VA_ARGS__);                                                       \
             PYBIND11_WARNING_PUSH                                                                 \
             PYBIND11_WARNING_DISABLE_MSVC(4127)                                                   \
-            if (pybind11::detail::cast_is_temporary_value_reference<ret_type>::value              \
+            if PYBIND11_MAYBE_CONSTEXPR (                                                         \
+                pybind11::detail::cast_is_temporary_value_reference<ret_type>::value              \
                 && !pybind11::detail::is_same_ignoring_cvref<ret_type, PyObject *>::value) {      \
                 static pybind11::detail::override_caster_t<ret_type> caster;                      \
                 return pybind11::detail::cast_ref<ret_type>(std::move(o), caster);                \
+            } else {                                                                              \
+                return pybind11::detail::cast_safe<ret_type>(std::move(o));                       \
             }                                                                                     \
             PYBIND11_WARNING_POP                                                                  \
-            return pybind11::detail::cast_safe<ret_type>(std::move(o));                           \
         }                                                                                         \
     } while (false)
 
