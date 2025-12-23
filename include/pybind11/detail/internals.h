@@ -611,20 +611,20 @@ Payload *atomic_get_or_create_in_state_dict(const char *key) {
                 throw error_already_set();
             }
         }
+        // - If key already existed, our `new_capsule` is not inserted, it will be destructed
+        //   when going out of scope here, which will also free the storage.
+        // - Otherwise, our `new_capsule` is now in the dict, and it owns the storage and the
+        //   state dict will incref it.
     }
-    // - If key already existed, our `new_capsule` is not inserted, it will be destructed
-    //   when going out of scope here, which will also free the storage.
-    // - Otherwise, our `new_capsule` is now in the dict, and it owns the storage and the
-    //   state dict will incref it.
-}
 
-// Get the storage pointer from the capsule.
-void *raw_ptr = PyCapsule_GetPointer(capsule_obj, /*name=*/nullptr);
-if (!raw_ptr) {
-    raise_from(PyExc_SystemError, "pybind11::detail::atomic_get_or_create_in_state_dict() FAILED");
-    throw error_already_set();
-}
-return static_cast<Payload *>(raw_ptr);
+    // Get the storage pointer from the capsule.
+    void *raw_ptr = PyCapsule_GetPointer(capsule_obj, /*name=*/nullptr);
+    if (!raw_ptr) {
+        raise_from(PyExc_SystemError,
+                   "pybind11::detail::atomic_get_or_create_in_state_dict() FAILED");
+        throw error_already_set();
+    }
+    return static_cast<Payload *>(raw_ptr);
 }
 
 template <typename InternalsType>
