@@ -248,67 +248,8 @@ private:
     }
 
     // Get or create per-storage capsule in the current interpreter's state dict.
-    // Use test-and-set pattern with `PyDict_SetDefault` for thread-safe concurrent access.
     storage_type *get_or_create_storage_in_state_dict() {
-        error_scope err_scope; // preserve any existing Python error states
-
-        auto state_dict = reinterpret_borrow<dict>(detail::get_python_state_dict());
-        const std::string key = get_storage_key();
-        PyObject *capsule_obj = nullptr;
-
-        // First, try to get existing storage (fast path).
-        {
-            capsule_obj = detail::dict_getitemstring(state_dict.ptr(), key.c_str());
-            if (capsule_obj == nullptr && PyErr_Occurred()) {
-                throw error_already_set();
-            }
-            // Fallthrough if capsule_obj is nullptr (not found).
-            // Otherwise, we have found the existing storage (most common case) and return it
-            // below.
-        }
-
-        if (capsule_obj == nullptr) {
-            // Storage doesn't exist yet, create a new one.
-            // Use unique_ptr for exception safety: if capsule creation throws, the storage is
-            // automatically deleted.
-            auto storage_ptr = std::unique_ptr<storage_type>(new storage_type{});
-            // Create capsule with destructor to clean up when the interpreter shuts down.
-            auto new_capsule = capsule(storage_ptr.get(), [](void *ptr) -> void {
-                delete static_cast<storage_type *>(ptr);
-            });
-            // At this point, the capsule object is created successfully.
-            // Release the unique_ptr and let the capsule object own the storage to avoid
-            // double-free.
-            (void) storage_ptr.release();
-
-            // Use `PyDict_SetDefault` for atomic test-and-set:
-            //   - If key doesn't exist, inserts our capsule and returns it.
-            //   - If key exists (another thread inserted first), returns the existing value.
-            // This is thread-safe because `PyDict_SetDefault` will hold a lock on the dict.
-            //
-            // NOTE: Here we use `PyDict_SetDefault` instead of `PyDict_SetDefaultRef` because the
-            // capsule is kept alive until interpreter shutdown, so we do not need to handle incref
-            // and decref here.
-            capsule_obj
-                = detail::dict_setdefaultstring(state_dict.ptr(), key.c_str(), new_capsule.ptr());
-            if (capsule_obj == nullptr) {
-                throw error_already_set();
-            }
-            // - If key already existed, our `new_capsule` is not inserted, it will be destructed
-            //   when going out of scope here, which will also free the storage.
-            // - Otherwise, our `new_capsule` is now in the dict, and it owns the storage and the
-            //   state dict will incref it.
-        }
-
-        // Get the storage pointer from the capsule.
-        void *raw_ptr = PyCapsule_GetPointer(capsule_obj, /*name=*/nullptr);
-        if (!raw_ptr) {
-            raise_from(PyExc_SystemError,
-                       "pybind11::gil_safe_call_once_and_store::"
-                       "get_or_create_storage_in_state_dict() FAILED");
-            throw error_already_set();
-        }
-        return static_cast<storage_type *>(raw_ptr);
+        return detail::atomic_get_or_create_in_state_dict<storage_type>(get_storage_key().c_str());
     }
 
     // No storage needed when subinterpreter support is enabled.
