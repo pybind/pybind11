@@ -588,8 +588,7 @@ Payload *atomic_get_or_create_in_state_dict(const char *key) {
             //     immediately, which will also free the storage.
             /*destructor=*/[](void *ptr) -> void { delete static_cast<Payload *>(ptr); });
         // At this point, the capsule object is created successfully.
-        // Release the unique_ptr and let the capsule object own the storage to avoid
-        // double-free.
+        // Release the unique_ptr and let the capsule object own the storage to avoid double-free.
         (void) storage_ptr.release();
 
         // Use `PyDict_SetDefault` for atomic test-and-set:
@@ -614,10 +613,10 @@ Payload *atomic_get_or_create_in_state_dict(const char *key) {
             }
         }
         PYBIND11_WARNING_POP
-        // - If key already existed, our `new_capsule` is not inserted, it will be destructed
-        //   when going out of scope here, which will also free the storage.
-        // - Otherwise, our `new_capsule` is now in the dict, and it owns the storage and the
-        //   state dict will incref it.
+        // - If key already existed, our `new_capsule` is not inserted, it will be destructed when
+        //   going out of scope here, which will also free the storage.
+        // - Otherwise, our `new_capsule` is now in the dict, and it owns the storage and the state
+        //   dict will incref it.
     }
 
     // Get the storage pointer from the capsule.
@@ -644,27 +643,26 @@ public:
     /// acquire the GIL. Will never return nullptr.
     std::unique_ptr<InternalsType> *get_pp() {
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
-        if (get_num_interpreters_seen() > 1 || last_istate_tls() == nullptr) {
-            // Whenever the interpreter changes on the current thread we need to invalidate the
-            // internals_pp so that it can be pulled from the interpreter's state dict.  That is
-            // slow, so we use the current PyThreadState to check if it is necessary.
-            auto *tstate = get_thread_state_unchecked();
-            if (!tstate || tstate->interp != last_istate_tls()) {
-                gil_scoped_acquire_simple gil;
-                if (!tstate) {
-                    tstate = get_thread_state_unchecked();
-                }
-                last_istate_tls() = tstate->interp;
-                internals_p_tls() = get_or_create_pp_in_state_dict();
+        // Whenever the interpreter changes on the current thread we need to invalidate the
+        // internals_pp so that it can be pulled from the interpreter's state dict.  That is
+        // slow, so we use the current PyThreadState to check if it is necessary.
+        auto *tstate = get_thread_state_unchecked();
+        if (!tstate || tstate->interp != last_istate_tls()) {
+            gil_scoped_acquire_simple gil;
+            if (!tstate) {
+                tstate = get_thread_state_unchecked();
             }
-            return internals_p_tls();
+            last_istate_tls() = tstate->interp;
+            internals_p_tls() = get_or_create_pp_in_state_dict();
         }
-#endif
+        return internals_p_tls();
+#else
         if (!internals_singleton_pp_) {
             gil_scoped_acquire_simple gil;
             internals_singleton_pp_ = get_or_create_pp_in_state_dict();
         }
         return internals_singleton_pp_;
+#endif
     }
 
     /// Drop all the references we're currently holding.
@@ -678,18 +676,15 @@ public:
 
     void destroy() {
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
-        if (get_num_interpreters_seen() > 1) {
-            auto *tstate = get_thread_state_unchecked();
-            // this could be called without an active interpreter, just use what was cached
-            if (!tstate || tstate->interp == last_istate_tls()) {
-                auto tpp = internals_p_tls();
-                delete tpp;
-            }
-            unref();
-            return;
+        auto *tstate = get_thread_state_unchecked();
+        // this could be called without an active interpreter, just use what was cached
+        if (!tstate || tstate->interp == last_istate_tls()) {
+            auto tpp = internals_p_tls();
+            delete tpp;
         }
-#endif
+#else
         delete internals_singleton_pp_;
+#endif
         unref();
     }
 
