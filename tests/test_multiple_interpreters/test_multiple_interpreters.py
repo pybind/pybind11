@@ -221,7 +221,7 @@ PREAMBLE_CODE = textwrap.dedent(
         import mod_per_interpreter_gil_with_singleton as m
 
         objects = m.get_objects_in_singleton()
-        assert objects == [
+        expected = [
             type(None),
             tuple,
             list,
@@ -230,11 +230,12 @@ PREAMBLE_CODE = textwrap.dedent(
             collections.defaultdict,
             collections.deque,
         ]
+        assert objects == expected, f"Expected {{expected!r}}, got {{objects!r}}."
 
-        assert hasattr(m, 'MyClass')
-        assert hasattr(m, 'MyGlobalError')
-        assert hasattr(m, 'MyLocalError')
-        assert hasattr(m, 'MyEnum')
+        assert hasattr(m, 'MyClass'), "Module missing MyClass"
+        assert hasattr(m, 'MyGlobalError'), "Module missing MyGlobalError"
+        assert hasattr(m, 'MyLocalError'), "Module missing MyLocalError"
+        assert hasattr(m, 'MyEnum'), "Module missing MyEnum"
     """
 ).lstrip()
 

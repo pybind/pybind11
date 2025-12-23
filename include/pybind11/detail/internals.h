@@ -551,6 +551,14 @@ inline object get_python_state_dict() {
 }
 
 // Get or create per-storage capsule in the current interpreter's state dict.
+//   - The storage is interpreter-dependent: different interpreters will have different storage.
+//     This is important when using multiple-interpreters, to avoid sharing unshareable objects
+//     between interpreters.
+//   - There is one storage per `key` in an interpreter and it is accessible between all extensions
+//     in the same interpreter.
+//   - The life span of the storage is tied to the interpreter: it will be kept alive until the
+//     interpreter shuts down.
+//
 // Use test-and-set pattern with `PyDict_SetDefault` for thread-safe concurrent access.
 // WARNING: There can be multiple threads creating the storage at the same time, while only one
 //          will succeed in inserting its capsule into the dict. Therefore, the deleter will be
@@ -693,6 +701,11 @@ private:
         : holder_id_(id), on_fetch_(on_fetch) {}
 
     std::unique_ptr<InternalsType> *get_or_create_pp_in_state_dict() {
+        // The `unique_ptr<InternalsType>` output is leaked on interpreter shutdown. Once an
+        // instance is created, it will never be deleted until the process exits (compare to
+        // interpreter shutdown in multiple-interpreter scenarios).
+        // Because we cannot guarantee the order of destruction of capsules in the interpreter
+        // state dict, leaking avoids potential use-after-free issues during interpreter shutdown.
         auto *pp
             = atomic_get_or_create_in_state_dict<std::unique_ptr<InternalsType>,
                                                  /*LeakOnInterpreterShutdown=*/true>(holder_id_);
