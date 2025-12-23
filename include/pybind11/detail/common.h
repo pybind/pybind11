@@ -359,9 +359,7 @@
 #define PYBIND11_ENSURE_INTERNALS_READY                                                           \
     {                                                                                             \
         pybind11::detail::get_internals_pp_manager().unref();                                     \
-        pybind11::detail::get_local_internals_pp_manager().unref();                               \
         pybind11::detail::get_internals();                                                        \
-        pybind11::detail::get_local_internals();                                                  \
     }
 
 #if !defined(GRAALVM_PYTHON)

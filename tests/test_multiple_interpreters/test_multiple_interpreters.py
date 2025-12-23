@@ -210,11 +210,11 @@ def test_dependent_subinterpreters():
 
 PREAMBLE_CODE = textwrap.dedent(
     """
-    import sys
-
-    sys.path.append('.')
-
     def test():
+        import sys
+
+        sys.path.append('.')
+
         import collections
         import mod_per_interpreter_gil_with_singleton as m
 
