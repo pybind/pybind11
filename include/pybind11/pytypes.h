@@ -1038,6 +1038,7 @@ inline PyObject *dict_setdefaultstringref(PyObject *v, const char *key, PyObject
     if (kv == nullptr) {
         throw error_already_set();
     }
+
     PyObject *rv = nullptr;
     if (PyDict_SetDefaultRef(v, kv, defaultobj, &rv) < 0) {
         Py_DECREF(kv);

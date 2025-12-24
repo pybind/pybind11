@@ -651,48 +651,56 @@ public:
     /// acquire the GIL. Will never return nullptr.
     std::unique_ptr<InternalsType> *get_pp() {
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
-        // Whenever the interpreter changes on the current thread we need to invalidate the
-        // internals_pp so that it can be pulled from the interpreter's state dict.  That is
-        // slow, so we use the current PyThreadState to check if it is necessary.
-        auto *tstate = get_thread_state_unchecked();
-        if (!tstate || tstate->interp != last_istate_tls()) {
-            gil_scoped_acquire_simple gil;
-            if (!tstate) {
-                tstate = get_thread_state_unchecked();
+        if (get_num_interpreters_seen() > 1) {
+            // Whenever the interpreter changes on the current thread we need to invalidate the
+            // internals_pp so that it can be pulled from the interpreter's state dict.  That is
+            // slow, so we use the current PyThreadState to check if it is necessary.
+            auto *tstate = get_thread_state_unchecked();
+            if (!tstate || tstate->interp != last_istate_tls()) {
+                gil_scoped_acquire_simple gil;
+                if (!tstate) {
+                    tstate = get_thread_state_unchecked();
+                }
+                last_istate_tls() = tstate->interp;
+                internals_p_tls() = get_or_create_pp_in_state_dict();
             }
-            last_istate_tls() = tstate->interp;
-            internals_p_tls() = get_or_create_pp_in_state_dict();
+            return internals_p_tls();
         }
-        return internals_p_tls();
-#else
+#endif
         if (!internals_singleton_pp_) {
             gil_scoped_acquire_simple gil;
             internals_singleton_pp_ = get_or_create_pp_in_state_dict();
         }
         return internals_singleton_pp_;
-#endif
     }
 
     /// Drop all the references we're currently holding.
     void unref() {
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
-        last_istate_tls() = nullptr;
-        internals_p_tls() = nullptr;
+        if (get_num_interpreters_seen() > 1) {
+            last_istate_tls() = nullptr;
+            internals_p_tls() = nullptr;
+            return;
+        }
 #endif
         internals_singleton_pp_ = nullptr;
     }
 
     void destroy() {
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
-        auto *tstate = get_thread_state_unchecked();
-        // this could be called without an active interpreter, just use what was cached
-        if (!tstate || tstate->interp == last_istate_tls()) {
-            auto tpp = internals_p_tls();
-            delete tpp;
+        if (get_num_interpreters_seen() > 1) {
+            auto *tstate = get_thread_state_unchecked();
+            // this could be called without an active interpreter, just use what was cached
+            if (!tstate || tstate->interp == last_istate_tls()) {
+                auto tpp = internals_p_tls();
+
+                delete tpp;
+            }
+            unref();
+            return;
         }
-#else
-        delete internals_singleton_pp_;
 #endif
+        delete internals_singleton_pp_;
         unref();
     }
 
