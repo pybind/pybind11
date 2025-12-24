@@ -422,11 +422,6 @@ def test_import_in_subinterpreter_before_main():
     )
 
 
-@pytest.mark.xfail(
-    reason="Duplicate C++ type registration under multiple-interpreters, needs investigation.",
-    raises=RuntimeError,
-    strict=False,
-)
 @pytest.mark.skipif(
     sys.platform.startswith("emscripten"), reason="Requires loadable modules"
 )
