@@ -1640,6 +1640,11 @@ public:
     str(std::u8string_view s) : str(reinterpret_cast<const char *>(s.data()), s.size()) {}
 #    endif
 
+    // Avoid ambiguity when converting from kwargs (GCC)
+    explicit str(const kwargs &k)
+        : str(static_cast<handle>(k)) {}
+
+
 #endif
 
     explicit str(const bytes &b);

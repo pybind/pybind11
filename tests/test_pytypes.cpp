@@ -1212,3 +1212,10 @@ TEST_SUBMODULE(pytypes, m) {
         return py::isinstance<RealNumber>(x);
     });
 }
+
+
+TEST_SUBMODULE(pytypes, kwargs_str) {
+    m.def("kwargs_to_str", [](py::kwargs kwargs) {
+        return py::str(kwargs);
+    });
+}
