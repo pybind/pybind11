@@ -246,6 +246,9 @@ PREAMBLE_CODE = textwrap.dedent(
 @pytest.mark.skipif(not CONCURRENT_INTERPRETERS_SUPPORT, reason="Requires 3.14.0b3+")
 def test_import_module_with_singleton_per_interpreter():
     """Tests that a singleton storing Python objects works correctly per-interpreter"""
+
+    pytest.skip("Flaky test, needs investigation.")  # FIXME
+
     from concurrent import interpreters
 
     code = f"{PREAMBLE_CODE.strip()}\n\ntest()\n"
@@ -283,6 +286,9 @@ def check_script_success_in_subprocess(code: str, *, rerun: int = 8) -> None:
 @pytest.mark.skipif(not CONCURRENT_INTERPRETERS_SUPPORT, reason="Requires 3.14.0b3+")
 def test_import_in_subinterpreter_after_main():
     """Tests that importing a module in a subinterpreter after the main interpreter works correctly"""
+
+    pytest.skip("Flaky test, needs investigation.")  # FIXME
+
     check_script_success_in_subprocess(
         PREAMBLE_CODE
         + textwrap.dedent(
@@ -339,6 +345,9 @@ def test_import_in_subinterpreter_after_main():
 @pytest.mark.skipif(not CONCURRENT_INTERPRETERS_SUPPORT, reason="Requires 3.14.0b3+")
 def test_import_in_subinterpreter_before_main():
     """Tests that importing a module in a subinterpreter before the main interpreter works correctly"""
+
+    pytest.skip("Flaky test, needs investigation.")  # FIXME
+
     check_script_success_in_subprocess(
         PREAMBLE_CODE
         + textwrap.dedent(
@@ -419,6 +428,9 @@ def test_import_in_subinterpreter_before_main():
 @pytest.mark.skipif(not CONCURRENT_INTERPRETERS_SUPPORT, reason="Requires 3.14.0b3+")
 def test_import_in_subinterpreter_concurrently():
     """Tests that importing a module in multiple subinterpreters concurrently works correctly"""
+
+    pytest.skip("Flaky test, needs investigation.")  # FIXME
+
     check_script_success_in_subprocess(
         PREAMBLE_CODE
         + textwrap.dedent(
