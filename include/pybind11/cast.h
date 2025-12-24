@@ -2198,24 +2198,50 @@ class simple_collector {
 public:
     template <typename... Ts>
     explicit simple_collector(Ts &&...values)
-        : m_args(pybind11::make_tuple<policy>(std::forward<Ts>(values)...)) {}
+    {
+        m_args.reserve(sizeof...(values)+1);
+        m_args.push_back(object()); // dummy first argument so we can use PY_VECTORCALL_ARGUMENTS_OFFSET
 
-    const tuple &args() const & { return m_args; }
-    dict kwargs() const { return {}; }
-
-    tuple args() && { return std::move(m_args); }
+        using expander = int[];
+        (void) expander{0, (process(std::forward<Ts>(values)), 0)...};
+    }
 
     /// Call a Python function and pass the collected arguments
     object call(PyObject *ptr) const {
-        PyObject *result = PyObject_CallObject(ptr, m_args.ptr());
+        static_assert(sizeof(m_args[0]) == sizeof(PyObject*), "pybind11::object must be castable to PyObject* for this to work");
+        PyObject *result = PyObject_Vectorcall(ptr, reinterpret_cast<PyObject * const*>(m_args.data()+1), (m_args.size()-1)|PY_VECTORCALL_ARGUMENTS_OFFSET, nullptr);
         if (!result) {
             throw error_already_set();
         }
         return reinterpret_steal<object>(result);
     }
 
+    tuple args() const {
+        tuple val(m_args.size() - 1);
+        for (size_t i = 1; i < m_args.size(); ++i)
+            val[i-1] = m_args[i];
+        return val;
+    }
+
+    dict kwargs() const { return {}; }
+
 private:
-    tuple m_args;
+    template <typename T>
+    void process(T &&x) {
+        auto o = reinterpret_steal<object>(
+            detail::make_caster<T>::cast(std::forward<T>(x), policy, {}));
+        if (!o) {
+#if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
+            throw cast_error_unable_to_convert_call_arg(std::to_string(m_args.size()));
+#else
+            throw cast_error_unable_to_convert_call_arg(std::to_string(m_args.size()),
+                                                        type_id<T>());
+#endif
+        }
+        m_args.push_back(std::move(o));
+    }
+
+    small_vector<object, arg_vector_small_size> m_args;
 };
 
 /// Helper class which collects positional, keyword, * and ** arguments for a Python function call
@@ -2224,53 +2250,73 @@ class unpacking_collector {
 public:
     template <typename... Ts>
     explicit unpacking_collector(Ts &&...values) {
-        // Tuples aren't (easily) resizable so a list is needed for collection,
-        // but the actual function call strictly requires a tuple.
-        auto args_list = list();
+        auto names_list = list();
+        m_args.reserve(sizeof...(values) + 1);
+        m_args.push_back(object()); // dummy first argument so we can use PY_VECTORCALL_ARGUMENTS_OFFSET
+
         using expander = int[];
-        (void) expander{0, (process(args_list, std::forward<Ts>(values)), 0)...};
+        (void) expander{0, (process(names_list, std::forward<Ts>(values)), 0)...};
 
-        m_args = std::move(args_list);
+        m_names = tuple(names_list.size());
+        for (size_t i = 0; i < names_list.size(); ++i)
+            m_names[i] = std::move(names_list[i]);
     }
-
-    const tuple &args() const & { return m_args; }
-    const dict &kwargs() const & { return m_kwargs; }
-
-    tuple args() && { return std::move(m_args); }
-    dict kwargs() && { return std::move(m_kwargs); }
 
     /// Call a Python function and pass the collected arguments
     object call(PyObject *ptr) const {
-        PyObject *result = PyObject_Call(ptr, m_args.ptr(), m_kwargs.ptr());
+        static_assert(sizeof(m_args[0]) == sizeof(PyObject*), "pybind11::object must be castable to PyObject* for this to work");
+        PyObject *result = PyObject_Vectorcall(ptr, reinterpret_cast<PyObject * const*>(m_args.data()+1), (m_args.size()-1)|PY_VECTORCALL_ARGUMENTS_OFFSET, m_names.ptr());
         if (!result) {
             throw error_already_set();
         }
         return reinterpret_steal<object>(result);
     }
 
+    tuple args() const {
+        // -1 to account for PY_VECTORCALL_ARGUMENTS_OFFSET
+        size_t count = m_args.size() - 1 - m_names.size(); 
+        tuple val(count);
+        for (size_t i = 0; i < count; ++i) {
+            // +1 to account for PY_VECTORCALL_ARGUMENTS_OFFSET
+            val[i] = m_args[i + 1];
+        }
+        return val;
+    }
+
+    dict kwargs() const { 
+        size_t offset = m_args.size() - m_names.size();
+        dict val;
+        for (size_t i = 0; i < m_names.size(); ++i, ++offset) {
+            val[m_names[i]] = m_args[offset];
+        }
+        return val;
+    }
+
 private:
     template <typename T>
-    void process(list &args_list, T &&x) {
+    void process(list &/*names_list*/, T &&x) {
         auto o = reinterpret_steal<object>(
             detail::make_caster<T>::cast(std::forward<T>(x), policy, {}));
         if (!o) {
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
-            throw cast_error_unable_to_convert_call_arg(std::to_string(args_list.size()));
+            throw cast_error_unable_to_convert_call_arg(std::to_string(m_args.size()));
 #else
-            throw cast_error_unable_to_convert_call_arg(std::to_string(args_list.size()),
+            throw cast_error_unable_to_convert_call_arg(std::to_string(m_args.size()),
                                                         type_id<T>());
 #endif
         }
-        args_list.append(std::move(o));
+        m_args.push_back(std::move(o));
+        // collect_arguments() below guarantees that no keyword args have preceeded this arg.
     }
 
-    void process(list &args_list, detail::args_proxy ap) {
+    void process(list &/*names_list*/, detail::args_proxy ap) {
         for (auto a : ap) {
-            args_list.append(a);
+            m_args.push_back(reinterpret_borrow<object>(a));
         }
+        // collect_arguments() below guarantees that no keyword args have preceeded this arg.
     }
 
-    void process(list & /*args_list*/, arg_v a) {
+    void process(list &names_list, arg_v a) {
         if (!a.name) {
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
             nameless_argument_error();
@@ -2278,7 +2324,8 @@ private:
             nameless_argument_error(a.type);
 #endif
         }
-        if (m_kwargs.contains(a.name)) {
+        auto name = str(a.name);
+        if (names_list.contains(name)) {
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
             multiple_values_error();
 #else
@@ -2292,23 +2339,28 @@ private:
             throw cast_error_unable_to_convert_call_arg(a.name, a.type);
 #endif
         }
-        m_kwargs[a.name] = std::move(a.value);
+        names_list.append(std::move(name));
+        m_args.push_back(std::move(a.value));
+        // collect_arguments() below guarantees that no positional args will come after this arg
     }
 
-    void process(list & /*args_list*/, detail::kwargs_proxy kp) {
+    void process(list &names_list, detail::kwargs_proxy kp) {
         if (!kp) {
             return;
         }
         for (auto k : reinterpret_borrow<dict>(kp)) {
-            if (m_kwargs.contains(k.first)) {
+            auto name = str(k.first);
+            if (names_list.contains(name)) {
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
                 multiple_values_error();
 #else
-                multiple_values_error(str(k.first));
+                multiple_values_error(name);
 #endif
             }
-            m_kwargs[k.first] = k.second;
+            names_list.append(std::move(name));
+            m_args.push_back(reinterpret_borrow<object>(k.second));
         }
+        // collect_arguments() below guarantees that no positional args will come after these args
     }
 
     [[noreturn]] static void nameless_argument_error() {
@@ -2333,8 +2385,8 @@ private:
     }
 
 private:
-    tuple m_args;
-    dict m_kwargs;
+    small_vector<object, arg_vector_small_size> m_args;
+    tuple m_names;
 };
 
 // [workaround(intel)] Separate function required here
