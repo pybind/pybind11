@@ -117,10 +117,7 @@ TEST_CASE("Single Subinterpreter") {
     unsafe_reset_internals_for_single_interpreter();
 }
 
-// "Move Subinterpreter" test is disabled on free-threaded Python 3.14+ due to a hang
-// in Py_EndInterpreter() when the subinterpreter is destroyed from a different thread
-// than it was created on. See: https://github.com/pybind/pybind11/pull/5940
-#    if PY_VERSION_HEX >= 0x030D0000 && !(PY_VERSION_HEX >= 0x030E0000 && defined(Py_GIL_DISABLED))
+#    if PY_VERSION_HEX >= 0x030D0000
 TEST_CASE("Move Subinterpreter") {
     std::unique_ptr<py::subinterpreter> sub(new py::subinterpreter(py::subinterpreter::create()));
 

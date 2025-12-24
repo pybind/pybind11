@@ -214,7 +214,7 @@ public:
         return *result;
     }
 
-    gil_safe_call_once_and_store() = default;
+    constexpr gil_safe_call_once_and_store() = default;
     // The instance is a global static, so its destructor runs when the process
     // is terminating. Therefore, do nothing here because the Python interpreter
     // may have been finalized already.
