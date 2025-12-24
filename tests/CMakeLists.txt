@@ -157,7 +157,7 @@ set(PYBIND11_TEST_FILES
     test_methods_and_attributes
     test_modules
     test_multiple_inheritance
-    test_multiple_interpreters/test_multiple_interpreters.py
+    test_multiple_interpreters.py
     test_native_enum
     test_numpy_array
     test_numpy_dtypes
@@ -578,8 +578,34 @@ add_custom_target(
   USES_TERMINAL)
 
 if(NOT PYBIND11_CUDA_TESTS)
-  # Multiple interpreters tests are in a separate subdirectory
-  add_subdirectory(test_multiple_interpreters)
+  set(PYBIND11_MULTIPLE_INTERPRETERS_TEST_FILES test_multiple_interpreters.py)
+
+  set(PYBIND11_MULTIPLE_INTERPRETERS_TEST_MODULES
+      mod_per_interpreter_gil mod_shared_interpreter_gil mod_per_interpreter_gil_with_singleton)
+
+  # These modules don't get mixed with other test modules because those aren't subinterpreter safe.
+  foreach(mod IN LISTS PYBIND11_MULTIPLE_INTERPRETERS_TEST_MODULES)
+    pybind11_add_module("${mod}" THIN_LTO "${mod}.cpp")
+    pybind11_enable_warnings("${mod}")
+  endforeach()
+
+  # Put the built modules next to `pybind11_tests.so` so that the test scripts can find them.
+  get_target_property(pybind11_tests_output_directory pybind11_tests LIBRARY_OUTPUT_DIRECTORY)
+  foreach(mod IN LISTS PYBIND11_MULTIPLE_INTERPRETERS_TEST_MODULES)
+    set_target_properties("${mod}" PROPERTIES LIBRARY_OUTPUT_DIRECTORY
+                                              "${pybind11_tests_output_directory}")
+  endforeach()
+
+  if(PYBIND11_TEST_SMART_HOLDER)
+    foreach(mod IN LISTS PYBIND11_MULTIPLE_INTERPRETERS_TEST_MODULES)
+      target_compile_definitions(
+        "${mod}"
+        PUBLIC
+          -DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE)
+    endforeach()
+  endif()
+
+  add_dependencies(pytest ${PYBIND11_MULTIPLE_INTERPRETERS_TEST_MODULES})
 endif()
 
 if(PYBIND11_TEST_OVERRIDE)
