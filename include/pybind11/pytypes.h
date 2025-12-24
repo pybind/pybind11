@@ -1641,9 +1641,7 @@ public:
 #    endif
 
     // Avoid ambiguity when converting from kwargs (GCC)
-    explicit str(const kwargs &k)
-        : str(static_cast<handle>(k)) {}
-
+    explicit str(const kwargs &k) : str(static_cast<handle>(k)) {}
 
 #endif
 

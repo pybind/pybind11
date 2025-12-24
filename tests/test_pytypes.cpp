@@ -1213,9 +1213,6 @@ TEST_SUBMODULE(pytypes, m) {
     });
 }
 
-
 TEST_SUBMODULE(pytypes, kwargs_str) {
-    m.def("kwargs_to_str", [](py::kwargs kwargs) {
-        return py::str(kwargs);
-    });
+    m.def("kwargs_to_str", [](py::kwargs kwargs) { return py::str(kwargs); });
 }
