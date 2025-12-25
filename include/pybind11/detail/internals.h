@@ -648,28 +648,8 @@ public:
     /// Get the current pointer-to-pointer, allocating it if it does not already exist.  May
     /// acquire the GIL. Will never return nullptr.
     std::unique_ptr<InternalsType> *get_pp() {
-#ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
-        if (get_num_interpreters_seen() > 1) {
-            // Whenever the interpreter changes on the current thread we need to invalidate the
-            // internals_pp so that it can be pulled from the interpreter's state dict.  That is
-            // slow, so we use the current PyThreadState to check if it is necessary.
-            auto *tstate = get_thread_state_unchecked();
-            if (!tstate || tstate->interp != last_istate_tls()) {
-                gil_scoped_acquire_simple gil;
-                if (!tstate) {
-                    tstate = get_thread_state_unchecked();
-                }
-                last_istate_tls() = tstate->interp;
-                internals_p_tls() = get_or_create_pp_in_state_dict();
-            }
-            return internals_p_tls();
-        }
-#endif
-        if (!internals_singleton_pp_) {
-            gil_scoped_acquire_simple gil;
-            internals_singleton_pp_ = get_or_create_pp_in_state_dict();
-        }
-        return internals_singleton_pp_;
+        gil_scoped_acquire_simple gil;
+        return get_or_create_pp_in_state_dict();
     }
 
     /// Drop all the references we're currently holding.
