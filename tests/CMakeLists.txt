@@ -578,8 +578,6 @@ add_custom_target(
   USES_TERMINAL)
 
 if(NOT PYBIND11_CUDA_TESTS)
-  set(PYBIND11_MULTIPLE_INTERPRETERS_TEST_FILES test_multiple_interpreters.py)
-
   set(PYBIND11_MULTIPLE_INTERPRETERS_TEST_MODULES
       mod_per_interpreter_gil mod_shared_interpreter_gil mod_per_interpreter_gil_with_singleton)
 
