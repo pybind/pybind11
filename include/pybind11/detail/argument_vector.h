@@ -86,8 +86,7 @@ union inline_array_or_vector {
     void destruct() {
         if (!is_inline()) {
             hvector.~heap_vector();
-        }
-        else if (!std::is_trivially_destructible<ArrayT>::value) {
+        } else if (!std::is_trivially_destructible<ArrayT>::value) {
             for (size_t i = 0; i < iarray.size; ++i) {
                 iarray.arr[i].~ArrayT();
             }
@@ -96,9 +95,7 @@ union inline_array_or_vector {
 
     inline_array_or_vector() : iarray() {}
 
-    ~inline_array_or_vector() {
-        destruct();
-    }
+    ~inline_array_or_vector() { destruct(); }
 
     // Disable copy ctor and assignment.
     inline_array_or_vector(const inline_array_or_vector &) = delete;
@@ -127,7 +124,6 @@ union inline_array_or_vector {
         }
         return *this;
     }
-
 };
 
 template <typename T, std::size_t InlineSize>

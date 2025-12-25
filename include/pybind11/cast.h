@@ -2385,18 +2385,19 @@ class unpacking_vectorcall_collector {
 public:
     template <typename... Ts>
     explicit unpacking_vectorcall_collector(Ts &&...values) {
-        
-        m_args.reserve(sizeof...(values) + 1);
-        m_args.push_back(nullptr); // dummy first argument so we can use PY_VECTORCALL_ARGUMENTS_OFFSET
 
-        // collect_arguments guarantees this can't be constructed with kwargs before the last positional
-        // so we don't need to worry about Ts... being in anything but normal python order.
+        m_args.reserve(sizeof...(values) + 1);
+        m_args.push_back(
+            nullptr); // dummy first argument so we can use PY_VECTORCALL_ARGUMENTS_OFFSET
+
+        // collect_arguments guarantees this can't be constructed with kwargs before the last
+        // positional so we don't need to worry about Ts... being in anything but normal python
+        // order.
         using expander = int[];
         if (args_have_kw<Ts...>()) {
             (void) expander{0, (positional(std::forward<Ts>(values)), 0)...};
-        }
-        else {
-            list names_list; 
+        } else {
+            list names_list;
 
             (void) expander{0, (process(names_list, std::forward<Ts>(values)), 0)...};
 
@@ -2413,11 +2414,7 @@ public:
             nargs -= PyTuple_GET_SIZE(m_names.ptr());
         }
         PyObject *result = PyObject_Vectorcall(
-            ptr,
-            m_args.data()+1,
-            nargs|PY_VECTORCALL_ARGUMENTS_OFFSET,
-            m_names.ptr()
-        );
+            ptr, m_args.data() + 1, nargs | PY_VECTORCALL_ARGUMENTS_OFFSET, m_names.ptr());
         if (!result) {
             throw error_already_set();
         }
@@ -2440,8 +2437,7 @@ public:
 
     dict kwargs() const {
         dict val;
-        if (m_names)
-        {
+        if (m_names) {
             tuple namestup(m_names);
             size_t offset = m_args.size() - namestup.size();
             for (size_t i = 0; i < namestup.size(); ++i, ++offset) {
@@ -2452,18 +2448,18 @@ public:
     }
 
 private:
-    // normal argument, possibly needing conversion 
+    // normal argument, possibly needing conversion
     template <typename T>
     void positional(T &&x) {
         auto o = reinterpret_steal<object>(
             detail::make_caster<T>::cast(std::forward<T>(x), policy, {}));
         if (!o) {
-#if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
-            throw cast_error_unable_to_convert_call_arg(std::to_string(m_args.size()-1));
-#else
-            throw cast_error_unable_to_convert_call_arg(std::to_string(m_args.size()-1),
+#    if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
+            throw cast_error_unable_to_convert_call_arg(std::to_string(m_args.size() - 1));
+#    else
+            throw cast_error_unable_to_convert_call_arg(std::to_string(m_args.size() - 1),
                                                         type_id<T>());
-#endif
+#    endif
         }
         m_args.push_back(o.ptr());
         m_temp.push_back(std::move(o));
@@ -2479,40 +2475,38 @@ private:
         }
     }
 
-    // normal argument, possibly needing conversion 
+    // normal argument, possibly needing conversion
     template <typename T>
-    void process(list &/*names_list*/, T &&x) {
+    void process(list & /*names_list*/, T &&x) {
         positional(std::forward<T>(x));
     }
 
     // * unpacking
-    void process(list &/*names_list*/, detail::args_proxy ap) {
-        positional(ap);
-    }
+    void process(list & /*names_list*/, detail::args_proxy ap) { positional(ap); }
 
     // named argument
     void process(list &names_list, arg_v a) {
         if (!a.name) {
-#if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
+#    if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
             nameless_argument_error();
-#else
+#    else
             nameless_argument_error(a.type);
-#endif
+#    endif
         }
         auto name = str(a.name);
         if (names_list.contains(name)) {
-#if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
+#    if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
             multiple_values_error();
-#else
+#    else
             multiple_values_error(a.name);
-#endif
+#    endif
         }
         if (!a.value) {
-#if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
+#    if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
             throw cast_error_unable_to_convert_call_arg(a.name);
-#else
+#    else
             throw cast_error_unable_to_convert_call_arg(a.name, a.type);
-#endif
+#    endif
         }
         names_list.append(std::move(name));
         m_temp.push_back(a.value); // keep alive
@@ -2524,14 +2518,14 @@ private:
         if (!kp) {
             return;
         }
-        for (auto&& k : reinterpret_borrow<dict>(kp)) {
+        for (auto &&k : reinterpret_borrow<dict>(kp)) {
             auto name = str(k.first);
             if (names_list.contains(name)) {
-#if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
+#    if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
                 multiple_values_error();
-#else
+#    else
                 multiple_values_error(name);
-#endif
+#    endif
             }
             names_list.append(std::move(name));
             m_temp.push_back(reinterpret_borrow<object>(k.second)); // keep alive
@@ -2561,14 +2555,13 @@ private:
     }
 
 private:
-    small_vector<PyObject*, arg_vector_small_size> m_args;
+    small_vector<PyObject *, arg_vector_small_size> m_args;
     object m_names; // todo: use m_temp for this?
     small_vector<object, arg_vector_small_size> m_temp;
 };
 
 /// Collect all arguments, including keywords and unpacking for vectorcall
-template <return_value_policy policy,
-          typename... Args>
+template <return_value_policy policy, typename... Args>
 unpacking_vectorcall_collector<policy> collect_arguments(Args &&...args) {
     // Following argument order rules for generalized unpacking according to PEP 448
     static_assert(constexpr_last<is_positional, Args...>()
