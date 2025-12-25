@@ -31,7 +31,7 @@ void unsafe_reset_internals_for_single_interpreter() {
     py::detail::get_local_internals_pp_manager().unref();
 
     // we know there are no other interpreters, so we can lower this. SUPER DANGEROUS
-    py::detail::get_num_interpreters_seen() = 1;
+    py::detail::get_multiple_interpreters_seen() = false;
 
     // now we unref the static global singleton internals
     py::detail::get_internals_pp_manager().unref();

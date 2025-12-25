@@ -232,7 +232,7 @@ private:
     // Indicator of fast path for single-interpreter case.
     bool is_last_storage_valid() const {
         return is_initialized_by_at_least_one_interpreter_
-               && detail::get_num_interpreters_seen() == 1;
+               && !detail::get_multiple_interpreters_seen();
     }
 
     // Get the unique key for this storage instance in the interpreter's state dict.
