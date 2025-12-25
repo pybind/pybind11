@@ -96,7 +96,7 @@ enum class MyEnum : int {
     TWO = 2,
     THREE = 3,
 };
-}
+} // namespace
 
 PYBIND11_MODULE(mod_per_interpreter_gil_with_singleton,
                 m,
