@@ -9,6 +9,7 @@ namespace py = pybind11;
 #    include <pybind11/native_enum.h>
 #endif
 
+namespace {
 // A singleton class that holds references to certain Python objects
 // This singleton is per-interpreter using gil_safe_call_once_and_store
 class MySingleton {
@@ -95,6 +96,7 @@ enum class MyEnum : int {
     TWO = 2,
     THREE = 3,
 };
+}
 
 PYBIND11_MODULE(mod_per_interpreter_gil_with_singleton,
                 m,
