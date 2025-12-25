@@ -419,7 +419,7 @@ inline PyThreadState *get_thread_state_unchecked() {
 }
 
 /// We use this to figure out if there are or have been multiple subinterpreters active at any
-/// point. This must never chane from true to false while any interpreter may be running in any
+/// point. This must never go from true to false while any interpreter may be running in any
 /// thread!
 inline std::atomic<bool> &get_multiple_interpreters_seen() {
     static std::atomic<bool> multi(false);
