@@ -847,7 +847,10 @@ protected:
     }
 
     /// Main dispatch logic for calls to functions bound using pybind11
-    static PyObject *dispatcher(PyObject *self, PyObject * const *args_in_arr, Py_ssize_t nargsf, PyObject *kwnames_in) {
+    static PyObject *dispatcher(PyObject *self,
+                                PyObject *const *args_in_arr,
+                                Py_ssize_t nargsf,
+                                PyObject *kwnames_in) {
         using namespace detail;
         const function_record *overloads = function_record_ptr_from_PyObject(self);
         assert(overloads != nullptr);
@@ -861,7 +864,7 @@ protected:
 
         handle parent = n_args_in > 0 ? args_in_arr[0] : nullptr,
                result = PYBIND11_TRY_NEXT_OVERLOAD;
-        
+
         auto kwnames = reinterpret_borrow<tuple>(kwnames_in);
 
         auto self_value_and_holder = value_and_holder();
@@ -961,16 +964,13 @@ protected:
                 for (; args_copied < args_to_copy; ++args_copied) {
                     const argument_record *arg_rec
                         = args_copied < func.args.size() ? &func.args[args_copied] : nullptr;
-                    
-                    /* if the argument is listed in the call site's kwargs, but the argument is also fulfilled positionally, then the call can't match this overload.
-                    for example, the call site is: 
-                        foo(0, key=1) 
-                    but our overload is 
-                        foo(key:int) 
-                    then this call can't be for us, because it would be invalid.
+
+                    /* if the argument is listed in the call site's kwargs, but the argument is
+                    also fulfilled positionally, then the call can't match this overload. for
+                    example, the call site is: foo(0, key=1) but our overload is foo(key:int) then
+                    this call can't be for us, because it would be invalid.
                     */
-                    if (kwnames && arg_rec && arg_rec->name)
-                    {
+                    if (kwnames && arg_rec && arg_rec->name) {
                         pybind11::str arg_name(arg_rec->name);
                         if (PySequence_Contains(kwnames.ptr(), arg_name.ptr())) {
                             bad_arg = true;
@@ -1074,7 +1074,8 @@ protected:
                         size_t args_size = n_args_in - positional_args_copied;
                         tuple extra_args(args_size);
                         for (size_t i = 0; i < args_size; ++i) {
-                            extra_args[i] = reinterpret_borrow<object>(args_in_arr[positional_args_copied + i]);
+                            extra_args[i] = reinterpret_borrow<object>(
+                                args_in_arr[positional_args_copied + i]);
                         }
                         call.args_ref = std::move(extra_args);
                     }
@@ -1095,9 +1096,9 @@ protected:
                     for (size_t i = 0; i < name_count; ++i) {
                         if (used_i < used_kwargs.size() && used_kwargs[used_i] == i) {
                             ++used_i;
-                        }
-                        else {
-                            kwargs[kwnames[i]] = reinterpret_borrow<object>(args_in_arr[n_args_in + i]);
+                        } else {
+                            kwargs[kwnames[i]]
+                                = reinterpret_borrow<object>(args_in_arr[n_args_in + i]);
                         }
                     }
                     call.args.push_back(kwargs);
