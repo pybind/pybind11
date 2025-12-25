@@ -563,24 +563,24 @@ inline object get_python_state_dict() {
 // WARNING: There can be multiple threads creating the storage at the same time, while only one
 //          will succeed in inserting its capsule into the dict. Therefore, the deleter will be
 //          used to clean up the storage of the unused capsules.
-template <typename Payload, bool LeakOnInterpreterShutdown = false>
-Payload *atomic_get_or_create_in_state_dict(const char *key) {
+//
+// Returns: pair of (pointer to storage, bool indicating if newly created).
+//          The bool follows std::map::insert convention: true = created, false = existed.
+template <typename Payload>
+std::pair<Payload *, bool> atomic_get_or_create_in_state_dict(const char *key,
+                                                              bool clear_destructor = false) {
     error_scope err_scope; // preserve any existing Python error states
 
     auto state_dict = reinterpret_borrow<dict>(get_python_state_dict());
     PyObject *capsule_obj = nullptr;
+    bool created = false;
 
-    // First, try to get existing storage (fast path).
-    {
-        capsule_obj = dict_getitemstring(state_dict.ptr(), key);
-        if (capsule_obj == nullptr && PyErr_Occurred()) {
+    // Try to get existing storage (fast path).
+    capsule_obj = dict_getitemstring(state_dict.ptr(), key);
+    if (capsule_obj == nullptr) {
+        if (PyErr_Occurred()) {
             throw error_already_set();
         }
-        // Fallthrough if capsule_obj is nullptr (not found).
-        // Otherwise, we have found the existing storage (most common case) and return it below.
-    }
-
-    if (capsule_obj == nullptr) {
         // Storage doesn't exist yet, create a new one.
         // Use unique_ptr for exception safety: if capsule creation throws, the storage is
         // automatically deleted.
@@ -611,16 +611,14 @@ Payload *atomic_get_or_create_in_state_dict(const char *key) {
         if (capsule_obj == nullptr) {
             throw error_already_set();
         }
-        PYBIND11_WARNING_PUSH
-        PYBIND11_WARNING_DISABLE_MSVC(4127) // maybe constant condition
-        if (LeakOnInterpreterShutdown && capsule_obj == new_capsule.ptr()) {
+        created = (capsule_obj == new_capsule.ptr());
+        if (clear_destructor && created) {
             // Our capsule was inserted.
             // Remove the destructor to leak the storage on interpreter shutdown.
             if (PyCapsule_SetDestructor(capsule_obj, nullptr) < 0) {
                 throw error_already_set();
             }
         }
-        PYBIND11_WARNING_POP
         // - If key already existed, our `new_capsule` is not inserted, it will be destructed when
         //   going out of scope here, which will also free the storage.
         // - Otherwise, our `new_capsule` is now in the dict, and it owns the storage and the state
@@ -634,7 +632,7 @@ Payload *atomic_get_or_create_in_state_dict(const char *key) {
                    "pybind11::detail::atomic_get_or_create_in_state_dict() FAILED");
         throw error_already_set();
     }
-    return static_cast<Payload *>(raw_ptr);
+    return std::pair<Payload *, bool>(static_cast<Payload *>(raw_ptr), created);
 }
 
 template <typename InternalsType>
@@ -714,10 +712,12 @@ private:
         // interpreter shutdown in multiple-interpreter scenarios).
         // Because we cannot guarantee the order of destruction of capsules in the interpreter
         // state dict, leaking avoids potential use-after-free issues during interpreter shutdown.
-        auto *pp
-            = atomic_get_or_create_in_state_dict<std::unique_ptr<InternalsType>,
-                                                 /*LeakOnInterpreterShutdown=*/true>(holder_id_);
-        if (on_fetch_ && pp) {
+        auto result = atomic_get_or_create_in_state_dict<std::unique_ptr<InternalsType>>(
+            holder_id_, /*clear_destructor=*/true);
+        auto *pp = result.first;
+        bool created = result.second;
+        // Only call on_fetch_ when fetching existing internals, not when creating new ones.
+        if (!created && on_fetch_ && pp) {
             on_fetch_(pp->get());
         }
         return pp;
