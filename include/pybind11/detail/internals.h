@@ -420,8 +420,8 @@ inline PyThreadState *get_thread_state_unchecked() {
 
 /// We use this counter to figure out if there are or have been multiple subinterpreters active at
 /// any point. This must never decrease while any interpreter may be running in any thread!
-inline std::atomic<int> &get_num_interpreters_seen() {
-    static std::atomic<int> counter(0);
+inline std::atomic<int64_t> &get_num_interpreters_seen() {
+    static std::atomic<int64_t> counter(0);
     return counter;
 }
 
@@ -550,6 +550,91 @@ inline object get_python_state_dict() {
     return state_dict;
 }
 
+// Get or create per-storage capsule in the current interpreter's state dict.
+//   - The storage is interpreter-dependent: different interpreters will have different storage.
+//     This is important when using multiple-interpreters, to avoid sharing unshareable objects
+//     between interpreters.
+//   - There is one storage per `key` in an interpreter and it is accessible between all extensions
+//     in the same interpreter.
+//   - The life span of the storage is tied to the interpreter: it will be kept alive until the
+//     interpreter shuts down.
+//
+// Use test-and-set pattern with `PyDict_SetDefault` for thread-safe concurrent access.
+// WARNING: There can be multiple threads creating the storage at the same time, while only one
+//          will succeed in inserting its capsule into the dict. Therefore, the deleter will be
+//          used to clean up the storage of the unused capsules.
+//
+// Returns: pair of (pointer to storage, bool indicating if newly created).
+//          The bool follows std::map::insert convention: true = created, false = existed.
+template <typename Payload>
+std::pair<Payload *, bool> atomic_get_or_create_in_state_dict(const char *key,
+                                                              bool clear_destructor = false) {
+    error_scope err_scope; // preserve any existing Python error states
+
+    auto state_dict = reinterpret_borrow<dict>(get_python_state_dict());
+    PyObject *capsule_obj = nullptr;
+    bool created = false;
+
+    // Try to get existing storage (fast path).
+    capsule_obj = dict_getitemstring(state_dict.ptr(), key);
+    if (capsule_obj == nullptr) {
+        if (PyErr_Occurred()) {
+            throw error_already_set();
+        }
+        // Storage doesn't exist yet, create a new one.
+        // Use unique_ptr for exception safety: if capsule creation throws, the storage is
+        // automatically deleted.
+        auto storage_ptr = std::unique_ptr<Payload>(new Payload{});
+        // Create capsule with destructor to clean up when the interpreter shuts down.
+        auto new_capsule = capsule(
+            storage_ptr.get(),
+            // The destructor will be called when the capsule is GC'ed.
+            //   - If our capsule is inserted into the dict below, it will be kept alive until
+            //     interpreter shutdown, so the destructor will be called at that time.
+            //   - If our capsule is NOT inserted (another thread inserted first), it will be
+            //     destructed when going out of scope here, so the destructor will be called
+            //     immediately, which will also free the storage.
+            /*destructor=*/[](void *ptr) -> void { delete static_cast<Payload *>(ptr); });
+        // At this point, the capsule object is created successfully.
+        // Release the unique_ptr and let the capsule object own the storage to avoid double-free.
+        (void) storage_ptr.release();
+
+        // Use `PyDict_SetDefault` for atomic test-and-set:
+        //   - If key doesn't exist, inserts our capsule and returns it.
+        //   - If key exists (another thread inserted first), returns the existing value.
+        // This is thread-safe because `PyDict_SetDefault` will hold a lock on the dict.
+        //
+        // NOTE: Here we use `PyDict_SetDefault` instead of `PyDict_SetDefaultRef` because the
+        //       capsule is kept alive until interpreter shutdown, so we do not need to handle
+        //       incref and decref here.
+        capsule_obj = dict_setdefaultstring(state_dict.ptr(), key, new_capsule.ptr());
+        if (capsule_obj == nullptr) {
+            throw error_already_set();
+        }
+        created = (capsule_obj == new_capsule.ptr());
+        if (clear_destructor && created) {
+            // Our capsule was inserted.
+            // Remove the destructor to leak the storage on interpreter shutdown.
+            if (PyCapsule_SetDestructor(capsule_obj, nullptr) < 0) {
+                throw error_already_set();
+            }
+        }
+        // - If key already existed, our `new_capsule` is not inserted, it will be destructed when
+        //   going out of scope here, which will also free the storage.
+        // - Otherwise, our `new_capsule` is now in the dict, and it owns the storage and the state
+        //   dict will incref it.
+    }
+
+    // Get the storage pointer from the capsule.
+    void *raw_ptr = PyCapsule_GetPointer(capsule_obj, /*name=*/nullptr);
+    if (!raw_ptr) {
+        raise_from(PyExc_SystemError,
+                   "pybind11::detail::atomic_get_or_create_in_state_dict() FAILED");
+        throw error_already_set();
+    }
+    return std::pair<Payload *, bool>(static_cast<Payload *>(raw_ptr), created);
+}
+
 template <typename InternalsType>
 class internals_pp_manager {
 public:
@@ -622,26 +707,18 @@ private:
         : holder_id_(id), on_fetch_(on_fetch) {}
 
     std::unique_ptr<InternalsType> *get_or_create_pp_in_state_dict() {
-        error_scope err_scope;
-        dict state_dict = get_python_state_dict();
-        auto internals_obj
-            = reinterpret_steal<object>(dict_getitemstringref(state_dict.ptr(), holder_id_));
-        std::unique_ptr<InternalsType> *pp = nullptr;
-        if (internals_obj) {
-            void *raw_ptr = PyCapsule_GetPointer(internals_obj.ptr(), /*name=*/nullptr);
-            if (!raw_ptr) {
-                raise_from(PyExc_SystemError,
-                           "pybind11::detail::internals_pp_manager::get_pp_from_dict() FAILED");
-                throw error_already_set();
-            }
-            pp = reinterpret_cast<std::unique_ptr<InternalsType> *>(raw_ptr);
-            if (on_fetch_ && pp) {
-                on_fetch_(pp->get());
-            }
-        } else {
-            pp = new std::unique_ptr<InternalsType>;
-            // NOLINTNEXTLINE(bugprone-casting-through-void)
-            state_dict[holder_id_] = capsule(reinterpret_cast<void *>(pp));
+        // The `unique_ptr<InternalsType>` output is leaked on interpreter shutdown. Once an
+        // instance is created, it will never be deleted until the process exits (compare to
+        // interpreter shutdown in multiple-interpreter scenarios).
+        // Because we cannot guarantee the order of destruction of capsules in the interpreter
+        // state dict, leaking avoids potential use-after-free issues during interpreter shutdown.
+        auto result = atomic_get_or_create_in_state_dict<std::unique_ptr<InternalsType>>(
+            holder_id_, /*clear_destructor=*/true);
+        auto *pp = result.first;
+        bool created = result.second;
+        // Only call on_fetch_ when fetching existing internals, not when creating new ones.
+        if (!created && on_fetch_ && pp) {
+            on_fetch_(pp->get());
         }
         return pp;
     }
@@ -660,6 +737,8 @@ private:
 
     char const *holder_id_ = nullptr;
     on_fetch_function *on_fetch_ = nullptr;
+    // Pointer-to-pointer to the singleton internals for the first seen interpreter (may not be the
+    // main interpreter)
     std::unique_ptr<InternalsType> *internals_singleton_pp_;
 };
 
