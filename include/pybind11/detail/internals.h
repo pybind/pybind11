@@ -794,14 +794,11 @@ PYBIND11_NOINLINE internals &get_internals() {
 
 inline void ensure_internals() {
     pybind11::detail::get_internals_pp_manager().unref();
-#if PY_VERSION_HEX < 0x03090000
-    PyInterpreterState *cur_istate = _PyInterpreterState_Get();
-#else
-    PyInterpreterState *cur_istate = PyInterpreterState_Get();
-#endif
-    if (cur_istate != PyInterpreterState_Main()) {
+#ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
+    if (PyInterpreterState_Get() != PyInterpreterState_Main()) {
         get_multiple_interpreters_seen() = true;
     }
+#endif
     pybind11::detail::get_internals();
 }
 
