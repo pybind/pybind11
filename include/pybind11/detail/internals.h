@@ -648,8 +648,16 @@ public:
     /// Get the current pointer-to-pointer, allocating it if it does not already exist.  May
     /// acquire the GIL. Will never return nullptr.
     std::unique_ptr<InternalsType> *get_pp() {
+#ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
         gil_scoped_acquire_simple gil;
         return get_or_create_pp_in_state_dict();
+#else
+        if (!internals_singleton_pp_) {
+            gil_scoped_acquire_simple gil;
+            internals_singleton_pp_ = get_or_create_pp_in_state_dict();
+        }
+        return internals_singleton_pp_;
+#endif
     }
 
     /// Drop all the references we're currently holding.
