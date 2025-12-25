@@ -196,6 +196,16 @@ public:
         }
     }
 
+    void sort() {
+        T *begin;
+        if (is_inline()) {
+            begin = &m_repr.iarray.arr[0];
+        } else {
+            begin = m_repr.hvector.vec.data();
+        }
+        std::sort(begin, begin + size());
+    }
+
 private:
     using repr_type = inline_array_or_vector<T, InlineSize>;
     repr_type m_repr;
