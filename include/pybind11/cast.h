@@ -2346,15 +2346,6 @@ constexpr bool args_are_all_positional() {
     return all_of<is_positional<Args>...>::value;
 }
 
-// [workaround(intel)] Separate function required here
-// We need to put this into a separate function because the Intel compiler
-// fails to compile enable_if_t<!all_of<is_positional<Args>...>::value>
-// (tested with ICC 2021.1 Beta 20200827).
-template <typename... Args>
-constexpr bool args_have_kw() {
-    return none_of<is_keyword_or_ds<Args>...>::value;
-}
-
 #if PY_VERSION_HEX < 0x030C0000
 /// Collect only positional arguments for a Python function call
 template <return_value_policy policy,
@@ -2385,24 +2376,20 @@ class unpacking_vectorcall_collector {
 public:
     template <typename... Ts>
     explicit unpacking_vectorcall_collector(Ts &&...values) {
-
         m_args.reserve(sizeof...(values) + 1);
         m_args.push_back(
             nullptr); // dummy first argument so we can use PY_VECTORCALL_ARGUMENTS_OFFSET
+
+        object names_list; // null or a list of names
 
         // collect_arguments guarantees this can't be constructed with kwargs before the last
         // positional so we don't need to worry about Ts... being in anything but normal python
         // order.
         using expander = int[];
-        if (args_have_kw<Ts...>()) {
-            (void) expander{0, (positional(std::forward<Ts>(values)), 0)...};
-        } else {
-            list names_list;
+        (void) expander{0, (process(names_list, std::forward<Ts>(values)), 0)...};
 
-            (void) expander{0, (process(names_list, std::forward<Ts>(values)), 0)...};
-
-            if (!names_list.empty())
-                m_names = reinterpret_steal<tuple>(PyList_AsTuple(names_list.ptr()));
+        if (names_list) {
+            m_names = reinterpret_steal<tuple>(PyList_AsTuple(names_list.ptr()));
         }
     }
 
@@ -2438,7 +2425,7 @@ public:
     dict kwargs() const {
         dict val;
         if (m_names) {
-            tuple namestup(m_names);
+            auto namestup = reinterpret_borrow<tuple>(m_names);
             size_t offset = m_args.size() - namestup.size();
             for (size_t i = 0; i < namestup.size(); ++i, ++offset) {
                 val[namestup[i]] = reinterpret_borrow<object>(m_args[offset]);
@@ -2450,7 +2437,7 @@ public:
 private:
     // normal argument, possibly needing conversion
     template <typename T>
-    void positional(T &&x) {
+    void process(object & /*names_list*/, T &&x) {
         auto o = reinterpret_steal<object>(
             detail::make_caster<T>::cast(std::forward<T>(x), policy, {}));
         if (!o) {
@@ -2465,7 +2452,8 @@ private:
         m_temp.push_back(std::move(o));
     }
 
-    void positional(detail::args_proxy ap) {
+    // * unpacking
+    void process(object & /*names_list*/, detail::args_proxy ap) {
         if (!ap) {
             return;
         }
@@ -2475,17 +2463,11 @@ private:
         }
     }
 
-    // normal argument, possibly needing conversion
-    template <typename T>
-    void process(list & /*names_list*/, T &&x) {
-        positional(std::forward<T>(x));
-    }
-
-    // * unpacking
-    void process(list & /*names_list*/, detail::args_proxy ap) { positional(ap); }
-
     // named argument
-    void process(list &names_list, arg_v a) {
+    void process(object &names_list, arg_v a) {
+        if (!names_list) {
+            names_list = list();
+        }
         if (!a.name) {
 #    if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
             nameless_argument_error();
@@ -2508,15 +2490,21 @@ private:
             throw cast_error_unable_to_convert_call_arg(a.name, a.type);
 #    endif
         }
-        names_list.append(std::move(name));
+        if (PyList_Append(names_list.ptr(), name.release().ptr()) < 0)
+        {
+            throw error_already_set();
+        }
         m_temp.push_back(a.value); // keep alive
         m_args.push_back(a.value.ptr());
     }
 
     // ** unpacking
-    void process(list &names_list, detail::kwargs_proxy kp) {
+    void process(object &names_list, detail::kwargs_proxy kp) {
         if (!kp) {
             return;
+        }
+        if (!names_list) {
+            names_list = list();
         }
         for (auto &&k : reinterpret_borrow<dict>(kp)) {
             auto name = str(k.first);
@@ -2527,7 +2515,10 @@ private:
                 multiple_values_error(name);
 #    endif
             }
-            names_list.append(std::move(name));
+            if (PyList_Append(names_list.ptr(), name.release().ptr()) < 0)
+            {
+                throw error_already_set();
+            }
             m_temp.push_back(reinterpret_borrow<object>(k.second)); // keep alive
             m_args.push_back(k.second.ptr());
         }
@@ -2556,7 +2547,7 @@ private:
 
 private:
     small_vector<PyObject *, arg_vector_small_size> m_args;
-    object m_names; // todo: use m_temp for this?
+    object m_names; // null or a tuple of names
     small_vector<object, arg_vector_small_size> m_temp;
 };
 
