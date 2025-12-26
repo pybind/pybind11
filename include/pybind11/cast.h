@@ -2411,7 +2411,7 @@ public:
         // -1 to account for PY_VECTORCALL_ARGUMENTS_OFFSET
         size_t nargs = m_args.size() - 1;
         if (m_names) {
-            nargs -= PyTuple_GET_SIZE(m_names.ptr());
+            nargs -= static_cast<size_t>(PyTuple_GET_SIZE(m_names.ptr()));
         }
         PyObject *result = PyObject_Vectorcall(
             ptr, m_args.data() + 1, nargs | PY_VECTORCALL_ARGUMENTS_OFFSET, m_names.ptr());
@@ -2425,7 +2425,7 @@ public:
         // -1 to account for PY_VECTORCALL_ARGUMENTS_OFFSET
         size_t nargs = m_args.size() - 1;
         if (m_names) {
-            nargs -= PyTuple_GET_SIZE(m_names.ptr());
+            nargs -= static_cast<size_t>(PyTuple_GET_SIZE(m_names.ptr()));
         }
         tuple val(nargs);
         for (size_t i = 0; i < nargs; ++i) {
