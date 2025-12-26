@@ -66,21 +66,6 @@ union inline_array_or_vector {
     inline_array iarray;
     heap_vector hvector;
 
-    bool is_inline() const {
-        // It is undefined behavior to access the inactive member of a
-        // union directly. However, it is well-defined to reinterpret_cast any
-        // pointer into a pointer to char and examine it as an array
-        // of bytes. See
-        // https://dev-discuss.pytorch.org/t/unionizing-for-profit-how-to-exploit-the-power-of-unions-in-c/444#the-memcpy-loophole-4
-        bool result = false;
-        static_assert(offsetof(inline_array, is_inline) == 0,
-                      "untagged union implementation relies on this");
-        static_assert(offsetof(heap_vector, is_inline) == 0,
-                      "untagged union implementation relies on this");
-        std::memcpy(&result, reinterpret_cast<const char *>(this), sizeof(bool));
-        return result;
-    }
-
     inline_array_or_vector() : iarray() {}
 
     ~inline_array_or_vector() {
@@ -122,6 +107,21 @@ union inline_array_or_vector {
         }
         return *this;
     }
+
+    bool is_inline() const {
+        // It is undefined behavior to access the inactive member of a
+        // union directly. However, it is well-defined to reinterpret_cast any
+        // pointer into a pointer to char and examine it as an array
+        // of bytes. See
+        // https://dev-discuss.pytorch.org/t/unionizing-for-profit-how-to-exploit-the-power-of-unions-in-c/444#the-memcpy-loophole-4
+        bool result = false;
+        static_assert(offsetof(inline_array, is_inline) == 0,
+                      "untagged union implementation relies on this");
+        static_assert(offsetof(heap_vector, is_inline) == 0,
+                      "untagged union implementation relies on this");
+        std::memcpy(&result, reinterpret_cast<const char *>(this), sizeof(bool));
+        return result;
+    }
 };
 
 template <typename T, std::size_t InlineSize>
@@ -144,7 +144,7 @@ public:
 
     T const *data() const {
         if (is_inline()) {
-            return &m_repr.iarray.arr[0];
+            return m_repr.iarray.arr.data();
         }
         return m_repr.hvector.vec.data();
     }
@@ -157,7 +157,7 @@ public:
         return m_repr.hvector.vec[idx];
     }
 
-    T operator[](std::size_t idx) const {
+    T const &operator[](std::size_t idx) const {
         assert(idx < size());
         if (is_inline()) {
             return m_repr.iarray.arr[idx];
@@ -195,13 +195,16 @@ public:
     }
 
     void sort() {
-        T *begin = nullptr;
         if (is_inline()) {
-            begin = &m_repr.iarray.arr[0];
+            if (m_repr.iarray.size < m_repr.iarray.arr.size()) {
+                std::sort(m_repr.iarray.arr.begin(),
+                          m_repr.iarray.arr.begin() + m_repr.iarray.size);
+            } else {
+                std::sort(m_repr.iarray.arr.begin(), m_repr.iarray.arr.end());
+            }
         } else {
-            begin = m_repr.hvector.vec.data();
+            std::sort(m_repr.hvector.vec.begin(), m_repr.hvector.vec.end());
         }
-        std::sort(begin, begin + size());
     }
 
 private:
