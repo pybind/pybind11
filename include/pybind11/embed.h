@@ -202,7 +202,7 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
 #endif
 
     // There is exactly one interpreter alive currently.
-    detail::get_multiple_interpreters_seen() = false;
+    detail::has_seen_non_main_interpreter() = false;
 }
 
 /** \rst
@@ -242,12 +242,12 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
  \endrst */
 inline void finalize_interpreter() {
     // get rid of any thread-local interpreter cache that currently exists
-    if (detail::get_multiple_interpreters_seen()) {
+    if (detail::has_seen_non_main_interpreter()) {
         detail::get_internals_pp_manager().unref();
         detail::get_local_internals_pp_manager().unref();
 
         // We know there can be no other interpreter alive now
-        detail::get_multiple_interpreters_seen() = false;
+        detail::has_seen_non_main_interpreter() = false;
     }
 
     // Re-fetch the internals pointer-to-pointer (but not the internals itself, which might not
@@ -266,7 +266,7 @@ inline void finalize_interpreter() {
     detail::get_local_internals_pp_manager().destroy();
 
     // We know there is no interpreter alive now, so we can reset the multi-flag
-    detail::get_multiple_interpreters_seen() = false;
+    detail::has_seen_non_main_interpreter() = false;
 }
 
 /** \rst
