@@ -197,7 +197,7 @@ public:
     }
 
     void sort() {
-        T *begin;
+        T *begin = nullptr;
         if (is_inline()) {
             begin = &m_repr.iarray.arr[0];
         } else {

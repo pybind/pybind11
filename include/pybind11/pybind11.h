@@ -847,10 +847,8 @@ protected:
     }
 
     /// Main dispatch logic for calls to functions bound using pybind11
-    static PyObject *dispatcher(PyObject *self,
-                                PyObject *const *args_in_arr,
-                                Py_ssize_t nargsf,
-                                PyObject *kwnames_in) {
+    static PyObject *
+    dispatcher(PyObject *self, PyObject *const *args_in_arr, size_t nargsf, PyObject *kwnames_in) {
         using namespace detail;
         const function_record *overloads = function_record_ptr_from_PyObject(self);
         assert(overloads != nullptr);
@@ -860,7 +858,7 @@ protected:
 
         /* Need to know how many arguments + keyword arguments there are to pick the right
            overload */
-        const size_t n_args_in = PyVectorcall_NARGS(nargsf);
+        const auto n_args_in = static_cast<size_t>(PyVectorcall_NARGS(nargsf));
 
         handle parent = n_args_in > 0 ? args_in_arr[0] : nullptr,
                result = PYBIND11_TRY_NEXT_OVERLOAD;
@@ -1011,7 +1009,7 @@ protected:
                 // 2. Check kwargs and, failing that, defaults that may help complete the list
                 small_vector<size_t, arg_vector_small_size> used_kwargs;
                 if (kwnames_in) {
-                    used_kwargs.reserve(PyTuple_GET_SIZE(kwnames_in));
+                    used_kwargs.reserve(static_cast<size_t>(PyTuple_GET_SIZE(kwnames_in)));
                 }
                 if (args_copied < num_args) {
                     for (; args_copied < num_args; ++args_copied) {
@@ -1021,8 +1019,8 @@ protected:
                         if (kwnames_in && arg_rec.name) {
                             ssize_t i = keyword_index(kwnames_in, arg_rec.name);
                             if (i >= 0) {
-                                value = args_in_arr[n_args_in + i];
-                                used_kwargs.emplace_back(i);
+                                value = args_in_arr[n_args_in + static_cast<size_t>(i)];
+                                used_kwargs.emplace_back(static_cast<size_t>(i));
                             }
                         }
 
@@ -1083,7 +1081,8 @@ protected:
                 if (func.has_kwargs) {
                     dict kwargs;
                     size_t used_i = 0;
-                    size_t name_count = kwnames_in ? PyTuple_GET_SIZE(kwnames_in) : 0;
+                    size_t name_count
+                        = kwnames_in ? static_cast<size_t>(PyTuple_GET_SIZE(kwnames_in)) : 0;
                     used_kwargs.sort();
                     for (size_t i = 0; i < name_count; ++i) {
                         if (used_i < used_kwargs.size() && used_kwargs[used_i] == i) {
@@ -1249,7 +1248,7 @@ protected:
                 }
                 msg += "kwargs: ";
                 bool first = true;
-                for (ssize_t i = 0; i < PyTuple_GET_SIZE(kwnames_in); ++i) {
+                for (size_t i = 0; i < static_cast<size_t>(PyTuple_GET_SIZE(kwnames_in)); ++i) {
                     if (first) {
                         first = false;
                     } else {
