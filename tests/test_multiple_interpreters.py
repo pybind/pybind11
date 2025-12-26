@@ -236,12 +236,12 @@ PREAMBLE_CODE = textwrap.dedent(
         )
         # The first ones are static types shared between interpreters.
         assert objects[:-2] == expected[:-2], (
-            f"Expected static objects {{expected!r}} ({{len(expected)}}), got {{objects!r}} ({{len(objects)}})."
+            f"Expected static objects {{expected!r[:-2]}}, got {{objects[:-2]!r}}."
         )
         # The last two are heap types created per-interpreter.
         # The expected objects are dynamically imported from `collections`.
         assert objects[-2:] == expected[-2:], (
-            f"Expected heap objects {{expected!r}} ({{len(expected)}}), got {{objects!r}} ({{len(objects)}})."
+            f"Expected heap objects {{expected[-2:]!r}}, got {{objects[-2:]!r}}."
         )
 
         assert hasattr(m, 'MyClass'), "Module missing MyClass"
