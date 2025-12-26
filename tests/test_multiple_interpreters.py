@@ -222,15 +222,27 @@ PREAMBLE_CODE = textwrap.dedent(
 
         objects = m.get_objects_in_singleton()
         expected = [
-            type(None),
-            tuple,
-            list,
-            dict,
-            collections.OrderedDict,
-            collections.defaultdict,
-            collections.deque,
+            type(None),               # static type: shared between interpreters
+            tuple,                    # static type: shared between interpreters
+            list,                     # static type: shared between interpreters
+            dict,                     # static type: shared between interpreters
+            collections.OrderedDict,  # static type: shared between interpreters
+            collections.defaultdict,  # heap type: dynamically created per interpreter
+            collections.deque,        # heap type: dynamically created per interpreter
         ]
-        assert objects == expected, f"Expected {{expected!r}}, got {{objects!r}}."
+        # Check that we have the expected objects. Avoid IndexError by checking lengths first.
+        assert len(objects) == len(expected), (
+            f"Expected {{expected!r}} ({{len(expected)}}), got {{objects!r}} ({{len(objects)}})."
+        )
+        # The first ones are static types shared between interpreters.
+        assert objects[:-2] == expected[:-2], (
+            f"Expected static objects {{expected!r}} ({{len(expected)}}), got {{objects!r}} ({{len(objects)}})."
+        )
+        # The last two are heap types created per-interpreter.
+        # The expected objects are dynamically imported from `collections`.
+        assert objects[-2:] == expected[-2:], (
+            f"Expected heap objects {{expected!r}} ({{len(expected)}}), got {{objects!r}} ({{len(objects)}})."
+        )
 
         assert hasattr(m, 'MyClass'), "Module missing MyClass"
         assert hasattr(m, 'MyGlobalError'), "Module missing MyGlobalError"
