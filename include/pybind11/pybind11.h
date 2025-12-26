@@ -865,8 +865,6 @@ protected:
         handle parent = n_args_in > 0 ? args_in_arr[0] : nullptr,
                result = PYBIND11_TRY_NEXT_OVERLOAD;
 
-        auto kwnames = reinterpret_borrow<tuple>(kwnames_in);
-
         auto self_value_and_holder = value_and_holder();
         if (overloads->is_constructor) {
             if (!parent
@@ -970,12 +968,10 @@ protected:
                     example, the call site is: foo(0, key=1) but our overload is foo(key:int) then
                     this call can't be for us, because it would be invalid.
                     */
-                    if (kwnames && arg_rec && arg_rec->name) {
-                        pybind11::str arg_name(arg_rec->name);
-                        if (PySequence_Contains(kwnames.ptr(), arg_name.ptr())) {
-                            bad_arg = true;
-                            break;
-                        }
+                    if (kwnames_in && arg_rec && arg_rec->name
+                        && keyword_index(kwnames_in, arg_rec->name) >= 0) {
+                        bad_arg = true;
+                        break;
                     }
 
                     handle arg(args_in_arr[args_copied]);
@@ -1014,23 +1010,19 @@ protected:
 
                 // 2. Check kwargs and, failing that, defaults that may help complete the list
                 small_vector<size_t, arg_vector_small_size> used_kwargs;
-                if (kwnames)
-                    used_kwargs.reserve(kwnames.size());
+                if (kwnames_in) {
+                    used_kwargs.reserve(PyTuple_GET_SIZE(kwnames_in));
+                }
                 if (args_copied < num_args) {
                     for (; args_copied < num_args; ++args_copied) {
                         const auto &arg_rec = func.args[args_copied];
 
                         handle value;
-                        if (kwnames && arg_rec.name) {
-                            auto n = n_args_in;
-                            pybind11::str arg_name(arg_rec.name);
-                            for (auto name : kwnames) {
-                                if (PyUnicode_Compare(name.ptr(), arg_name.ptr()) == 0) {
-                                    value = args_in_arr[n];
-                                    used_kwargs.emplace_back(n);
-                                    break;
-                                }
-                                ++n;
+                        if (kwnames_in && arg_rec.name) {
+                            ssize_t i = keyword_index(kwnames_in, arg_rec.name);
+                            if (i >= 0) {
+                                value = args_in_arr[n_args_in + i];
+                                used_kwargs.emplace_back(i);
                             }
                         }
 
@@ -1062,7 +1054,8 @@ protected:
                 }
 
                 // 3. Check everything was consumed (unless we have a kwargs arg)
-                if (!func.has_kwargs && kwnames && kwnames.size() > used_kwargs.size()) {
+                if (!func.has_kwargs && kwnames_in
+                    && PyTuple_GET_SIZE(kwnames_in) > static_cast<ssize_t>(used_kwargs.size())) {
                     continue; // Unconsumed kwargs, but no py::kwargs argument to accept them
                 }
 
@@ -1074,8 +1067,7 @@ protected:
                         size_t args_size = n_args_in - positional_args_copied;
                         tuple extra_args(args_size);
                         for (size_t i = 0; i < args_size; ++i) {
-                            extra_args[i] = reinterpret_borrow<object>(
-                                args_in_arr[positional_args_copied + i]);
+                            extra_args[i] = args_in_arr[positional_args_copied + i];
                         }
                         call.args_ref = std::move(extra_args);
                     }
@@ -1091,14 +1083,13 @@ protected:
                 if (func.has_kwargs) {
                     dict kwargs;
                     size_t used_i = 0;
-                    size_t name_count = kwnames ? kwnames.size() : 0;
+                    size_t name_count = kwnames_in ? PyTuple_GET_SIZE(kwnames_in) : 0;
                     used_kwargs.sort();
                     for (size_t i = 0; i < name_count; ++i) {
                         if (used_i < used_kwargs.size() && used_kwargs[used_i] == i) {
                             ++used_i;
                         } else {
-                            kwargs[kwnames[i]]
-                                = reinterpret_borrow<object>(args_in_arr[n_args_in + i]);
+                            kwargs[PyTuple_GET_ITEM(kwnames_in, i)] = args_in_arr[n_args_in + i];
                         }
                     }
                     call.args.push_back(kwargs);
@@ -1106,8 +1097,9 @@ protected:
                     call.kwargs_ref = std::move(kwargs);
                 }
 
-// 5. Put everything in a vector.  Not technically step 5, we've been building it
-// in `call.args` all along.
+                // 5. Put everything in a vector.  Not technically step 5, we've been building it
+                // in `call.args` all along.
+
 #if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
                 if (call.args.size() != func.nargs || call.args_convert.size() != func.nargs) {
                     pybind11_fail("Internal error: function call dispatcher inserted wrong number "
@@ -1239,8 +1231,7 @@ protected:
             }
             msg += "\nInvoked with: ";
             bool some_args = false;
-            size_t ti = overloads->is_constructor ? 1 : 0;
-            for (; ti < n_args_in; ++ti) {
+            for (size_t ti = overloads->is_constructor ? 1 : 0; ti < n_args_in; ++ti) {
                 if (!some_args) {
                     some_args = true;
                 } else {
@@ -1252,26 +1243,25 @@ protected:
                     msg += "<repr raised Error>";
                 }
             }
-            if (kwnames && !kwnames.empty()) {
+            if (kwnames_in && PyTuple_GET_SIZE(kwnames_in) > 0) {
                 if (some_args) {
                     msg += "; ";
                 }
                 msg += "kwargs: ";
                 bool first = true;
-                for (const auto &kwarg : kwnames) {
+                for (ssize_t i = 0; i < PyTuple_GET_SIZE(kwnames_in); ++i) {
                     if (first) {
                         first = false;
                     } else {
                         msg += ", ";
                     }
-                    msg += pybind11::str(kwarg);
+                    msg += reinterpret_borrow<pybind11::str>(PyTuple_GET_ITEM(kwnames_in, i));
                     msg += '=';
                     try {
-                        msg += pybind11::repr(args_in_arr[ti]);
+                        msg += pybind11::repr(args_in_arr[n_args_in + i]);
                     } catch (const error_already_set &) {
                         msg += "<repr raised Error>";
                     }
-                    ++ti;
                 }
             }
 
@@ -1304,6 +1294,28 @@ protected:
             self_value_and_holder.type->init_instance(pi, nullptr);
         }
         return result.ptr();
+    }
+
+    static ssize_t keyword_index(PyObject *haystack, char const *needle) {
+        /* kwargs is usually very small (<= 5 entries).  The arg strings are typically interned.
+         * CPython itself implements the search this way, first comparing all pointers ... which is
+         * cheap and will work if the strings are interned.  If it fails, then it falls back to a
+         * second lexicographic check. This is wildly expensive for huge argument lists, but those
+         * are incredably rare so we optimize for the vastly common case of just a couple of args.
+         */
+        auto n = PyTuple_GET_SIZE(haystack);
+        auto s = reinterpret_steal<pybind11::str>(PyUnicode_InternFromString(needle));
+        for (ssize_t i = 0; i < n; ++i) {
+            if (PyTuple_GET_ITEM(haystack, i) == s.ptr()) {
+                return i;
+            }
+        }
+        for (ssize_t i = 0; i < n; ++i) {
+            if (PyUnicode_Compare(PyTuple_GET_ITEM(haystack, i), s.ptr()) == 0) {
+                return i;
+            }
+        }
+        return -1;
     }
 };
 
