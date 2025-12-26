@@ -90,7 +90,7 @@ def test_independent_subinterpreters():
 
     run_string, create = get_interpreters(modern=True)
 
-    m = pytest.importorskip("mod_per_interpreter_gil")
+    import mod_per_interpreter_gil as m
 
     if not m.defined_PYBIND11_HAS_SUBINTERPRETER_SUPPORT:
         pytest.skip("Does not have subinterpreter support compiled in")
@@ -139,7 +139,7 @@ def test_independent_subinterpreters_modern():
 
     sys.path.insert(0, os.path.dirname(pybind11_tests.__file__))
 
-    m = pytest.importorskip("mod_per_interpreter_gil")
+    import mod_per_interpreter_gil as m
 
     if not m.defined_PYBIND11_HAS_SUBINTERPRETER_SUPPORT:
         pytest.skip("Does not have subinterpreter support compiled in")
@@ -187,7 +187,7 @@ def test_dependent_subinterpreters():
 
     run_string, create = get_interpreters(modern=False)
 
-    m = pytest.importorskip("mod_shared_interpreter_gil")
+    import mod_shared_interpreter_gil as m
 
     if not m.defined_PYBIND11_HAS_SUBINTERPRETER_SUPPORT:
         pytest.skip("Does not have subinterpreter support compiled in")
@@ -222,15 +222,27 @@ PREAMBLE_CODE = textwrap.dedent(
 
         objects = m.get_objects_in_singleton()
         expected = [
-            type(None),
-            tuple,
-            list,
-            dict,
-            collections.OrderedDict,
-            collections.defaultdict,
-            collections.deque,
+            type(None),               # static type: shared between interpreters
+            tuple,                    # static type: shared between interpreters
+            list,                     # static type: shared between interpreters
+            dict,                     # static type: shared between interpreters
+            collections.OrderedDict,  # static type: shared between interpreters
+            collections.defaultdict,  # heap type: dynamically created per interpreter
+            collections.deque,        # heap type: dynamically created per interpreter
         ]
-        assert objects == expected, f"Expected {{expected!r}}, got {{objects!r}}."
+        # Check that we have the expected objects. Avoid IndexError by checking lengths first.
+        assert len(objects) == len(expected), (
+            f"Expected {{expected!r}} ({{len(expected)}}), got {{objects!r}} ({{len(objects)}})."
+        )
+        # The first ones are static types shared between interpreters.
+        assert objects[:-2] == expected[:-2], (
+            f"Expected static objects {{expected[:-2]!r}}, got {{objects[:-2]!r}}."
+        )
+        # The last two are heap types created per-interpreter.
+        # The expected objects are dynamically imported from `collections`.
+        assert objects[-2:] == expected[-2:], (
+            f"Expected heap objects {{expected[-2:]!r}}, got {{objects[-2:]!r}}."
+        )
 
         assert hasattr(m, 'MyClass'), "Module missing MyClass"
         assert hasattr(m, 'MyGlobalError'), "Module missing MyGlobalError"
@@ -240,11 +252,6 @@ PREAMBLE_CODE = textwrap.dedent(
 ).lstrip()
 
 
-@pytest.mark.xfail(
-    reason="Duplicate C++ type registration under multiple-interpreters, needs investigation.",
-    # raises=interpreters.ExecutionFailed,  # need to import the module
-    strict=False,
-)
 @pytest.mark.skipif(
     sys.platform.startswith("emscripten"), reason="Requires loadable modules"
 )
@@ -278,14 +285,9 @@ def check_script_success_in_subprocess(code: str, *, rerun: int = 8) -> None:
             f"```\n\n"
             f"Output:\n"
             f"{ex.output}"
-        ) from ex
+        ) from None
 
 
-@pytest.mark.xfail(
-    reason="Duplicate C++ type registration under multiple-interpreters, needs investigation.",
-    raises=RuntimeError,
-    strict=False,
-)
 @pytest.mark.skipif(
     sys.platform.startswith("emscripten"), reason="Requires loadable modules"
 )
@@ -342,11 +344,6 @@ def test_import_in_subinterpreter_after_main():
     )
 
 
-@pytest.mark.xfail(
-    reason="Duplicate C++ type registration under multiple-interpreters, needs investigation.",
-    raises=RuntimeError,
-    strict=False,
-)
 @pytest.mark.skipif(
     sys.platform.startswith("emscripten"), reason="Requires loadable modules"
 )
@@ -427,11 +424,6 @@ def test_import_in_subinterpreter_before_main():
     )
 
 
-@pytest.mark.xfail(
-    reason="Duplicate C++ type registration under multiple-interpreters, needs investigation.",
-    raises=RuntimeError,
-    strict=False,
-)
 @pytest.mark.skipif(
     sys.platform.startswith("emscripten"), reason="Requires loadable modules"
 )

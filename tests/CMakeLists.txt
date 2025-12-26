@@ -592,6 +592,14 @@ if(NOT PYBIND11_CUDA_TESTS)
   foreach(mod IN LISTS PYBIND11_MULTIPLE_INTERPRETERS_TEST_MODULES)
     set_target_properties("${mod}" PROPERTIES LIBRARY_OUTPUT_DIRECTORY
                                               "${pybind11_tests_output_directory}")
+    # Also set config-specific output directories for multi-configuration generators (MSVC)
+    if(DEFINED CMAKE_CONFIGURATION_TYPES)
+      foreach(config ${CMAKE_CONFIGURATION_TYPES})
+        string(TOUPPER ${config} config)
+        set_target_properties("${mod}" PROPERTIES LIBRARY_OUTPUT_DIRECTORY_${config}
+                                                  "${pybind11_tests_output_directory}")
+      endforeach()
+    endif()
   endforeach()
 
   if(PYBIND11_TEST_SMART_HOLDER)

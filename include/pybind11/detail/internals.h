@@ -418,11 +418,12 @@ inline PyThreadState *get_thread_state_unchecked() {
 #endif
 }
 
-/// We use this counter to figure out if there are or have been multiple subinterpreters active at
-/// any point. This must never decrease while any interpreter may be running in any thread!
-inline std::atomic<int64_t> &get_num_interpreters_seen() {
-    static std::atomic<int64_t> counter(0);
-    return counter;
+/// We use this to figure out if there are or have been multiple subinterpreters active at any
+/// point. This must never go from true to false while any interpreter may be running in any
+/// thread!
+inline std::atomic_bool &has_seen_non_main_interpreter() {
+    static std::atomic_bool multi(false);
+    return multi;
 }
 
 template <class T,
@@ -649,7 +650,7 @@ public:
     /// acquire the GIL. Will never return nullptr.
     std::unique_ptr<InternalsType> *get_pp() {
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
-        if (get_num_interpreters_seen() > 1) {
+        if (has_seen_non_main_interpreter()) {
             // Whenever the interpreter changes on the current thread we need to invalidate the
             // internals_pp so that it can be pulled from the interpreter's state dict.  That is
             // slow, so we use the current PyThreadState to check if it is necessary.
@@ -675,7 +676,7 @@ public:
     /// Drop all the references we're currently holding.
     void unref() {
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
-        if (get_num_interpreters_seen() > 1) {
+        if (has_seen_non_main_interpreter()) {
             last_istate_tls() = nullptr;
             internals_p_tls() = nullptr;
             return;
@@ -686,7 +687,7 @@ public:
 
     void destroy() {
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
-        if (get_num_interpreters_seen() > 1) {
+        if (has_seen_non_main_interpreter()) {
             auto *tstate = get_thread_state_unchecked();
             // this could be called without an active interpreter, just use what was cached
             if (!tstate || tstate->interp == last_istate_tls()) {
@@ -789,6 +790,16 @@ PYBIND11_NOINLINE internals &get_internals() {
         }
     }
     return *internals_ptr;
+}
+
+inline void ensure_internals() {
+    pybind11::detail::get_internals_pp_manager().unref();
+#ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
+    if (PyInterpreterState_Get() != PyInterpreterState_Main()) {
+        has_seen_non_main_interpreter() = true;
+    }
+#endif
+    pybind11::detail::get_internals();
 }
 
 inline internals_pp_manager<local_internals> &get_local_internals_pp_manager() {

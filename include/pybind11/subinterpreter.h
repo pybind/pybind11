@@ -109,7 +109,7 @@ public:
 
             // upon success, the new interpreter is activated in this thread
             result.istate_ = result.creation_tstate_->interp;
-            detail::get_num_interpreters_seen() += 1; // there are now many interpreters
+            detail::has_seen_non_main_interpreter() = true;
             detail::get_internals(); // initialize internals.tstate, amongst other things...
 
             // In 3.13+ this state should be deleted right away, and the memory will be reused for

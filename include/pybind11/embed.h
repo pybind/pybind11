@@ -58,7 +58,7 @@
 PYBIND11_WARNING_PUSH
 PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
 #define PYBIND11_EMBEDDED_MODULE(name, variable, ...)                                             \
-    PYBIND11_MODULE_PYINIT(name, {}, ##__VA_ARGS__)                                               \
+    PYBIND11_MODULE_PYINIT(name, ##__VA_ARGS__)                                                   \
     ::pybind11::detail::embedded_module PYBIND11_CONCAT(pybind11_module_, name)(                  \
         PYBIND11_TOSTRING(name), PYBIND11_CONCAT(PyInit_, name));                                 \
     PYBIND11_MODULE_EXEC(name, variable)
@@ -202,7 +202,7 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
 #endif
 
     // There is exactly one interpreter alive currently.
-    detail::get_num_interpreters_seen() = 1;
+    detail::has_seen_non_main_interpreter() = false;
 }
 
 /** \rst
@@ -242,12 +242,12 @@ inline void initialize_interpreter(bool init_signal_handlers = true,
  \endrst */
 inline void finalize_interpreter() {
     // get rid of any thread-local interpreter cache that currently exists
-    if (detail::get_num_interpreters_seen() > 1) {
+    if (detail::has_seen_non_main_interpreter()) {
         detail::get_internals_pp_manager().unref();
         detail::get_local_internals_pp_manager().unref();
 
-        // We know there can be no other interpreter alive now, so we can lower the count
-        detail::get_num_interpreters_seen() = 1;
+        // We know there can be no other interpreter alive now
+        detail::has_seen_non_main_interpreter() = false;
     }
 
     // Re-fetch the internals pointer-to-pointer (but not the internals itself, which might not
@@ -265,8 +265,8 @@ inline void finalize_interpreter() {
     // avoid undefined behaviors when initializing another interpreter
     detail::get_local_internals_pp_manager().destroy();
 
-    // We know there is no interpreter alive now, so we can reset the count
-    detail::get_num_interpreters_seen() = 0;
+    // We know there is no interpreter alive now, so we can reset the multi-flag
+    detail::has_seen_non_main_interpreter() = false;
 }
 
 /** \rst
