@@ -1301,7 +1301,7 @@ protected:
          * CPython itself implements the search this way, first comparing all pointers ... which is
          * cheap and will work if the strings are interned.  If it fails, then it falls back to a
          * second lexicographic check. This is wildly expensive for huge argument lists, but those
-         * are incredably rare so we optimize for the vastly common case of just a couple of args.
+         * are incredibly rare so we optimize for the vastly common case of just a couple of args.
          */
         auto n = PyTuple_GET_SIZE(haystack);
         auto s = reinterpret_steal<pybind11::str>(PyUnicode_InternFromString(needle));
