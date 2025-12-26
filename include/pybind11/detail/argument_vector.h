@@ -63,7 +63,7 @@ union inline_array_or_vector {
         heap_vector(std::size_t count, VectorT value) : vec(count, value) {}
     };
 
-    static_assert(std::is_nothrow_move_assignable_v<ArrayT>, "this class is not exception safe");
+    static_assert(std::is_nothrow_move_assignable<ArrayT>::value, "this class is not exception safe");
 
     inline_array iarray;
     heap_vector hvector;
@@ -216,7 +216,7 @@ private:
         using heap_vector = typename repr_type::heap_vector;
         heap_vector hv;
         hv.vec.reserve(reserved_size);
-        static_assert(std::is_nothrow_move_assignable_v<T>, "this class is not exception safe");
+        static_assert(std::is_nothrow_move_assignable<T>::value, "this class is not exception safe");
         std::move(ha.arr.begin(), ha.arr.begin() + ha.size, std::back_inserter(hv.vec));
         new (&m_repr.hvector) heap_vector(std::move(hv));
     }
