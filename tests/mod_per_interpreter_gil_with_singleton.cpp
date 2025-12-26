@@ -9,7 +9,8 @@ namespace py = pybind11;
 #    include <pybind11/native_enum.h>
 #endif
 
-namespace {
+namespace pybind11_tests {
+namespace mod_per_interpreter_gil_with_singleton {
 // A singleton class that holds references to certain Python objects
 // This singleton is per-interpreter using gil_safe_call_once_and_store
 class MySingleton {
@@ -96,12 +97,15 @@ enum class MyEnum : int {
     TWO = 2,
     THREE = 3,
 };
-} // namespace
+} // namespace mod_per_interpreter_gil_with_singleton
+} // namespace pybind11_tests
 
 PYBIND11_MODULE(mod_per_interpreter_gil_with_singleton,
                 m,
                 py::mod_gil_not_used(),
                 py::multiple_interpreters::per_interpreter_gil()) {
+    using namespace pybind11_tests::mod_per_interpreter_gil_with_singleton;
+
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
     m.attr("defined_PYBIND11_HAS_SUBINTERPRETER_SUPPORT") = true;
 #else
