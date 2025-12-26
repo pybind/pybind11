@@ -285,7 +285,7 @@ def check_script_success_in_subprocess(code: str, *, rerun: int = 8) -> None:
             f"```\n\n"
             f"Output:\n"
             f"{ex.output}"
-        ) from ex
+        ) from None
 
 
 @pytest.mark.skipif(
