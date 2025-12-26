@@ -63,9 +63,6 @@ union inline_array_or_vector {
         heap_vector(std::size_t count, VectorT value) : vec(count, value) {}
     };
 
-    static_assert(std::is_nothrow_move_assignable<ArrayT>::value,
-                  "this class is not exception safe");
-
     inline_array iarray;
     heap_vector hvector;
 
@@ -84,19 +81,15 @@ union inline_array_or_vector {
         return result;
     }
 
-    void destruct() {
-        if (!is_inline()) {
-            hvector.~heap_vector();
-        } else if (!std::is_trivially_destructible<ArrayT>::value) {
-            for (size_t i = 0; i < iarray.size; ++i) {
-                iarray.arr[i].~ArrayT();
-            }
-        }
-    }
-
     inline_array_or_vector() : iarray() {}
 
-    ~inline_array_or_vector() { destruct(); }
+    ~inline_array_or_vector() {
+        if (is_inline()) {
+            iarray.~inline_array();
+        } else {
+            hvector.~heap_vector();
+        }
+    }
 
     // Disable copy ctor and assignment.
     inline_array_or_vector(const inline_array_or_vector &) = delete;
@@ -116,7 +109,11 @@ union inline_array_or_vector {
             return *this;
         }
 
-        destruct();
+        if (is_inline()) {
+            iarray.~inline_array();
+        } else {
+            hvector.~heap_vector();
+        }
 
         if (rhs.is_inline()) {
             new (&iarray) inline_array(std::move(rhs.iarray));
@@ -218,7 +215,9 @@ private:
         heap_vector hv;
         hv.vec.reserve(reserved_size);
         static_assert(std::is_nothrow_move_assignable<T>::value,
-                      "this class is not exception safe");
+                      "this conversion is not exception safe");
+        static_assert(std::is_nothrow_move_constructible<heap_vector>::value,
+                      "this conversion is not exception safe");
         std::move(ha.arr.begin(), ha.arr.begin() + ha.size, std::back_inserter(hv.vec));
         new (&m_repr.hvector) heap_vector(std::move(hv));
     }
