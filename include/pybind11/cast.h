@@ -2490,8 +2490,7 @@ private:
             throw cast_error_unable_to_convert_call_arg(a.name, a.type);
 #    endif
         }
-        if (PyList_Append(names_list.ptr(), name.release().ptr()) < 0)
-        {
+        if (PyList_Append(names_list.ptr(), name.release().ptr()) < 0) {
             throw error_already_set();
         }
         m_temp.push_back(a.value); // keep alive
@@ -2515,8 +2514,7 @@ private:
                 multiple_values_error(name);
 #    endif
             }
-            if (PyList_Append(names_list.ptr(), name.release().ptr()) < 0)
-            {
+            if (PyList_Append(names_list.ptr(), name.release().ptr()) < 0) {
                 throw error_already_set();
             }
             m_temp.push_back(reinterpret_borrow<object>(k.second)); // keep alive
