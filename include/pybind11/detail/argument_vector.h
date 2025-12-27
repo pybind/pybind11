@@ -165,23 +165,21 @@ public:
         return m_repr.hvector.vec[idx];
     }
 
-    void push_back(T x) {
+    void push_back(T const &x) { emplace_back(x); }
+
+    template <typename... Args>
+    void emplace_back(Args &&...x) {
         if (is_inline()) {
             auto &ha = m_repr.iarray;
             if (ha.size == InlineSize) {
                 move_to_heap_vector_with_reserved_size(InlineSize + 1);
-                push_back_slow_path(std::move(x));
+                m_repr.hvector.vec.emplace_back(std::forward<Args>(x)...);
             } else {
-                ha.arr[ha.size++] = std::move(x);
+                ha.arr[ha.size++] = T(std::forward<Args>(x)...);
             }
         } else {
-            push_back_slow_path(std::move(x));
+            m_repr.hvector.vec.emplace_back(std::forward<Args>(x)...);
         }
-    }
-
-    template <typename Arg>
-    void emplace_back(Arg &&x) {
-        push_back(T(x));
     }
 
     void reserve(std::size_t sz) {
@@ -191,19 +189,6 @@ public:
             }
         } else {
             reserve_slow_path(sz);
-        }
-    }
-
-    void sort() {
-        if (is_inline()) {
-            if (m_repr.iarray.size < m_repr.iarray.arr.size()) {
-                std::sort(m_repr.iarray.arr.begin(),
-                          m_repr.iarray.arr.begin() + m_repr.iarray.size);
-            } else {
-                std::sort(m_repr.iarray.arr.begin(), m_repr.iarray.arr.end());
-            }
-        } else {
-            std::sort(m_repr.hvector.vec.begin(), m_repr.hvector.vec.end());
         }
     }
 
@@ -224,8 +209,6 @@ private:
         std::move(ha.arr.begin(), ha.arr.begin() + ha.size, std::back_inserter(hv.vec));
         new (&m_repr.hvector) heap_vector(std::move(hv));
     }
-
-    PYBIND11_NOINLINE void push_back_slow_path(T x) { m_repr.hvector.vec.push_back(std::move(x)); }
 
     PYBIND11_NOINLINE void reserve_slow_path(std::size_t sz) { m_repr.hvector.vec.reserve(sz); }
 
@@ -300,6 +283,23 @@ public:
             }
         } else {
             push_back_slow_path(b);
+        }
+    }
+
+    void set(std::size_t idx, bool value = true) {
+        if (is_inline()) {
+            auto &ha = m_repr.iarray;
+            assert(ha.size < kInlineSize);
+            const auto wbi = word_and_bit_index(idx);
+            assert(wbi.word < kWords);
+            assert(wbi.bit < kBitsPerWord);
+            if (value) {
+                ha.arr[wbi.word] |= (static_cast<std::size_t>(1) << wbi.bit);
+            } else {
+                ha.arr[wbi.word] &= ~(static_cast<std::size_t>(1) << wbi.bit);
+            }
+        } else {
+            m_repr.hvector.vec[idx] = value;
         }
     }
 
