@@ -2214,7 +2214,7 @@ public:
         flag. Note that the extra space is not passed directly in to vectorcall.
         */
         m_args.reserve(sizeof...(values) + 1);
-        m_args.push_back(nullptr);
+        m_args.emplace_back();
 
         if (args_has_keyword_or_ds<Ts...>()) {
             object names_list = list();
@@ -2240,8 +2240,13 @@ public:
         if (m_names) {
             nargs -= static_cast<size_t>(PyTuple_GET_SIZE(m_names.ptr()));
         }
-        PyObject *result = _PyObject_Vectorcall(
-            ptr, m_args.data() + 1, nargs | PY_VECTORCALL_ARGUMENTS_OFFSET, m_names.ptr());
+        static_assert(sizeof(object) == sizeof(PyObject *),
+                      "this cast requires objects to be wrapped pointers");
+        PyObject *result
+            = _PyObject_Vectorcall(ptr,
+                                   reinterpret_cast<PyObject *const *>(m_args.data() + 1),
+                                   nargs | PY_VECTORCALL_ARGUMENTS_OFFSET,
+                                   m_names.ptr());
         if (!result) {
             throw error_already_set();
         }
@@ -2255,8 +2260,7 @@ public:
         }
         tuple val(nargs);
         for (size_t i = 0; i < nargs; ++i) {
-            val[i] = reinterpret_borrow<object>(
-                m_args[i + 1]); // +1 for PY_VECTORCALL_ARGUMENTS_OFFSET (see ctor)
+            val[i] = m_args[i + 1]; // +1 for PY_VECTORCALL_ARGUMENTS_OFFSET (see ctor)
         }
         return val;
     }
@@ -2267,7 +2271,7 @@ public:
             auto namestup = reinterpret_borrow<tuple>(m_names);
             size_t offset = m_args.size() - namestup.size();
             for (size_t i = 0; i < namestup.size(); ++i, ++offset) {
-                val[namestup[i]] = reinterpret_borrow<object>(m_args[offset]);
+                val[namestup[i]] = m_args[offset];
             }
         }
         return val;
@@ -2287,8 +2291,7 @@ private:
                                                         type_id<T>());
 #endif
         }
-        m_args.push_back(o.ptr());
-        m_temp.push_back(std::move(o));
+        m_args.emplace_back(std::move(o));
     }
 
     // * unpacking
@@ -2297,8 +2300,7 @@ private:
             return;
         }
         for (auto a : ap) {
-            m_temp.push_back(reinterpret_borrow<object>(a)); // keep alive
-            m_args.push_back(a.ptr());
+            m_args.emplace_back(reinterpret_borrow<object>(a)); // keep alive
         }
     }
 
@@ -2330,8 +2332,7 @@ private:
         if (PyList_Append(names_list.ptr(), name.release().ptr()) < 0) {
             throw error_already_set();
         }
-        m_temp.push_back(a.value); // keep alive
-        m_args.push_back(a.value.ptr());
+        m_args.emplace_back(a.value);
     }
 
     // ** unpacking
@@ -2352,8 +2353,7 @@ private:
             if (PyList_Append(names_list.ptr(), name.release().ptr()) < 0) {
                 throw error_already_set();
             }
-            m_temp.push_back(reinterpret_borrow<object>(k.second)); // keep alive
-            m_args.push_back(k.second.ptr());
+            m_args.emplace_back(reinterpret_borrow<object>(k.second)); // keep alive
         }
     }
 
@@ -2379,9 +2379,8 @@ private:
     }
 
 private:
-    small_vector<PyObject *, arg_vector_small_size> m_args;
+    small_vector<object, arg_vector_small_size> m_args;
     object m_names; // null or a tuple of names
-    small_vector<object, arg_vector_small_size> m_temp;
 };
 
 /// Collect all arguments, including keywords and unpacking
