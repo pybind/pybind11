@@ -1008,7 +1008,7 @@ protected:
 
                 // 2. Check kwargs and, failing that, defaults that may help complete the list
                 small_vector<bool, arg_vector_small_size> used_kwargs(
-                    kwnames_in ? PyTuple_GET_SIZE(kwnames_in) : 0, false);
+                    kwnames_in ? static_cast<size_t>(PyTuple_GET_SIZE(kwnames_in)) : 0, false);
                 size_t used_kwargs_count = 0;
                 if (args_copied < num_args) {
                     for (; args_copied < num_args; ++args_copied) {
