@@ -10,7 +10,7 @@ if(NOT CMAKE_VERSION VERSION_LESS "3.27")
   cmake_policy(GET CMP0148 _pybind11_cmp0148)
 endif()
 
-cmake_minimum_required(VERSION 3.15...4.0)
+cmake_minimum_required(VERSION 3.15...4.2)
 
 if(_pybind11_cmp0148)
   cmake_policy(SET CMP0148 ${_pybind11_cmp0148})

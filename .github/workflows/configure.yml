@@ -39,10 +39,10 @@ jobs:
           cmake: "3.15"
 
         - runs-on: macos-14
-          cmake: "4.0"
+          cmake: "4.2"
 
         - runs-on: windows-latest
-          cmake: "4.0"
+          cmake: "4.2"
 
     name: 🐍 3.11 • CMake ${{ matrix.cmake }} • ${{ matrix.runs-on }}
     runs-on: ${{ matrix.runs-on }}
