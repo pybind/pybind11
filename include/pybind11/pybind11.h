@@ -1007,10 +1007,9 @@ protected:
                 }
 
                 // 2. Check kwargs and, failing that, defaults that may help complete the list
-                small_vector<size_t, arg_vector_small_size> used_kwargs;
-                if (kwnames_in) {
-                    used_kwargs.reserve(static_cast<size_t>(PyTuple_GET_SIZE(kwnames_in)));
-                }
+                small_vector<bool, arg_vector_small_size> used_kwargs(
+                    kwnames_in ? PyTuple_GET_SIZE(kwnames_in) : 0, false);
+                size_t used_kwargs_count = 0;
                 if (args_copied < num_args) {
                     for (; args_copied < num_args; ++args_copied) {
                         const auto &arg_rec = func.args[args_copied];
@@ -1020,7 +1019,8 @@ protected:
                             ssize_t i = keyword_index(kwnames_in, arg_rec.name);
                             if (i >= 0) {
                                 value = args_in_arr[n_args_in + static_cast<size_t>(i)];
-                                used_kwargs.emplace_back(static_cast<size_t>(i));
+                                used_kwargs.set(i, true);
+                                used_kwargs_count++;
                             }
                         }
 
@@ -1052,8 +1052,7 @@ protected:
                 }
 
                 // 3. Check everything was consumed (unless we have a kwargs arg)
-                if (!func.has_kwargs && kwnames_in
-                    && PyTuple_GET_SIZE(kwnames_in) > static_cast<ssize_t>(used_kwargs.size())) {
+                if (!func.has_kwargs && used_kwargs_count < used_kwargs.size()) {
                     continue; // Unconsumed kwargs, but no py::kwargs argument to accept them
                 }
 
@@ -1080,14 +1079,8 @@ protected:
                 // 4b. If we have a py::kwargs, pass on any remaining kwargs
                 if (func.has_kwargs) {
                     dict kwargs;
-                    size_t used_i = 0;
-                    size_t name_count
-                        = kwnames_in ? static_cast<size_t>(PyTuple_GET_SIZE(kwnames_in)) : 0;
-                    used_kwargs.sort();
-                    for (size_t i = 0; i < name_count; ++i) {
-                        if (used_i < used_kwargs.size() && used_kwargs[used_i] == i) {
-                            ++used_i;
-                        } else {
+                    for (size_t i = 0; i < used_kwargs.size(); ++i) {
+                        if (!used_kwargs[i]) {
                             kwargs[PyTuple_GET_ITEM(kwnames_in, i)] = args_in_arr[n_args_in + i];
                         }
                     }
