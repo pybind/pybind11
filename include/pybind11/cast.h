@@ -2207,10 +2207,10 @@ public:
     template <typename... Ts>
     explicit unpacking_collector(Ts &&...values) {
         /*
-        Python can sometimes utilize an extra space before the arguments to add on `self`.
+        Python can sometimes utilize an extra space before the arguments to prepend `self`.
         This is important enough that there is a special flag for it:
         PY_VECTORCALL_ARGUMENTS_OFFSET.
-        All we have to do it allocate an extra space at the beginning of this array, and set the
+        All we have to do is allocate an extra space at the beginning of this array, and set the
         flag. Note that the extra space is not passed directly in to vectorcall.
         */
         m_args.reserve(sizeof...(values) + 1);
