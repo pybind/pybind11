@@ -602,6 +602,12 @@ if(NOT PYBIND11_CUDA_TESTS)
     endif()
   endforeach()
 
+  if(SKBUILD)
+    foreach(mod IN LISTS PYBIND11_MULTIPLE_INTERPRETERS_TEST_MODULES)
+      install(TARGETS "${mod}" LIBRARY DESTINATION .)
+    endforeach()
+  endif()
+
   if(PYBIND11_TEST_SMART_HOLDER)
     foreach(mod IN LISTS PYBIND11_MULTIPLE_INTERPRETERS_TEST_MODULES)
       target_compile_definitions(
