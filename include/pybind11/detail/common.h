@@ -441,12 +441,11 @@ Note that this is run once for each (sub-)interpreter the module is imported int
 possibly concurrently.  The PyModuleDef is allowed to be static, but the PyObject* resulting from
 PyModuleDef_Init should be treated like any other PyObject (so not shared across interpreters).
  */
-#define PYBIND11_MODULE_PYINIT(name, pre_init, ...)                                               \
+#define PYBIND11_MODULE_PYINIT(name, ...)                                                         \
     static int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject *);                                 \
     PYBIND11_PLUGIN_IMPL(name) {                                                                  \
         PYBIND11_CHECK_PYTHON_VERSION                                                             \
-        pre_init;                                                                                 \
-        PYBIND11_ENSURE_INTERNALS_READY                                                           \
+        pybind11::detail::ensure_internals();                                                     \
         static ::pybind11::detail::slots_array mod_def_slots = ::pybind11::detail::init_slots(    \
             &PYBIND11_CONCAT(pybind11_exec_, name), ##__VA_ARGS__);                               \
         static PyModuleDef def{/* m_base */ PyModuleDef_HEAD_INIT,                                \
@@ -465,6 +464,7 @@ PyModuleDef_Init should be treated like any other PyObject (so not shared across
     static void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ &);                     \
     int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject * pm) {                                    \
         try {                                                                                     \
+            pybind11::detail::ensure_internals();                                                 \
             auto m = pybind11::reinterpret_borrow<::pybind11::module_>(pm);                       \
             if (!pybind11::detail::get_cached_module(m.attr("__spec__").attr("name"))) {          \
                 PYBIND11_CONCAT(pybind11_init_, name)(m);                                         \
@@ -518,8 +518,7 @@ PyModuleDef_Init should be treated like any other PyObject (so not shared across
 
 \endrst */
 #define PYBIND11_MODULE(name, variable, ...)                                                      \
-    PYBIND11_MODULE_PYINIT(                                                                       \
-        name, (pybind11::detail::get_num_interpreters_seen() += 1), ##__VA_ARGS__)                \
+    PYBIND11_MODULE_PYINIT(name, ##__VA_ARGS__)                                                   \
     PYBIND11_MODULE_EXEC(name, variable)
 
 // pop gnu-zero-variadic-macro-arguments

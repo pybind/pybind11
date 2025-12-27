@@ -578,24 +578,40 @@ add_custom_target(
   USES_TERMINAL)
 
 if(NOT PYBIND11_CUDA_TESTS)
-  # This module doesn't get mixed with other test modules because those aren't subinterpreter safe.
-  pybind11_add_module(mod_per_interpreter_gil THIN_LTO mod_per_interpreter_gil.cpp)
-  pybind11_add_module(mod_shared_interpreter_gil THIN_LTO mod_shared_interpreter_gil.cpp)
-  set_target_properties(mod_per_interpreter_gil PROPERTIES LIBRARY_OUTPUT_DIRECTORY
-                                                           "$<1:${CMAKE_CURRENT_BINARY_DIR}>")
-  set_target_properties(mod_shared_interpreter_gil PROPERTIES LIBRARY_OUTPUT_DIRECTORY
-                                                              "$<1:${CMAKE_CURRENT_BINARY_DIR}>")
+  set(PYBIND11_MULTIPLE_INTERPRETERS_TEST_MODULES
+      mod_per_interpreter_gil mod_shared_interpreter_gil mod_per_interpreter_gil_with_singleton)
+
+  # These modules don't get mixed with other test modules because those aren't subinterpreter safe.
+  foreach(mod IN LISTS PYBIND11_MULTIPLE_INTERPRETERS_TEST_MODULES)
+    pybind11_add_module("${mod}" THIN_LTO "${mod}.cpp")
+    pybind11_enable_warnings("${mod}")
+  endforeach()
+
+  # Put the built modules next to `pybind11_tests.so` so that the test scripts can find them.
+  get_target_property(pybind11_tests_output_directory pybind11_tests LIBRARY_OUTPUT_DIRECTORY)
+  foreach(mod IN LISTS PYBIND11_MULTIPLE_INTERPRETERS_TEST_MODULES)
+    set_target_properties("${mod}" PROPERTIES LIBRARY_OUTPUT_DIRECTORY
+                                              "${pybind11_tests_output_directory}")
+    # Also set config-specific output directories for multi-configuration generators (MSVC)
+    if(DEFINED CMAKE_CONFIGURATION_TYPES)
+      foreach(config ${CMAKE_CONFIGURATION_TYPES})
+        string(TOUPPER ${config} config)
+        set_target_properties("${mod}" PROPERTIES LIBRARY_OUTPUT_DIRECTORY_${config}
+                                                  "${pybind11_tests_output_directory}")
+      endforeach()
+    endif()
+  endforeach()
+
   if(PYBIND11_TEST_SMART_HOLDER)
-    target_compile_definitions(
-      mod_per_interpreter_gil
-      PUBLIC -DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE
-    )
-    target_compile_definitions(
-      mod_shared_interpreter_gil
-      PUBLIC -DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE
-    )
+    foreach(mod IN LISTS PYBIND11_MULTIPLE_INTERPRETERS_TEST_MODULES)
+      target_compile_definitions(
+        "${mod}"
+        PUBLIC
+          -DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE)
+    endforeach()
   endif()
-  add_dependencies(pytest mod_per_interpreter_gil mod_shared_interpreter_gil)
+
+  add_dependencies(pytest ${PYBIND11_MULTIPLE_INTERPRETERS_TEST_MODULES})
 endif()
 
 if(PYBIND11_TEST_OVERRIDE)

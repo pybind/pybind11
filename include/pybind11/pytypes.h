@@ -997,8 +997,10 @@ inline PyObject *dict_getitem(PyObject *v, PyObject *key) {
     return rv;
 }
 
+// PyDict_GetItemStringRef was added in Python 3.13.0a1.
+// See also: https://github.com/python/pythoncapi-compat/blob/main/pythoncapi_compat.h
 inline PyObject *dict_getitemstringref(PyObject *v, const char *key) {
-#if PY_VERSION_HEX >= 0x030D0000
+#if PY_VERSION_HEX >= 0x030D00A1
     PyObject *rv = nullptr;
     if (PyDict_GetItemStringRef(v, key, &rv) < 0) {
         throw error_already_set();
@@ -1007,6 +1009,46 @@ inline PyObject *dict_getitemstringref(PyObject *v, const char *key) {
 #else
     PyObject *rv = dict_getitemstring(v, key);
     if (rv == nullptr && PyErr_Occurred()) {
+        throw error_already_set();
+    }
+    Py_XINCREF(rv);
+    return rv;
+#endif
+}
+
+inline PyObject *dict_setdefaultstring(PyObject *v, const char *key, PyObject *defaultobj) {
+    PyObject *kv = PyUnicode_FromString(key);
+    if (kv == nullptr) {
+        throw error_already_set();
+    }
+
+    PyObject *rv = PyDict_SetDefault(v, kv, defaultobj);
+    Py_DECREF(kv);
+    if (rv == nullptr) {
+        throw error_already_set();
+    }
+    return rv;
+}
+
+// PyDict_SetDefaultRef was added in Python 3.13.0a4.
+// See also: https://github.com/python/pythoncapi-compat/blob/main/pythoncapi_compat.h
+inline PyObject *dict_setdefaultstringref(PyObject *v, const char *key, PyObject *defaultobj) {
+#if PY_VERSION_HEX >= 0x030D00A4
+    PyObject *kv = PyUnicode_FromString(key);
+    if (kv == nullptr) {
+        throw error_already_set();
+    }
+
+    PyObject *rv = nullptr;
+    if (PyDict_SetDefaultRef(v, kv, defaultobj, &rv) < 0) {
+        Py_DECREF(kv);
+        throw error_already_set();
+    }
+    Py_DECREF(kv);
+    return rv;
+#else
+    PyObject *rv = dict_setdefaultstring(v, key, defaultobj);
+    if (rv == nullptr || PyErr_Occurred()) {
         throw error_already_set();
     }
     Py_XINCREF(rv);

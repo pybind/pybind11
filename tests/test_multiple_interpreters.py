@@ -3,9 +3,13 @@ from __future__ import annotations
 import contextlib
 import os
 import pickle
+import subprocess
 import sys
+import textwrap
 
 import pytest
+
+import pybind11_tests
 
 # 3.14.0b3+, though sys.implementation.supports_isolated_interpreters is being added in b4
 # Can be simplified when we drop support for the first three betas
@@ -82,21 +86,23 @@ def get_interpreters(*, modern: bool):
 def test_independent_subinterpreters():
     """Makes sure the internals object differs across independent subinterpreters"""
 
-    sys.path.append(".")
+    sys.path.insert(0, os.path.dirname(pybind11_tests.__file__))
 
     run_string, create = get_interpreters(modern=True)
 
-    m = pytest.importorskip("mod_per_interpreter_gil")
+    import mod_per_interpreter_gil as m
 
     if not m.defined_PYBIND11_HAS_SUBINTERPRETER_SUPPORT:
         pytest.skip("Does not have subinterpreter support compiled in")
 
-    code = """
-import mod_per_interpreter_gil as m
-import pickle
-with open(pipeo, 'wb') as f:
-    pickle.dump(m.internals_at(), f)
-"""
+    code = textwrap.dedent(
+        """
+        import mod_per_interpreter_gil as m
+        import pickle
+        with open(pipeo, 'wb') as f:
+            pickle.dump(m.internals_at(), f)
+        """
+    ).strip()
 
     with create() as interp1, create() as interp2:
         try:
@@ -131,20 +137,22 @@ with open(pipeo, 'wb') as f:
 def test_independent_subinterpreters_modern():
     """Makes sure the internals object differs across independent subinterpreters. Modern (3.14+) syntax."""
 
-    sys.path.append(".")
+    sys.path.insert(0, os.path.dirname(pybind11_tests.__file__))
 
-    m = pytest.importorskip("mod_per_interpreter_gil")
+    import mod_per_interpreter_gil as m
 
     if not m.defined_PYBIND11_HAS_SUBINTERPRETER_SUPPORT:
         pytest.skip("Does not have subinterpreter support compiled in")
 
     from concurrent import interpreters
 
-    code = """
-import mod_per_interpreter_gil as m
+    code = textwrap.dedent(
+        """
+        import mod_per_interpreter_gil as m
 
-values.put_nowait(m.internals_at())
-"""
+        values.put_nowait(m.internals_at())
+        """
+    ).strip()
 
     with contextlib.closing(interpreters.create()) as interp1, contextlib.closing(
         interpreters.create()
@@ -175,21 +183,23 @@ values.put_nowait(m.internals_at())
 def test_dependent_subinterpreters():
     """Makes sure the internals object differs across subinterpreters"""
 
-    sys.path.append(".")
+    sys.path.insert(0, os.path.dirname(pybind11_tests.__file__))
 
     run_string, create = get_interpreters(modern=False)
 
-    m = pytest.importorskip("mod_shared_interpreter_gil")
+    import mod_shared_interpreter_gil as m
 
     if not m.defined_PYBIND11_HAS_SUBINTERPRETER_SUPPORT:
         pytest.skip("Does not have subinterpreter support compiled in")
 
-    code = """
-import mod_shared_interpreter_gil as m
-import pickle
-with open(pipeo, 'wb') as f:
-    pickle.dump(m.internals_at(), f)
-"""
+    code = textwrap.dedent(
+        """
+        import mod_shared_interpreter_gil as m
+        import pickle
+        with open(pipeo, 'wb') as f:
+            pickle.dump(m.internals_at(), f)
+        """
+    ).strip()
 
     with create("legacy") as interp1:
         pipei, pipeo = os.pipe()
@@ -198,3 +208,244 @@ with open(pipeo, 'wb') as f:
             res1 = pickle.load(f)
 
     assert res1 != m.internals_at(), "internals should differ from main interpreter"
+
+
+PREAMBLE_CODE = textwrap.dedent(
+    f"""
+    def test():
+        import sys
+
+        sys.path.insert(0, {os.path.dirname(pybind11_tests.__file__)!r})
+
+        import collections
+        import mod_per_interpreter_gil_with_singleton as m
+
+        objects = m.get_objects_in_singleton()
+        expected = [
+            type(None),               # static type: shared between interpreters
+            tuple,                    # static type: shared between interpreters
+            list,                     # static type: shared between interpreters
+            dict,                     # static type: shared between interpreters
+            collections.OrderedDict,  # static type: shared between interpreters
+            collections.defaultdict,  # heap type: dynamically created per interpreter
+            collections.deque,        # heap type: dynamically created per interpreter
+        ]
+        # Check that we have the expected objects. Avoid IndexError by checking lengths first.
+        assert len(objects) == len(expected), (
+            f"Expected {{expected!r}} ({{len(expected)}}), got {{objects!r}} ({{len(objects)}})."
+        )
+        # The first ones are static types shared between interpreters.
+        assert objects[:-2] == expected[:-2], (
+            f"Expected static objects {{expected[:-2]!r}}, got {{objects[:-2]!r}}."
+        )
+        # The last two are heap types created per-interpreter.
+        # The expected objects are dynamically imported from `collections`.
+        assert objects[-2:] == expected[-2:], (
+            f"Expected heap objects {{expected[-2:]!r}}, got {{objects[-2:]!r}}."
+        )
+
+        assert hasattr(m, 'MyClass'), "Module missing MyClass"
+        assert hasattr(m, 'MyGlobalError'), "Module missing MyGlobalError"
+        assert hasattr(m, 'MyLocalError'), "Module missing MyLocalError"
+        assert hasattr(m, 'MyEnum'), "Module missing MyEnum"
+    """
+).lstrip()
+
+
+@pytest.mark.skipif(
+    sys.platform.startswith("emscripten"), reason="Requires loadable modules"
+)
+@pytest.mark.skipif(not CONCURRENT_INTERPRETERS_SUPPORT, reason="Requires 3.14.0b3+")
+def test_import_module_with_singleton_per_interpreter():
+    """Tests that a singleton storing Python objects works correctly per-interpreter"""
+    from concurrent import interpreters
+
+    code = f"{PREAMBLE_CODE.strip()}\n\ntest()\n"
+    with contextlib.closing(interpreters.create()) as interp:
+        interp.exec(code)
+
+
+def check_script_success_in_subprocess(code: str, *, rerun: int = 8) -> None:
+    """Runs the given code in a subprocess."""
+    code = textwrap.dedent(code).strip()
+    try:
+        for _ in range(rerun):  # run flakily failing test multiple times
+            subprocess.check_output(
+                [sys.executable, "-c", code],
+                cwd=os.getcwd(),
+                stderr=subprocess.STDOUT,
+                text=True,
+            )
+    except subprocess.CalledProcessError as ex:
+        raise RuntimeError(
+            f"Subprocess failed with exit code {ex.returncode}.\n\n"
+            f"Code:\n"
+            f"```python\n"
+            f"{code}\n"
+            f"```\n\n"
+            f"Output:\n"
+            f"{ex.output}"
+        ) from None
+
+
+@pytest.mark.skipif(
+    sys.platform.startswith("emscripten"), reason="Requires loadable modules"
+)
+@pytest.mark.skipif(not CONCURRENT_INTERPRETERS_SUPPORT, reason="Requires 3.14.0b3+")
+def test_import_in_subinterpreter_after_main():
+    """Tests that importing a module in a subinterpreter after the main interpreter works correctly"""
+    check_script_success_in_subprocess(
+        PREAMBLE_CODE
+        + textwrap.dedent(
+            """
+            import contextlib
+            import gc
+            from concurrent import interpreters
+
+            test()
+
+            interp = None
+            with contextlib.closing(interpreters.create()) as interp:
+                interp.call(test)
+
+            del interp
+            for _ in range(5):
+                gc.collect()
+            """
+        )
+    )
+
+    check_script_success_in_subprocess(
+        PREAMBLE_CODE
+        + textwrap.dedent(
+            """
+            import contextlib
+            import gc
+            import random
+            from concurrent import interpreters
+
+            test()
+
+            interps = interp = None
+            with contextlib.ExitStack() as stack:
+                interps = [
+                    stack.enter_context(contextlib.closing(interpreters.create()))
+                    for _ in range(8)
+                ]
+                random.shuffle(interps)
+                for interp in interps:
+                    interp.call(test)
+
+            del interps, interp, stack
+            for _ in range(5):
+                gc.collect()
+            """
+        )
+    )
+
+
+@pytest.mark.skipif(
+    sys.platform.startswith("emscripten"), reason="Requires loadable modules"
+)
+@pytest.mark.skipif(not CONCURRENT_INTERPRETERS_SUPPORT, reason="Requires 3.14.0b3+")
+def test_import_in_subinterpreter_before_main():
+    """Tests that importing a module in a subinterpreter before the main interpreter works correctly"""
+    check_script_success_in_subprocess(
+        PREAMBLE_CODE
+        + textwrap.dedent(
+            """
+            import contextlib
+            import gc
+            from concurrent import interpreters
+
+            interp = None
+            with contextlib.closing(interpreters.create()) as interp:
+                interp.call(test)
+
+            test()
+
+            del interp
+            for _ in range(5):
+                gc.collect()
+            """
+        )
+    )
+
+    check_script_success_in_subprocess(
+        PREAMBLE_CODE
+        + textwrap.dedent(
+            """
+            import contextlib
+            import gc
+            from concurrent import interpreters
+
+            interps = interp = None
+            with contextlib.ExitStack() as stack:
+                interps = [
+                    stack.enter_context(contextlib.closing(interpreters.create()))
+                    for _ in range(8)
+                ]
+                for interp in interps:
+                    interp.call(test)
+
+            test()
+
+            del interps, interp, stack
+            for _ in range(5):
+                gc.collect()
+            """
+        )
+    )
+
+    check_script_success_in_subprocess(
+        PREAMBLE_CODE
+        + textwrap.dedent(
+            """
+            import contextlib
+            import gc
+            from concurrent import interpreters
+
+            interps = interp = None
+            with contextlib.ExitStack() as stack:
+                interps = [
+                    stack.enter_context(contextlib.closing(interpreters.create()))
+                    for _ in range(8)
+                ]
+                for interp in interps:
+                    interp.call(test)
+
+                test()
+
+            del interps, interp, stack
+            for _ in range(5):
+                gc.collect()
+            """
+        )
+    )
+
+
+@pytest.mark.skipif(
+    sys.platform.startswith("emscripten"), reason="Requires loadable modules"
+)
+@pytest.mark.skipif(not CONCURRENT_INTERPRETERS_SUPPORT, reason="Requires 3.14.0b3+")
+def test_import_in_subinterpreter_concurrently():
+    """Tests that importing a module in multiple subinterpreters concurrently works correctly"""
+    check_script_success_in_subprocess(
+        PREAMBLE_CODE
+        + textwrap.dedent(
+            """
+            import gc
+            from concurrent.futures import InterpreterPoolExecutor, as_completed
+
+            futures = future = None
+            with InterpreterPoolExecutor(max_workers=16) as executor:
+                futures = [executor.submit(test) for _ in range(32)]
+                for future in as_completed(futures):
+                    future.result()
+            del futures, future, executor
+
+            for _ in range(5):
+                gc.collect()
+            """
+        )
+    )
