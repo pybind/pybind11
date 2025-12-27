@@ -1019,7 +1019,7 @@ protected:
                             ssize_t i = keyword_index(kwnames_in, arg_rec.name);
                             if (i >= 0) {
                                 value = args_in_arr[n_args_in + static_cast<size_t>(i)];
-                                used_kwargs.set(i, true);
+                                used_kwargs.set(static_cast<size_t>(i), true);
                                 used_kwargs_count++;
                             }
                         }
