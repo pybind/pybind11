@@ -165,7 +165,7 @@ public:
         return m_repr.hvector.vec[idx];
     }
 
-    void push_back(T const &x) { emplace_back(x); }
+    void push_back(T x) { emplace_back(std::move(x)); }
 
     template <typename... Args>
     void emplace_back(Args &&...x) {
@@ -202,7 +202,7 @@ private:
         using heap_vector = typename repr_type::heap_vector;
         heap_vector hv;
         hv.vec.reserve(reserved_size);
-        static_assert(std::is_nothrow_move_assignable<T>::value,
+        static_assert(std::is_nothrow_move_constructible<T>::value,
                       "this conversion is not exception safe");
         static_assert(std::is_nothrow_move_constructible<heap_vector>::value,
                       "this conversion is not exception safe");
