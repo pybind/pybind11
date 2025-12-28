@@ -2204,7 +2204,10 @@ template <return_value_policy policy>
 class unpacking_collector {
 public:
     template <typename... Ts>
-    explicit unpacking_collector(Ts &&...values) {
+    explicit unpacking_collector(Ts &&...values)
+        : m_names(reinterpret_steal<tuple>(
+              handle())) // initialize to null to avoid useless allocation of 0-length tuple
+    {
         /*
         Python can sometimes utilize an extra space before the arguments to prepend `self`.
         This is important enough that there is a special flag for it:
@@ -2216,7 +2219,7 @@ public:
         m_args.emplace_back();
 
         if (args_has_keyword_or_ds<Ts...>()) {
-            object names_list = list();
+            list names_list;
 
             // collect_arguments guarantees this can't be constructed with kwargs before the last
             // positional so we don't need to worry about Ts... being in anything but normal python
@@ -2226,7 +2229,8 @@ public:
 
             m_names = reinterpret_steal<tuple>(PyList_AsTuple(names_list.ptr()));
         } else {
-            object not_used;
+            auto not_used
+                = reinterpret_steal<list>(handle()); // initialize as null (to avoid an allocation)
 
             using expander = int[];
             (void) expander{0, (process(not_used, std::forward<Ts>(values)), 0)...};
@@ -2237,10 +2241,10 @@ public:
     object call(PyObject *ptr) const {
         size_t nargs = m_args.size() - 1; // -1 for PY_VECTORCALL_ARGUMENTS_OFFSET (see ctor)
         if (m_names) {
-            nargs -= static_cast<size_t>(PyTuple_GET_SIZE(m_names.ptr()));
+            nargs -= m_names.size();
         }
         static_assert(sizeof(object) == sizeof(PyObject *),
-                      "this cast requires objects to be wrapped pointers");
+                      "this cast requires object to be interpreted as PyObject*");
         PyObject *result
             = _PyObject_Vectorcall(ptr,
                                    reinterpret_cast<PyObject *const *>(m_args.data() + 1),
@@ -2255,7 +2259,7 @@ public:
     tuple args() const {
         size_t nargs = m_args.size() - 1; // -1 for PY_VECTORCALL_ARGUMENTS_OFFSET (see ctor)
         if (m_names) {
-            nargs -= static_cast<size_t>(PyTuple_GET_SIZE(m_names.ptr()));
+            nargs -= m_names.size();
         }
         tuple val(nargs);
         for (size_t i = 0; i < nargs; ++i) {
@@ -2267,10 +2271,9 @@ public:
     dict kwargs() const {
         dict val;
         if (m_names) {
-            auto namestup = reinterpret_borrow<tuple>(m_names);
-            size_t offset = m_args.size() - namestup.size();
-            for (size_t i = 0; i < namestup.size(); ++i, ++offset) {
-                val[namestup[i]] = m_args[offset];
+            size_t offset = m_args.size() - m_names.size();
+            for (size_t i = 0; i < m_names.size(); ++i, ++offset) {
+                val[m_names[i]] = m_args[offset];
             }
         }
         return val;
@@ -2279,7 +2282,7 @@ public:
 private:
     // normal argument, possibly needing conversion
     template <typename T>
-    void process(object & /*names_list*/, T &&x) {
+    void process(list & /*names_list*/, T &&x) {
         auto o = reinterpret_steal<object>(
             detail::make_caster<T>::cast(std::forward<T>(x), policy, {}));
         if (!o) {
@@ -2294,17 +2297,18 @@ private:
     }
 
     // * unpacking
-    void process(object & /*names_list*/, detail::args_proxy ap) {
+    void process(list & /*names_list*/, detail::args_proxy ap) {
         if (!ap) {
             return;
         }
         for (auto a : ap) {
-            m_args.emplace_back(reinterpret_borrow<object>(a)); // keep alive
+            m_args.emplace_back(reinterpret_borrow<object>(a));
         }
     }
 
     // named argument
-    void process(object &names_list, arg_v a) {
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
+    void process(list &names_list, arg_v a) {
         assert(names_list);
         if (!a.name) {
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
@@ -2328,14 +2332,12 @@ private:
             throw cast_error_unable_to_convert_call_arg(a.name, a.type);
 #endif
         }
-        if (PyList_Append(names_list.ptr(), name.release().ptr()) < 0) {
-            throw error_already_set();
-        }
+        names_list.append(std::move(name));
         m_args.emplace_back(a.value);
     }
 
     // ** unpacking
-    void process(object &names_list, detail::kwargs_proxy kp) {
+    void process(list &names_list, detail::kwargs_proxy kp) {
         if (!kp) {
             return;
         }
@@ -2349,10 +2351,8 @@ private:
                 multiple_values_error(name);
 #endif
             }
-            if (PyList_Append(names_list.ptr(), name.release().ptr()) < 0) {
-                throw error_already_set();
-            }
-            m_args.emplace_back(reinterpret_borrow<object>(k.second)); // keep alive
+            names_list.append(std::move(name));
+            m_args.emplace_back(reinterpret_borrow<object>(k.second));
         }
     }
 
@@ -2379,7 +2379,7 @@ private:
 
 private:
     small_vector<object, arg_vector_small_size> m_args;
-    object m_names; // null or a tuple of names
+    tuple m_names;
 };
 
 /// Collect all arguments, including keywords and unpacking
