@@ -102,7 +102,7 @@ public:
     PYBIND11_TYPE_CASTER(type, const_name("datetime.timedelta"));
 };
 
-inline std::tm *localtime_thread_safe(const std::time_t *time, std::tm *buf) {
+inline std::tm *gmtime_thread_safe(const std::time_t *time, std::tm *buf) {
 #if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || defined(_MSC_VER)
     if (localtime_s(buf, time))
         return nullptr;
@@ -110,7 +110,7 @@ inline std::tm *localtime_thread_safe(const std::time_t *time, std::tm *buf) {
 #else
     static std::mutex mtx;
     std::lock_guard<std::mutex> lock(mtx);
-    std::tm *tm_ptr = std::localtime(time);
+    std::tm *tm_ptr = std::gmtime(time);
     if (tm_ptr != nullptr) {
         *buf = *tm_ptr;
     }
@@ -169,7 +169,7 @@ public:
             return false;
         }
 
-        value = time_point_cast<Duration>(system_clock::from_time_t(std::mktime(&cal)) + msecs);
+        value = time_point_cast<Duration>(system_clock::from_time_t(timegm(&cal)) + msecs);
         return true;
     }
 
@@ -197,17 +197,17 @@ public:
         std::time_t tt
             = system_clock::to_time_t(time_point_cast<system_clock::duration>(src - us));
 
-        std::tm localtime;
-        std::tm *localtime_ptr = localtime_thread_safe(&tt, &localtime);
-        if (!localtime_ptr) {
-            throw cast_error("Unable to represent system_clock in local time");
+        std::tm gmtime;
+        std::tm *gmtime_ptr = gmtime_thread_safe(&tt, &gmtime);
+        if (!gmtime_ptr) {
+            throw cast_error("Unable to represent system_clock in GMT time");
         }
-        return PyDateTime_FromDateAndTime(localtime.tm_year + 1900,
-                                          localtime.tm_mon + 1,
-                                          localtime.tm_mday,
-                                          localtime.tm_hour,
-                                          localtime.tm_min,
-                                          localtime.tm_sec,
+        return PyDateTime_FromDateAndTime(gmtime.tm_year + 1900,
+                                          gmtime.tm_mon + 1,
+                                          gmtime.tm_mday,
+                                          gmtime.tm_hour,
+                                          gmtime.tm_min,
+                                          gmtime.tm_sec,
                                           us.count());
     }
     PYBIND11_TYPE_CASTER(type, const_name("datetime.datetime"));
