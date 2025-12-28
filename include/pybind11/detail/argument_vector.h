@@ -165,9 +165,9 @@ public:
         return m_repr.hvector.vec[idx];
     }
 
-    void push_back(const T& x) { emplace_back(x); }
-    
-    void push_back(T&& x) { emplace_back(std::move(x)); }
+    void push_back(const T &x) { emplace_back(x); }
+
+    void push_back(T &&x) { emplace_back(std::move(x)); }
 
     template <typename... Args>
     void emplace_back(Args &&...x) {
