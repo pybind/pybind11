@@ -2078,8 +2078,7 @@ using is_pos_only = std::is_same<intrinsic_t<T>, pos_only>;
 // forward declaration (definition in attr.h)
 struct function_record;
 
-/// (Inline size chosen mostly arbitrarily; 6 should pad function_call out to two cache lines
-/// (16 pointers) in size.)
+/// Inline size chosen mostly arbitrarily.
 constexpr std::size_t arg_vector_small_size = 6;
 
 /// Internal data associated with a single function call
