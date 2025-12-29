@@ -2216,7 +2216,7 @@ public:
         flag. Note that the extra space is not passed directly in to vectorcall.
         */
         m_args.reserve(sizeof...(values) + 1);
-        m_args.emplace_back();
+        m_args.push_back_null();
 
         if (args_has_keyword_or_ds<Ts...>()) {
             list names_list;
@@ -2243,13 +2243,8 @@ public:
         if (m_names) {
             nargs -= m_names.size();
         }
-        static_assert(sizeof(object) == sizeof(PyObject *),
-                      "this cast requires object to be interpreted as PyObject*");
-        PyObject *result
-            = _PyObject_Vectorcall(ptr,
-                                   reinterpret_cast<PyObject *const *>(m_args.data() + 1),
-                                   nargs | PY_VECTORCALL_ARGUMENTS_OFFSET,
-                                   m_names.ptr());
+        PyObject *result = _PyObject_Vectorcall(
+            ptr, m_args.data() + 1, nargs | PY_VECTORCALL_ARGUMENTS_OFFSET, m_names.ptr());
         if (!result) {
             throw error_already_set();
         }
@@ -2263,7 +2258,8 @@ public:
         }
         tuple val(nargs);
         for (size_t i = 0; i < nargs; ++i) {
-            val[i] = m_args[i + 1]; // +1 for PY_VECTORCALL_ARGUMENTS_OFFSET (see ctor)
+            // +1 for PY_VECTORCALL_ARGUMENTS_OFFSET (see ctor)
+            val[i] = reinterpret_borrow<object>(m_args[i + 1]);
         }
         return val;
     }
@@ -2273,7 +2269,7 @@ public:
         if (m_names) {
             size_t offset = m_args.size() - m_names.size();
             for (size_t i = 0; i < m_names.size(); ++i, ++offset) {
-                val[m_names[i]] = m_args[offset];
+                val[m_names[i]] = reinterpret_borrow<object>(m_args[offset]);
             }
         }
         return val;
@@ -2283,9 +2279,8 @@ private:
     // normal argument, possibly needing conversion
     template <typename T>
     void process(list & /*names_list*/, T &&x) {
-        auto o = reinterpret_steal<object>(
-            detail::make_caster<T>::cast(std::forward<T>(x), policy, {}));
-        if (!o) {
+        handle h = detail::make_caster<T>::cast(std::forward<T>(x), policy, {});
+        if (!h) {
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
             throw cast_error_unable_to_convert_call_arg(std::to_string(m_args.size() - 1));
 #else
@@ -2293,7 +2288,7 @@ private:
                                                         type_id<T>());
 #endif
         }
-        m_args.emplace_back(std::move(o));
+        m_args.push_back_steal(h.ptr()); // cast returns a new reference
     }
 
     // * unpacking
@@ -2302,7 +2297,7 @@ private:
             return;
         }
         for (auto a : ap) {
-            m_args.emplace_back(reinterpret_borrow<object>(a));
+            m_args.push_back_borrow(a.ptr());
         }
     }
 
@@ -2333,7 +2328,7 @@ private:
 #endif
         }
         names_list.append(std::move(name));
-        m_args.emplace_back(a.value);
+        m_args.push_back_borrow(a.value.ptr());
     }
 
     // ** unpacking
@@ -2352,7 +2347,7 @@ private:
 #endif
             }
             names_list.append(std::move(name));
-            m_args.emplace_back(reinterpret_borrow<object>(k.second));
+            m_args.push_back_borrow(k.second.ptr());
         }
     }
 
@@ -2378,7 +2373,7 @@ private:
     }
 
 private:
-    small_vector<object, arg_vector_small_size> m_args;
+    ref_small_vector<arg_vector_small_size> m_args;
     tuple m_names;
 };
 

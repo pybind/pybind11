@@ -355,5 +355,63 @@ using argument_vector = small_vector<handle, N>;
 template <size_t N>
 using args_convert_vector = small_vector<bool, N>;
 
+/// A small_vector of PyObject* that holds references and releases them on destruction.
+/// This provides explicit ownership semantics without relying on py::object's
+/// destructor, and avoids the need for reinterpret_cast when passing to vectorcall.
+template <std::size_t InlineSize>
+class ref_small_vector {
+public:
+    ref_small_vector() = default;
+
+    ~ref_small_vector() {
+        for (std::size_t i = 0; i < m_ptrs.size(); ++i) {
+            Py_XDECREF(m_ptrs[i]);
+        }
+    }
+
+    // Disable copy (prevent accidental double-decref)
+    ref_small_vector(const ref_small_vector &) = delete;
+    ref_small_vector &operator=(const ref_small_vector &) = delete;
+
+    // Move is allowed
+    ref_small_vector(ref_small_vector &&other) noexcept : m_ptrs(std::move(other.m_ptrs)) {
+        // other.m_ptrs is now empty, so its destructor won't decref anything
+    }
+
+    ref_small_vector &operator=(ref_small_vector &&other) noexcept {
+        if (this != &other) {
+            // Decref our current contents
+            for (std::size_t i = 0; i < m_ptrs.size(); ++i) {
+                Py_XDECREF(m_ptrs[i]);
+            }
+            m_ptrs = std::move(other.m_ptrs);
+        }
+        return *this;
+    }
+
+    /// Add a pointer, taking ownership (no incref, will decref on destruction)
+    void push_back_steal(PyObject *p) { m_ptrs.push_back(p); }
+
+    /// Add a pointer, borrowing (increfs now, will decref on destruction)
+    void push_back_borrow(PyObject *p) {
+        Py_XINCREF(p);
+        m_ptrs.push_back(p);
+    }
+
+    /// Add a null pointer (for PY_VECTORCALL_ARGUMENTS_OFFSET slot)
+    void push_back_null() { m_ptrs.push_back(nullptr); }
+
+    void reserve(std::size_t sz) { m_ptrs.reserve(sz); }
+
+    std::size_t size() const { return m_ptrs.size(); }
+
+    PyObject *operator[](std::size_t idx) const { return m_ptrs[idx]; }
+
+    PyObject *const *data() const { return m_ptrs.data(); }
+
+private:
+    small_vector<PyObject *, InlineSize> m_ptrs;
+};
+
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
