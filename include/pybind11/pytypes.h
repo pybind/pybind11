@@ -1640,10 +1640,12 @@ public:
     str(std::u8string_view s) : str(reinterpret_cast<const char *>(s.data()), s.size()) {}
 #    endif
 
-    // Avoid ambiguity when converting from kwargs (GCC)
-    explicit str(const kwargs &k) : str(static_cast<handle>(k)) {}
 
 #endif
+    // Avoid ambiguity when converting from kwargs (GCC)
+    template <typename T,
+        detail::enable_if_t<std::is_same<T, kwargs>::value, int> = 0>
+    explicit str(const T &k) : str(static_cast<handle>(k)) {}
 
     explicit str(const bytes &b);
 
