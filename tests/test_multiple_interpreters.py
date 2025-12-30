@@ -9,7 +9,11 @@ import textwrap
 
 import pytest
 
+import env
 import pybind11_tests
+
+if env.IOS:
+    pytest.skip("Subinterpreters not supported on iOS", allow_module_level=True)
 
 # 3.14.0b3+, though sys.implementation.supports_isolated_interpreters is being added in b4
 # Can be simplified when we drop support for the first three betas

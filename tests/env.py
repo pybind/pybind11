@@ -5,6 +5,7 @@ import sys
 import sysconfig
 
 ANDROID = sys.platform.startswith("android")
+IOS = sys.platform.startswith("ios")
 LINUX = sys.platform.startswith("linux")
 MACOS = sys.platform.startswith("darwin")
 WIN = sys.platform.startswith("win32") or sys.platform.startswith("cygwin")

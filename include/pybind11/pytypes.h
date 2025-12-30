@@ -1690,7 +1690,13 @@ public:
         Return a string representation of the object. This is analogous to
         the ``str()`` function in Python.
     \endrst */
-    explicit str(handle h) : object(raw_str(h.ptr()), stolen_t{}) {
+    // Templatized to avoid ambiguity with str(const object&) for object-derived types.
+    template <typename T,
+              detail::enable_if_t<!std::is_base_of<object, detail::remove_cvref_t<T>>::value
+                                      && std::is_constructible<handle, T>::value,
+                                  int>
+              = 0>
+    explicit str(T &&h) : object(raw_str(handle(std::forward<T>(h)).ptr()), stolen_t{}) {
         if (!m_ptr) {
             throw error_already_set();
         }
