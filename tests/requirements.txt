@@ -10,6 +10,7 @@ numpy~=1.22.2; platform_python_implementation=="CPython" and python_version=="3.
 numpy~=1.26.0; platform_python_implementation=="CPython" and python_version>="3.11" and python_version<"3.13" and platform_machine!="ARM64"
 numpy~=2.3.0; platform_python_implementation=="CPython" and python_version>="3.11" and platform_machine=="ARM64"
 numpy~=2.2.0; platform_python_implementation=="CPython" and python_version=="3.13" and platform_machine!="ARM64"
+numpy==2.4.0; platform_python_implementation=="CPython" and python_version>="3.14"
 pytest>=6
 pytest-timeout
 scipy~=1.5.4; platform_python_implementation=="CPython" and python_version<"3.10"
