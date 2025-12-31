@@ -2193,21 +2193,75 @@ private:
 
 /// Helper class which collects only positional arguments for a Python function call.
 /// A fancier version below can collect any argument, but this one is optimal for simple calls.
-template <return_value_policy policy>
+template <size_t N, return_value_policy policy>
 class simple_collector {
 public:
     template <typename... Ts>
-    explicit simple_collector(Ts &&...values)
-        : m_args(pybind11::make_tuple<policy>(std::forward<Ts>(values)...)) {}
+    explicit simple_collector(Ts &&...values) {
+        static_assert(sizeof...(Ts) == N, "");
+        size_t i = 0;
+        using expander = int[];
+        (void) expander{
+            0,
+            (m_args[i++] = detail::make_caster<Ts>::cast(std::forward<Ts>(values), policy, nullptr)
+                               .inc_ref()
+                               .ptr(),
+             0)...};
+        PYBIND11_WARNING_PUSH
+        PYBIND11_WARNING_DISABLE_GCC("-Wtype-limits")
+        PYBIND11_WARNING_DISABLE_INTEL(186)
+        PYBIND11_WARNING_DISABLE_NVCC(186)
+        for (i = 0; i < N; ++i) {
+            if (!m_args[i]) {
+#if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
+                throw cast_error_unable_to_convert_call_arg(std::to_string(i));
+#else
+                std::array<std::string, N> argtypes{{type_id<Ts>()...}};
+                throw cast_error_unable_to_convert_call_arg(std::to_string(i), argtypes[i]);
+#endif
+            }
+        }
+        PYBIND11_WARNING_POP
+    }
 
-    const tuple &args() const & { return m_args; }
+    ~simple_collector() {
+        PYBIND11_WARNING_PUSH
+        PYBIND11_WARNING_DISABLE_GCC("-Wtype-limits")
+        PYBIND11_WARNING_DISABLE_INTEL(186)
+        PYBIND11_WARNING_DISABLE_NVCC(186)
+        for (size_t i = 0; i < N; ++i) {
+            handle(m_args[i]).dec_ref();
+        }
+        PYBIND11_WARNING_POP
+    }
+
+    simple_collector(const simple_collector &) = delete;
+    simple_collector(simple_collector &&) noexcept = default;
+    simple_collector &operator=(const simple_collector &) = delete;
+    simple_collector &operator=(simple_collector &&) noexcept = default;
+
+    tuple args() const {
+        tuple result(N);
+        PYBIND11_WARNING_PUSH
+        PYBIND11_WARNING_DISABLE_GCC("-Wtype-limits")
+        PYBIND11_WARNING_DISABLE_INTEL(186)
+        PYBIND11_WARNING_DISABLE_NVCC(186)
+        for (size_t i = 0; i < N; ++i) {
+            PyTuple_SET_ITEM(result.ptr(), i, handle(m_args[i]).inc_ref().ptr());
+        }
+        PYBIND11_WARNING_POP
+        return result;
+    }
     dict kwargs() const { return {}; }
-
-    tuple args() && { return std::move(m_args); }
 
     /// Call a Python function and pass the collected arguments
     object call(PyObject *ptr) const {
-        PyObject *result = PyObject_CallObject(ptr, m_args.ptr());
+#if PY_VERSION_HEX >= 0x03090000
+        PyObject *result = PyObject_Vectorcall(ptr, m_args.data(), N, nullptr);
+#else
+        // Use the old name for 3.8.
+        PyObject *result = _PyObject_Vectorcall(ptr, m_args.data(), N, nullptr);
+#endif
         if (!result) {
             throw error_already_set();
         }
@@ -2215,7 +2269,7 @@ public:
     }
 
 private:
-    tuple m_args;
+    std::array<PyObject *, N> m_args;
 };
 
 /// Helper class which collects positional, keyword, * and ** arguments for a Python function call
@@ -2350,8 +2404,8 @@ constexpr bool args_are_all_positional() {
 template <return_value_policy policy,
           typename... Args,
           typename = enable_if_t<args_are_all_positional<Args...>()>>
-simple_collector<policy> collect_arguments(Args &&...args) {
-    return simple_collector<policy>(std::forward<Args>(args)...);
+simple_collector<sizeof...(Args), policy> collect_arguments(Args &&...args) {
+    return simple_collector<sizeof...(Args), policy>(std::forward<Args>(args)...);
 }
 
 /// Collect all arguments, including keywords and unpacking (only instantiated when needed)
