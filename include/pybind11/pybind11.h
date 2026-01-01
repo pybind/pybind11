@@ -684,7 +684,7 @@ protected:
             rec->def->ml_name = rec->name;
             rec->def->ml_meth
                 = reinterpret_cast<PyCFunction>(reinterpret_cast<void (*)()>(dispatcher));
-            rec->def->ml_flags = METH_VARARGS | METH_KEYWORDS;
+            rec->def->ml_flags = METH_FASTCALL | METH_KEYWORDS;
 
             object py_func_rec = detail::function_record_PyObject_New();
             (reinterpret_cast<detail::function_record_PyObject *>(py_func_rec.ptr()))->cpp_func_rec
@@ -847,7 +847,8 @@ protected:
     }
 
     /// Main dispatch logic for calls to functions bound using pybind11
-    static PyObject *dispatcher(PyObject *self, PyObject *args_in, PyObject *kwargs_in) {
+    static PyObject *
+    dispatcher(PyObject *self, PyObject *const *args_in_arr, size_t nargsf, PyObject *kwnames_in) {
         using namespace detail;
         const function_record *overloads = function_record_ptr_from_PyObject(self);
         assert(overloads != nullptr);
@@ -857,9 +858,9 @@ protected:
 
         /* Need to know how many arguments + keyword arguments there are to pick the right
            overload */
-        const auto n_args_in = static_cast<size_t>(PyTuple_GET_SIZE(args_in));
+        const auto n_args_in = static_cast<size_t>(PyVectorcall_NARGS(nargsf));
 
-        handle parent = n_args_in > 0 ? PyTuple_GET_ITEM(args_in, 0) : nullptr,
+        handle parent = n_args_in > 0 ? args_in_arr[0] : nullptr,
                result = PYBIND11_TRY_NEXT_OVERLOAD;
 
         auto self_value_and_holder = value_and_holder();
@@ -948,7 +949,7 @@ protected:
                         self_value_and_holder.type->dealloc(self_value_and_holder);
                     }
 
-                    call.init_self = PyTuple_GET_ITEM(args_in, 0);
+                    call.init_self = args_in_arr[0];
                     call.args.emplace_back(reinterpret_cast<PyObject *>(&self_value_and_holder));
                     call.args_convert.push_back(false);
                     ++args_copied;
@@ -959,17 +960,24 @@ protected:
                 for (; args_copied < args_to_copy; ++args_copied) {
                     const argument_record *arg_rec
                         = args_copied < func.args.size() ? &func.args[args_copied] : nullptr;
-                    if (kwargs_in && arg_rec && arg_rec->name
-                        && dict_getitemstring(kwargs_in, arg_rec->name)) {
+
+                    /* if the argument is listed in the call site's kwargs, but the argument is
+                    also fulfilled positionally, then the call can't match this overload. for
+                    example, the call site is: foo(0, key=1) but our overload is foo(key:int) then
+                    this call can't be for us, because it would be invalid.
+                    */
+                    if (kwnames_in && arg_rec && arg_rec->name
+                        && keyword_index(kwnames_in, arg_rec->name) >= 0) {
                         bad_arg = true;
                         break;
                     }
 
-                    handle arg(PyTuple_GET_ITEM(args_in, args_copied));
+                    handle arg(args_in_arr[args_copied]);
                     if (arg_rec && !arg_rec->none && arg.is_none()) {
                         bad_arg = true;
                         break;
                     }
+
                     call.args.push_back(arg);
                     call.args_convert.push_back(arg_rec ? arg_rec->convert : true);
                 }
@@ -981,20 +989,12 @@ protected:
                 // to copy the rest into a py::args argument.
                 size_t positional_args_copied = args_copied;
 
-                // We'll need to copy this if we steal some kwargs for defaults
-                dict kwargs = reinterpret_borrow<dict>(kwargs_in);
-
                 // 1.5. Fill in any missing pos_only args from defaults if they exist
                 if (args_copied < func.nargs_pos_only) {
                     for (; args_copied < func.nargs_pos_only; ++args_copied) {
                         const auto &arg_rec = func.args[args_copied];
-                        handle value;
-
                         if (arg_rec.value) {
-                            value = arg_rec.value;
-                        }
-                        if (value) {
-                            call.args.push_back(value);
+                            call.args.push_back(arg_rec.value);
                             call.args_convert.push_back(arg_rec.convert);
                         } else {
                             break;
@@ -1007,46 +1007,42 @@ protected:
                 }
 
                 // 2. Check kwargs and, failing that, defaults that may help complete the list
+                small_vector<bool, arg_vector_small_size> used_kwargs(
+                    kwnames_in ? static_cast<size_t>(PyTuple_GET_SIZE(kwnames_in)) : 0, false);
+                size_t used_kwargs_count = 0;
                 if (args_copied < num_args) {
-                    bool copied_kwargs = false;
-
                     for (; args_copied < num_args; ++args_copied) {
                         const auto &arg_rec = func.args[args_copied];
 
                         handle value;
-                        if (kwargs_in && arg_rec.name) {
-                            value = dict_getitemstring(kwargs.ptr(), arg_rec.name);
+                        if (kwnames_in && arg_rec.name) {
+                            ssize_t i = keyword_index(kwnames_in, arg_rec.name);
+                            if (i >= 0) {
+                                value = args_in_arr[n_args_in + static_cast<size_t>(i)];
+                                used_kwargs.set(static_cast<size_t>(i), true);
+                                used_kwargs_count++;
+                            }
                         }
 
-                        if (value) {
-                            // Consume a kwargs value
-                            if (!copied_kwargs) {
-                                kwargs = reinterpret_steal<dict>(PyDict_Copy(kwargs.ptr()));
-                                copied_kwargs = true;
-                            }
-                            if (PyDict_DelItemString(kwargs.ptr(), arg_rec.name) == -1) {
-                                throw error_already_set();
-                            }
-                        } else if (arg_rec.value) {
+                        if (!value) {
                             value = arg_rec.value;
+                            if (!value) {
+                                break;
+                            }
                         }
 
                         if (!arg_rec.none && value.is_none()) {
                             break;
                         }
 
-                        if (value) {
-                            // If we're at the py::args index then first insert a stub for it to be
-                            // replaced later
-                            if (func.has_args && call.args.size() == func.nargs_pos) {
-                                call.args.push_back(none());
-                            }
-
-                            call.args.push_back(value);
-                            call.args_convert.push_back(arg_rec.convert);
-                        } else {
-                            break;
+                        // If we're at the py::args index then first insert a stub for it to be
+                        // replaced later
+                        if (func.has_args && call.args.size() == func.nargs_pos) {
+                            call.args.push_back(none());
                         }
+
+                        call.args.push_back(value);
+                        call.args_convert.push_back(arg_rec.convert);
                     }
 
                     if (args_copied < num_args) {
@@ -1056,47 +1052,46 @@ protected:
                 }
 
                 // 3. Check everything was consumed (unless we have a kwargs arg)
-                if (kwargs && !kwargs.empty() && !func.has_kwargs) {
+                if (!func.has_kwargs && used_kwargs_count < used_kwargs.size()) {
                     continue; // Unconsumed kwargs, but no py::kwargs argument to accept them
                 }
 
                 // 4a. If we have a py::args argument, create a new tuple with leftovers
                 if (func.has_args) {
-                    tuple extra_args;
-                    if (args_to_copy == 0) {
-                        // We didn't copy out any position arguments from the args_in tuple, so we
-                        // can reuse it directly without copying:
-                        extra_args = reinterpret_borrow<tuple>(args_in);
-                    } else if (positional_args_copied >= n_args_in) {
-                        extra_args = tuple(0);
+                    if (positional_args_copied >= n_args_in) {
+                        call.args_ref = tuple(0);
                     } else {
                         size_t args_size = n_args_in - positional_args_copied;
-                        extra_args = tuple(args_size);
+                        tuple extra_args(args_size);
                         for (size_t i = 0; i < args_size; ++i) {
-                            extra_args[i] = PyTuple_GET_ITEM(args_in, positional_args_copied + i);
+                            extra_args[i] = args_in_arr[positional_args_copied + i];
                         }
+                        call.args_ref = std::move(extra_args);
                     }
                     if (call.args.size() <= func.nargs_pos) {
-                        call.args.push_back(extra_args);
+                        call.args.push_back(call.args_ref);
                     } else {
-                        call.args[func.nargs_pos] = extra_args;
+                        call.args[func.nargs_pos] = call.args_ref;
                     }
                     call.args_convert.push_back(false);
-                    call.args_ref = std::move(extra_args);
                 }
 
                 // 4b. If we have a py::kwargs, pass on any remaining kwargs
                 if (func.has_kwargs) {
-                    if (!kwargs.ptr()) {
-                        kwargs = dict(); // If we didn't get one, send an empty one
+                    dict kwargs;
+                    for (size_t i = 0; i < used_kwargs.size(); ++i) {
+                        if (!used_kwargs[i]) {
+                            kwargs[PyTuple_GET_ITEM(kwnames_in, i)] = args_in_arr[n_args_in + i];
+                        }
                     }
                     call.args.push_back(kwargs);
                     call.args_convert.push_back(false);
                     call.kwargs_ref = std::move(kwargs);
                 }
 
-// 5. Put everything in a vector.  Not technically step 5, we've been building it
-// in `call.args` all along.
+                // 5. Put everything in a vector.  Not technically step 5, we've been building it
+                // in `call.args` all along.
+
 #if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
                 if (call.args.size() != func.nargs || call.args_convert.size() != func.nargs) {
                     pybind11_fail("Internal error: function call dispatcher inserted wrong number "
@@ -1227,40 +1222,37 @@ protected:
                 msg += '\n';
             }
             msg += "\nInvoked with: ";
-            auto args_ = reinterpret_borrow<tuple>(args_in);
             bool some_args = false;
-            for (size_t ti = overloads->is_constructor ? 1 : 0; ti < args_.size(); ++ti) {
+            for (size_t ti = overloads->is_constructor ? 1 : 0; ti < n_args_in; ++ti) {
                 if (!some_args) {
                     some_args = true;
                 } else {
                     msg += ", ";
                 }
                 try {
-                    msg += pybind11::repr(args_[ti]);
+                    msg += pybind11::repr(args_in_arr[ti]);
                 } catch (const error_already_set &) {
                     msg += "<repr raised Error>";
                 }
             }
-            if (kwargs_in) {
-                auto kwargs = reinterpret_borrow<dict>(kwargs_in);
-                if (!kwargs.empty()) {
-                    if (some_args) {
-                        msg += "; ";
+            if (kwnames_in && PyTuple_GET_SIZE(kwnames_in) > 0) {
+                if (some_args) {
+                    msg += "; ";
+                }
+                msg += "kwargs: ";
+                bool first = true;
+                for (size_t i = 0; i < static_cast<size_t>(PyTuple_GET_SIZE(kwnames_in)); ++i) {
+                    if (first) {
+                        first = false;
+                    } else {
+                        msg += ", ";
                     }
-                    msg += "kwargs: ";
-                    bool first = true;
-                    for (const auto &kwarg : kwargs) {
-                        if (first) {
-                            first = false;
-                        } else {
-                            msg += ", ";
-                        }
-                        msg += pybind11::str("{}=").format(kwarg.first);
-                        try {
-                            msg += pybind11::repr(kwarg.second);
-                        } catch (const error_already_set &) {
-                            msg += "<repr raised Error>";
-                        }
+                    msg += reinterpret_borrow<pybind11::str>(PyTuple_GET_ITEM(kwnames_in, i));
+                    msg += '=';
+                    try {
+                        msg += pybind11::repr(args_in_arr[n_args_in + i]);
+                    } catch (const error_already_set &) {
+                        msg += "<repr raised Error>";
                     }
                 }
             }
@@ -1294,6 +1286,28 @@ protected:
             self_value_and_holder.type->init_instance(pi, nullptr);
         }
         return result.ptr();
+    }
+
+    static ssize_t keyword_index(PyObject *haystack, char const *needle) {
+        /* kwargs is usually very small (<= 5 entries).  The arg strings are typically interned.
+         * CPython itself implements the search this way, first comparing all pointers ... which is
+         * cheap and will work if the strings are interned.  If it fails, then it falls back to a
+         * second lexicographic check. This is wildly expensive for huge argument lists, but those
+         * are incredibly rare so we optimize for the vastly common case of just a couple of args.
+         */
+        auto n = PyTuple_GET_SIZE(haystack);
+        auto s = reinterpret_steal<pybind11::str>(PyUnicode_InternFromString(needle));
+        for (ssize_t i = 0; i < n; ++i) {
+            if (PyTuple_GET_ITEM(haystack, i) == s.ptr()) {
+                return i;
+            }
+        }
+        for (ssize_t i = 0; i < n; ++i) {
+            if (PyUnicode_Compare(PyTuple_GET_ITEM(haystack, i), s.ptr()) == 0) {
+                return i;
+            }
+        }
+        return -1;
     }
 };
 
