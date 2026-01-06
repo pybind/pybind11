@@ -66,24 +66,23 @@ union inline_array_or_vector {
     inline_array iarray;
     heap_vector hvector;
 
-    static_assert(std::is_trivially_move_constructible<ArrayT>::value,
-                  "ArrayT must be trivially move constructible");
-    static_assert(std::is_trivially_destructible<ArrayT>::value,
-                  "ArrayT must be trivially destructible");
-
     inline_array_or_vector() : iarray() {}
+
     ~inline_array_or_vector() {
-        if (!is_inline()) {
+        if (is_inline()) {
+            iarray.~inline_array();
+        } else {
             hvector.~heap_vector();
         }
     }
+
     // Disable copy ctor and assignment.
     inline_array_or_vector(const inline_array_or_vector &) = delete;
     inline_array_or_vector &operator=(const inline_array_or_vector &) = delete;
 
     inline_array_or_vector(inline_array_or_vector &&rhs) noexcept {
         if (rhs.is_inline()) {
-            std::memcpy(&iarray, &rhs.iarray, sizeof(iarray));
+            new (&iarray) inline_array(std::move(rhs.iarray));
         } else {
             new (&hvector) heap_vector(std::move(rhs.hvector));
         }
@@ -95,17 +94,16 @@ union inline_array_or_vector {
             return *this;
         }
 
-        if (rhs.is_inline()) {
-            if (!is_inline()) {
-                hvector.~heap_vector();
-            }
-            std::memcpy(&iarray, &rhs.iarray, sizeof(iarray));
+        if (is_inline()) {
+            iarray.~inline_array();
         } else {
-            if (is_inline()) {
-                new (&hvector) heap_vector(std::move(rhs.hvector));
-            } else {
-                hvector = std::move(rhs.hvector);
-            }
+            hvector.~heap_vector();
+        }
+
+        if (rhs.is_inline()) {
+            new (&iarray) inline_array(std::move(rhs.iarray));
+        } else {
+            new (&hvector) heap_vector(std::move(rhs.hvector));
         }
         return *this;
     }
@@ -126,18 +124,16 @@ union inline_array_or_vector {
     }
 };
 
-// small_vector-like container to avoid heap allocation for N or fewer
-// arguments.
-template <std::size_t N>
-struct argument_vector {
+template <typename T, std::size_t InlineSize>
+struct small_vector {
 public:
-    argument_vector() = default;
+    small_vector() = default;
 
     // Disable copy ctor and assignment.
-    argument_vector(const argument_vector &) = delete;
-    argument_vector &operator=(const argument_vector &) = delete;
-    argument_vector(argument_vector &&) noexcept = default;
-    argument_vector &operator=(argument_vector &&) noexcept = default;
+    small_vector(const small_vector &) = delete;
+    small_vector &operator=(const small_vector &) = delete;
+    small_vector(small_vector &&) noexcept = default;
+    small_vector &operator=(small_vector &&) noexcept = default;
 
     std::size_t size() const {
         if (is_inline()) {
@@ -146,7 +142,14 @@ public:
         return m_repr.hvector.vec.size();
     }
 
-    handle &operator[](std::size_t idx) {
+    T const *data() const {
+        if (is_inline()) {
+            return m_repr.iarray.arr.data();
+        }
+        return m_repr.hvector.vec.data();
+    }
+
+    T &operator[](std::size_t idx) {
         assert(idx < size());
         if (is_inline()) {
             return m_repr.iarray.arr[idx];
@@ -154,7 +157,7 @@ public:
         return m_repr.hvector.vec[idx];
     }
 
-    handle operator[](std::size_t idx) const {
+    T const &operator[](std::size_t idx) const {
         assert(idx < size());
         if (is_inline()) {
             return m_repr.iarray.arr[idx];
@@ -162,28 +165,28 @@ public:
         return m_repr.hvector.vec[idx];
     }
 
-    void push_back(handle x) {
+    void push_back(const T &x) { emplace_back(x); }
+
+    void push_back(T &&x) { emplace_back(std::move(x)); }
+
+    template <typename... Args>
+    void emplace_back(Args &&...x) {
         if (is_inline()) {
             auto &ha = m_repr.iarray;
-            if (ha.size == N) {
-                move_to_heap_vector_with_reserved_size(N + 1);
-                push_back_slow_path(x);
+            if (ha.size == InlineSize) {
+                move_to_heap_vector_with_reserved_size(InlineSize + 1);
+                m_repr.hvector.vec.emplace_back(std::forward<Args>(x)...);
             } else {
-                ha.arr[ha.size++] = x;
+                ha.arr[ha.size++] = T(std::forward<Args>(x)...);
             }
         } else {
-            push_back_slow_path(x);
+            m_repr.hvector.vec.emplace_back(std::forward<Args>(x)...);
         }
-    }
-
-    template <typename Arg>
-    void emplace_back(Arg &&x) {
-        push_back(handle(x));
     }
 
     void reserve(std::size_t sz) {
         if (is_inline()) {
-            if (sz > N) {
+            if (sz > InlineSize) {
                 move_to_heap_vector_with_reserved_size(sz);
             }
         } else {
@@ -192,7 +195,7 @@ public:
     }
 
 private:
-    using repr_type = inline_array_or_vector<handle, N>;
+    using repr_type = inline_array_or_vector<T, InlineSize>;
     repr_type m_repr;
 
     PYBIND11_NOINLINE void move_to_heap_vector_with_reserved_size(std::size_t reserved_size) {
@@ -201,32 +204,33 @@ private:
         using heap_vector = typename repr_type::heap_vector;
         heap_vector hv;
         hv.vec.reserve(reserved_size);
-        std::copy(ha.arr.begin(), ha.arr.begin() + ha.size, std::back_inserter(hv.vec));
+        static_assert(std::is_nothrow_move_constructible<T>::value,
+                      "this conversion is not exception safe");
+        static_assert(std::is_nothrow_move_constructible<heap_vector>::value,
+                      "this conversion is not exception safe");
+        std::move(ha.arr.begin(), ha.arr.begin() + ha.size, std::back_inserter(hv.vec));
         new (&m_repr.hvector) heap_vector(std::move(hv));
     }
-
-    PYBIND11_NOINLINE void push_back_slow_path(handle x) { m_repr.hvector.vec.push_back(x); }
 
     PYBIND11_NOINLINE void reserve_slow_path(std::size_t sz) { m_repr.hvector.vec.reserve(sz); }
 
     bool is_inline() const { return m_repr.is_inline(); }
 };
 
-// small_vector-like container to avoid heap allocation for N or fewer
-// arguments.
+// Container to avoid heap allocation for kRequestedInlineSize or fewer booleans.
 template <std::size_t kRequestedInlineSize>
-struct args_convert_vector {
+struct small_vector<bool, kRequestedInlineSize> {
 private:
 public:
-    args_convert_vector() = default;
+    small_vector() = default;
 
     // Disable copy ctor and assignment.
-    args_convert_vector(const args_convert_vector &) = delete;
-    args_convert_vector &operator=(const args_convert_vector &) = delete;
-    args_convert_vector(args_convert_vector &&) noexcept = default;
-    args_convert_vector &operator=(args_convert_vector &&) noexcept = default;
+    small_vector(const small_vector &) = delete;
+    small_vector &operator=(const small_vector &) = delete;
+    small_vector(small_vector &&) noexcept = default;
+    small_vector &operator=(small_vector &&) noexcept = default;
 
-    args_convert_vector(std::size_t count, bool value) {
+    small_vector(std::size_t count, bool value) {
         if (count > kInlineSize) {
             new (&m_repr.hvector) typename repr_type::heap_vector(count, value);
         } else {
@@ -284,7 +288,24 @@ public:
         }
     }
 
-    void swap(args_convert_vector &rhs) noexcept { std::swap(m_repr, rhs.m_repr); }
+    void set(std::size_t idx, bool value = true) {
+        if (is_inline()) {
+            auto &ha = m_repr.iarray;
+            assert(ha.size < kInlineSize);
+            const auto wbi = word_and_bit_index(idx);
+            assert(wbi.word < kWords);
+            assert(wbi.bit < kBitsPerWord);
+            if (value) {
+                ha.arr[wbi.word] |= (static_cast<std::size_t>(1) << wbi.bit);
+            } else {
+                ha.arr[wbi.word] &= ~(static_cast<std::size_t>(1) << wbi.bit);
+            }
+        } else {
+            m_repr.hvector.vec[idx] = value;
+        }
+    }
+
+    void swap(small_vector &rhs) noexcept { std::swap(m_repr, rhs.m_repr); }
 
 private:
     struct WordAndBitIndex {
@@ -324,6 +345,72 @@ private:
     repr_type m_repr;
 
     bool is_inline() const { return m_repr.is_inline(); }
+};
+
+// Container to avoid heap allocation for N or fewer arguments.
+template <size_t N>
+using argument_vector = small_vector<handle, N>;
+
+// Container to avoid heap allocation for N or fewer booleans.
+template <size_t N>
+using args_convert_vector = small_vector<bool, N>;
+
+/// A small_vector of PyObject* that holds references and releases them on destruction.
+/// This provides explicit ownership semantics without relying on py::object's
+/// destructor, and avoids the need for reinterpret_cast when passing to vectorcall.
+template <std::size_t InlineSize>
+class ref_small_vector {
+public:
+    ref_small_vector() = default;
+
+    ~ref_small_vector() {
+        for (std::size_t i = 0; i < m_ptrs.size(); ++i) {
+            Py_XDECREF(m_ptrs[i]);
+        }
+    }
+
+    // Disable copy (prevent accidental double-decref)
+    ref_small_vector(const ref_small_vector &) = delete;
+    ref_small_vector &operator=(const ref_small_vector &) = delete;
+
+    // Move is allowed
+    ref_small_vector(ref_small_vector &&other) noexcept : m_ptrs(std::move(other.m_ptrs)) {
+        // other.m_ptrs is now empty, so its destructor won't decref anything
+    }
+
+    ref_small_vector &operator=(ref_small_vector &&other) noexcept {
+        if (this != &other) {
+            // Decref our current contents
+            for (std::size_t i = 0; i < m_ptrs.size(); ++i) {
+                Py_XDECREF(m_ptrs[i]);
+            }
+            m_ptrs = std::move(other.m_ptrs);
+        }
+        return *this;
+    }
+
+    /// Add a pointer, taking ownership (no incref, will decref on destruction)
+    void push_back_steal(PyObject *p) { m_ptrs.push_back(p); }
+
+    /// Add a pointer, borrowing (increfs now, will decref on destruction)
+    void push_back_borrow(PyObject *p) {
+        Py_XINCREF(p);
+        m_ptrs.push_back(p);
+    }
+
+    /// Add a null pointer (for PY_VECTORCALL_ARGUMENTS_OFFSET slot)
+    void push_back_null() { m_ptrs.push_back(nullptr); }
+
+    void reserve(std::size_t sz) { m_ptrs.reserve(sz); }
+
+    std::size_t size() const { return m_ptrs.size(); }
+
+    PyObject *operator[](std::size_t idx) const { return m_ptrs[idx]; }
+
+    PyObject *const *data() const { return m_ptrs.data(); }
+
+private:
+    small_vector<PyObject *, InlineSize> m_ptrs;
 };
 
 PYBIND11_NAMESPACE_END(detail)

@@ -2078,8 +2078,7 @@ using is_pos_only = std::is_same<intrinsic_t<T>, pos_only>;
 // forward declaration (definition in attr.h)
 struct function_record;
 
-/// (Inline size chosen mostly arbitrarily; 6 should pad function_call out to two cache lines
-/// (16 pointers) in size.)
+/// Inline size chosen mostly arbitrarily.
 constexpr std::size_t arg_vector_small_size = 6;
 
 /// Internal data associated with a single function call
@@ -2191,86 +2190,121 @@ private:
     std::tuple<make_caster<Args>...> argcasters;
 };
 
-/// Helper class which collects only positional arguments for a Python function call.
-/// A fancier version below can collect any argument, but this one is optimal for simple calls.
-template <return_value_policy policy>
-class simple_collector {
-public:
-    template <typename... Ts>
-    explicit simple_collector(Ts &&...values)
-        : m_args(pybind11::make_tuple<policy>(std::forward<Ts>(values)...)) {}
-
-    const tuple &args() const & { return m_args; }
-    dict kwargs() const { return {}; }
-
-    tuple args() && { return std::move(m_args); }
-
-    /// Call a Python function and pass the collected arguments
-    object call(PyObject *ptr) const {
-        PyObject *result = PyObject_CallObject(ptr, m_args.ptr());
-        if (!result) {
-            throw error_already_set();
-        }
-        return reinterpret_steal<object>(result);
-    }
-
-private:
-    tuple m_args;
-};
+// [workaround(intel)] Separate function required here
+// We need to put this into a separate function because the Intel compiler
+// fails to compile enable_if_t<!all_of<is_positional<Args>...>::value>
+// (tested with ICC 2021.1 Beta 20200827).
+template <typename... Args>
+constexpr bool args_has_keyword_or_ds() {
+    return any_of<is_keyword_or_ds<Args>...>::value;
+}
 
 /// Helper class which collects positional, keyword, * and ** arguments for a Python function call
 template <return_value_policy policy>
 class unpacking_collector {
 public:
     template <typename... Ts>
-    explicit unpacking_collector(Ts &&...values) {
-        // Tuples aren't (easily) resizable so a list is needed for collection,
-        // but the actual function call strictly requires a tuple.
-        auto args_list = list();
-        using expander = int[];
-        (void) expander{0, (process(args_list, std::forward<Ts>(values)), 0)...};
+    explicit unpacking_collector(Ts &&...values)
+        : m_names(reinterpret_steal<tuple>(
+              handle())) // initialize to null to avoid useless allocation of 0-length tuple
+    {
+        /*
+        Python can sometimes utilize an extra space before the arguments to prepend `self`.
+        This is important enough that there is a special flag for it:
+        PY_VECTORCALL_ARGUMENTS_OFFSET.
+        All we have to do is allocate an extra space at the beginning of this array, and set the
+        flag. Note that the extra space is not passed directly in to vectorcall.
+        */
+        m_args.reserve(sizeof...(values) + 1);
+        m_args.push_back_null();
 
-        m_args = std::move(args_list);
+        if (args_has_keyword_or_ds<Ts...>()) {
+            list names_list;
+
+            // collect_arguments guarantees this can't be constructed with kwargs before the last
+            // positional so we don't need to worry about Ts... being in anything but normal python
+            // order.
+            using expander = int[];
+            (void) expander{0, (process(names_list, std::forward<Ts>(values)), 0)...};
+
+            m_names = reinterpret_steal<tuple>(PyList_AsTuple(names_list.ptr()));
+        } else {
+            auto not_used
+                = reinterpret_steal<list>(handle()); // initialize as null (to avoid an allocation)
+
+            using expander = int[];
+            (void) expander{0, (process(not_used, std::forward<Ts>(values)), 0)...};
+        }
     }
-
-    const tuple &args() const & { return m_args; }
-    const dict &kwargs() const & { return m_kwargs; }
-
-    tuple args() && { return std::move(m_args); }
-    dict kwargs() && { return std::move(m_kwargs); }
 
     /// Call a Python function and pass the collected arguments
     object call(PyObject *ptr) const {
-        PyObject *result = PyObject_Call(ptr, m_args.ptr(), m_kwargs.ptr());
+        size_t nargs = m_args.size() - 1; // -1 for PY_VECTORCALL_ARGUMENTS_OFFSET (see ctor)
+        if (m_names) {
+            nargs -= m_names.size();
+        }
+        PyObject *result = _PyObject_Vectorcall(
+            ptr, m_args.data() + 1, nargs | PY_VECTORCALL_ARGUMENTS_OFFSET, m_names.ptr());
         if (!result) {
             throw error_already_set();
         }
         return reinterpret_steal<object>(result);
     }
 
+    tuple args() const {
+        size_t nargs = m_args.size() - 1; // -1 for PY_VECTORCALL_ARGUMENTS_OFFSET (see ctor)
+        if (m_names) {
+            nargs -= m_names.size();
+        }
+        tuple val(nargs);
+        for (size_t i = 0; i < nargs; ++i) {
+            // +1 for PY_VECTORCALL_ARGUMENTS_OFFSET (see ctor)
+            val[i] = reinterpret_borrow<object>(m_args[i + 1]);
+        }
+        return val;
+    }
+
+    dict kwargs() const {
+        dict val;
+        if (m_names) {
+            size_t offset = m_args.size() - m_names.size();
+            for (size_t i = 0; i < m_names.size(); ++i, ++offset) {
+                val[m_names[i]] = reinterpret_borrow<object>(m_args[offset]);
+            }
+        }
+        return val;
+    }
+
 private:
+    // normal argument, possibly needing conversion
     template <typename T>
-    void process(list &args_list, T &&x) {
-        auto o = reinterpret_steal<object>(
-            detail::make_caster<T>::cast(std::forward<T>(x), policy, {}));
-        if (!o) {
+    void process(list & /*names_list*/, T &&x) {
+        handle h = detail::make_caster<T>::cast(std::forward<T>(x), policy, {});
+        if (!h) {
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
-            throw cast_error_unable_to_convert_call_arg(std::to_string(args_list.size()));
+            throw cast_error_unable_to_convert_call_arg(std::to_string(m_args.size() - 1));
 #else
-            throw cast_error_unable_to_convert_call_arg(std::to_string(args_list.size()),
+            throw cast_error_unable_to_convert_call_arg(std::to_string(m_args.size() - 1),
                                                         type_id<T>());
 #endif
         }
-        args_list.append(std::move(o));
+        m_args.push_back_steal(h.ptr()); // cast returns a new reference
     }
 
-    void process(list &args_list, detail::args_proxy ap) {
+    // * unpacking
+    void process(list & /*names_list*/, detail::args_proxy ap) {
+        if (!ap) {
+            return;
+        }
         for (auto a : ap) {
-            args_list.append(a);
+            m_args.push_back_borrow(a.ptr());
         }
     }
 
-    void process(list & /*args_list*/, arg_v a) {
+    // named argument
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
+    void process(list &names_list, arg_v a) {
+        assert(names_list);
         if (!a.name) {
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
             nameless_argument_error();
@@ -2278,7 +2312,8 @@ private:
             nameless_argument_error(a.type);
 #endif
         }
-        if (m_kwargs.contains(a.name)) {
+        auto name = str(a.name);
+        if (names_list.contains(name)) {
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
             multiple_values_error();
 #else
@@ -2292,22 +2327,27 @@ private:
             throw cast_error_unable_to_convert_call_arg(a.name, a.type);
 #endif
         }
-        m_kwargs[a.name] = std::move(a.value);
+        names_list.append(std::move(name));
+        m_args.push_back_borrow(a.value.ptr());
     }
 
-    void process(list & /*args_list*/, detail::kwargs_proxy kp) {
+    // ** unpacking
+    void process(list &names_list, detail::kwargs_proxy kp) {
         if (!kp) {
             return;
         }
-        for (auto k : reinterpret_borrow<dict>(kp)) {
-            if (m_kwargs.contains(k.first)) {
+        assert(names_list);
+        for (auto &&k : reinterpret_borrow<dict>(kp)) {
+            auto name = str(k.first);
+            if (names_list.contains(name)) {
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
                 multiple_values_error();
 #else
-                multiple_values_error(str(k.first));
+                multiple_values_error(name);
 #endif
             }
-            m_kwargs[k.first] = k.second;
+            names_list.append(std::move(name));
+            m_args.push_back_borrow(k.second.ptr());
         }
     }
 
@@ -2333,39 +2373,20 @@ private:
     }
 
 private:
-    tuple m_args;
-    dict m_kwargs;
+    ref_small_vector<arg_vector_small_size> m_args;
+    tuple m_names;
 };
 
-// [workaround(intel)] Separate function required here
-// We need to put this into a separate function because the Intel compiler
-// fails to compile enable_if_t<!all_of<is_positional<Args>...>::value>
-// (tested with ICC 2021.1 Beta 20200827).
-template <typename... Args>
-constexpr bool args_are_all_positional() {
-    return all_of<is_positional<Args>...>::value;
-}
-
-/// Collect only positional arguments for a Python function call
-template <return_value_policy policy,
-          typename... Args,
-          typename = enable_if_t<args_are_all_positional<Args...>()>>
-simple_collector<policy> collect_arguments(Args &&...args) {
-    return simple_collector<policy>(std::forward<Args>(args)...);
-}
-
-/// Collect all arguments, including keywords and unpacking (only instantiated when needed)
-template <return_value_policy policy,
-          typename... Args,
-          typename = enable_if_t<!args_are_all_positional<Args...>()>>
+/// Collect all arguments, including keywords and unpacking
+template <return_value_policy policy, typename... Args>
 unpacking_collector<policy> collect_arguments(Args &&...args) {
     // Following argument order rules for generalized unpacking according to PEP 448
-    static_assert(constexpr_last<is_positional, Args...>()
-                          < constexpr_first<is_keyword_or_ds, Args...>()
-                      && constexpr_last<is_s_unpacking, Args...>()
-                             < constexpr_first<is_ds_unpacking, Args...>(),
-                  "Invalid function call: positional args must precede keywords and ** unpacking; "
-                  "* unpacking must precede ** unpacking");
+    static_assert(
+        constexpr_last<is_positional, Args...>() < constexpr_first<is_keyword_or_ds, Args...>(),
+        "Invalid function call: positional args must precede keywords and */** unpacking;");
+    static_assert(constexpr_last<is_s_unpacking, Args...>()
+                      < constexpr_first<is_ds_unpacking, Args...>(),
+                  "Invalid function call: * unpacking must precede ** unpacking");
     return unpacking_collector<policy>(std::forward<Args>(args)...);
 }
 

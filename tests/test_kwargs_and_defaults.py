@@ -458,7 +458,8 @@ def test_args_refcount():
     assert refcount(myval) == expected
 
     exp3 = refcount(myval, myval, myval)
-    assert m.args_refcount(myval, myval, myval) == (exp3, exp3, exp3)
+    # if we have to create a new tuple internally, then it will hold an extra reference for each item in it.
+    assert m.args_refcount(myval, myval, myval) == (exp3 + 3, exp3 + 3, exp3 + 3)
     assert refcount(myval) == expected
 
     # This function takes the first arg as a `py::object` and the rest as a `py::args`.  Unlike the
