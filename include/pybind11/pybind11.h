@@ -1083,7 +1083,7 @@ protected:
                         if (!used_kwargs[i]) {
                             // Appease MSVC C4866: compiler may not enforce left-to-right
                             // evaluation order
-                            const PyObject *const arg_in_arr = args_in_arr[n_args_in + i];
+                            PyObject *const arg_in_arr = args_in_arr[n_args_in + i];
                             kwargs[PyTuple_GET_ITEM(kwnames_in, i)] = arg_in_arr;
                         }
                     }
