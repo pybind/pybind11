@@ -416,7 +416,7 @@ struct npy_format_descriptor_name<T, enable_if_t<is_complex<T>::value>> {
                                  || std::is_same<typename T::value_type, const double>::value
                                         > (const_name("numpy.complex")
                                                + const_name<sizeof(typename T::value_type) * 16>(),
-                                           const_name("numpy.longcomplex"));
+                                           const_name("numpy.clongdouble"));
 };
 
 template <typename T>
