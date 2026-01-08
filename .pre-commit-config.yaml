@@ -119,8 +119,10 @@ repos:
     args: ["-x.codespell-ignore-lines", "-Lccompiler,intstruct"]
 
 # Also check spelling
-- repo: https://github.com/crate-ci/typos
-  rev: v1
+# Use mirror because pre-commit autoupdate confuses tags in the upstream repo.
+# See https://github.com/crate-ci/typos/issues/390
+- repo: https://github.com/adhtruong/mirrors-typos
+  rev: "v1.41.0"
   hooks:
   - id: typos
     args: []

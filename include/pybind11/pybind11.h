@@ -1081,7 +1081,10 @@ protected:
                     dict kwargs;
                     for (size_t i = 0; i < used_kwargs.size(); ++i) {
                         if (!used_kwargs[i]) {
-                            kwargs[PyTuple_GET_ITEM(kwnames_in, i)] = args_in_arr[n_args_in + i];
+                            // Fetch value before indexing into kwargs to ensure well-defined
+                            // evaluation order (MSVC C4866).
+                            PyObject *const arg_in_arr = args_in_arr[n_args_in + i];
+                            kwargs[PyTuple_GET_ITEM(kwnames_in, i)] = arg_in_arr;
                         }
                     }
                     call.args.push_back(kwargs);
