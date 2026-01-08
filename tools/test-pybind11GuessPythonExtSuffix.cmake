@@ -87,6 +87,30 @@ unset(PYTHON_MODULE_EXT_SUFFIX)
 unset(PYTHON_MODULE_EXT_SUFFIX CACHE)
 unset(ENV{SETUPTOOLS_EXT_SUFFIX})
 
+# Check the priority of the possible suffix sources.
+set(ENV{SETUPTOOLS_EXT_SUFFIX} ".from-setuptools.pyd")
+set(SKBUILD_SOABI "from-skbuild")
+set(Python3_SOABI "from-python3")
+pybind11_guess_python_module_extension("Python3")
+expect_streq("${PYTHON_MODULE_EXTENSION}" ".from-setuptools.pyd")
+
+unset(PYTHON_MODULE_EXT_SUFFIX CACHE)
+unset(ENV{SETUPTOOLS_EXT_SUFFIX})
+pybind11_guess_python_module_extension("Python3")
+expect_streq("${PYTHON_MODULE_EXTENSION}" ".from-skbuild.pyd")
+
+unset(SKBUILD_SOABI)
+pybind11_guess_python_module_extension("Python3")
+expect_streq("${PYTHON_MODULE_EXTENSION}" ".from-python3.pyd")
+
+set(Python3_SOABI "")
+pybind11_guess_python_module_extension("Python3")
+expect_streq("${PYTHON_MODULE_EXTENSION}" ".pyd")
+
+unset(Python3_SOABI)
+pybind11_guess_python_module_extension("Python3")
+expect_streq("${PYTHON_MODULE_EXTENSION}" "")
+
 # macOS
 set(CMAKE_SYSTEM_NAME "Darwin")
 set(CMAKE_SHARED_MODULE_SUFFIX ".so")
