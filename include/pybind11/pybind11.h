@@ -10,11 +10,12 @@
 
 #pragma once
 
-// See Issue #5956. This fixes compilation failure with MSVC 17.12 (v14.44) and C++20: '_BACKUP_ITERATOR_DEBUG_LEVEL' undeclared when including span header from STL.
+// See Issue #5956. This fixes compilation failure with MSVC 17.12 (v14.44) and C++20:
+// '_BACKUP_ITERATOR_DEBUG_LEVEL' undeclared when including span header from STL.
 #if defined(_MSC_VER)
-#ifndef _BACKUP_ITERATOR_DEBUG_LEVEL
-#define _BACKUP_ITERATOR_DEBUG_LEVEL 0
-#endif
+#    ifndef _BACKUP_ITERATOR_DEBUG_LEVEL
+#        define _BACKUP_ITERATOR_DEBUG_LEVEL 0
+#    endif
 #endif
 
 #include "detail/class.h"
