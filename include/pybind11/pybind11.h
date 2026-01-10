@@ -1081,10 +1081,11 @@ protected:
                     dict kwargs;
                     for (size_t i = 0; i < used_kwargs.size(); ++i) {
                         if (!used_kwargs[i]) {
-                            // Fetch value before indexing into kwargs to ensure well-defined
-                            // evaluation order (MSVC C4866).
-                            PyObject *const arg_in_arr = args_in_arr[n_args_in + i];
-                            kwargs[PyTuple_GET_ITEM(kwnames_in, i)] = arg_in_arr;
+                            // Cast values into handles before indexing into kwargs to ensure
+                            // well-defined evaluation order (MSVC C4866).
+                            handle arg_in_arr = args_in_arr[n_args_in + i],
+                                   kwname = PyTuple_GET_ITEM(kwnames_in, i);
+                            kwargs[kwname] = arg_in_arr;
                         }
                     }
                     call.args.push_back(kwargs);
