@@ -240,33 +240,33 @@ TEST_SUBMODULE(methods_and_attributes, m) {
 #if defined(PYBIND11_OVERLOAD_CAST)
         .def("overloaded", py::overload_cast<>(&ExampleMandA::overloaded))
         .def("overloaded", py::overload_cast<int>(&ExampleMandA::overloaded))
+        .def("overloaded", py::overload_cast<int, int>(&ExampleMandA::overloaded))
         .def("overloaded", py::overload_cast<int, float>(&ExampleMandA::overloaded))
         .def("overloaded", py::overload_cast<float, int>(&ExampleMandA::overloaded))
-        .def("overloaded", py::overload_cast<int, int>(&ExampleMandA::overloaded))
         .def("overloaded", py::overload_cast<float, float>(&ExampleMandA::overloaded))
         .def("overloaded_float", py::overload_cast<float, float>(&ExampleMandA::overloaded))
         .def("overloaded_const", py::overload_cast<int>(&ExampleMandA::overloaded, py::const_))
         .def("overloaded_const",
+             py::overload_cast<int, int>(&ExampleMandA::overloaded, py::const_))
+        .def("overloaded_const",
              py::overload_cast<int, float>(&ExampleMandA::overloaded, py::const_))
         .def("overloaded_const",
              py::overload_cast<float, int>(&ExampleMandA::overloaded, py::const_))
-        .def("overloaded_const",
-             py::overload_cast<int, int>(&ExampleMandA::overloaded, py::const_))
         .def("overloaded_const",
              py::overload_cast<float, float>(&ExampleMandA::overloaded, py::const_))
 #else
         // Use both the traditional static_cast method and the C++11 compatible overload_cast_
         .def("overloaded", overload_cast_<>()(&ExampleMandA::overloaded))
         .def("overloaded", overload_cast_<int>()(&ExampleMandA::overloaded))
-        .def("overloaded", overload_cast_<int,   float>()(&ExampleMandA::overloaded))
-        .def("overloaded", static_cast<py::str (ExampleMandA::*)(float,   int)>(&ExampleMandA::overloaded))
-        .def("overloaded", static_cast<py::str (ExampleMandA::*)(int,     int)>(&ExampleMandA::overloaded))
+        .def("overloaded", overload_cast_<int, int>()(&ExampleMandA::overloaded))
+        .def("overloaded", static_cast<py::str (ExampleMandA::*)(int,    float)>(&ExampleMandA::overloaded))
+        .def("overloaded", static_cast<py::str (ExampleMandA::*)(float,  int)>(&ExampleMandA::overloaded))
         .def("overloaded", static_cast<py::str (ExampleMandA::*)(float, float)>(&ExampleMandA::overloaded))
         .def("overloaded_float", overload_cast_<float, float>()(&ExampleMandA::overloaded))
         .def("overloaded_const", overload_cast_<int         >()(&ExampleMandA::overloaded, py::const_))
-        .def("overloaded_const", overload_cast_<int,   float>()(&ExampleMandA::overloaded, py::const_))
-        .def("overloaded_const", static_cast<py::str (ExampleMandA::*)(float,   int) const>(&ExampleMandA::overloaded))
-        .def("overloaded_const", static_cast<py::str (ExampleMandA::*)(int,     int) const>(&ExampleMandA::overloaded))
+        .def("overloaded_const", overload_cast_<int,   int>()(&ExampleMandA::overloaded, py::const_))
+        .def("overloaded_const", static_cast<py::str (ExampleMandA::*)(int,   float) const>(&ExampleMandA::overloaded))
+        .def("overloaded_const", static_cast<py::str (ExampleMandA::*)(float, int) const>(&ExampleMandA::overloaded))
         .def("overloaded_const", static_cast<py::str (ExampleMandA::*)(float, float) const>(&ExampleMandA::overloaded))
 #endif
         // test_no_mixed_overloads
