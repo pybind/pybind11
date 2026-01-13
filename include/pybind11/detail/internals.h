@@ -308,7 +308,16 @@ struct internals {
     internals(internals &&other) = delete;
     internals &operator=(const internals &other) = delete;
     internals &operator=(internals &&other) = delete;
-    ~internals() = default;
+    ~internals() = default; // NOTE: destruct/decref python objects in shutdown()
+
+    /// shutdown is run during interpreter finalization and can (carefully) interact with Python.
+    void shutdown() {
+        Py_XDECREF(static_property_type);
+        static_property_type = nullptr;
+
+        Py_XDECREF(default_metaclass);
+        default_metaclass = nullptr;
+    }
 };
 
 // the internals struct (above) is shared between all the modules. local_internals are only
@@ -325,6 +334,12 @@ struct local_internals {
 
     std::forward_list<ExceptionTranslator> registered_exception_translators;
     PyTypeObject *function_record_py_type = nullptr;
+
+    /// shutdown is run during interpreter finalization and can (carefully) interact with Python.
+    void shutdown() {
+        Py_XDECREF(function_record_py_type);
+        function_record_py_type = nullptr;
+    }
 };
 
 enum class holder_enum_t : uint8_t {
@@ -569,7 +584,7 @@ inline object get_python_state_dict() {
 //          The bool follows std::map::insert convention: true = created, false = existed.
 template <typename Payload>
 std::pair<Payload *, bool> atomic_get_or_create_in_state_dict(const char *key,
-                                                              bool clear_destructor = false) {
+                                                              void (*dtor)(void *) = nullptr) {
     error_scope err_scope; // preserve any existing Python error states
 
     auto state_dict = reinterpret_borrow<dict>(get_python_state_dict());
@@ -595,7 +610,7 @@ std::pair<Payload *, bool> atomic_get_or_create_in_state_dict(const char *key,
             //   - If our capsule is NOT inserted (another thread inserted first), it will be
             //     destructed when going out of scope here, so the destructor will be called
             //     immediately, which will also free the storage.
-            /*destructor=*/[](void *ptr) -> void { delete static_cast<Payload *>(ptr); });
+            /*destructor=*/dtor);
         // At this point, the capsule object is created successfully.
         // Release the unique_ptr and let the capsule object own the storage to avoid double-free.
         (void) storage_ptr.release();
@@ -613,13 +628,6 @@ std::pair<Payload *, bool> atomic_get_or_create_in_state_dict(const char *key,
             throw error_already_set();
         }
         created = (capsule_obj == new_capsule.ptr());
-        if (clear_destructor && created) {
-            // Our capsule was inserted.
-            // Remove the destructor to leak the storage on interpreter shutdown.
-            if (PyCapsule_SetDestructor(capsule_obj, nullptr) < 0) {
-                throw error_already_set();
-            }
-        }
         // - If key already existed, our `new_capsule` is not inserted, it will be destructed when
         //   going out of scope here, which will also free the storage.
         // - Otherwise, our `new_capsule` is now in the dict, and it owns the storage and the state
@@ -707,14 +715,21 @@ private:
     internals_pp_manager(char const *id, on_fetch_function *on_fetch)
         : holder_id_(id), on_fetch_(on_fetch) {}
 
-    std::unique_ptr<InternalsType> *get_or_create_pp_in_state_dict() {
-        // The `unique_ptr<InternalsType>` output is leaked on interpreter shutdown. Once an
-        // instance is created, it will never be deleted until the process exits (compare to
-        // interpreter shutdown in multiple-interpreter scenarios).
+    static void internals_shutdown(void *vpp) {
+        auto *pp = static_cast<std::unique_ptr<InternalsType> *>(vpp);
+        if (pp && *pp) {
+            (*pp)->shutdown();
+        }
         // Because we cannot guarantee the order of destruction of capsules in the interpreter
-        // state dict, leaking avoids potential use-after-free issues during interpreter shutdown.
+        // state dict, the internals unique_ptr is not deleted in this capsule destructor.
+        // The internals (and their unique_ptr owner) cannot be deleted until after the interpreter
+        // has completely shut down. Final cleanup will be done pybind11::finalize_interpreter if
+        // pybind11 was embedded, or it will be leaked if this is an extension module.
+    }
+
+    std::unique_ptr<InternalsType> *get_or_create_pp_in_state_dict() {
         auto result = atomic_get_or_create_in_state_dict<std::unique_ptr<InternalsType>>(
-            holder_id_, /*clear_destructor=*/true);
+            holder_id_, &internals_shutdown);
         auto *pp = result.first;
         bool created = result.second;
         // Only call on_fetch_ when fetching existing internals, not when creating new ones.

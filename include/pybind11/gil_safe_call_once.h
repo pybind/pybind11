@@ -250,7 +250,9 @@ private:
     // Get or create per-storage capsule in the current interpreter's state dict.
     // The storage is interpreter-dependent and will not be shared across interpreters.
     storage_type *get_or_create_storage_in_state_dict() {
-        return detail::atomic_get_or_create_in_state_dict<storage_type>(get_storage_key().c_str())
+        return detail::atomic_get_or_create_in_state_dict<storage_type>(
+                   get_storage_key().c_str(),
+                   [](void *ptr) -> void { delete static_cast<storage_type *>(ptr); })
             .first;
     }
 
