@@ -308,10 +308,7 @@ struct internals {
     internals(internals &&other) = delete;
     internals &operator=(const internals &other) = delete;
     internals &operator=(internals &&other) = delete;
-    ~internals() = default; // NOTE: destruct/decref python objects in shutdown()
-
-    /// shutdown is run during interpreter finalization and can (carefully) interact with Python.
-    void shutdown() {
+    ~internals() {
         Py_XDECREF(static_property_type);
         static_property_type = nullptr;
 
@@ -335,8 +332,7 @@ struct local_internals {
     std::forward_list<ExceptionTranslator> registered_exception_translators;
     PyTypeObject *function_record_py_type = nullptr;
 
-    /// shutdown is run during interpreter finalization and can (carefully) interact with Python.
-    void shutdown() {
+    ~local_internals() {
         Py_XDECREF(function_record_py_type);
         function_record_py_type = nullptr;
     }
@@ -717,14 +713,12 @@ private:
 
     static void internals_shutdown(void *vpp) {
         auto *pp = static_cast<std::unique_ptr<InternalsType> *>(vpp);
-        if (pp && *pp) {
-            (*pp)->shutdown();
+        if (pp) {
+            pp->reset();
         }
-        // Because we cannot guarantee the order of destruction of capsules in the interpreter
-        // state dict, the internals unique_ptr is not deleted in this capsule destructor.
-        // The internals (and their unique_ptr owner) cannot be deleted until after the interpreter
-        // has completely shut down. Final cleanup will be done pybind11::finalize_interpreter if
-        // pybind11 was embedded, or it will be leaked if this is an extension module.
+        // Because the unique_ptr is still pointed to by the pp_manager in this and possibly other
+        // modules, we cannot free the unique_ptr itself until after the interpreter has shut down.
+        // If this interpreter was not created/owned by pybind11 then this unique_ptr is leaked.
     }
 
     std::unique_ptr<InternalsType> *get_or_create_pp_in_state_dict() {
