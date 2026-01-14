@@ -313,7 +313,7 @@ struct internals {
         // In odd finalization scenarios it might end up running after the interpreter has
         // completely shut down, In that case, we should not decref these objects because pymalloc
         // is gone.
-        if (Py_IsInitialized()) {
+        if (Py_IsInitialized() != 0) {
             Py_XDECREF(static_property_type);
             static_property_type = nullptr;
 
@@ -343,7 +343,7 @@ struct local_internals {
         // In odd finalization scenarios it might end up running after the interpreter has
         // completely shut down, In that case, we should not decref these objects because pymalloc
         // is gone.
-        if (Py_IsInitialized()) {
+        if (Py_IsInitialized() != 0) {
             Py_XDECREF(function_record_py_type);
             function_record_py_type = nullptr;
         }
