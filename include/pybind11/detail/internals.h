@@ -309,11 +309,17 @@ struct internals {
     internals &operator=(const internals &other) = delete;
     internals &operator=(internals &&other) = delete;
     ~internals() {
-        Py_XDECREF(static_property_type);
-        static_property_type = nullptr;
+        // Normally this destructor runs during interpreter finalization and it may DECREF things.
+        // In odd finalization scenarios it might end up running after the interpreter has
+        // completely shut down, In that case, we should not decref these objects because pymalloc
+        // is gone.
+        if (Py_IsInitialized()) {
+            Py_XDECREF(static_property_type);
+            static_property_type = nullptr;
 
-        Py_XDECREF(default_metaclass);
-        default_metaclass = nullptr;
+            Py_XDECREF(default_metaclass);
+            default_metaclass = nullptr;
+        }
     }
 };
 
@@ -333,8 +339,14 @@ struct local_internals {
     PyTypeObject *function_record_py_type = nullptr;
 
     ~local_internals() {
-        Py_XDECREF(function_record_py_type);
-        function_record_py_type = nullptr;
+        // Normally this destructor runs during interpreter finalization and it may DECREF things.
+        // In odd finalization scenarios it might end up running after the interpreter has
+        // completely shut down, In that case, we should not decref these objects because pymalloc
+        // is gone.
+        if (Py_IsInitialized()) {
+            Py_XDECREF(function_record_py_type);
+            function_record_py_type = nullptr;
+        }
     }
 };
 
@@ -717,8 +729,9 @@ private:
             pp->reset();
         }
         // Because the unique_ptr is still pointed to by the pp_manager in this and possibly other
-        // modules, we cannot free the unique_ptr itself until after the interpreter has shut down.
-        // If this interpreter was not created/owned by pybind11 then this unique_ptr is leaked.
+        // modules, we cannot delete the unique_ptr itself until after the interpreter has shut
+        // down. If this interpreter was not created/owned by pybind11 then the unique_ptr itself
+        // (but not its contents) is leaked.
     }
 
     std::unique_ptr<InternalsType> *get_or_create_pp_in_state_dict() {
