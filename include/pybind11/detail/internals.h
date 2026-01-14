@@ -103,7 +103,7 @@ public:
         // However, in GraalPy (as of v24.2 or older), TSS is implemented by Java and this call
         // requires a living Python interpreter.
 #ifdef GRAALVM_PYTHON
-        if (!Py_IsInitialized() || _Py_IsFinalizing()) {
+        if (!is_interpreter_alive()) {
             return;
         }
 #endif
@@ -194,6 +194,14 @@ struct override_hash {
 };
 
 using instance_map = std::unordered_multimap<const void *, instance *>;
+
+inline bool is_interpreter_alive() {
+#if PY_VERSION_HEX < 0x030D0000
+    return Py_IsInitialized() != 0 || _Py_IsFinalizing() != 0;
+#else
+    return Py_IsInitialized() != 0 || Py_IsFinalizing() != 0;
+#endif
+}
 
 #ifdef Py_GIL_DISABLED
 // Wrapper around PyMutex to provide BasicLockable semantics
@@ -313,12 +321,9 @@ struct internals {
         // In odd finalization scenarios it might end up running after the interpreter has
         // completely shut down, In that case, we should not decref these objects because pymalloc
         // is gone.
-        if (Py_IsInitialized() != 0) {
-            Py_XDECREF(static_property_type);
-            static_property_type = nullptr;
-
-            Py_XDECREF(default_metaclass);
-            default_metaclass = nullptr;
+        if (is_interpreter_alive()) {
+            Py_CLEAR(static_property_type);
+            Py_CLEAR(default_metaclass);
         }
     }
 };
@@ -343,9 +348,8 @@ struct local_internals {
         // In odd finalization scenarios it might end up running after the interpreter has
         // completely shut down, In that case, we should not decref these objects because pymalloc
         // is gone.
-        if (Py_IsInitialized() != 0) {
-            Py_XDECREF(function_record_py_type);
-            function_record_py_type = nullptr;
+        if (is_interpreter_alive()) {
+            Py_CLEAR(function_record_py_type);
         }
     }
 };
@@ -592,7 +596,7 @@ inline object get_python_state_dict() {
 //          The bool follows std::map::insert convention: true = created, false = existed.
 template <typename Payload>
 std::pair<Payload *, bool> atomic_get_or_create_in_state_dict(const char *key,
-                                                              void (*dtor)(void *) = nullptr) {
+                                                              void (*dtor)(PyObject *) = nullptr) {
     error_scope err_scope; // preserve any existing Python error states
 
     auto state_dict = reinterpret_borrow<dict>(get_python_state_dict());
@@ -609,16 +613,13 @@ std::pair<Payload *, bool> atomic_get_or_create_in_state_dict(const char *key,
         // Use unique_ptr for exception safety: if capsule creation throws, the storage is
         // automatically deleted.
         auto storage_ptr = std::unique_ptr<Payload>(new Payload{});
-        // Create capsule with destructor to clean up when the interpreter shuts down.
-        auto new_capsule = capsule(
-            storage_ptr.get(),
-            // The destructor will be called when the capsule is GC'ed.
-            //   - If our capsule is inserted into the dict below, it will be kept alive until
-            //     interpreter shutdown, so the destructor will be called at that time.
-            //   - If our capsule is NOT inserted (another thread inserted first), it will be
-            //     destructed when going out of scope here, so the destructor will be called
-            //     immediately, which will also free the storage.
-            /*destructor=*/dtor);
+        auto new_capsule
+            = capsule(storage_ptr.get(),
+                      // The destructor will be called when the capsule is GC'ed.
+                      //  If the insert below fails (entry already in the dict), then this
+                      //  destructor will be called on the newly created capsule at the end of this
+                      //  function, and we want to just release this memory.
+                      /*destructor=*/[](void *v) { delete static_cast<Payload *>(v); });
         // At this point, the capsule object is created successfully.
         // Release the unique_ptr and let the capsule object own the storage to avoid double-free.
         (void) storage_ptr.release();
@@ -637,9 +638,15 @@ std::pair<Payload *, bool> atomic_get_or_create_in_state_dict(const char *key,
         }
         created = (capsule_obj == new_capsule.ptr());
         // - If key already existed, our `new_capsule` is not inserted, it will be destructed when
-        //   going out of scope here, which will also free the storage.
+        //   going out of scope here, and will call the destructor set above.
         // - Otherwise, our `new_capsule` is now in the dict, and it owns the storage and the state
-        //   dict will incref it.
+        //   dict will incref it.  We need to set the caller's destructor on it, which will be
+        //   called when the interpreter shuts down.
+        if (created && dtor) {
+            if (PyCapsule_SetDestructor(capsule_obj, dtor) < 0) {
+                throw error_already_set();
+            }
+        }
     }
 
     // Get the storage pointer from the capsule.
@@ -723,8 +730,9 @@ private:
     internals_pp_manager(char const *id, on_fetch_function *on_fetch)
         : holder_id_(id), on_fetch_(on_fetch) {}
 
-    static void internals_shutdown(void *vpp) {
-        auto *pp = static_cast<std::unique_ptr<InternalsType> *>(vpp);
+    static void internals_shutdown(PyObject *capsule) {
+        auto *pp = static_cast<std::unique_ptr<InternalsType> *>(
+            PyCapsule_GetPointer(capsule, nullptr));
         if (pp) {
             pp->reset();
         }
