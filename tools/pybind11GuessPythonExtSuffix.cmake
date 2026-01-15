@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15...4.0)
+cmake_minimum_required(VERSION 3.15...4.2)
 
 function(pybind11_guess_python_module_extension python)
 
