@@ -728,18 +728,23 @@ public:
             gil_scoped_acquire_simple gil;
             auto *tstate = get_thread_state_unchecked();
             if (tstate) {
-                // Get the capsule directly from the state dict and reset the unique_ptr
-                auto state_dict = reinterpret_borrow<dict>(get_python_state_dict());
-                PyObject *capsule_obj = dict_getitemstring(state_dict.ptr(), holder_id_);
-                if (capsule_obj) {
-                    void *raw_ptr = PyCapsule_GetPointer(capsule_obj, /*name=*/nullptr);
-                    if (raw_ptr) {
-                        auto *pp = static_cast<std::unique_ptr<InternalsType> *>(raw_ptr);
-                        if (pp && pp->get() != nullptr) {
-                            // Only reset if the unique_ptr actually contains an object
-                            pp->reset();
+                try {
+                    // Get the capsule directly from the state dict and reset the unique_ptr
+                    auto state_dict = reinterpret_borrow<dict>(get_python_state_dict());
+                    PyObject *capsule_obj = dict_getitemstring(state_dict.ptr(), holder_id_);
+                    if (capsule_obj) {
+                        void *raw_ptr = PyCapsule_GetPointer(capsule_obj, /*name=*/nullptr);
+                        if (raw_ptr) {
+                            auto *pp = static_cast<std::unique_ptr<InternalsType> *>(raw_ptr);
+                            if (pp && pp->get() != nullptr) {
+                                // Only reset if the unique_ptr actually contains an object
+                                pp->reset();
+                            }
                         }
                     }
+                } catch (...) {
+                    // If we can't get the state dict or capsule, silently continue
+                    // The capsule destructor will clean up eventually
                 }
             }
             return;
