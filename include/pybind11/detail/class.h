@@ -207,49 +207,64 @@ extern "C" inline PyObject *pybind11_meta_call(PyObject *type, PyObject *args, P
 
 /// Cleanup the type-info for a pybind11-registered type.
 extern "C" inline void pybind11_meta_dealloc(PyObject *obj) {
-    with_internals([obj](internals &internals) {
-        auto *type = (PyTypeObject *) obj;
+    if (is_interpreter_finalizing()) {
+        PyType_Type.tp_dealloc(obj);
+        return;
+    }
 
-        // A pybind11-registered type will:
-        // 1) be found in internals.registered_types_py
-        // 2) have exactly one associated `detail::type_info`
-        auto found_type = internals.registered_types_py.find(type);
-        if (found_type != internals.registered_types_py.end() && found_type->second.size() == 1
-            && found_type->second[0]->type == type) {
+    auto *internals_pp = get_internals_pp_manager().get_pp_if_exists();
+    if (!internals_pp || internals_pp->get() == nullptr) {
+        PyType_Type.tp_dealloc(obj);
+        return;
+    }
 
-            auto *tinfo = found_type->second[0];
-            auto tindex = std::type_index(*tinfo->cpptype);
-            internals.direct_conversions.erase(tindex);
+    auto &internals = *internals_pp->get();
+    PYBIND11_LOCK_INTERNALS(internals);
 
-            auto &local_internals = get_local_internals();
-            if (tinfo->module_local) {
-                local_internals.registered_types_cpp.erase(tinfo->cpptype);
-            } else {
-                internals.registered_types_cpp.erase(tindex);
+    auto *type = (PyTypeObject *) obj;
+
+    // A pybind11-registered type will:
+    // 1) be found in internals.registered_types_py
+    // 2) have exactly one associated `detail::type_info`
+    auto found_type = internals.registered_types_py.find(type);
+    if (found_type != internals.registered_types_py.end() && found_type->second.size() == 1
+        && found_type->second[0]->type == type) {
+
+        auto *tinfo = found_type->second[0];
+        auto tindex = std::type_index(*tinfo->cpptype);
+        internals.direct_conversions.erase(tindex);
+
+        auto *local_internals_pp = get_local_internals_pp_manager().get_pp_if_exists();
+        auto *local_internals_ptr = local_internals_pp ? local_internals_pp->get() : nullptr;
+        if (tinfo->module_local) {
+            if (local_internals_ptr) {
+                local_internals_ptr->registered_types_cpp.erase(tinfo->cpptype);
+            }
+        } else {
+            internals.registered_types_cpp.erase(tindex);
 #if PYBIND11_INTERNALS_VERSION >= 12
-                internals.registered_types_cpp_fast.erase(tinfo->cpptype);
-                for (const std::type_info *alias : tinfo->alias_chain) {
-                    auto num_erased = internals.registered_types_cpp_fast.erase(alias);
-                    (void) num_erased;
-                    assert(num_erased > 0);
-                }
+            internals.registered_types_cpp_fast.erase(tinfo->cpptype);
+            for (const std::type_info *alias : tinfo->alias_chain) {
+                auto num_erased = internals.registered_types_cpp_fast.erase(alias);
+                (void) num_erased;
+                assert(num_erased > 0);
+            }
 #endif
-            }
-            internals.registered_types_py.erase(tinfo->type);
-
-            // Actually just `std::erase_if`, but that's only available in C++20
-            auto &cache = internals.inactive_override_cache;
-            for (auto it = cache.begin(), last = cache.end(); it != last;) {
-                if (it->first == (PyObject *) tinfo->type) {
-                    it = cache.erase(it);
-                } else {
-                    ++it;
-                }
-            }
-
-            delete tinfo;
         }
-    });
+        internals.registered_types_py.erase(tinfo->type);
+
+        // Actually just `std::erase_if`, but that's only available in C++20
+        auto &cache = internals.inactive_override_cache;
+        for (auto it = cache.begin(), last = cache.end(); it != last;) {
+            if (it->first == (PyObject *) tinfo->type) {
+                it = cache.erase(it);
+            } else {
+                ++it;
+            }
+        }
+
+        delete tinfo;
+    }
 
     PyType_Type.tp_dealloc(obj);
 }

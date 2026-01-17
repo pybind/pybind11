@@ -203,6 +203,14 @@ inline bool is_interpreter_alive() {
 #endif
 }
 
+inline bool is_interpreter_finalizing() {
+#if PY_VERSION_HEX < 0x030D0000
+    return _Py_IsFinalizing() != 0;
+#else
+    return Py_IsFinalizing() != 0;
+#endif
+}
+
 #ifdef Py_GIL_DISABLED
 // Wrapper around PyMutex to provide BasicLockable semantics
 class pymutex {
@@ -707,6 +715,26 @@ public:
         return internals_singleton_pp_;
     }
 
+    /// Get the current pointer-to-pointer if it already exists, without creating it.
+    std::unique_ptr<InternalsType> *get_pp_if_exists() {
+#ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
+        if (has_seen_non_main_interpreter()) {
+            auto *tstate = get_thread_state_unchecked();
+            if (tstate && tstate->interp != last_istate_tls()) {
+                gil_scoped_acquire_simple gil;
+                last_istate_tls() = tstate->interp;
+                internals_p_tls() = get_pp_from_state_dict_if_exists();
+            }
+            return internals_p_tls();
+        }
+#endif
+        if (!internals_singleton_pp_) {
+            gil_scoped_acquire_simple gil;
+            internals_singleton_pp_ = get_pp_from_state_dict_if_exists();
+        }
+        return internals_singleton_pp_;
+    }
+
     /// Drop all the references we're currently holding.
     void unref() {
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
@@ -728,23 +756,10 @@ public:
             gil_scoped_acquire_simple gil;
             auto *tstate = get_thread_state_unchecked();
             if (tstate) {
-                try {
-                    // Get the capsule directly from the state dict and reset the unique_ptr
-                    auto state_dict = reinterpret_borrow<dict>(get_python_state_dict());
-                    PyObject *capsule_obj = dict_getitemstring(state_dict.ptr(), holder_id_);
-                    if (capsule_obj) {
-                        void *raw_ptr = PyCapsule_GetPointer(capsule_obj, /*name=*/nullptr);
-                        if (raw_ptr) {
-                            auto *pp = static_cast<std::unique_ptr<InternalsType> *>(raw_ptr);
-                            if (pp && pp->get() != nullptr) {
-                                // Only reset if the unique_ptr actually contains an object
-                                pp->reset();
-                            }
-                        }
-                    }
-                } catch (...) {
-                    // If we can't get the state dict or capsule, silently continue
-                    // The capsule destructor will clean up eventually
+                auto *pp = get_pp_from_state_dict_if_exists();
+                if (pp && pp->get() != nullptr) {
+                    // Only reset if the unique_ptr actually contains an object
+                    pp->reset();
                 }
             }
             return;
@@ -808,6 +823,30 @@ private:
             on_fetch_(pp->get());
         }
         return pp;
+    }
+
+    std::unique_ptr<InternalsType> *get_pp_from_state_dict_if_exists() {
+        error_scope err_scope; // preserve any existing Python error states
+        try {
+            auto state_dict = reinterpret_borrow<dict>(get_python_state_dict());
+            PyObject *capsule_obj = dict_getitemstring(state_dict.ptr(), holder_id_);
+            if (capsule_obj == nullptr) {
+                if (PyErr_Occurred()) {
+                    PyErr_Clear();
+                }
+                return nullptr;
+            }
+            void *raw_ptr = PyCapsule_GetPointer(capsule_obj, /*name=*/nullptr);
+            if (!raw_ptr) {
+                if (PyErr_Occurred()) {
+                    PyErr_Clear();
+                }
+                return nullptr;
+            }
+            return static_cast<std::unique_ptr<InternalsType> *>(raw_ptr);
+        } catch (const error_already_set &) {
+            return nullptr;
+        }
     }
 
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
