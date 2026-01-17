@@ -321,6 +321,8 @@ struct internals {
         // In odd finalization scenarios it might end up running after the interpreter has
         // completely shut down, In that case, we should not decref these objects because pymalloc
         // is gone.
+        // However, when called from reset() before Py_EndInterpreter, the interpreter is
+        // definitely alive, so we should always clean up in that case.
         if (is_interpreter_alive()) {
             Py_CLEAR(static_property_type);
             Py_CLEAR(default_metaclass);
