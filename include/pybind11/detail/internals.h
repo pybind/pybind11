@@ -733,7 +733,8 @@ public:
                     void *raw_ptr = PyCapsule_GetPointer(capsule_obj, /*name=*/nullptr);
                     if (raw_ptr) {
                         auto *pp = static_cast<std::unique_ptr<InternalsType> *>(raw_ptr);
-                        if (pp) {
+                        if (pp && pp->get() != nullptr) {
+                            // Only reset if the unique_ptr actually contains an object
                             pp->reset();
                         }
                     }
