@@ -324,6 +324,7 @@ struct internals {
         if (is_interpreter_alive()) {
             Py_CLEAR(static_property_type);
             Py_CLEAR(default_metaclass);
+            Py_CLEAR(instance_base);
         }
     }
 };
@@ -717,10 +718,17 @@ public:
             gil_scoped_acquire_simple gil;
             auto *tstate = get_thread_state_unchecked();
             if (tstate) {
-                last_istate_tls() = tstate->interp;
-                auto *tpp = get_or_create_pp_in_state_dict();
-                if (tpp) {
-                    tpp->reset();
+                // Get the capsule directly from the state dict and reset the unique_ptr
+                auto state_dict = reinterpret_borrow<dict>(get_python_state_dict());
+                PyObject *capsule_obj = dict_getitemstring(state_dict.ptr(), holder_id_);
+                if (capsule_obj) {
+                    void *raw_ptr = PyCapsule_GetPointer(capsule_obj, /*name=*/nullptr);
+                    if (raw_ptr) {
+                        auto *pp = static_cast<std::unique_ptr<InternalsType> *>(raw_ptr);
+                        if (pp) {
+                            pp->reset();
+                        }
+                    }
                 }
             }
             return;
