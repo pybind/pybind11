@@ -325,6 +325,14 @@ struct internals {
             Py_CLEAR(static_property_type);
             Py_CLEAR(default_metaclass);
             Py_CLEAR(instance_base);
+
+            // Clean up patients - these PyObject* pointers were INCREF'd when added
+            for (auto &patient_pair : patients) {
+                for (PyObject *patient : patient_pair.second) {
+                    Py_CLEAR(patient);
+                }
+            }
+            patients.clear();
         }
     }
 };
