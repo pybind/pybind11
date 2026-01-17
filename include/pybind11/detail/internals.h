@@ -708,6 +708,29 @@ public:
         internals_singleton_pp_ = nullptr;
     }
 
+    /// Reset the internals object in the capsule (frees the internals before interpreter shutdown)
+    void reset() {
+#ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
+        if (has_seen_non_main_interpreter()) {
+            // Always get the pointer-to-pointer from the state dict to ensure we're resetting
+            // the correct internals for the current interpreter
+            gil_scoped_acquire_simple gil;
+            auto *tstate = get_thread_state_unchecked();
+            if (tstate) {
+                last_istate_tls() = tstate->interp;
+                auto *tpp = get_or_create_pp_in_state_dict();
+                if (tpp) {
+                    tpp->reset();
+                }
+            }
+            return;
+        }
+#endif
+        if (internals_singleton_pp_) {
+            internals_singleton_pp_->reset();
+        }
+    }
+
     void destroy() {
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
         if (has_seen_non_main_interpreter()) {
@@ -715,13 +738,22 @@ public:
             // this could be called without an active interpreter, just use what was cached
             if (!tstate || tstate->interp == last_istate_tls()) {
                 auto tpp = internals_p_tls();
-
+                if (tpp) {
+                    // Reset the unique_ptr in the capsule to free the internals object
+                    // before deleting the cached pointer-to-pointer
+                    tpp->reset();
+                }
                 delete tpp;
             }
             unref();
             return;
         }
 #endif
+        if (internals_singleton_pp_) {
+            // Reset the unique_ptr in the capsule to free the internals object
+            // before deleting the cached pointer-to-pointer
+            internals_singleton_pp_->reset();
+        }
         delete internals_singleton_pp_;
         unref();
     }

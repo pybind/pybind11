@@ -181,6 +181,11 @@ public:
         detail::get_internals_pp_manager().get_pp();
         detail::get_local_internals_pp_manager().get_pp();
 
+        // Reset the internals objects before ending the interpreter to free their memory
+        // (the capsule destructor won't be called until interpreter shutdown, which is too late)
+        detail::get_internals_pp_manager().reset();
+        detail::get_local_internals_pp_manager().reset();
+
         // End it
         Py_EndInterpreter(destroy_tstate);
 
