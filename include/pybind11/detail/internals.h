@@ -736,10 +736,16 @@ private:
         if (pp) {
             pp->reset();
         }
-        // Because the unique_ptr is still pointed to by the pp_manager in this and possibly other
-        // modules, we cannot delete the unique_ptr itself until after the interpreter has shut
-        // down. If this interpreter was not created/owned by pybind11 then the unique_ptr itself
-        // (but not its contents) is leaked.
+        // We reset the unique_ptr's contents but cannot delete the unique_ptr itself here.
+        // The pp_manager in this module (and possibly other modules sharing internals) holds
+        // a raw pointer to this unique_ptr, and that pointer would dangle if we deleted it now.
+        //
+        // For pybind11-owned interpreters (via embed.h or subinterpreter.h), destroy() is
+        // called after Py_Finalize/Py_EndInterpreter completes, which safely deletes the
+        // unique_ptr. For interpreters not owned by pybind11 (e.g., a pybind11 extension
+        // loaded into an external interpreter), destroy() is never called and the unique_ptr
+        // shell (8 bytes, not its contents) is leaked.
+        // (See PR #5958 for ideas to eliminate this leak.)
     }
 
     std::unique_ptr<InternalsType> *get_or_create_pp_in_state_dict() {
