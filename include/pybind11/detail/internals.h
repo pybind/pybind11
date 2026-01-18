@@ -322,8 +322,9 @@ struct internals {
         // completely shut down, In that case, we should not decref these objects because pymalloc
         // is gone.
         if (is_interpreter_alive()) {
-            Py_CLEAR(static_property_type);
+            Py_CLEAR(instance_base);
             Py_CLEAR(default_metaclass);
+            Py_CLEAR(static_property_type);
         }
     }
 };
@@ -868,6 +869,17 @@ inline auto with_internals(const F &cb) -> decltype(cb(get_internals())) {
     auto &internals = get_internals();
     PYBIND11_LOCK_INTERNALS(internals);
     return cb(internals);
+}
+
+template <typename F>
+inline void with_internals_if_internals(const F &cb) {
+    auto &ppmgr = get_internals_pp_manager();
+    auto &internals_ptr = *ppmgr.get_pp();
+    if (internals_ptr) {
+        auto &internals = *internals_ptr;
+        PYBIND11_LOCK_INTERNALS(internals);
+        cb(internals);
+    }
 }
 
 template <typename F>
