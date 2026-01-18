@@ -485,6 +485,11 @@ jobs:
     steps:
     - uses: actions/checkout@v6
 
+    - name: Clean out unused stuff to save space
+      run: |
+        sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
+        sudo apt-get clean
+
     - name: Add NVHPC Repo
       run: |
         echo 'deb [trusted=yes] https://developer.download.nvidia.com/hpc-sdk/ubuntu/amd64 /' | \
@@ -492,10 +497,11 @@ jobs:
 
     - name: Install 🐍 3 & NVHPC
       run: |
-        sudo apt-get update -y && \
-        sudo apt-get install -y cmake environment-modules git python3-dev python3-pip python3-numpy && \
-        sudo apt-get install -y --no-install-recommends nvhpc-25-11 && \
+        sudo apt-get update -y
+        sudo apt-get install -y cmake environment-modules git python3-dev python3-pip python3-numpy
+        sudo apt-get install -y --no-install-recommends nvhpc-25-11
         sudo rm -rf /var/lib/apt/lists/*
+        apt-cache depends nvhpc-25-11
         python3 -m pip install --upgrade pip
         python3 -m pip install --upgrade pytest
 

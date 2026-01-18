@@ -103,7 +103,7 @@ public:
         // However, in GraalPy (as of v24.2 or older), TSS is implemented by Java and this call
         // requires a living Python interpreter.
 #ifdef GRAALVM_PYTHON
-        if (!Py_IsInitialized() || _Py_IsFinalizing()) {
+        if (Py_IsInitialized() == 0 || _Py_IsFinalizing() != 0) {
             return;
         }
 #endif
@@ -194,6 +194,14 @@ struct override_hash {
 };
 
 using instance_map = std::unordered_multimap<const void *, instance *>;
+
+inline bool is_interpreter_alive() {
+#if PY_VERSION_HEX < 0x030D0000
+    return Py_IsInitialized() != 0 || _Py_IsFinalizing() != 0;
+#else
+    return Py_IsInitialized() != 0 || Py_IsFinalizing() != 0;
+#endif
+}
 
 #ifdef Py_GIL_DISABLED
 // Wrapper around PyMutex to provide BasicLockable semantics
@@ -308,7 +316,17 @@ struct internals {
     internals(internals &&other) = delete;
     internals &operator=(const internals &other) = delete;
     internals &operator=(internals &&other) = delete;
-    ~internals() = default;
+    ~internals() {
+        // Normally this destructor runs during interpreter finalization and it may DECREF things.
+        // In odd finalization scenarios it might end up running after the interpreter has
+        // completely shut down, In that case, we should not decref these objects because pymalloc
+        // is gone.
+        if (is_interpreter_alive()) {
+            Py_CLEAR(instance_base);
+            Py_CLEAR(default_metaclass);
+            Py_CLEAR(static_property_type);
+        }
+    }
 };
 
 // the internals struct (above) is shared between all the modules. local_internals are only
@@ -325,6 +343,16 @@ struct local_internals {
 
     std::forward_list<ExceptionTranslator> registered_exception_translators;
     PyTypeObject *function_record_py_type = nullptr;
+
+    ~local_internals() {
+        // Normally this destructor runs during interpreter finalization and it may DECREF things.
+        // In odd finalization scenarios it might end up running after the interpreter has
+        // completely shut down, In that case, we should not decref these objects because pymalloc
+        // is gone.
+        if (is_interpreter_alive()) {
+            Py_CLEAR(function_record_py_type);
+        }
+    }
 };
 
 enum class holder_enum_t : uint8_t {
@@ -569,7 +597,7 @@ inline object get_python_state_dict() {
 //          The bool follows std::map::insert convention: true = created, false = existed.
 template <typename Payload>
 std::pair<Payload *, bool> atomic_get_or_create_in_state_dict(const char *key,
-                                                              bool clear_destructor = false) {
+                                                              void (*dtor)(PyObject *) = nullptr) {
     error_scope err_scope; // preserve any existing Python error states
 
     auto state_dict = reinterpret_borrow<dict>(get_python_state_dict());
@@ -586,16 +614,13 @@ std::pair<Payload *, bool> atomic_get_or_create_in_state_dict(const char *key,
         // Use unique_ptr for exception safety: if capsule creation throws, the storage is
         // automatically deleted.
         auto storage_ptr = std::unique_ptr<Payload>(new Payload{});
-        // Create capsule with destructor to clean up when the interpreter shuts down.
-        auto new_capsule = capsule(
-            storage_ptr.get(),
-            // The destructor will be called when the capsule is GC'ed.
-            //   - If our capsule is inserted into the dict below, it will be kept alive until
-            //     interpreter shutdown, so the destructor will be called at that time.
-            //   - If our capsule is NOT inserted (another thread inserted first), it will be
-            //     destructed when going out of scope here, so the destructor will be called
-            //     immediately, which will also free the storage.
-            /*destructor=*/[](void *ptr) -> void { delete static_cast<Payload *>(ptr); });
+        auto new_capsule
+            = capsule(storage_ptr.get(),
+                      // The destructor will be called when the capsule is GC'ed.
+                      //  If the insert below fails (entry already in the dict), then this
+                      //  destructor will be called on the newly created capsule at the end of this
+                      //  function, and we want to just release this memory.
+                      /*destructor=*/[](void *v) { delete static_cast<Payload *>(v); });
         // At this point, the capsule object is created successfully.
         // Release the unique_ptr and let the capsule object own the storage to avoid double-free.
         (void) storage_ptr.release();
@@ -613,17 +638,16 @@ std::pair<Payload *, bool> atomic_get_or_create_in_state_dict(const char *key,
             throw error_already_set();
         }
         created = (capsule_obj == new_capsule.ptr());
-        if (clear_destructor && created) {
-            // Our capsule was inserted.
-            // Remove the destructor to leak the storage on interpreter shutdown.
-            if (PyCapsule_SetDestructor(capsule_obj, nullptr) < 0) {
+        // - If key already existed, our `new_capsule` is not inserted, it will be destructed when
+        //   going out of scope here, and will call the destructor set above.
+        // - Otherwise, our `new_capsule` is now in the dict, and it owns the storage and the state
+        //   dict will incref it.  We need to set the caller's destructor on it, which will be
+        //   called when the interpreter shuts down.
+        if (created && dtor) {
+            if (PyCapsule_SetDestructor(capsule_obj, dtor) < 0) {
                 throw error_already_set();
             }
         }
-        // - If key already existed, our `new_capsule` is not inserted, it will be destructed when
-        //   going out of scope here, which will also free the storage.
-        // - Otherwise, our `new_capsule` is now in the dict, and it owns the storage and the state
-        //   dict will incref it.
     }
 
     // Get the storage pointer from the capsule.
@@ -707,14 +731,27 @@ private:
     internals_pp_manager(char const *id, on_fetch_function *on_fetch)
         : holder_id_(id), on_fetch_(on_fetch) {}
 
+    static void internals_shutdown(PyObject *capsule) {
+        auto *pp = static_cast<std::unique_ptr<InternalsType> *>(
+            PyCapsule_GetPointer(capsule, nullptr));
+        if (pp) {
+            pp->reset();
+        }
+        // We reset the unique_ptr's contents but cannot delete the unique_ptr itself here.
+        // The pp_manager in this module (and possibly other modules sharing internals) holds
+        // a raw pointer to this unique_ptr, and that pointer would dangle if we deleted it now.
+        //
+        // For pybind11-owned interpreters (via embed.h or subinterpreter.h), destroy() is
+        // called after Py_Finalize/Py_EndInterpreter completes, which safely deletes the
+        // unique_ptr. For interpreters not owned by pybind11 (e.g., a pybind11 extension
+        // loaded into an external interpreter), destroy() is never called and the unique_ptr
+        // shell (8 bytes, not its contents) is leaked.
+        // (See PR #5958 for ideas to eliminate this leak.)
+    }
+
     std::unique_ptr<InternalsType> *get_or_create_pp_in_state_dict() {
-        // The `unique_ptr<InternalsType>` output is leaked on interpreter shutdown. Once an
-        // instance is created, it will never be deleted until the process exits (compare to
-        // interpreter shutdown in multiple-interpreter scenarios).
-        // Because we cannot guarantee the order of destruction of capsules in the interpreter
-        // state dict, leaking avoids potential use-after-free issues during interpreter shutdown.
         auto result = atomic_get_or_create_in_state_dict<std::unique_ptr<InternalsType>>(
-            holder_id_, /*clear_destructor=*/true);
+            holder_id_, &internals_shutdown);
         auto *pp = result.first;
         bool created = result.second;
         // Only call on_fetch_ when fetching existing internals, not when creating new ones.
@@ -832,6 +869,17 @@ inline auto with_internals(const F &cb) -> decltype(cb(get_internals())) {
     auto &internals = get_internals();
     PYBIND11_LOCK_INTERNALS(internals);
     return cb(internals);
+}
+
+template <typename F>
+inline void with_internals_if_internals(const F &cb) {
+    auto &ppmgr = get_internals_pp_manager();
+    auto &internals_ptr = *ppmgr.get_pp();
+    if (internals_ptr) {
+        auto &internals = *internals_ptr;
+        PYBIND11_LOCK_INTERNALS(internals);
+        cb(internals);
+    }
 }
 
 template <typename F>
