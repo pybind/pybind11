@@ -195,14 +195,6 @@ struct override_hash {
 
 using instance_map = std::unordered_multimap<const void *, instance *>;
 
-inline bool is_interpreter_alive() {
-#if PY_VERSION_HEX < 0x030D0000
-    return Py_IsInitialized() != 0 || _Py_IsFinalizing() != 0;
-#else
-    return Py_IsInitialized() != 0 || Py_IsFinalizing() != 0;
-#endif
-}
-
 #ifdef Py_GIL_DISABLED
 // Wrapper around PyMutex to provide BasicLockable semantics
 class pymutex {
@@ -316,16 +308,21 @@ struct internals {
     internals(internals &&other) = delete;
     internals &operator=(const internals &other) = delete;
     internals &operator=(internals &&other) = delete;
+    void leak_detach() noexcept {
+        // Used when internals must be destroyed after interpreter teardown.
+        // Avoid touching the Python C-API by clearing pointers only.
+        instance_base = nullptr;
+        default_metaclass = nullptr;
+        static_property_type = nullptr;
+    }
+
     ~internals() {
-        // Normally this destructor runs during interpreter finalization and it may DECREF things.
-        // In odd finalization scenarios it might end up running after the interpreter has
-        // completely shut down, In that case, we should not decref these objects because pymalloc
-        // is gone.
-        if (is_interpreter_alive()) {
-            Py_CLEAR(instance_base);
-            Py_CLEAR(default_metaclass);
-            Py_CLEAR(static_property_type);
-        }
+        // Destruction is expected to run while the interpreter is still intact
+        // (e.g., during state-dict teardown). If we must destroy after shutdown,
+        // leak_detach() must have been called first.
+        Py_CLEAR(instance_base);
+        Py_CLEAR(default_metaclass);
+        Py_CLEAR(static_property_type);
     }
 };
 
@@ -344,14 +341,16 @@ struct local_internals {
     std::forward_list<ExceptionTranslator> registered_exception_translators;
     PyTypeObject *function_record_py_type = nullptr;
 
+    void leak_detach() noexcept {
+        // Used when local internals must be destroyed after interpreter teardown.
+        function_record_py_type = nullptr;
+    }
+
     ~local_internals() {
-        // Normally this destructor runs during interpreter finalization and it may DECREF things.
-        // In odd finalization scenarios it might end up running after the interpreter has
-        // completely shut down, In that case, we should not decref these objects because pymalloc
-        // is gone.
-        if (is_interpreter_alive()) {
-            Py_CLEAR(function_record_py_type);
-        }
+        // Destruction is expected to run while the interpreter is still intact
+        // (e.g., during state-dict teardown). If we must destroy after shutdown,
+        // leak_detach() must have been called first.
+        Py_CLEAR(function_record_py_type);
     }
 };
 
@@ -716,13 +715,18 @@ public:
             // this could be called without an active interpreter, just use what was cached
             if (!tstate || tstate->interp == last_istate_tls()) {
                 auto tpp = internals_p_tls();
-
+                if (tpp && tpp->get()) {
+                    tpp->get()->leak_detach();
+                }
                 delete tpp;
             }
             unref();
             return;
         }
 #endif
+        if (internals_singleton_pp_ && internals_singleton_pp_->get()) {
+            internals_singleton_pp_->get()->leak_detach();
+        }
         delete internals_singleton_pp_;
         unref();
     }
