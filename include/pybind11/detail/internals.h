@@ -153,6 +153,28 @@ inline PyThreadState *get_thread_state_unchecked() {
 #endif
 }
 
+inline PyInterpreterState *get_interpreter_state_unchecked() {
+    auto tstate = get_thread_state_unchecked();
+    return tstate ? tstate->interp : nullptr;
+}
+
+inline object get_python_state_dict() {
+    object state_dict;
+#if defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
+    state_dict = reinterpret_borrow<object>(PyEval_GetBuiltins());
+#else
+    auto istate = get_interpreter_state_unchecked();
+    if (istate) {
+        state_dict = reinterpret_borrow<object>(PyInterpreterState_GetDict(istate));
+    }
+#endif
+    if (!state_dict) {
+        raise_from(PyExc_SystemError, "pybind11::detail::get_python_state_dict() FAILED");
+        throw error_already_set();
+    }
+    return state_dict;
+}
+
 // Python loads modules by default with dlopen with the RTLD_LOCAL flag; under libc++ and possibly
 // other STLs, this means `typeid(A)` from one module won't equal `typeid(A)` from another module
 // even when `A` is the same, non-hidden-visibility type (e.g. from a common include).  Under
@@ -295,9 +317,8 @@ struct internals {
 
     internals()
         : static_property_type(make_static_property_type()),
-          default_metaclass(make_default_metaclass()) {
+          default_metaclass(make_default_metaclass()), istate(get_interpreter_state_unchecked()) {
         tstate.set(nullptr); // See PR #5870
-        istate = PyInterpreterState_Get();
         registered_exception_translators.push_front(&translate_exception);
 #ifdef Py_GIL_DISABLED
         // Scale proportional to the number of cores. 2x is a heuristic to reduce contention.
@@ -322,8 +343,7 @@ struct internals {
         // completely shut down, In that case, we should not decref these objects because pymalloc
         // is gone.  This also applies across sub-interpreters, we should only DECREF when the
         // original owning interpreter is active.
-        auto *tstate = get_thread_state_unchecked();
-        if (tstate && tstate->interp == istate) {
+        if (get_interpreter_state_unchecked() == istate) {
             Py_CLEAR(instance_base);
             Py_CLEAR(default_metaclass);
             Py_CLEAR(static_property_type);
@@ -338,7 +358,7 @@ struct internals {
 // impact any other modules, because the only things accessing the local internals is the
 // module that contains them.
 struct local_internals {
-    local_internals() : istate(PyInterpreterState_Get()) {}
+    local_internals() : istate(get_interpreter_state_unchecked()) {}
 
     // It should be safe to use fast_type_map here because this entire
     // data structure is scoped to our single module, and thus a single
@@ -355,8 +375,7 @@ struct local_internals {
         // completely shut down, In that case, we should not decref these objects because pymalloc
         // is gone.  This also applies across sub-interpreters, we should only DECREF when the
         // original owning interpreter is active.
-        auto *tstate = get_thread_state_unchecked();
-        if (tstate && tstate->interp == istate) {
+        if (get_interpreter_state_unchecked() == istate) {
             Py_CLEAR(function_record_py_type);
         }
     }
@@ -554,27 +573,6 @@ inline void translate_local_exception(std::exception_ptr p) {
     }
 }
 #endif
-
-inline object get_python_state_dict() {
-    object state_dict;
-#if defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
-    state_dict = reinterpret_borrow<object>(PyEval_GetBuiltins());
-#else
-#    if PY_VERSION_HEX < 0x03090000
-    PyInterpreterState *istate = _PyInterpreterState_Get();
-#    else
-    PyInterpreterState *istate = PyInterpreterState_Get();
-#    endif
-    if (istate) {
-        state_dict = reinterpret_borrow<object>(PyInterpreterState_GetDict(istate));
-    }
-#endif
-    if (!state_dict) {
-        raise_from(PyExc_SystemError, "pybind11::detail::get_python_state_dict() FAILED");
-        throw error_already_set();
-    }
-    return state_dict;
-}
 
 // Get or create per-storage capsule in the current interpreter's state dict.
 //   - The storage is interpreter-dependent: different interpreters will have different storage.
