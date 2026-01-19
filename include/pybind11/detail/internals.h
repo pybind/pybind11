@@ -154,7 +154,7 @@ inline PyThreadState *get_thread_state_unchecked() {
 }
 
 inline PyInterpreterState *get_interpreter_state_unchecked() {
-    auto tstate = get_thread_state_unchecked();
+    auto *tstate = get_thread_state_unchecked();
     return tstate ? tstate->interp : nullptr;
 }
 
@@ -163,7 +163,7 @@ inline object get_python_state_dict() {
 #if defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
     state_dict = reinterpret_borrow<object>(PyEval_GetBuiltins());
 #else
-    auto istate = get_interpreter_state_unchecked();
+    auto *istate = get_interpreter_state_unchecked();
     if (istate) {
         state_dict = reinterpret_borrow<object>(PyInterpreterState_GetDict(istate));
     }
