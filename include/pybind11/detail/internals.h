@@ -343,7 +343,8 @@ struct internals {
         // completely shut down, In that case, we should not decref these objects because pymalloc
         // is gone.  This also applies across sub-interpreters, we should only DECREF when the
         // original owning interpreter is active.
-        if (get_interpreter_state_unchecked() == istate) {
+        auto *cur_istate = get_interpreter_state_unchecked();
+        if (cur_istate && cur_istate == istate) {
             Py_CLEAR(instance_base);
             Py_CLEAR(default_metaclass);
             Py_CLEAR(static_property_type);
@@ -375,7 +376,8 @@ struct local_internals {
         // completely shut down, In that case, we should not decref these objects because pymalloc
         // is gone.  This also applies across sub-interpreters, we should only DECREF when the
         // original owning interpreter is active.
-        if (get_interpreter_state_unchecked() == istate) {
+        auto *cur_istate = get_interpreter_state_unchecked();
+        if (cur_istate && cur_istate == istate) {
             Py_CLEAR(function_record_py_type);
         }
     }
