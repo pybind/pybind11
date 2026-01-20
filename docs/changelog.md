@@ -69,7 +69,7 @@ entry" block in pull request descriptions.
 - Fix undefined behavior that occurred when importing pybind11 modules from non-main threads created by C API modules or embedded python interpreters.
   [#5870](https://github.com/pybind/pybind11/pull/5870)
 
-- When loading an instance of a pybind11 class `T` whose type info is not available to the module that's loading it -- i.e., if it's a module-local type defined in a different module, or a type defined by a different version of pybind11 and used through the conduit mechanism -- pybind11 can now populate a `std::shared_ptr<T>`, in addition to the previous support for a raw `T*`. Note that unless `T` implements `enable_shared_from_this`, the resulting `shared_ptr` will own a new reference to the underlying Python object, rather than sharing ownership with the C++ object inside the Python object.
+- Support `std::shared_ptr<T>` when loading module-local or conduit types from other modules.
   [#5862](https://github.com/pybind/pybind11/pull/5862)
 
 - Improve the performance of from-Python conversions of legacy pybind11 enum objects bound by `py::enum_`.
