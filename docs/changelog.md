@@ -51,9 +51,6 @@ entry" block in pull request descriptions.
 - A workaround for a GCC `-Warray-bounds` false positive in `argument_vector` was added.
   [#5908](https://github.com/pybind/pybind11/pull/5908)
 
-- Fix documentation formatting.
-  [#5903](https://github.com/pybind/pybind11/pull/5903)
-
 - `pytest.deprecated_call()` is now called directly.
   [#5893](https://github.com/pybind/pybind11/pull/5893)
 
