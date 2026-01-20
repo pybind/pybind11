@@ -15,13 +15,8 @@ entry" block in pull request descriptions.
 
 ## Version 3.0.2 (release date TBD)
 
-Other:
-
 - CMake policy limit set to 4.1.
   [#5944](https://github.com/pybind/pybind11/pull/5944)
-
-
-Uncategorised:
 
 - Deallocate pybind11 internals during (sub-)interpreter shutdown to avoid memory leaks.
   [#5958](https://github.com/pybind/pybind11/pull/5958)
@@ -47,9 +42,7 @@ Uncategorised:
 - Many C-style casts were replaced with C++-style casts.
   [#5930](https://github.com/pybind/pybind11/pull/5930)
 
-- ```
-* These clang-tidy rules were added: `readability-redundant-casting`, `readability-redundant-inline-specifier`, `readability-redundant-member-init`
-```.
+- These clang-tidy rules were added: `readability-redundant-casting`, `readability-redundant-inline-specifier`, `readability-redundant-member-init`
   [#5924](https://github.com/pybind/pybind11/pull/5924)
 
 - The "Supported compilers" and "Supported platforms" sections in the main `README.rst` were replaced with a new "Supported platforms & compilers" section that points to the CI test matrix as the living source of truth.
@@ -67,9 +60,7 @@ Uncategorised:
 - Correct a mistake where support for `__index__` was added, but the type hints were not updated to reflect that `SupportsIndex` objects are accepted. Also fix a long-standing bug: the complex-caster was not accepting `__index__` in `convert` mode.
   [#5891](https://github.com/pybind/pybind11/pull/5891)
 
-- ```
-* Fix `*args/**kwargs` return types. Add type hinting to `py::make_tuple`.
-```.
+- Fix `*args/**kwargs` return types. Add type hinting to `py::make_tuple`.
   [#5881](https://github.com/pybind/pybind11/pull/5881)
 
 - Each Python enum type created by a `py::native_enum` binding statement will now unregister its pybind11 binding when the Python enum type is destroyed. This prevents a use-after-free when returning an instance of a destroyed enum type to Python.
@@ -97,10 +88,8 @@ Uncategorised:
   [#5839](https://github.com/pybind/pybind11/pull/5839)
 
 - Fixed two `smart_holder` bugs in `shared_ptr` and `unique_ptr` adoption with multiple/virtual inheritance:
-
-* `shared_ptr` to-Python caster now registers the correct subobject pointer (fixes #5786).
-
-* `unique_ptr` adoption now owns the proper object start while aliasing subobject pointers for registration, fixing MSVC crashes during destruction.
+    - `shared_ptr` to-Python caster now registers the correct subobject pointer (fixes #5786).
+    - `unique_ptr` adoption now owns the proper object start while aliasing subobject pointers for registration, fixing MSVC crashes during destruction.
   [#5836](https://github.com/pybind/pybind11/pull/5836)
 
 - Changed internals to use `thread_local` instead of `thread_specific_storage` for increased performance.
