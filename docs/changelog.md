@@ -15,20 +15,13 @@ entry" block in pull request descriptions.
 
 ## Version 3.0.2 (release date TBD)
 
-- CMake policy limit was set to 4.1.
-  [#5944](https://github.com/pybind/pybind11/pull/5944)
+Bug fixes:
 
 - pybind11 internals were updated to be deallocated during (sub-)interpreter shutdown to avoid memory leaks.
   [#5958](https://github.com/pybind/pybind11/pull/5958)
 
-- Fixed docstring for `long double` complex types to use `numpy.clongdouble` instead of the deprecated `numpy.longcomplex` (removed in NumPy 2.0).
-  [#5952](https://github.com/pybind/pybind11/pull/5952)
-
 - Fixed ambiguous `str(handle)` construction for `object`-derived types like `kwargs` or `dict` by templatizing the constructor with SFINAE.
   [#5949](https://github.com/pybind/pybind11/pull/5949)
-
-- Improved performance of function calls between Python and C++ by switching to the "vectorcall" calling protocol.
-  [#5948](https://github.com/pybind/pybind11/pull/5948)
 
 - Fixed concurrency consistency for `internals_pp_manager` under multiple-interpreters.
   [#5947](https://github.com/pybind/pybind11/pull/5947)
@@ -36,23 +29,8 @@ entry" block in pull request descriptions.
 - Added per-interpreter storage for `gil_safe_call_once_and_store` to make it safe under multi-interpreters.
   [#5933](https://github.com/pybind/pybind11/pull/5933)
 
-- Added CI tests for windows-11-arm with clang/MSVC (currently python 3.13), windows-11-arm with clang/mingw (currently python 3.12).
-  [#5932](https://github.com/pybind/pybind11/pull/5932)
-
-- Many C-style casts were replaced with C++-style casts.
-  [#5930](https://github.com/pybind/pybind11/pull/5930)
-
-- These clang-tidy rules were added: `readability-redundant-casting`, `readability-redundant-inline-specifier`, `readability-redundant-member-init`
-  [#5924](https://github.com/pybind/pybind11/pull/5924)
-
-- The "Supported compilers" and "Supported platforms" sections in the main `README.rst` were replaced with a new "Supported platforms & compilers" section that points to the CI test matrix as the living source of truth.
-  [#5910](https://github.com/pybind/pybind11/pull/5910)
-
 - A workaround for a GCC `-Warray-bounds` false positive in `argument_vector` was added.
   [#5908](https://github.com/pybind/pybind11/pull/5908)
-
-- Calls to `env.deprecated_call()` were replaced with direct calls to `pytest.deprecated_call()`.
-  [#5893](https://github.com/pybind/pybind11/pull/5893)
 
 - Corrected a mistake where support for `__index__` was added, but the type hints did not reflect acceptance of `SupportsIndex` objects. Also fixed a long-standing bug: the complex-caster did not accept `__index__` in `convert` mode.
   [#5891](https://github.com/pybind/pybind11/pull/5891)
@@ -69,17 +47,8 @@ entry" block in pull request descriptions.
 - Added support for `std::shared_ptr<T>` when loading module-local or conduit types from other modules.
   [#5862](https://github.com/pybind/pybind11/pull/5862)
 
-- Improved the performance of from-Python conversions of legacy pybind11 enum objects bound by `py::enum_`.
-  [#5860](https://github.com/pybind/pybind11/pull/5860)
-
-- Reduced size overhead by deduplicating functions' readable signatures and type information.
-  [#5857](https://github.com/pybind/pybind11/pull/5857)
-
 - Fixed thread-safety issues if types were concurrently registered while `get_local_type_info()` was called in free threaded Python.
   [#5856](https://github.com/pybind/pybind11/pull/5856)
-
-- Improved performance of function dispatch and type casting by porting two-level type info lookup strategy from nanobind.
-  [#5842](https://github.com/pybind/pybind11/pull/5842)
 
 - Fixed py::float_ casting and py::int_ and py::float_ type hints.
   [#5839](https://github.com/pybind/pybind11/pull/5839)
@@ -89,20 +58,65 @@ entry" block in pull request descriptions.
     - `unique_ptr` adoption was updated to own the proper object start while aliasing subobject pointers for registration, which fixed MSVC crashes during destruction.
   [#5836](https://github.com/pybind/pybind11/pull/5836)
 
+- Fixed crash that can occur when finalizers acquire and release the GIL.
+  [#5828](https://github.com/pybind/pybind11/pull/5828)
+
+- Fixed compiler detection in `pybind11/detail/pybind11_namespace_macros.h` for clang-cl on Windows, to address warning suppression macros.
+  [#5816](https://github.com/pybind/pybind11/pull/5816)
+
+
+Internal:
+
+- CMake policy limit was set to 4.1.
+  [#5944](https://github.com/pybind/pybind11/pull/5944)
+
+- Improved performance of function calls between Python and C++ by switching to the "vectorcall" calling protocol.
+  [#5948](https://github.com/pybind/pybind11/pull/5948)
+
+- Many C-style casts were replaced with C++-style casts.
+  [#5930](https://github.com/pybind/pybind11/pull/5930)
+
+- Improved the performance of from-Python conversions of legacy pybind11 enum objects bound by `py::enum_`.
+  [#5860](https://github.com/pybind/pybind11/pull/5860)
+
+- Reduced size overhead by deduplicating functions' readable signatures and type information.
+  [#5857](https://github.com/pybind/pybind11/pull/5857)
+
+- Improved performance of function dispatch and type casting by porting two-level type info lookup strategy from nanobind.
+  [#5842](https://github.com/pybind/pybind11/pull/5842)
+
 - Changed internals to use `thread_local` instead of `thread_specific_storage` for increased performance.
   [#5834](https://github.com/pybind/pybind11/pull/5834)
 
 - Reduced function call overhead by using thread_local for loader_life_support when possible.
   [#5830](https://github.com/pybind/pybind11/pull/5830)
 
-- Fixed crash that can occur when finalizers acquire and release the GIL.
-  [#5828](https://github.com/pybind/pybind11/pull/5828)
-
 - Removed heap allocation for the C++ argument array when dispatching functions with 6 or fewer arguments.
   [#5824](https://github.com/pybind/pybind11/pull/5824)
 
-- Fixed compiler detection in `pybind11/detail/pybind11_namespace_macros.h` for clang-cl on Windows, to address warning suppression macros.
-  [#5816](https://github.com/pybind/pybind11/pull/5816)
+
+Documentation:
+
+- Fixed docstring for `long double` complex types to use `numpy.clongdouble` instead of the deprecated `numpy.longcomplex` (removed in NumPy 2.0).
+  [#5952](https://github.com/pybind/pybind11/pull/5952)
+
+- The "Supported compilers" and "Supported platforms" sections in the main `README.rst` were replaced with a new "Supported platforms & compilers" section that points to the CI test matrix as the living source of truth.
+  [#5910](https://github.com/pybind/pybind11/pull/5910)
+
+
+Tests:
+
+- Calls to `env.deprecated_call()` were replaced with direct calls to `pytest.deprecated_call()`.
+  [#5893](https://github.com/pybind/pybind11/pull/5893)
+
+
+CI:
+
+- Added CI tests for windows-11-arm with clang/MSVC (currently python 3.13), windows-11-arm with clang/mingw (currently python 3.12).
+  [#5932](https://github.com/pybind/pybind11/pull/5932)
+
+- These clang-tidy rules were added: `readability-redundant-casting`, `readability-redundant-inline-specifier`, `readability-redundant-member-init`
+  [#5924](https://github.com/pybind/pybind11/pull/5924)
 
 ## Version 3.0.1 (August 22, 2025)
 
