@@ -18,7 +18,7 @@ entry" block in pull request descriptions.
 - CMake policy limit was set to 4.1.
   [#5944](https://github.com/pybind/pybind11/pull/5944)
 
-- pybind11 internals are now deallocated during (sub-)interpreter shutdown to avoid memory leaks.
+- pybind11 internals were updated to be deallocated during (sub-)interpreter shutdown to avoid memory leaks.
   [#5958](https://github.com/pybind/pybind11/pull/5958)
 
 - Fixed docstring for `long double` complex types to use `numpy.clongdouble` instead of the deprecated `numpy.longcomplex` (removed in NumPy 2.0).
@@ -51,7 +51,7 @@ entry" block in pull request descriptions.
 - A workaround for a GCC `-Warray-bounds` false positive in `argument_vector` was added.
   [#5908](https://github.com/pybind/pybind11/pull/5908)
 
-- `pytest.deprecated_call()` is now called directly.
+- Calls to `env.deprecated_call()` were replaced with direct calls to `pytest.deprecated_call()`.
   [#5893](https://github.com/pybind/pybind11/pull/5893)
 
 - Corrected a mistake where support for `__index__` was added, but the type hints did not reflect acceptance of `SupportsIndex` objects. Also fixed a long-standing bug: the complex-caster did not accept `__index__` in `convert` mode.
@@ -85,8 +85,8 @@ entry" block in pull request descriptions.
   [#5839](https://github.com/pybind/pybind11/pull/5839)
 
 - Fixed two `smart_holder` bugs in `shared_ptr` and `unique_ptr` adoption with multiple/virtual inheritance:
-    - `shared_ptr` to-Python caster now registers the correct subobject pointer (fixes #5786).
-    - `unique_ptr` adoption now owns the proper object start while aliasing subobject pointers for registration, fixing MSVC crashes during destruction.
+    - `shared_ptr` to-Python caster was updated to register the correct subobject pointer (fixes #5786).
+    - `unique_ptr` adoption was updated to own the proper object start while aliasing subobject pointers for registration, which fixed MSVC crashes during destruction.
   [#5836](https://github.com/pybind/pybind11/pull/5836)
 
 - Changed internals to use `thread_local` instead of `thread_specific_storage` for increased performance.
