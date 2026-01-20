@@ -64,6 +64,8 @@ Bug fixes:
 - Fixed compiler detection in `pybind11/detail/pybind11_namespace_macros.h` for clang-cl on Windows, to address warning suppression macros.
   [#5816](https://github.com/pybind/pybind11/pull/5816)
 
+- Fix compatibility with CMake policy CMP0190, by not always requiring a Python interpreter when cross-compiling.
+  [#5829](https://github.com/pybind/pybind11/pull/5829)
 
 Internal:
 
