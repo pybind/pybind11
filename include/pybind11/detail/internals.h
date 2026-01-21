@@ -238,6 +238,32 @@ public:
     void unlock() { PyMutex_Unlock(&mutex); }
 };
 
+// A recursive mutex implementation using PyMutex
+class pyrecursive_mutex {
+    PyMutex mutex;
+    std::atomic<uintptr_t> owner;
+    size_t lock_count;
+
+public:
+    pyrecursive_mutex() : mutex({}), owner(0), lock_count(0) {}
+    void lock() {
+        if (owner.load(std::memory_order_relaxed) == _Py_ThreadId()) {
+            ++lock_count;
+            return;
+        }
+        PyMutex_Lock(&mutex);
+        owner.store(_Py_ThreadId(), std::memory_order_relaxed);
+    }
+    void unlock() {
+        if (lock_count > 0) {
+            --lock_count;
+            return;
+        }
+        owner.store(0, std::memory_order_relaxed);
+        PyMutex_Unlock(&mutex);
+    }
+};
+
 // Instance map shards are used to reduce mutex contention in free-threaded Python.
 struct instance_map_shard {
     instance_map registered_instances;
@@ -271,7 +297,7 @@ class loader_life_support;
 /// `PYBIND11_INTERNALS_VERSION` must be incremented.
 struct internals {
 #ifdef Py_GIL_DISABLED
-    pymutex mutex;
+    pyrecursive_mutex mutex;
     pymutex exception_translator_mutex;
 #endif
 #if PYBIND11_INTERNALS_VERSION >= 12
@@ -856,7 +882,7 @@ inline local_internals &get_local_internals() {
 }
 
 #ifdef Py_GIL_DISABLED
-#    define PYBIND11_LOCK_INTERNALS(internals) std::unique_lock<pymutex> lock((internals).mutex)
+#    define PYBIND11_LOCK_INTERNALS(internals) std::unique_lock<pyrecursive_mutex> lock((internals).mutex)
 #else
 #    define PYBIND11_LOCK_INTERNALS(internals)
 #endif
