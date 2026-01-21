@@ -131,6 +131,15 @@ arr_t &mutate_at_t(arr_t &a, Ix... idx) {
     a.mutable_at(idx...)++;
     return a;
 }
+template <typename... Ix>
+arr_t &subscript_via_call_operator_t(arr_t &a, Ix... idx) {
+    a(idx...)++;
+    return a;
+}
+template <typename... Ix>
+py::ssize_t const_subscript_via_call_operator_t(const arr_t &a, Ix... idx) {
+    return a(idx...);
+}
 
 #define def_index_fn(name, type)                                                                  \
     sm.def(#name, [](type a) { return name(a); });                                                \
@@ -246,6 +255,13 @@ TEST_SUBMODULE(numpy_array, sm) {
     sm.def("nbytes", [](const arr &a) { return a.nbytes(); });
     sm.def("owndata", [](const arr &a) { return a.owndata(); });
 
+    sm.attr("defined_NDEBUG") =
+#ifdef NDEBUG
+        true;
+#else
+        false;
+#endif
+
     // test_index_offset
     def_index_fn(index_at, const arr &);
     def_index_fn(index_at_t, const arr_t &);
@@ -259,6 +275,8 @@ TEST_SUBMODULE(numpy_array, sm) {
     def_index_fn(mutate_data_t, arr_t &);
     def_index_fn(at_t, const arr_t &);
     def_index_fn(mutate_at_t, arr_t &);
+    def_index_fn(subscript_via_call_operator_t, arr_t &);
+    def_index_fn(const_subscript_via_call_operator_t, const arr_t &);
 
     // test_make_c_f_array
     sm.def("make_f_array", [] { return py::array_t<float>({2, 2}, {4, 8}); });
