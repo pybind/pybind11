@@ -17,6 +17,12 @@ entry" block in pull request descriptions.
 
 Bug fixes:
 
+- MSVC 19.16 and earlier were blocked from using `std::launder` due to internal compiler errors.
+  [#5968](https://github.com/pybind/pybind11/pull/5968)
+
+- Internals destructors were updated to check the owning interpreter before clearing Python objects.
+  [#5965](https://github.com/pybind/pybind11/pull/5965)
+
 - pybind11 internals were updated to be deallocated during (sub-)interpreter shutdown to avoid memory leaks.
   [#5958](https://github.com/pybind/pybind11/pull/5958)
 
