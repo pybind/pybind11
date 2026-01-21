@@ -13,7 +13,7 @@ Changes will be added here periodically from the "Suggested changelog
 entry" block in pull request descriptions.
 
 
-## Version 3.0.2 (release date TBD)
+## Version 3.0.2 (January 21, 2026)
 
 Bug fixes:
 
