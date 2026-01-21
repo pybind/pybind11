@@ -5,9 +5,11 @@ import sys
 import sysconfig
 
 ANDROID = sys.platform.startswith("android")
+IOS = sys.platform.startswith("ios")
 LINUX = sys.platform.startswith("linux")
 MACOS = sys.platform.startswith("darwin")
 WIN = sys.platform.startswith("win32") or sys.platform.startswith("cygwin")
+FREEBSD = sys.platform.startswith("freebsd")
 
 CPYTHON = platform.python_implementation() == "CPython"
 PYPY = platform.python_implementation() == "PyPy"

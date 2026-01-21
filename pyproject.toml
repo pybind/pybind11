@@ -38,7 +38,7 @@ requires-python = ">=3.8"
 [project.urls]
 Homepage = "https://github.com/pybind/pybind11"
 Documentation = "https://pybind11.readthedocs.io/"
-"Bug Tracker" = "https://github.com/pybind/pybind11/issues"
+"Issue Tracker" = "https://github.com/pybind/pybind11/issues"
 Discussions = "https://github.com/pybind/pybind11/discussions"
 Changelog = "https://pybind11.readthedocs.io/en/latest/changelog.html"
 Chat = "https://gitter.im/pybind/Lobby"
@@ -152,6 +152,8 @@ extend-select = [
   "C4",          # flake8-comprehensions
   "EM",          # flake8-errmsg
   "ICN",         # flake8-import-conventions
+  "ISC",         # flake8-implicit-str-concat
+  "PERF",        # Perflint
   "PGH",         # pygrep-hooks
   "PIE",         # flake8-pie
   "PL",          # pylint
@@ -182,3 +184,26 @@ isort.required-imports = ["from __future__ import annotations"]
 
 [tool.repo-review]
 ignore = ["PP"]
+
+[tool.typos]
+files.extend-exclude = ["/cpython"]
+
+[tool.typos.default.extend-identifiers]
+ser_no = "ser_no"
+SerNo = "SerNo"
+StrLits = "StrLits"
+
+[tool.typos.default.extend-words]
+nd = "nd"
+valu = "valu"
+fo = "fo"
+quater = "quater"
+optin = "optin"
+othr = "othr"
+
+#[tool.typos.type.cpp.extend-words]
+setp = "setp"
+ot = "ot"
+
+[tool.typos.type.json.extend-words]
+ba = "ba"
