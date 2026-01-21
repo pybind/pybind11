@@ -32,6 +32,9 @@ Bug fixes:
 - Fixed concurrency consistency for `internals_pp_manager` under multiple-interpreters.
   [#5947](https://github.com/pybind/pybind11/pull/5947)
 
+- Fixed MSVC LNK2001 in C++20 builds when /GL (whole program optimization) is enabled.
+  [#5939](https://github.com/pybind/pybind11/pull/5939)
+
 - Added per-interpreter storage for `gil_safe_call_once_and_store` to make it safe under multi-interpreters.
   [#5933](https://github.com/pybind/pybind11/pull/5933)
 
@@ -44,11 +47,17 @@ Bug fixes:
 - Fixed `*args/**kwargs` return types. Added type hinting to `py::make_tuple`.
   [#5881](https://github.com/pybind/pybind11/pull/5881)
 
+- Fixed compiler error in `type_caster_generic` when casting a `T` implicitly convertible from `T*`.
+  [#5873](https://github.com/pybind/pybind11/pull/5873)
+
 - Updated `py::native_enum` bindings to unregister enum types on destruction, preventing a use-after-free when returning a destroyed enum instance.
   [#5871](https://github.com/pybind/pybind11/pull/5871)
 
 - Fixed undefined behavior that occurred when importing pybind11 modules from non-main threads created by C API modules or embedded python interpreters.
   [#5870](https://github.com/pybind/pybind11/pull/5870)
+
+- Fixed dangling pointer in `internals::registered_types_cpp_fast`.
+  [#5867](https://github.com/pybind/pybind11/pull/5867)
 
 - Added support for `std::shared_ptr<T>` when loading module-local or conduit types from other modules.
   [#5862](https://github.com/pybind/pybind11/pull/5862)
@@ -64,6 +73,9 @@ Bug fixes:
     - `unique_ptr` adoption was updated to own the proper object start while aliasing subobject pointers for registration, which fixed MSVC crashes during destruction.
   [#5836](https://github.com/pybind/pybind11/pull/5836)
 
+- Constrained `accessor::operator=` templates to avoid obscuring special members.
+  [#5832](https://github.com/pybind/pybind11/pull/5832)
+
 - Fixed crash that can occur when finalizers acquire and release the GIL.
   [#5828](https://github.com/pybind/pybind11/pull/5828)
 
@@ -72,6 +84,9 @@ Bug fixes:
 
 - Fixed compatibility with CMake policy CMP0190 by not always requiring a Python interpreter when cross-compiling.
   [#5829](https://github.com/pybind/pybind11/pull/5829)
+
+- Added a static assertion to disallow `keep_alive` and `call_guard` on properties.
+  [#5533](https://github.com/pybind/pybind11/pull/5533)
 
 Internal:
 
@@ -84,14 +99,23 @@ Internal:
 - Many C-style casts were replaced with C++-style casts.
   [#5930](https://github.com/pybind/pybind11/pull/5930)
 
+- Added `cast_sources` abstraction to `type_caster_generic`.
+  [#5866](https://github.com/pybind/pybind11/pull/5866)
+
 - Improved the performance of from-Python conversions of legacy pybind11 enum objects bound by `py::enum_`.
   [#5860](https://github.com/pybind/pybind11/pull/5860)
 
 - Reduced size overhead by deduplicating functions' readable signatures and type information.
   [#5857](https://github.com/pybind/pybind11/pull/5857)
 
+- Used new Python 3.14 C APIs when available.
+  [#5854](https://github.com/pybind/pybind11/pull/5854)
+
 - Improved performance of function dispatch and type casting by porting two-level type info lookup strategy from nanobind.
   [#5842](https://github.com/pybind/pybind11/pull/5842)
+
+- Updated `.gitignore` to exclude `__pycache__/` directories.
+  [#5838](https://github.com/pybind/pybind11/pull/5838)
 
 - Changed internals to use `thread_local` instead of `thread_specific_storage` for increased performance.
   [#5834](https://github.com/pybind/pybind11/pull/5834)
@@ -111,11 +135,23 @@ Documentation:
 - The "Supported compilers" and "Supported platforms" sections in the main `README.rst` were replaced with a new "Supported platforms & compilers" section that points to the CI test matrix as the living source of truth.
   [#5910](https://github.com/pybind/pybind11/pull/5910)
 
+- Fixed documentation formatting.
+  [#5903](https://github.com/pybind/pybind11/pull/5903)
+
+- Updated upgrade notes for `py::native_enum`.
+  [#5885](https://github.com/pybind/pybind11/pull/5885)
+
+- Clarified in the docs to what extent bindings are global.
+  [#5859](https://github.com/pybind/pybind11/pull/5859)
+
 
 Tests:
 
 - Calls to `env.deprecated_call()` were replaced with direct calls to `pytest.deprecated_call()`.
   [#5893](https://github.com/pybind/pybind11/pull/5893)
+
+- Updated pytest configuration to use `log_level` instead of `log_cli_level`.
+  [#5890](https://github.com/pybind/pybind11/pull/5890)
 
 
 CI:
@@ -125,6 +161,12 @@ CI:
 
 - These clang-tidy rules were added: `readability-redundant-casting`, `readability-redundant-inline-specifier`, `readability-redundant-member-init`
   [#5924](https://github.com/pybind/pybind11/pull/5924)
+
+- Replaced deprecated macos-13 runners with macos-15-intel in CI.
+  [#5916](https://github.com/pybind/pybind11/pull/5916)
+
+- Restored `runs-on: windows-latest` in CI.
+  [#5835](https://github.com/pybind/pybind11/pull/5835)
 
 ## Version 3.0.1 (August 22, 2025)
 
