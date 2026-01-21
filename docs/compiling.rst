@@ -588,6 +588,26 @@ You can use these targets to build complex applications. For example, the
     set_target_properties(example PROPERTIES CXX_VISIBILITY_PRESET "hidden"
                                              CUDA_VISIBILITY_PRESET "hidden")
 
+Since prior to CMake 3.18 the ``INTERPROCEDURAL_OPTIMIZATION`` property exists but is not working reliably, a manual user section around linking the legacy ``pybind11::lto`` target should look like this:
+
+.. code-block:: cmake
+
+    # LTO/IPO: CMake target properties work well for 3.18+ and are buggy before
+    set(_USE_PY_LTO ON)  # default shall be ON
+    if(DEFINED CMAKE_INTERPROCEDURAL_OPTIMIZATION)  # overwrite default if defined
+        if(NOT CMAKE_INTERPROCEDURAL_OPTIMIZATION)
+            set(_USE_PY_LTO OFF)
+        endif()
+    endif()
+    if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.18)
+        set_target_properties(example PROPERTIES
+            INTERPROCEDURAL_OPTIMIZATION ${_USE_PY_LTO})
+    else()
+        if(_USE_PY_LTO)
+            target_link_libraries(example PRIVATE pybind11::lto)
+        endif()
+    endif()
+
 Instead of setting properties, you can set ``CMAKE_*`` variables to initialize these correctly.
 
 .. warning::
