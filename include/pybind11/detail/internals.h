@@ -882,7 +882,8 @@ inline local_internals &get_local_internals() {
 }
 
 #ifdef Py_GIL_DISABLED
-#    define PYBIND11_LOCK_INTERNALS(internals) std::unique_lock<pyrecursive_mutex> lock((internals).mutex)
+#    define PYBIND11_LOCK_INTERNALS(internals)                                                    \
+        std::unique_lock<pyrecursive_mutex> lock((internals).mutex)
 #else
 #    define PYBIND11_LOCK_INTERNALS(internals)
 #endif
