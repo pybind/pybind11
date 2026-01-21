@@ -312,3 +312,17 @@ Supported data types
 A large number of data types are supported out of the box and can be used
 seamlessly as functions arguments, return values or with ``py::cast`` in general.
 For a full overview, see the :doc:`advanced/cast/index` section.
+
+Python 3.8+ Windows troubleshooting
+===================================
+According to the python release notes document, DLL dependencies for *.pyd file doesn't search the directories
+in PATH environment since Python 3.8 on Windows. 
+
+That leads to the following, sometimes python cannot load pyd extension without any useful information provided.
+Usually, it raises an error: 
+ImportError: DLL load failed: The specified module could not be found. 
+
+To overcome it, you can try out https://github.com/lucasg/Dependencies tool.
+It shows all dependencies your pyd file has at the moment. And, you will be able to locate 
+those dependency paths, register it via os.add_dll_directory("your dlls path") 
+right before importing your extension in your python script.
