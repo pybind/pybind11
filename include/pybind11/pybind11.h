@@ -1692,30 +1692,6 @@ protected:
 
         m_ptr = make_new_python_type(rec);
 
-        // Prevent use-after-free during interpreter shutdown. GC order is not guaranteed, so the
-        // internals capsule may be destroyed (resetting internals via internals_shutdown) before
-        // all pybind11 types are destroyed. If a type's tp_traverse/tp_clear then calls py::cast,
-        // it would recreate an empty internals and fail because the type registry is gone. By
-        // holding references to the capsules, we ensure they outlive all pybind11 types.
-        // We use weakrefs on the type with a cpp_function callback. When the type is destroyed,
-        // Python will call the callback which releases the capsule reference and the weakref.
-        if (PyObject *capsule = get_internals_capsule()) {
-            Py_INCREF(capsule);
-            (void) weakref(handle(m_ptr), cpp_function([](handle prevent_release) -> void {
-                               Py_XDECREF(get_internals_capsule());
-                               prevent_release.dec_ref();
-                           }))
-                .release();
-        }
-        if (PyObject *capsule = get_local_internals_capsule()) {
-            Py_INCREF(capsule);
-            (void) weakref(handle(m_ptr), cpp_function([](handle prevent_release) -> void {
-                               Py_XDECREF(get_local_internals_capsule());
-                               prevent_release.dec_ref();
-                           }))
-                .release();
-        }
-
         /* Register supplemental type information in C++ dict */
         auto *tinfo = new detail::type_info();
         tinfo->type = reinterpret_cast<PyTypeObject *>(m_ptr);
@@ -1743,6 +1719,31 @@ protected:
 #if PYBIND11_INTERNALS_VERSION >= 12
                 internals.registered_types_cpp_fast[rec.type] = tinfo;
 #endif
+            }
+
+            // Prevent use-after-free during interpreter shutdown. GC order is not guaranteed, so
+            // the internals capsule may be destroyed (resetting internals via internals_shutdown)
+            // before all pybind11 types are destroyed. If a type's tp_traverse/tp_clear then calls
+            // py::cast, it would recreate an empty internals and fail because the type registry is
+            // gone. By holding references to the capsules, we ensure they outlive all pybind11
+            // types. We use weakrefs on the type with a cpp_function callback. When the type is
+            // destroyed, Python will call the callback which releases the capsule reference and
+            // the weakref.
+            if (PyObject *capsule = get_internals_capsule()) {
+                Py_INCREF(capsule);
+                (void) weakref(handle(m_ptr), cpp_function([](handle prevent_release) -> void {
+                                   Py_XDECREF(get_internals_capsule());
+                                   prevent_release.dec_ref();
+                               }))
+                    .release();
+            }
+            if (PyObject *capsule = get_local_internals_capsule()) {
+                Py_INCREF(capsule);
+                (void) weakref(handle(m_ptr), cpp_function([](handle prevent_release) -> void {
+                                   Py_XDECREF(get_local_internals_capsule());
+                                   prevent_release.dec_ref();
+                               }))
+                    .release();
             }
 
             PYBIND11_WARNING_PUSH
