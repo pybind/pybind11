@@ -11,16 +11,10 @@
 
 #include <pybind11/attr.h>
 #include <pybind11/options.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/pytypes.h>
 
 #include "exception_translation.h"
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
-
-class weakref;
-class cpp_function;
-
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 #if !defined(PYPY_VERSION)
