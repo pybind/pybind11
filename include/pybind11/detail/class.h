@@ -251,16 +251,12 @@ extern "C" inline void pybind11_meta_dealloc(PyObject *obj) {
         }
     });
 
+    PyType_Type.tp_dealloc(obj);
+
     // Release the references to the internals capsules that were acquired in make_new_python_type.
     // See the comment there for details on preventing use-after-free during interpreter shutdown.
-    if (PyObject *capsule = get_internals_capsule()) {
-        Py_DECREF(capsule);
-    }
-    if (PyObject *capsule = get_local_internals_capsule()) {
-        Py_DECREF(capsule);
-    }
-
-    PyType_Type.tp_dealloc(obj);
+    Py_XDECREF(get_internals_capsule());
+    Py_XDECREF(get_local_internals_capsule());
 }
 
 /** This metaclass is assigned by default to all pybind11 types and is required in order
@@ -844,12 +840,8 @@ inline PyObject *make_new_python_type(const type_record &rec) {
     // would recreate an empty internals and fail because the type registry is gone. By holding
     // references to the capsules, we ensure they outlive all pybind11 types. The decref happens
     // in pybind11_meta_dealloc.
-    if (PyObject *capsule = get_internals_capsule()) {
-        Py_INCREF(capsule);
-    }
-    if (PyObject *capsule = get_local_internals_capsule()) {
-        Py_INCREF(capsule);
-    }
+    Py_XINCREF(get_internals_capsule());
+    Py_XINCREF(get_local_internals_capsule());
 
     return reinterpret_cast<PyObject *>(type);
 }
