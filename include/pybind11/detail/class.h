@@ -251,6 +251,15 @@ extern "C" inline void pybind11_meta_dealloc(PyObject *obj) {
         }
     });
 
+    // Release the references to the internals capsules that were acquired in make_new_python_type.
+    // See the comment there for details on preventing use-after-free during interpreter shutdown.
+    if (PyObject *capsule = get_internals_capsule()) {
+        Py_DECREF(capsule);
+    }
+    if (PyObject *capsule = get_local_internals_capsule()) {
+        Py_DECREF(capsule);
+    }
+
     PyType_Type.tp_dealloc(obj);
 }
 
@@ -828,6 +837,19 @@ inline PyObject *make_new_python_type(const type_record &rec) {
     }
 
     PYBIND11_SET_OLDPY_QUALNAME(type, qualname);
+
+    // Prevent use-after-free during interpreter shutdown. GC order is not guaranteed, so the
+    // internals capsule may be destroyed (resetting internals via internals_shutdown) before all
+    // pybind11 types are destroyed. If a type's tp_traverse/tp_clear then calls py::cast, it
+    // would recreate an empty internals and fail because the type registry is gone. By holding
+    // references to the capsules, we ensure they outlive all pybind11 types. The decref happens
+    // in pybind11_meta_dealloc.
+    if (PyObject *capsule = get_internals_capsule()) {
+        Py_INCREF(capsule);
+    }
+    if (PyObject *capsule = get_local_internals_capsule()) {
+        Py_INCREF(capsule);
+    }
 
     return reinterpret_cast<PyObject *>(type);
 }

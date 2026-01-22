@@ -777,7 +777,7 @@ private:
     on_fetch_function *on_fetch_ = nullptr;
     // Pointer-to-pointer to the singleton internals for the first seen interpreter (may not be the
     // main interpreter)
-    std::unique_ptr<InternalsType> *internals_singleton_pp_;
+    std::unique_ptr<InternalsType> *internals_singleton_pp_ = nullptr;
 };
 
 // If We loaded the internals through `state_dict`, our `error_already_set`
@@ -829,6 +829,35 @@ PYBIND11_NOINLINE internals &get_internals() {
     return *internals_ptr;
 }
 
+/// Return the PyObject* for the internals capsule (borrowed reference).
+/// Returns nullptr if the capsule doesn't exist yet.
+/// This is used to prevent use-after-free during interpreter shutdown by allowing pybind11 types
+/// to hold a reference to the capsule (see make_new_python_type in class.h).
+inline PyObject *get_internals_capsule() {
+    auto state_dict = reinterpret_borrow<dict>(get_python_state_dict());
+    return dict_getitemstring(state_dict.ptr(), PYBIND11_INTERNALS_ID);
+}
+
+/// Return the key used for local_internals in the state dict.
+/// This function ensures a consistent key is used across all call sites within the same
+/// compilation unit. The key includes the address of a static variable to make it unique per
+/// module (DSO), matching the behavior of get_local_internals_pp_manager().
+inline const std::string &get_local_internals_key() {
+    static const std::string key
+        = PYBIND11_MODULE_LOCAL_ID + std::to_string(reinterpret_cast<uintptr_t>(&key));
+    return key;
+}
+
+/// Return the PyObject* for the local_internals capsule (borrowed reference).
+/// Returns nullptr if the capsule doesn't exist yet.
+/// This is used to prevent use-after-free during interpreter shutdown by allowing pybind11 types
+/// to hold a reference to the capsule (see make_new_python_type in class.h).
+inline PyObject *get_local_internals_capsule() {
+    const auto &key = get_local_internals_key();
+    auto state_dict = reinterpret_borrow<dict>(get_python_state_dict());
+    return dict_getitemstring(state_dict.ptr(), key.c_str());
+}
+
 inline void ensure_internals() {
     pybind11::detail::get_internals_pp_manager().unref();
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
@@ -840,12 +869,10 @@ inline void ensure_internals() {
 }
 
 inline internals_pp_manager<local_internals> &get_local_internals_pp_manager() {
-    // Use the address of this static itself as part of the key, so that the value is uniquely tied
+    // Use the address of a static variable as part of the key, so that the value is uniquely tied
     // to where the module is loaded in memory
-    static const std::string this_module_idstr
-        = PYBIND11_MODULE_LOCAL_ID
-          + std::to_string(reinterpret_cast<uintptr_t>(&this_module_idstr));
-    return internals_pp_manager<local_internals>::get_instance(this_module_idstr.c_str(), nullptr);
+    return internals_pp_manager<local_internals>::get_instance(get_local_internals_key().c_str(),
+                                                               nullptr);
 }
 
 /// Works like `get_internals`, but for things which are locally registered.
