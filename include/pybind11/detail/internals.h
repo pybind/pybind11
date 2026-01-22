@@ -831,7 +831,7 @@ PYBIND11_NOINLINE internals &get_internals() {
 /// Return the PyObject* for the internals capsule (borrowed reference).
 /// Returns nullptr if the capsule doesn't exist yet.
 /// This is used to prevent use-after-free during interpreter shutdown by allowing pybind11 types
-/// to hold a reference to the capsule (see make_new_python_type in class.h).
+/// to hold a reference to the capsule (see comments in generic_type::initialize).
 inline PyObject *get_internals_capsule() {
     auto state_dict = reinterpret_borrow<dict>(get_python_state_dict());
     return dict_getitemstring(state_dict.ptr(), PYBIND11_INTERNALS_ID);
@@ -850,7 +850,7 @@ inline const std::string &get_local_internals_key() {
 /// Return the PyObject* for the local_internals capsule (borrowed reference).
 /// Returns nullptr if the capsule doesn't exist yet.
 /// This is used to prevent use-after-free during interpreter shutdown by allowing pybind11 types
-/// to hold a reference to the capsule (see make_new_python_type in class.h).
+/// to hold a reference to the capsule (see comments in generic_type::initialize).
 inline PyObject *get_local_internals_capsule() {
     const auto &key = get_local_internals_key();
     auto state_dict = reinterpret_borrow<dict>(get_python_state_dict());
