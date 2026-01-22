@@ -345,6 +345,7 @@ struct internals {
         // original owning interpreter is active.
         auto *cur_istate = get_interpreter_state_unchecked();
         if (cur_istate && cur_istate == istate) {
+            gil_scoped_acquire_simple gil;
             Py_CLEAR(instance_base);
             Py_CLEAR(default_metaclass);
             Py_CLEAR(static_property_type);
@@ -378,6 +379,7 @@ struct local_internals {
         // original owning interpreter is active.
         auto *cur_istate = get_interpreter_state_unchecked();
         if (cur_istate && cur_istate == istate) {
+            gil_scoped_acquire_simple gil;
             Py_CLEAR(function_record_py_type);
         }
     }
@@ -877,6 +879,7 @@ inline local_internals &get_local_internals() {
     auto &ppmgr = get_local_internals_pp_manager();
     auto &internals_ptr = *ppmgr.get_pp();
     if (!internals_ptr) {
+        gil_scoped_acquire_simple gil;
         internals_ptr.reset(new local_internals());
     }
     return *internals_ptr;
