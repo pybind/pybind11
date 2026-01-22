@@ -11,10 +11,16 @@
 
 #include <pybind11/attr.h>
 #include <pybind11/options.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/pytypes.h>
 
 #include "exception_translation.h"
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+
+class weakref;
+class cpp_function;
+
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 #if !defined(PYPY_VERSION)
@@ -252,11 +258,6 @@ extern "C" inline void pybind11_meta_dealloc(PyObject *obj) {
     });
 
     PyType_Type.tp_dealloc(obj);
-
-    // Release the references to the internals capsules that were acquired in make_new_python_type.
-    // See the comment there for details on preventing use-after-free during interpreter shutdown.
-    Py_XDECREF(get_internals_capsule());
-    Py_XDECREF(get_local_internals_capsule());
 }
 
 /** This metaclass is assigned by default to all pybind11 types and is required in order
@@ -833,15 +834,6 @@ inline PyObject *make_new_python_type(const type_record &rec) {
     }
 
     PYBIND11_SET_OLDPY_QUALNAME(type, qualname);
-
-    // Prevent use-after-free during interpreter shutdown. GC order is not guaranteed, so the
-    // internals capsule may be destroyed (resetting internals via internals_shutdown) before all
-    // pybind11 types are destroyed. If a type's tp_traverse/tp_clear then calls py::cast, it
-    // would recreate an empty internals and fail because the type registry is gone. By holding
-    // references to the capsules, we ensure they outlive all pybind11 types. The decref happens
-    // in pybind11_meta_dealloc.
-    Py_XINCREF(get_internals_capsule());
-    Py_XINCREF(get_local_internals_capsule());
 
     return reinterpret_cast<PyObject *>(type);
 }
