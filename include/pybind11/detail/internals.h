@@ -240,16 +240,14 @@ public:
 };
 
 class pycritical_section {
-    pymutex& mutex;
+    pymutex &mutex;
     PyCriticalSection cs;
 
 public:
-    explicit pycritical_section(pymutex& m) : mutex(m) {
+    explicit pycritical_section(pymutex &m) : mutex(m) {
         PyCriticalSection_BeginMutex(&cs, &mutex.mutex);
     }
-    ~pycritical_section() {
-        PyCriticalSection_End(&cs);
-    }
+    ~pycritical_section() { PyCriticalSection_End(&cs); }
 };
 
 // Instance map shards are used to reduce mutex contention in free-threaded Python.
