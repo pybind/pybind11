@@ -117,7 +117,9 @@ static PyObject *hook_to_python(pymb_binding *binding,
     return Shared_new(binding->pytype, (Shared *) cobj, rvp);
 }
 
-static int hook_no_keep_alive(PyObject *, void *, void (*)(void *)) noexcept { return 0; }
+static int hook_no_keep_alive(PyObject *, pymb_keep_alive_type, void *, void (*)(void *)) noexcept {
+    return 0;
+}
 static void hook_ignore_binding(pymb_binding *) noexcept {}
 static void hook_ignore_framework(pymb_framework *) noexcept {}
 static void hook_free_local_binding(pymb_binding *binding) noexcept { delete binding; }

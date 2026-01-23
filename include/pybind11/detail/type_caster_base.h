@@ -1115,9 +1115,12 @@ public:
         }
 
         auto *result = (PyObject *) result_v;
-        if (result && policy == return_value_policy::reference_internal && srcs.is_new
-            && srcs.used_foreign->keep_alive(result, parent.ptr(), nullptr) == 0) {
-            keep_alive_impl(result, parent.ptr());
+        if (result && policy == return_value_policy::reference_internal && srcs.is_new) {
+            if ((srcs.used_foreign->keep_alive_types & (uint8_t) pymb_keep_alive_pyobject) == 0 ||
+                srcs.used_foreign->keep_alive(result, pymb_keep_alive_pyobject,
+                                              parent.ptr(), nullptr) == 0) {
+                keep_alive_impl(result, parent.ptr());
+            }
         }
         return result;
     }
@@ -1811,17 +1814,27 @@ public:
 
     PYBIND11_NOINLINE static void after_shared_ptr_cast_to_foreign(
         handle ret, std::shared_ptr<const void> holder, pymb_framework *framework) {
-        // Make the resulting Python object keep a shared_ptr<T> alive,
-        // even if there's not space for it inside the object.
+        // Try to pass the shared_ptr to the framework as a shared_ptr. This
+        // helps with pybind/pybind interop.
+        if ((framework->keep_alive_types & (uint8_t) pymb_keep_alive_cpp_shared_ptr_void) &&
+            framework->keep_alive(ret.ptr(), pymb_keep_alive_cpp_shared_ptr_void,
+                                  &holder, nullptr)) {
+            return;
+        }
+        // If the framework we're calling can't work with that, do the
+        // equivalent as a callback.
         std::unique_ptr<std::shared_ptr<const void>> sp{new auto(std::move(holder))};
         auto deleter = [](void *p) noexcept { delete (std::shared_ptr<const void> *) p; };
-        if (!framework->keep_alive(ret.ptr(), sp.get(), deleter)) {
-            // If they don't provide a keep_alive, use our own weakref-based
-            // one. If ret is not weakrefable, it will throw and the capsule's
-            // destructor will clean up for us.
-            keep_alive_impl(ret, capsule((void *) sp.release(), deleter));
+        if ((framework->keep_alive_types & (uint8_t) pymb_keep_alive_callback) &&
+            framework->keep_alive(ret.ptr(), pymb_keep_alive_callback, sp.get(), deleter)) {
+            sp.release();
+            return;
         }
-        (void) sp.release(); // NOLINT(bugprone-unused-return-value)
+        // If they don't provide a keep_alive at all, use our own weakref-based
+        // one. Anyone who doesn't provide keep_alive is supposed to have
+        // weakrefable instances. If ret is not weakrefable, it will throw and
+        // the capsule's destructor will clean up for us.
+        keep_alive_impl(ret, capsule((void *) sp.release(), deleter));
     }
 
     template <class T>
@@ -1858,24 +1871,35 @@ public:
         return ret;
     }
 
-    // Support unique_ptr with custom deleter by converting it to shared_ptr
     template <class T, class D>
     static handle cast_holder(const cast_sources &srcs, std::unique_ptr<T, D> *holder) {
-        std::shared_ptr<T> shared_holder = std::move(*holder);
-        return cast_holder(srcs, &shared_holder);
+        // Use reference policy if casting via a foreign binding, and
+        // take_ownership if casting a pybind11 type
+        auto policy = srcs.needs_foreign() ? return_value_policy::reference
+                                           : return_value_policy::take_ownership;
+        handle ret = type_caster_generic::cast(srcs, policy, {}, nullptr, nullptr, holder);
+        if (srcs.used_foreign && srcs.is_new) {
+            // We used `reference` policy so must now attach the holder as a
+            // keep_alive.
+            after_shared_ptr_cast_to_foreign(
+                ret, std::shared_ptr<T>{std::move(*holder)}, srcs.used_foreign);
+        }
     }
 
-    static handle cast_holder(const cast_sources &srcs, const void *holder) {
+    template <class H>
+    static handle cast_holder(const cast_sources &srcs, H *holder) {
         auto policy = srcs.needs_foreign() ? return_value_policy::reference
                                            : return_value_policy::take_ownership;
         handle ret = type_caster_generic::cast(srcs, policy, {}, nullptr, nullptr, holder);
         if (srcs.used_foreign) {
-            PyErr_SetString(PyExc_TypeError,
-                            "Can't cast foreign type to holder; only "
-                            "returns of std::unique_ptr and std::shared_ptr "
-                            "are supported for foreign types");
-            ret.dec_ref();
-            return nullptr;
+            // Wrap the custom holder in a std::shared_ptr with custom deleter,
+            // and then delegate to the logic for handling std::shared_ptr casts
+            // to foreign.
+            auto *ptr = holder_helper<H>::get(holder);
+            using V = std::decay_t<decltype(*ptr)>;
+            after_shared_ptr_cast_to_foreign(
+                ret, std::shared_ptr<V>{ptr, [h = std::move(*holder)](V*) {}},
+                srcs.used_foreign);
         }
         return ret;
     }

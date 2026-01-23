@@ -152,15 +152,6 @@ inline void init_instance_unregistered(instance *inst, const void *holder) {
     (void) holder; // avoid unused warning if compiled without asserts
     value_and_holder v_h = *values_and_holders(inst).begin();
 
-    // If using smart_holder, force creation of a shared_ptr that has a
-    // guarded_delete deleter, so that we can modify it in
-    // interop_cb_keep_alive(). We can't create it there because it needs to be
-    // created in the same DSO as it's accessed in; init_instance is in that
-    // DSO, but this function might not be.
-    if (v_h.type->holder_enum_v == holder_enum_t::smart_holder) {
-        inst->owned = true;
-    }
-
     // Pretend it's already registered so that init_instance doesn't try again
     v_h.set_instance_registered(true);
 
@@ -169,13 +160,6 @@ inline void init_instance_unregistered(instance *inst, const void *holder) {
         value_and_holder &v_h;
         ~guard() noexcept {
             v_h.set_instance_registered(false);
-            if (v_h.type->holder_enum_v == holder_enum_t::smart_holder) {
-                v_h.inst->owned = false;
-                auto &h = v_h.holder<smart_holder>();
-                h.vptr_is_using_std_default_delete = true;
-                h.reset_vptr_deleter_armed_flag(v_h.type->get_memory_guarded_delete,
-                                                /* armed_flag */ false);
-            }
         }
     } guard{v_h};
     v_h.type->init_instance(inst, nullptr);
@@ -285,7 +269,10 @@ inline PyObject *interop_cb_to_python(pymb_binding *binding,
     }
 }
 
-inline int interop_cb_keep_alive(PyObject *nurse, void *payload, void (*cb)(void *)) noexcept {
+inline int interop_cb_keep_alive(PyObject *nurse,
+                                 pymb_keep_alive_type type,
+                                 void *payload,
+                                 void (*cb)(void *)) noexcept {
     try {
         do { // single-iteration loop to reduce nesting level
             if (!is_uniquely_referenced(nurse)) {
@@ -304,27 +291,59 @@ inline int interop_cb_keep_alive(PyObject *nurse, void *payload, void (*cb)(void
             if (v_h.instance_registered()) {
                 break;
             }
-            auto cb_to_use = cb ? cb : (decltype(cb)) Py_DecRef;
+            bool can_set_shared_ptr = (v_h.type->holder_enum_v == holder_enum_t::std_shared_ptr
+                                       && !v_h.holder_constructed());
+            bool can_set_smart_holder = (v_h.type->holder_enum_v == holder_enum_t::smart_holder
+                                         && v_h.holder_constructed() && !v_h.inst->owned);
             bool success = false;
-            if (v_h.type->holder_enum_v == holder_enum_t::std_shared_ptr
-                && !v_h.holder_constructed()) {
-                // Create a shared_ptr whose destruction will perform the action
-                std::shared_ptr<void> owner(payload, cb_to_use);
-                // Use the aliasing constructor to make its get() return the right thing
-                // NB: this constructor accepts an rvalue reference only in C++20
-                new (std::addressof(v_h.holder<std::shared_ptr<void>>()))
+            if (can_set_shared_ptr || can_set_smart_holder) {
+                // Create a shared_ptr that carries the requested ownership.
+                std::shared_ptr<void> result;
+                switch (type) {
+                    case pymb_keep_alive_callback:
+                        result = std::shared_ptr<void>(payload, cb);
+                        break;
+                    case pymb_keep_alive_pyobject: {
+                        PyObject *patient = static_cast<PyObject *>(payload);
+                        Py_INCREF(patient);
+                        result = std::shared_ptr<void>(
+                            std::shared_ptr<PyObject>(patient, Py_DecRef), v_h.value_ptr());
+                        break;
+                    }
+                    case pymb_keep_alive_cpp_shared_ptr_void: {
+                        auto *given = static_cast<std::shared_ptr<void> *>(payload);
+                        result = std::move(*given);
+                        break;
+                    }
+                }
+                if (result) {
+                    // Use the aliasing constructor so that result.get() returns the
+                    // right thing, despite its deleter receiving a possibly-unrelated
+                    // `payload`. NB: this constructor accepts an rvalue reference only
+                    // in C++20, so suppress a lint for the sake of earlier versions.
                     // NOLINTNEXTLINE(performance-move-const-arg)
-                    std::shared_ptr<void>(std::move(owner), v_h.value_ptr());
-                v_h.set_holder_constructed();
-                success = true;
-            } else if (v_h.type->holder_enum_v == holder_enum_t::smart_holder
-                       && v_h.holder_constructed() && !v_h.inst->owned) {
-                auto &h = v_h.holder<smart_holder>();
-                auto *gd = v_h.type->get_memory_guarded_delete(h.vptr);
-                if (gd && !gd->armed_flag) {
-                    gd->del_fun = [=](void *) { cb_to_use(payload); };
-                    gd->use_del_fun = true;
-                    gd->armed_flag = true;
+                    result = std::shared_ptr<void>(std::move(result), v_h.value_ptr());
+                    if (can_set_shared_ptr) {
+                        new (std::addressof(v_h.holder<std::shared_ptr<void>>()))
+                            std::shared_ptr<void>(std::move(result));
+                        v_h.set_holder_constructed();
+                    } else {
+                        assert(can_set_smart_holder);
+                        auto &h = v_h.holder<smart_holder>();
+                        // Since inst->owned was false and we did not pass a
+                        // holder, it was probably created by
+                        // `smart_holder::from_raw_ptr_unowned`. (If the pointee
+                        // implements `enable_shared_from_this`, `init_instance`
+                        // would have instead already done something like the
+                        // below, but it works fine in that case too.)
+                        // Undo the effects of `from_raw_ptr_unowned` and set up
+                        // the holder as if by `smart_holder::from_shared_ptr`.
+                        h.vptr = std::move(result);
+                        h.vptr_is_using_noop_deleter = false;
+                        h.vptr_is_using_std_default_delete = false;
+                        h.vptr_is_external_shared_ptr = true;
+                        h.is_populated = true;
+                    }
                     success = true;
                 }
             }
@@ -335,13 +354,26 @@ inline int interop_cb_keep_alive(PyObject *nurse, void *payload, void (*cb)(void
             }
         } while (false);
 
-        if (!cb) {
-            keep_alive_impl(nurse, static_cast<PyObject *>(payload));
-        } else {
-            capsule patient{payload, cb};
-            keep_alive_impl(nurse, patient);
+        switch (type) {
+            case pymb_keep_alive_callback: {
+                capsule patient{payload, cb};
+                keep_alive_impl(nurse, patient);
+                return 1;
+            }
+            case pymb_keep_alive_pyobject:
+                keep_alive_impl(nurse, static_cast<PyObject *>(payload));
+                return 1;
+            case pymb_keep_alive_cpp_shared_ptr_void: {
+                auto *given = static_cast<std::shared_ptr<void> *>(payload);
+                capsule patient{new auto{std::move(*given)},
+                                +[](void *p) {
+                                    delete static_cast<std::shared_ptr<void> *>(p);
+                                }};
+                keep_alive_impl(nurse, patient);
+                return 1;
+            }
         }
-        return 1;
+        return 0;
     } catch (...) {
         translate_exception(std::current_exception());
         PyErr_WriteUnraisable(nurse);
@@ -514,6 +546,9 @@ PYBIND11_NOINLINE bool interop_internals::initialize() {
 
         self.reset(new pymb_framework{});
         self->name = "pybind11 " PYBIND11_ABI_TAG;
+        self->keep_alive_types = ((uint8_t) pymb_keep_alive_type_callback |
+                                  (uint8_t) pymb_keep_alive_type_pyobject |
+                                  (uint8_t) pymb_keep_alive_type_cpp_shared_ptr_void);
         self->flags = 0;
         self->abi_lang = pymb_abi_lang_cpp;
         self->abi_extra = PYBIND11_PLATFORM_ABI_ID;

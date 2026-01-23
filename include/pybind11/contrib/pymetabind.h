@@ -3,12 +3,15 @@
  *               Python binding frameworks
  *
  * Copy this header file into the implementation of a framework that uses it.
+ * You must #include <Python.h> before including this header pymetabind.h.
  * This functionality is intended to be used by the framework itself,
  * rather than by users of the framework.
  *
- * This is version 0.3+dev of pymetabind. Changelog:
+ * This is version 0.4 of pymetabind. Changelog:
  *
- *      Unreleased: Properly return NULL if registry capsule creation fails.
+ *     Version 0.4: Properly return NULL if registry capsule creation fails.
+ *      2026-01-23  Support concurrent calls to `pymb_get_registry`.
+ *                  Add `pymb_keep_alive_type` parameter to `keep_alive` slot.
  *                  Support GraalPy.
  *
  *     Version 0.3: Don't do a Py_DECREF in `pymb_remove_framework` since the
@@ -148,17 +151,37 @@ enum pymb_rv_policy {
  * `pymb_framework::abi_extra` and `pymb_binding::native_type`.
  */
 enum pymb_abi_lang {
-    // C. `pymb_framework::abi_extra` and `pymb_binding::native_type` are NULL.
+    // C. `pymb_framework::abi_extra`, `pymb_binding::native_type`, and
+    // `pymb_framework::translate_exception` should all be NULL.
     pymb_abi_lang_c = 1,
 
     // C++. `pymb_framework::abi_extra` is in the format used by
     // nanobind since 2.6.1 (NB_PLATFORM_ABI_TAG in nanobind/src/nb_abi.h)
     // and pybind11 since 2.11.2/2.12.1/2.13.6 (PYBIND11_PLATFORM_ABI_ID in
     // pybind11/include/pybind11/conduit/pybind11_platform_abi_id.h).
-    // `pymb_binding::native_type` is a cast `const std::type_info*` pointer.
+    // `pymb_binding::native_type` is a cast `const std::type_info*`.
+    // `pymb_framework::translate_exception` takes a cast `std::exception_ptr*`.
     pymb_abi_lang_cpp = 2,
 
     // extensions welcome!
+};
+
+/*
+ * A predetermined set of semantics for `pymb_framework::keep_alive`, which
+ * some frameworks may be able to handle more efficiently than by representing
+ * the same semantics with a callback.
+ */
+enum pymb_keep_alive_type {
+    // Call `cb(payload)` when `nurse` is destroyed.
+    pymb_keep_alive_callback = 0x01,
+
+    // Interpret `payload` as a `PyObject*`; incref it immediately and
+    // decref it when `nurse` is destroyed. `cb` is ignored.
+    pymb_keep_alive_pyobject = 0x02,
+
+    // Interpret `payload` as a C++ `std::shared_ptr<void>*`; ensure that
+    // `nurse` holds shared ownership of the pointee until `nurse` is destroyed.
+    pymb_keep_alive_cpp_shared_ptr_void = 0x04,
 };
 
 /*
@@ -266,13 +289,13 @@ PYMB_INLINE void pymb_unlock_registry(struct pymb_registry* registry) {
 struct pymb_binding;
 
 /* Flags for a `pymb_framework` */
-enum pymb_framework_flags {
+enum pymb_framework_flag {
     // Does this framework guarantee that its `pymb_binding` structures remain
     // valid to use for the lifetime of the Python interpreter process once
     // they have been linked into the lists in `pymb_registry`? Setting this
     // flag reduces the number of atomic operations needed to work with
     // this framework's bindings in free-threaded builds.
-    pymb_framework_bindings_usable_forever = 0x0001,
+    pymb_framework_bindings_usable_forever = 0x01,
 
     // Does this framework reliably deallocate all of its type and function
     // objects by the time the Python interpreter is finalized, in the absence
@@ -280,7 +303,7 @@ enum pymb_framework_flags {
     // types or functions, via attributes or default argument values for
     // this framework's leaked objects. Other frameworks can suppress their
     // leak warnings (if so equipped) when a non-`leak_safe` framework is added.
-    pymb_framework_leak_safe = 0x0002,
+    pymb_framework_leak_safe = 0x02,
 };
 
 /* Additional results from `pymb_framework::to_python` */
@@ -338,10 +361,15 @@ struct pymb_framework {
     // Human-readable description of this framework, as a NUL-terminated string
     const char* name;
 
-    // Flags for this framework, a combination of `enum pymb_framework_flags`.
+    // Keep-alive types supported by this framework, a bitwise OR of `enum
+    // pymb_keep_alive_type`. Undefined types must be set to zero to allow for
+    // future backward-compatible extensions.
+    uint8_t keep_alive_types;
+
+    // Flags for this framework, a bitwise OR of `enum pymb_framework_flag`.
     // Undefined flags must be set to zero to allow for future
     // backward-compatible extensions.
-    uint16_t flags;
+    uint8_t flags;
 
     // Reserved for future extensions. Set to 0.
     uint8_t reserved[2];
@@ -421,8 +449,8 @@ struct pymb_framework {
     //
     // The semantics of this function are as follows:
     // - If there is already a live Python object created by this framework for
-    //   this C++ object address and type, it will be returned and the `rvp` is
-    //   ignored.
+    //   this native object address and type, it will be returned and the `rvp`
+    //   is ignored.
     // - Otherwise, if `rvp == pymb_rv_policy_none`, NULL is returned without
     //   the Python error indicator set.
     // - Otherwise, a new Python object will be created and returned. It will
@@ -448,24 +476,35 @@ struct pymb_framework {
                            enum pymb_rv_policy rvp,
                            struct pymb_to_python_feedback* feedback) PYMB_NOEXCEPT;
 
-    // Request that a PyObject reference be dropped, or that a callback
-    // be invoked, when `nurse` is destroyed. `nurse` should be an object
-    // whose type is bound by this framework. If `cb` is NULL, then
-    // `payload` is a PyObject* to decref; otherwise `payload` will
-    // be passed as the argument to `cb`. Returns 1 if successful,
-    // 0 on error. This method may always return 0 if the framework has
-    // no better way to do a keep-alive than by creating a weakref;
-    // it is expected that the caller can handle creating the weakref.
+    // Request that a reference to `payload` be held during the lifetime of
+    // `nurse`, or that `cb(payload)` be invoked when `nurse` is destroyed.
+    // `nurse` must be an object whose type is bound by this framework.
+    // The exact semantics depend on the `type`; see the documentation
+    // of `pymb_keep_alive_type` for details.
+    //
+    // A framework may choose which `type`s it supports. For example,
+    // a framework that is not written in C++ would find it difficult to
+    // support `pymb_keep_alive_cpp_shared_ptr_void`. However, any framework
+    // whose bound Python objects are not weak-referenceable must support
+    // at least `pymb_keep_alive_callback` and `pymb_keep_alive_pyobject`.
+    //
+    // Returns 1 if successful, 0 on error. Lack of support for the requested
+    // `type` is treated as an error. Callers should inspect this framework's
+    // `keep_alive_types` field to determine which type is most appropriate to
+    // request, and should fall back to using a weak reference if
+    // `pymb_keep_alive_callback` or `pymb_keep_alive_pyobject` type is
+    // needed but unsupported.
     //
     // No synchronization is required to call this method.
     int (*keep_alive)(PyObject* nurse,
+                      enum pymb_keep_alive_type type,
                       void* payload,
                       void (*cb)(void*)) PYMB_NOEXCEPT;
 
     // Attempt to translate the native exception `eptr` into a Python exception.
-    // If `abi_lang` is C++, then `eptr` should be cast to `std::exception_ptr*`
-    // before use; semantics for other languages have not been defined yet. This
-    // should translate only framework-specific exceptions or user-defined
+    // The actual type of `eptr` depends on this framework's `abi_lang`; see
+    // `enum pymb_abi_lang` for details. In C++ it is `std::exception_ptr*`.
+    // This should translate only framework-specific exceptions or user-defined
     // exceptions that were registered with the framework, not generic ones
     // such as `std::exception`. If translation succeeds, return 1 with the
     // Python error indicator set; otherwise, return 0. An exception may be
@@ -778,8 +817,6 @@ PYMB_FUNC PyObject* pymb_weakref_callback(PyObject* self, PyObject* weakref) {
 /*
  * Locate an existing `pymb_registry`, or create a new one if necessary.
  * Returns a pointer to it, or NULL with the CPython error indicator set.
- * This must be called from a module initialization function so that the
- * import lock can provide mutual exclusion.
  */
 PYMB_FUNC struct pymb_registry* pymb_get_registry() {
 #if defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
@@ -796,47 +833,68 @@ PYMB_FUNC struct pymb_registry* pymb_get_registry() {
     }
     PyObject* capsule = PyDict_GetItem(dict, key);
     if (capsule) {
+        // Fast path: the registry was already created
         Py_DECREF(key);
         return (struct pymb_registry*) PyCapsule_GetPointer(
                 capsule, "pymetabind_registry");
     }
     struct pymb_registry* registry;
     registry = (struct pymb_registry*) calloc(1, sizeof(*registry));
-    if (registry) {
-        pymb_list_init(&registry->frameworks);
-        pymb_list_init(&registry->bindings);
-        registry->deallocate_when_empty = 0;
-
-        // C doesn't allow inline functions to declare static variables,
-        // so allocate this on the heap
-        PyMethodDef* def = (PyMethodDef*) calloc(1, sizeof(PyMethodDef));
-        if (!def) {
-            free(registry);
-            PyErr_NoMemory();
-            Py_DECREF(key);
-            return NULL;
-        }
-        def->ml_name = "pymetabind_weakref_callback";
-        def->ml_meth = pymb_weakref_callback;
-        def->ml_flags = METH_O;
-        def->ml_doc = NULL;
-        registry->weakref_callback_def = def;
-
-        // Attach a destructor so the registry memory is released at teardown
-        capsule = PyCapsule_New(registry, "pymetabind_registry",
-                                pymb_registry_capsule_destructor);
-        if (!capsule) {
-            free(registry);
-            registry = NULL;
-        } else if (PyDict_SetItem(dict, key, capsule) == -1) {
-            registry = NULL; // will be deallocated by capsule destructor
-        }
-        Py_XDECREF(capsule);
-    } else {
+    if (!registry) {
         PyErr_NoMemory();
+        Py_DECREF(key);
+        return NULL;
     }
+
+    pymb_list_init(&registry->frameworks);
+    pymb_list_init(&registry->bindings);
+    registry->deallocate_when_empty = 0;
+
+    // C doesn't allow inline functions to declare static variables,
+    // so allocate this on the heap
+    PyMethodDef* def = (PyMethodDef*) calloc(1, sizeof(PyMethodDef));
+    if (!def) {
+        free(registry);
+        PyErr_NoMemory();
+        Py_DECREF(key);
+        return NULL;
+    }
+    def->ml_name = "pymetabind_weakref_callback";
+    def->ml_meth = pymb_weakref_callback;
+    def->ml_flags = METH_O;
+    def->ml_doc = NULL;
+    registry->weakref_callback_def = def;
+
+    // Attach a destructor so the registry memory is released at teardown
+    capsule = PyCapsule_New(registry, "pymetabind_registry",
+                            pymb_registry_capsule_destructor);
+    if (!capsule) {
+        pymb_registry_free(registry);
+        Py_DECREF(key);
+        return NULL;
+    }
+
+    // Use `PyDict_SetDefault` to handle the case where another thread created
+    // the registry in between our `PyDict_GetItem` and here. There is no need
+    // to use `PyDict_SetDefaultRef` because the capsule, once inserted, will
+    // be kept alive until interpreter shutdown; therefore there is no hazard
+    // that the capsule could be destroyed while we hold a borrowed reference.
+    PyObject* registered_capsule = PyDict_SetDefault(dict, key, capsule);
     Py_DECREF(key);
-    return registry;
+    Py_DECREF(capsule);
+
+    // If we won the setdefault race, then the dict retained a reference to
+    // our capsule. If not, then the above decref freed it, along with the
+    // registry we created.
+
+    if (registered_capsule == capsule) {
+        return registry;
+    }
+    if (!registered_capsule) {
+        return NULL;
+    }
+    return (struct pymb_registry*) PyCapsule_GetPointer(
+            registered_capsule, "pymetabind_registry");
 }
 
 /*
