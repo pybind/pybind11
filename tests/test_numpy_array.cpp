@@ -17,8 +17,8 @@
 
 // Size / dtype checks.
 struct DtypeCheck {
-    py::dtype numpy{};
-    py::dtype pybind11{};
+    py::dtype numpy;
+    py::dtype pybind11;
 };
 
 template <typename T>
@@ -43,11 +43,11 @@ std::vector<DtypeCheck> get_concrete_dtype_checks() {
 }
 
 struct DtypeSizeCheck {
-    std::string name{};
+    std::string name;
     int size_cpp{};
     int size_numpy{};
     // For debugging.
-    py::dtype dtype{};
+    py::dtype dtype;
 };
 
 template <typename T>

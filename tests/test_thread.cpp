@@ -15,6 +15,10 @@
 #include <chrono>
 #include <thread>
 
+#if defined(PYBIND11_HAS_STD_BARRIER)
+#    include <barrier>
+#endif
+
 namespace py = pybind11;
 
 namespace {
@@ -34,7 +38,6 @@ EmptyStruct SharedInstance;
 } // namespace
 
 TEST_SUBMODULE(thread, m) {
-
     py::class_<IntStruct>(m, "IntStruct").def(py::init([](const int i) { return IntStruct(i); }));
 
     // implicitly_convertible uses loader_life_support when an implicit
@@ -66,6 +69,39 @@ TEST_SUBMODULE(thread, m) {
 
     py::class_<EmptyStruct>(m, "EmptyStruct")
         .def_readonly_static("SharedInstance", &SharedInstance);
+
+#if defined(PYBIND11_HAS_STD_BARRIER)
+    // In the free-threaded build, during PyThreadState_Clear, removing the thread from the biased
+    // reference counting table may call destructors. Make sure that it doesn't crash.
+    m.def("test_pythread_state_clear_destructor", [](py::type cls) {
+        py::handle obj;
+
+        std::barrier barrier{2};
+        std::thread thread1{[&]() {
+            py::gil_scoped_acquire gil;
+            obj = cls().release();
+            barrier.arrive_and_wait();
+        }};
+        std::thread thread2{[&]() {
+            py::gil_scoped_acquire gil;
+            barrier.arrive_and_wait();
+            // ob_ref_shared becomes negative; transition to the queued state
+            obj.dec_ref();
+        }};
+
+        // jthread is not supported by Apple Clang
+        thread1.join();
+        thread2.join();
+    });
+#endif
+
+    m.attr("defined_PYBIND11_HAS_STD_BARRIER") =
+#ifdef PYBIND11_HAS_STD_BARRIER
+        true;
+#else
+        false;
+#endif
+    m.def("acquire_gil", []() { py::gil_scoped_acquire gil_acquired; });
 
     // NOTE: std::string_view also uses loader_life_support to ensure that
     // the string contents remain alive, but that's a C++ 17 feature.

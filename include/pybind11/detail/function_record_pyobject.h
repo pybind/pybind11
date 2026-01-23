@@ -126,7 +126,7 @@ inline bool is_function_record_PyObject(PyObject *obj) {
 
 inline function_record *function_record_ptr_from_PyObject(PyObject *obj) {
     if (is_function_record_PyObject(obj)) {
-        return ((detail::function_record_PyObject *) obj)->cpp_func_rec;
+        return (reinterpret_cast<detail::function_record_PyObject *>(obj))->cpp_func_rec;
     }
     return nullptr;
 }
@@ -137,7 +137,7 @@ inline object function_record_PyObject_New() {
         throw error_already_set();
     }
     py_func_rec->cpp_func_rec = nullptr; // For clarity/purity. Redundant in practice.
-    return reinterpret_steal<object>((PyObject *) py_func_rec);
+    return reinterpret_steal<object>(reinterpret_cast<PyObject *>(py_func_rec));
 }
 
 PYBIND11_NAMESPACE_BEGIN(function_record_PyTypeObject_methods)

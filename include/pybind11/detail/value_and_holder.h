@@ -54,7 +54,8 @@ struct value_and_holder {
         } else if (v) {
             inst->nonsimple.status[index] |= instance::status_holder_constructed;
         } else {
-            inst->nonsimple.status[index] &= (std::uint8_t) ~instance::status_holder_constructed;
+            inst->nonsimple.status[index]
+                &= static_cast<std::uint8_t>(~instance::status_holder_constructed);
         }
     }
     bool instance_registered() const {
@@ -69,7 +70,8 @@ struct value_and_holder {
         } else if (v) {
             inst->nonsimple.status[index] |= instance::status_instance_registered;
         } else {
-            inst->nonsimple.status[index] &= (std::uint8_t) ~instance::status_instance_registered;
+            inst->nonsimple.status[index]
+                &= static_cast<std::uint8_t>(~instance::status_instance_registered);
         }
     }
 };

@@ -47,7 +47,9 @@ add_custom_target(
   cpptest
   COMMAND "$<TARGET_FILE:test_with_catch>"
   DEPENDS test_with_catch
-  WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
+  WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+  USES_TERMINAL # Ensures output is shown immediately (not buffered and possibly lost on crash)
+)
 
 pybind11_add_module(external_module THIN_LTO external_module.cpp)
 set_target_properties(external_module PROPERTIES LIBRARY_OUTPUT_DIRECTORY

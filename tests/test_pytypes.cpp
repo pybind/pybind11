@@ -1211,4 +1211,6 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("check_type_is", [](const py::object &x) -> py::typing::TypeIs<RealNumber> {
         return py::isinstance<RealNumber>(x);
     });
+
+    m.def("const_kwargs_ref_to_str", [](const py::kwargs &kwargs) { return py::str(kwargs); });
 }

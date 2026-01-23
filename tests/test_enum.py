@@ -328,7 +328,7 @@ def test_generated_dunder_methods_pos_only():
         )
         assert (
             re.match(
-                r"^__setstate__\(self: [\w\.]+, state: [\w\.]+, /\)",
+                r"^__setstate__\(self: [\w\.]+, state: [\w\. \|]+, /\)",
                 enum_type.__setstate__.__doc__,
             )
             is not None

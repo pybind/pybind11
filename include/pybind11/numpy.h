@@ -416,7 +416,7 @@ struct npy_format_descriptor_name<T, enable_if_t<is_complex<T>::value>> {
                                  || std::is_same<typename T::value_type, const double>::value
                                         > (const_name("numpy.complex")
                                                + const_name<sizeof(typename T::value_type) * 16>(),
-                                           const_name("numpy.longcomplex"));
+                                           const_name("numpy.clongdouble"));
 };
 
 template <typename T>
@@ -1860,7 +1860,7 @@ public:
     using value_type = container_type::value_type;
     using size_type = container_type::size_type;
 
-    common_iterator() : m_strides() {}
+    common_iterator() = default;
 
     common_iterator(void *ptr, const container_type &strides, const container_type &shape)
         : p_ptr(reinterpret_cast<char *>(ptr)), m_strides(strides.size()) {

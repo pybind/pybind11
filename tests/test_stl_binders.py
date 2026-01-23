@@ -258,7 +258,7 @@ def test_noncopyable_containers():
             assert nvnc[i][j].value == j + 1
 
     # Note: maps do not have .values()
-    for _, v in nvnc.items():
+    for v in nvnc.values():
         for i, j in enumerate(v, start=1):
             assert j.value == i
 
@@ -269,7 +269,7 @@ def test_noncopyable_containers():
             assert nmnc[i][j].value == 10 * j
 
     vsum = 0
-    for _, v_o in nmnc.items():
+    for v_o in nmnc.values():
         for k_i, v_i in v_o.items():
             assert v_i.value == 10 * k_i
             vsum += v_i.value
@@ -283,7 +283,7 @@ def test_noncopyable_containers():
             assert numnc[i][j].value == 10 * j
 
     vsum = 0
-    for _, v_o in numnc.items():
+    for v_o in numnc.values():
         for k_i, v_i in v_o.items():
             assert v_i.value == 10 * k_i
             vsum += v_i.value

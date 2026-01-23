@@ -1,10 +1,13 @@
 #include <pybind11/embed.h>
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
+#    include <pybind11/gil_safe_call_once.h>
 #    include <pybind11/subinterpreter.h>
 
 // Silence MSVC C++17 deprecation warning from Catch regarding std::uncaught_exceptions (up to
 // catch 2.0.1; this should be fixed in the next catch release after 2.0.1).
 PYBIND11_WARNING_DISABLE_MSVC(4996)
+
+#    include "catch_skip.h"
 
 #    include <catch.hpp>
 #    include <cstdlib>
@@ -28,7 +31,7 @@ void unsafe_reset_internals_for_single_interpreter() {
     py::detail::get_local_internals_pp_manager().unref();
 
     // we know there are no other interpreters, so we can lower this. SUPER DANGEROUS
-    py::detail::get_num_interpreters_seen() = 1;
+    py::detail::has_seen_non_main_interpreter() = false;
 
     // now we unref the static global singleton internals
     py::detail::get_internals_pp_manager().unref();
@@ -37,6 +40,30 @@ void unsafe_reset_internals_for_single_interpreter() {
     // finally, we reload the static global singleton
     py::detail::get_internals();
     py::detail::get_local_internals();
+}
+
+py::object &get_dict_type_object() {
+    PYBIND11_CONSTINIT static py::gil_safe_call_once_and_store<py::object> storage;
+    return storage
+        .call_once_and_store_result(
+            []() -> py::object { return py::module_::import("builtins").attr("dict"); })
+        .get_stored();
+}
+
+py::object &get_ordered_dict_type_object() {
+    PYBIND11_CONSTINIT static py::gil_safe_call_once_and_store<py::object> storage;
+    return storage
+        .call_once_and_store_result(
+            []() -> py::object { return py::module_::import("collections").attr("OrderedDict"); })
+        .get_stored();
+}
+
+py::object &get_default_dict_type_object() {
+    PYBIND11_CONSTINIT static py::gil_safe_call_once_and_store<py::object> storage;
+    return storage
+        .call_once_and_store_result(
+            []() -> py::object { return py::module_::import("collections").attr("defaultdict"); })
+        .get_stored();
 }
 
 TEST_CASE("Single Subinterpreter") {
@@ -104,14 +131,21 @@ TEST_CASE("Move Subinterpreter") {
         py::module_::import("external_module");
     }
 
-    std::thread([&]() {
+    auto t = std::thread([&]() {
         // Use it again
         {
             py::subinterpreter_scoped_activate activate(*sub);
             py::module_::import("external_module");
         }
         sub.reset();
-    }).join();
+    });
+
+    // on 3.14.1+ destructing a sub-interpreter does a stop-the-world.  we need to detach our
+    // thread state in order for that to be possible.
+    {
+        py::gil_scoped_release nogil;
+        t.join();
+    }
 
     REQUIRE(!sub);
 
@@ -295,6 +329,103 @@ TEST_CASE("Multiple Subinterpreters") {
 
     REQUIRE(py::cast<std::string>(py::module_::import("external_module").attr("multi_interp"))
             == "1");
+
+    unsafe_reset_internals_for_single_interpreter();
+}
+
+// Test that gil_safe_call_once_and_store provides per-interpreter storage.
+// Without the per-interpreter storage fix, the subinterpreter would see the value
+// cached by the main interpreter, which is invalid (different interpreter's object).
+TEST_CASE("gil_safe_call_once_and_store per-interpreter isolation") {
+    unsafe_reset_internals_for_single_interpreter();
+
+    // This static simulates a typical usage pattern where a module caches
+    // an imported object using gil_safe_call_once_and_store.
+    PYBIND11_CONSTINIT static py::gil_safe_call_once_and_store<py::object> storage;
+
+    // Get the interpreter ID in the main interpreter
+    auto main_interp_id = PyInterpreterState_GetID(PyInterpreterState_Get());
+
+    // Store a value in the main interpreter - we'll store the interpreter ID as a Python int
+    auto &main_value = storage
+                           .call_once_and_store_result([]() {
+                               return py::int_(PyInterpreterState_GetID(PyInterpreterState_Get()));
+                           })
+                           .get_stored();
+    REQUIRE(main_value.cast<int64_t>() == main_interp_id);
+
+    py::object dict_type = get_dict_type_object();
+    py::object ordered_dict_type = get_ordered_dict_type_object();
+    py::object default_dict_type = get_default_dict_type_object();
+
+    int64_t sub_interp_id = -1;
+    int64_t sub_cached_value = -1;
+
+    bool sub_default_dict_type_destroyed = false;
+
+    // Create a subinterpreter and check that it gets its own storage
+    {
+        py::scoped_subinterpreter ssi;
+
+        sub_interp_id = PyInterpreterState_GetID(PyInterpreterState_Get());
+        REQUIRE(sub_interp_id != main_interp_id);
+
+        // Access the same static storage from the subinterpreter.
+        // With per-interpreter storage, this should call the lambda again
+        // and cache a NEW value for this interpreter.
+        // Without per-interpreter storage, this would return main's cached value.
+        auto &sub_value
+            = storage
+                  .call_once_and_store_result([]() {
+                      return py::int_(PyInterpreterState_GetID(PyInterpreterState_Get()));
+                  })
+                  .get_stored();
+
+        sub_cached_value = sub_value.cast<int64_t>();
+
+        // The cached value should be the SUBINTERPRETER's ID, not the main interpreter's.
+        // This would fail without per-interpreter storage.
+        REQUIRE(sub_cached_value == sub_interp_id);
+        REQUIRE(sub_cached_value != main_interp_id);
+
+        py::object sub_dict_type = get_dict_type_object();
+        py::object sub_ordered_dict_type = get_ordered_dict_type_object();
+        py::object sub_default_dict_type = get_default_dict_type_object();
+
+        // Verify that the subinterpreter has its own cached type objects.
+        // For static types, they should be the same object across interpreters.
+        // See also: https://docs.python.org/3/c-api/typeobj.html#static-types
+        REQUIRE(sub_dict_type.is(dict_type));                 // dict is a static type
+        REQUIRE(sub_ordered_dict_type.is(ordered_dict_type)); // OrderedDict is a static type
+        // For heap types, they are dynamically created per-interpreter.
+        // See also: https://docs.python.org/3/c-api/typeobj.html#heap-types
+        REQUIRE_FALSE(sub_default_dict_type.is(default_dict_type)); // defaultdict is a heap type
+
+        // Set up a weakref callback to detect when the subinterpreter's cached default_dict_type
+        // is destroyed so the gil_safe_call_once_and_store storage is not leaked when the
+        // subinterpreter is shutdown.
+        (void) py::weakref(sub_default_dict_type,
+                           py::cpp_function([&](py::handle weakref) -> void {
+                               sub_default_dict_type_destroyed = true;
+                               weakref.dec_ref();
+                           }))
+            .release();
+    }
+
+    // Back in main interpreter, verify main's value is unchanged
+    auto &main_value_after = storage.get_stored();
+    REQUIRE(main_value_after.cast<int64_t>() == main_interp_id);
+
+    // Verify that the types cached in main are unchanged
+    py::object dict_type_after = get_dict_type_object();
+    py::object ordered_dict_type_after = get_ordered_dict_type_object();
+    py::object default_dict_type_after = get_default_dict_type_object();
+    REQUIRE(dict_type_after.is(dict_type));
+    REQUIRE(ordered_dict_type_after.is(ordered_dict_type));
+    REQUIRE(default_dict_type_after.is(default_dict_type));
+
+    // Verify that the subinterpreter's cached default_dict_type was destroyed
+    REQUIRE(sub_default_dict_type_destroyed);
 
     unsafe_reset_internals_for_single_interpreter();
 }

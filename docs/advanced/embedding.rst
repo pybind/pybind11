@@ -18,7 +18,7 @@ information, see :doc:`/compiling`.
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 3.15...4.0)
+    cmake_minimum_required(VERSION 3.15...4.2)
     project(example)
 
     find_package(pybind11 REQUIRED)  # or `add_subdirectory(pybind11)`
@@ -302,7 +302,7 @@ Activating a Sub-interpreter
 
 Once a sub-interpreter is created, you can "activate" it on a thread (and
 acquire its GIL) by creating a :class:`subinterpreter_scoped_activate`
-instance and passing it the sub-intepreter to be activated.  The function
+instance and passing it the sub-interpreter to be activated.  The function
 will acquire the sub-interpreter's GIL and make the sub-interpreter the
 current active interpreter on the current thread for the lifetime of the
 instance. When the :class:`subinterpreter_scoped_activate` instance goes out
@@ -491,5 +491,9 @@ Best Practices for sub-interpreter safety
   concurrent calls from different interpreters into the same C++ code from different threads.
   So you must still consider the thread safety of your C++ code.  Remember, in Python 3.12
   sub-interpreters must be destroyed on the same thread that they were created on.
+
+- When using sub-interpreters in free-threaded python builds, note that creating and destroying
+  sub-interpreters may initiate a "stop-the-world".  Be sure to detach long-running C++ threads
+  from Python thread state (similar to releasing the GIL) to avoid deadlocks.
 
 - Familiarize yourself with :ref:`misc_concurrency`.

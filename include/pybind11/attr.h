@@ -373,7 +373,7 @@ struct type_record {
                           + (base_has_unique_ptr_holder ? "does not" : "does"));
         }
 
-        bases.append((PyObject *) base_info->type);
+        bases.append(reinterpret_cast<PyObject *>(base_info->type));
 
 #ifdef PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET
         dynamic_attr |= base_info->type->tp_dictoffset != 0;
@@ -703,6 +703,12 @@ struct process_attributes {
 };
 
 template <typename T>
+struct is_keep_alive : std::false_type {};
+
+template <size_t Nurse, size_t Patient>
+struct is_keep_alive<keep_alive<Nurse, Patient>> : std::true_type {};
+
+template <typename T>
 using is_call_guard = is_instantiation<call_guard, T>;
 
 /// Extract the ``type`` from the first `call_guard` in `Extras...` (or `void_type` if none found)
@@ -715,7 +721,9 @@ template <typename... Extra,
           size_t self = constexpr_sum(std::is_same<is_method, Extra>::value...)>
 constexpr bool expected_num_args(size_t nargs, bool has_args, bool has_kwargs) {
     PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(nargs, has_args, has_kwargs);
-    return named == 0 || (self + named + size_t(has_args) + size_t(has_kwargs)) == nargs;
+    return named == 0
+           || (self + named + static_cast<size_t>(has_args) + static_cast<size_t>(has_kwargs))
+                  == nargs;
 }
 
 PYBIND11_NAMESPACE_END(detail)

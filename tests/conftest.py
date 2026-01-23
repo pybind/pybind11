@@ -304,10 +304,10 @@ def backport_typehints() -> Callable[[SanitizedString], SanitizedString]:
     if sys.version_info < (3, 10):
         d["typing_extensions.TypeGuard"] = "typing.TypeGuard"
 
-    def backport(sanatized_string: SanitizedString) -> SanitizedString:
+    def backport(sanitized_string: SanitizedString) -> SanitizedString:
         for old, new in d.items():
-            sanatized_string.string = sanatized_string.string.replace(old, new)
+            sanitized_string.string = sanitized_string.string.replace(old, new)
 
-        return sanatized_string
+        return sanitized_string
 
     return backport

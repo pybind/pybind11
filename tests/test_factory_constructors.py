@@ -78,10 +78,10 @@ def test_init_factory_signature(msg):
         msg(excinfo.value)
         == """
         __init__(): incompatible constructor arguments. The following argument types are supported:
-            1. m.factory_constructors.TestFactory1(arg0: m.factory_constructors.tag.unique_ptr_tag, arg1: typing.SupportsInt)
+            1. m.factory_constructors.TestFactory1(arg0: m.factory_constructors.tag.unique_ptr_tag, arg1: typing.SupportsInt | typing.SupportsIndex)
             2. m.factory_constructors.TestFactory1(arg0: str)
             3. m.factory_constructors.TestFactory1(arg0: m.factory_constructors.tag.pointer_tag)
-            4. m.factory_constructors.TestFactory1(arg0: object, arg1: typing.SupportsInt, arg2: object)
+            4. m.factory_constructors.TestFactory1(arg0: object, arg1: typing.SupportsInt | typing.SupportsIndex, arg2: object)
 
         Invoked with: 'invalid', 'constructor', 'arguments'
     """
@@ -93,13 +93,13 @@ def test_init_factory_signature(msg):
         __init__(*args, **kwargs)
         Overloaded function.
 
-        1. __init__(self: m.factory_constructors.TestFactory1, arg0: m.factory_constructors.tag.unique_ptr_tag, arg1: typing.SupportsInt) -> None
+        1. __init__(self: m.factory_constructors.TestFactory1, arg0: m.factory_constructors.tag.unique_ptr_tag, arg1: typing.SupportsInt | typing.SupportsIndex) -> None
 
         2. __init__(self: m.factory_constructors.TestFactory1, arg0: str) -> None
 
         3. __init__(self: m.factory_constructors.TestFactory1, arg0: m.factory_constructors.tag.pointer_tag) -> None
 
-        4. __init__(self: m.factory_constructors.TestFactory1, arg0: object, arg1: typing.SupportsInt, arg2: object) -> None
+        4. __init__(self: m.factory_constructors.TestFactory1, arg0: object, arg1: typing.SupportsInt | typing.SupportsIndex, arg2: object) -> None
     """
     )
 

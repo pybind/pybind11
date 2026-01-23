@@ -135,7 +135,7 @@ PYBIND11_NOINLINE void all_type_info_populate(PyTypeObject *t, std::vector<type_
     assert(bases.empty());
     std::vector<PyTypeObject *> check;
     for (handle parent : reinterpret_borrow<tuple>(t->tp_bases)) {
-        check.push_back((PyTypeObject *) parent.ptr());
+        check.push_back(reinterpret_cast<PyTypeObject *>(parent.ptr()));
     }
     auto const &type_dict = get_internals().registered_types_py;
     for (size_t i = 0; i < check.size(); i++) {
@@ -178,7 +178,7 @@ PYBIND11_NOINLINE void all_type_info_populate(PyTypeObject *t, std::vector<type_
                 i--;
             }
             for (handle parent : reinterpret_borrow<tuple>(type->tp_bases)) {
-                check.push_back((PyTypeObject *) parent.ptr());
+                check.push_back(reinterpret_cast<PyTypeObject *>(parent.ptr()));
             }
         }
     }
@@ -298,7 +298,7 @@ PYBIND11_NOINLINE handle get_type_handle(const std::type_info &tp,
                                          bool throw_if_missing,
                                          bool foreign_ok) {
     if (detail::type_info *type_info = get_type_info(tp)) {
-        return handle((PyObject *) type_info->type);
+        return handle(reinterpret_cast<PyObject *>(type_info->type));
     }
     if (foreign_ok) {
         auto &interop_internals = detail::get_interop_internals();
@@ -307,7 +307,7 @@ PYBIND11_NOINLINE handle get_type_handle(const std::type_info &tp,
                 auto it = interop_internals.bindings.find(tp);
                 if (it != interop_internals.bindings.end() && !it->second.empty()) {
                     pymb_binding *binding = *it->second.begin();
-                    return handle((PyObject *) binding->pytype);
+                    return handle(reinterpret_cast<PyObject *>(binding->pytype));
                 }
                 return handle();
             });
@@ -317,7 +317,7 @@ PYBIND11_NOINLINE handle get_type_handle(const std::type_info &tp,
         }
     }
     if (throw_if_missing) {
-        return handle((PyObject *) get_type_info(tp, true)->type);
+        return handle(reinterpret_cast<PyObject *>(get_type_info(tp, true)->type));
     }
     return nullptr;
 }
@@ -539,7 +539,7 @@ PYBIND11_NOINLINE void instance::allocate_layout() {
         // efficient for small allocations like the one we're doing here;
         // for larger allocations they are just wrappers around malloc.
         // TODO: is this still true for pure Python 3.6?
-        nonsimple.values_and_holders = (void **) PyMem_Calloc(space, sizeof(void *));
+        nonsimple.values_and_holders = static_cast<void **>(PyMem_Calloc(space, sizeof(void *)));
         if (!nonsimple.values_and_holders) {
             throw std::bad_alloc();
         }
@@ -570,7 +570,7 @@ PYBIND11_NOINLINE handle get_object_handle(const void *ptr, const detail::type_i
         for (auto it = range.first; it != range.second; ++it) {
             for (const auto &vh : values_and_holders(it->second)) {
                 if (vh.type == type) {
-                    return handle((PyObject *) it->second);
+                    return handle(reinterpret_cast<PyObject *>(it->second));
                 }
             }
         }

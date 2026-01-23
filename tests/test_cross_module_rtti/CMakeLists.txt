@@ -60,7 +60,9 @@ add_custom_target(
   test_cross_module_rtti
   COMMAND "$<TARGET_FILE:test_cross_module_rtti_main>"
   DEPENDS test_cross_module_rtti_main
-  WORKING_DIRECTORY "$<TARGET_FILE_DIR:test_cross_module_rtti_main>")
+  WORKING_DIRECTORY "$<TARGET_FILE_DIR:test_cross_module_rtti_main>"
+  USES_TERMINAL # Ensures output is shown immediately (not buffered and possibly lost on crash)
+)
 
 set_target_properties(test_cross_module_rtti_bindings PROPERTIES LIBRARY_OUTPUT_DIRECTORY
                                                                  "${CMAKE_CURRENT_BINARY_DIR}")
