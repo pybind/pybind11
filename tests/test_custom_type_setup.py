@@ -57,6 +57,7 @@ def test_py_cast_useable_on_shutdown():
         f"""
         import sys
 
+        sys.path.insert(0, {os.path.dirname(env.__file__)!r})
         sys.path.insert(0, {os.path.dirname(pybind11_tests.__file__)!r})
 
         from pybind11_tests import custom_type_setup as m

@@ -218,6 +218,7 @@ PREAMBLE_CODE = textwrap.dedent(
     def test():
         import sys
 
+        sys.path.insert(0, {os.path.dirname(env.__file__)!r})
         sys.path.insert(0, {os.path.dirname(pybind11_tests.__file__)!r})
 
         import collections
