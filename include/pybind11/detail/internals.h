@@ -337,20 +337,7 @@ struct internals {
     internals(internals &&other) = delete;
     internals &operator=(const internals &other) = delete;
     internals &operator=(internals &&other) = delete;
-    ~internals() {
-        // Normally this destructor runs during interpreter finalization and it may DECREF things.
-        // In odd finalization scenarios it might end up running after the interpreter has
-        // completely shut down, In that case, we should not decref these objects because pymalloc
-        // is gone.  This also applies across sub-interpreters, we should only DECREF when the
-        // original owning interpreter is active.
-        auto *cur_istate = get_interpreter_state_unchecked();
-        if (cur_istate && cur_istate == istate) {
-            gil_scoped_acquire_simple gil;
-            Py_CLEAR(instance_base);
-            Py_CLEAR(default_metaclass);
-            Py_CLEAR(static_property_type);
-        }
-    }
+    ~internals() = default;
 };
 
 // the internals struct (above) is shared between all the modules. local_internals are only
@@ -371,18 +358,7 @@ struct local_internals {
     PyTypeObject *function_record_py_type = nullptr;
     PyInterpreterState *istate = nullptr;
 
-    ~local_internals() {
-        // Normally this destructor runs during interpreter finalization and it may DECREF things.
-        // In odd finalization scenarios it might end up running after the interpreter has
-        // completely shut down, In that case, we should not decref these objects because pymalloc
-        // is gone.  This also applies across sub-interpreters, we should only DECREF when the
-        // original owning interpreter is active.
-        auto *cur_istate = get_interpreter_state_unchecked();
-        if (cur_istate && cur_istate == istate) {
-            gil_scoped_acquire_simple gil;
-            Py_CLEAR(function_record_py_type);
-        }
-    }
+    ~local_internals() = default;
 };
 
 enum class holder_enum_t : uint8_t {
@@ -578,6 +554,10 @@ inline void translate_local_exception(std::exception_ptr p) {
 }
 #endif
 
+// Sentinel value for the `dtor` parameter of `atomic_get_or_create_in_state_dict`.
+// Indicates no destructor was explicitly provided (distinct from nullptr, which means "leak").
+#define PYBIND11_DTOR_UNSPECIFIED (reinterpret_cast<void (*)(PyObject *)>(1))
+
 // Get or create per-storage capsule in the current interpreter's state dict.
 //   - The storage is interpreter-dependent: different interpreters will have different storage.
 //     This is important when using multiple-interpreters, to avoid sharing unshareable objects
@@ -594,9 +574,14 @@ inline void translate_local_exception(std::exception_ptr p) {
 //
 // Returns: pair of (pointer to storage, bool indicating if newly created).
 //          The bool follows std::map::insert convention: true = created, false = existed.
+// `dtor`: optional destructor called when the interpreter shuts down.
+//   - If not provided: the storage will be deleted using `delete`.
+//   - If nullptr: the storage will be leaked (useful for singletons that outlive the interpreter).
+//   - If a function: that function will be called with the capsule object.
 template <typename Payload>
 std::pair<Payload *, bool> atomic_get_or_create_in_state_dict(const char *key,
-                                                              void (*dtor)(PyObject *) = nullptr) {
+                                                              void (*dtor)(PyObject *)
+                                                              = PYBIND11_DTOR_UNSPECIFIED) {
     error_scope err_scope; // preserve any existing Python error states
 
     auto state_dict = reinterpret_borrow<dict>(get_python_state_dict());
@@ -642,7 +627,7 @@ std::pair<Payload *, bool> atomic_get_or_create_in_state_dict(const char *key,
         // - Otherwise, our `new_capsule` is now in the dict, and it owns the storage and the state
         //   dict will incref it.  We need to set the caller's destructor on it, which will be
         //   called when the interpreter shuts down.
-        if (created && dtor) {
+        if (created && dtor != PYBIND11_DTOR_UNSPECIFIED) {
             if (PyCapsule_SetDestructor(capsule_obj, dtor) < 0) {
                 throw error_already_set();
             }
@@ -658,6 +643,8 @@ std::pair<Payload *, bool> atomic_get_or_create_in_state_dict(const char *key,
     }
     return std::pair<Payload *, bool>(static_cast<Payload *>(raw_ptr), created);
 }
+
+#undef PYBIND11_DTOR_UNSPECIFIED
 
 template <typename InternalsType>
 class internals_pp_manager {
@@ -730,27 +717,16 @@ private:
     internals_pp_manager(char const *id, on_fetch_function *on_fetch)
         : holder_id_(id), on_fetch_(on_fetch) {}
 
-    static void internals_shutdown(PyObject *capsule) {
-        auto *pp = static_cast<std::unique_ptr<InternalsType> *>(
-            PyCapsule_GetPointer(capsule, nullptr));
-        if (pp) {
-            pp->reset();
-        }
-        // We reset the unique_ptr's contents but cannot delete the unique_ptr itself here.
-        // The pp_manager in this module (and possibly other modules sharing internals) holds
-        // a raw pointer to this unique_ptr, and that pointer would dangle if we deleted it now.
-        //
-        // For pybind11-owned interpreters (via embed.h or subinterpreter.h), destroy() is
-        // called after Py_Finalize/Py_EndInterpreter completes, which safely deletes the
-        // unique_ptr. For interpreters not owned by pybind11 (e.g., a pybind11 extension
-        // loaded into an external interpreter), destroy() is never called and the unique_ptr
-        // shell (8 bytes, not its contents) is leaked.
-        // (See PR #5958 for ideas to eliminate this leak.)
-    }
-
     std::unique_ptr<InternalsType> *get_or_create_pp_in_state_dict() {
+        // The `unique_ptr<InternalsType>` is intentionally leaked on interpreter shutdown.
+        // Once an instance is created, it will never be deleted until the process exits (compare
+        // to interpreter shutdown in multiple-interpreter scenarios).
+        // We cannot guarantee the destruction order of capsules in the interpreter state dict on
+        // interpreter shutdown, so deleting internals too early could cause undefined behavior
+        // when other pybind11 objects access `get_internals()` during finalization (which would
+        // recreate empty internals).
         auto result = atomic_get_or_create_in_state_dict<std::unique_ptr<InternalsType>>(
-            holder_id_, &internals_shutdown);
+            holder_id_, /*dtor=*/nullptr /* leak the capsule content */);
         auto *pp = result.first;
         bool created = result.second;
         // Only call on_fetch_ when fetching existing internals, not when creating new ones.
