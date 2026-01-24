@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import gc
+import os
 import weakref
 
 import pytest
 
 import env
+import pybind11_tests
 from pybind11_tests import custom_type_setup as m
 
 
@@ -52,7 +54,11 @@ def test_indirect_cycle(gc_tester):
 @pytest.mark.skipif("env.PYPY or env.GRAALPY")
 def test_py_cast_useable_on_shutdown():
     env.check_script_success_in_subprocess(
-        """
+        f"""
+        import sys
+
+        sys.path.insert(0, {os.path.dirname(pybind11_tests.__file__)!r})
+
         from pybind11_tests import custom_type_setup as m
 
         obj = m.ContainerOwnsPythonObjects()
