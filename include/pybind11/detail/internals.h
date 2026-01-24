@@ -39,7 +39,7 @@
 /// further ABI-incompatible changes may be made before the ABI is officially
 /// changed to the new version.
 #ifndef PYBIND11_INTERNALS_VERSION
-#    define PYBIND11_INTERNALS_VERSION 12
+#    define PYBIND11_INTERNALS_VERSION 11
 #endif
 
 #if PYBIND11_INTERNALS_VERSION < 11
@@ -347,8 +347,6 @@ struct internals {
 // impact any other modules, because the only things accessing the local internals is the
 // module that contains them.
 struct local_internals {
-    local_internals() : istate(get_interpreter_state_unchecked()) {}
-
     // It should be safe to use fast_type_map here because this entire
     // data structure is scoped to our single module, and thus a single
     // DSO and single instance of type_info for any particular type.
@@ -356,9 +354,6 @@ struct local_internals {
 
     std::forward_list<ExceptionTranslator> registered_exception_translators;
     PyTypeObject *function_record_py_type = nullptr;
-    PyInterpreterState *istate = nullptr;
-
-    ~local_internals() = default;
 };
 
 enum class holder_enum_t : uint8_t {
@@ -806,8 +801,6 @@ PYBIND11_NOINLINE internals &get_internals() {
 
 /// Return the PyObject* for the internals capsule (borrowed reference).
 /// Returns nullptr if the capsule doesn't exist yet.
-/// This is used to prevent use-after-free during interpreter shutdown by allowing pybind11 types
-/// to hold a reference to the capsule (see comments in generic_type::initialize).
 inline PyObject *get_internals_capsule() {
     auto state_dict = reinterpret_borrow<dict>(get_python_state_dict());
     return dict_getitemstring(state_dict.ptr(), PYBIND11_INTERNALS_ID);
@@ -825,8 +818,6 @@ inline const std::string &get_local_internals_key() {
 
 /// Return the PyObject* for the local_internals capsule (borrowed reference).
 /// Returns nullptr if the capsule doesn't exist yet.
-/// This is used to prevent use-after-free during interpreter shutdown by allowing pybind11 types
-/// to hold a reference to the capsule (see comments in generic_type::initialize).
 inline PyObject *get_local_internals_capsule() {
     const auto &key = get_local_internals_key();
     auto state_dict = reinterpret_borrow<dict>(get_python_state_dict());
