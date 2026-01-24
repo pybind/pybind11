@@ -5,7 +5,7 @@ import weakref
 
 import pytest
 
-import env  # noqa: F401
+import env
 from pybind11_tests import custom_type_setup as m
 
 
@@ -36,15 +36,27 @@ def gc_tester():
 # PyPy does not seem to reliably garbage collect.
 @pytest.mark.skipif("env.PYPY or env.GRAALPY")
 def test_self_cycle(gc_tester):
-    obj = m.OwnsPythonObjects()
-    obj.value = obj
+    obj = m.ContainerOwnsPythonObjects()
+    obj.append(obj)
     gc_tester(obj)
 
 
 # PyPy does not seem to reliably garbage collect.
 @pytest.mark.skipif("env.PYPY or env.GRAALPY")
 def test_indirect_cycle(gc_tester):
-    obj = m.OwnsPythonObjects()
-    obj_list = [obj]
-    obj.value = obj_list
+    obj = m.ContainerOwnsPythonObjects()
+    obj.append([obj])
     gc_tester(obj)
+
+
+@pytest.mark.skipif("env.PYPY or env.GRAALPY")
+def test_py_cast_useable_on_shutdown():
+    env.check_script_success_in_subprocess(
+        """
+        from pybind11_tests import custom_type_setup as m
+
+        obj = m.ContainerOwnsPythonObjects()
+        obj.append(obj)
+        m.add_gc_checkers_with_weakrefs(obj)
+        """
+    )
