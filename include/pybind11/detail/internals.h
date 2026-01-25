@@ -712,6 +712,11 @@ public:
     }
 
     static void fail_if_internals_recreated(std::unique_ptr<InternalsType> *pp) {
+#ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
+        static std::mutex mtx;
+        std::lock_guard<std::mutex> lock(mtx);
+#endif
+
         auto &pps_have_created_content_ = pps_have_created_content();
 
         // Prevent re-creation of internals after destruction during interpreter shutdown.
