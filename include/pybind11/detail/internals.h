@@ -697,15 +697,27 @@ public:
             // this could be called without an active interpreter, just use what was cached
             if (!tstate || tstate->interp == last_istate_tls()) {
                 auto tpp = internals_p_tls();
-
+                pps_have_created_content_.erase(tpp);
                 delete tpp;
             }
             unref();
             return;
         }
 #endif
+        pps_have_created_content_.erase(internals_singleton_pp_);
         delete internals_singleton_pp_;
         unref();
+    }
+
+    static void fail_if_internals_recreated(std::unique_ptr<InternalsType> *pp) {
+        // Prevent re-creation of internals after destruction during interpreter shutdown.
+        // If pybind11 code (e.g., tp_traverse/tp_clear calling py::cast) runs after internals
+        // have been destroyed, a new empty internals would be created, causing type lookup
+        // failures. See https://github.com/pybind/pybind11/pull/5958#discussion_r2717645230.
+        if (pps_have_created_content_.find(pp) != pps_have_created_content_.end()) {
+            pybind11_fail("Reentrant call detected while fetching pybind11 internals!");
+        }
+        pps_have_created_content_.insert(pp);
     }
 
 private:
@@ -748,6 +760,9 @@ private:
     // Pointer-to-pointer to the singleton internals for the first seen interpreter (may not be the
     // main interpreter)
     std::unique_ptr<InternalsType> *internals_singleton_pp_ = nullptr;
+
+    // Tracks pointer-to-pointers whose internals have been created, to detect re-entrancy.
+    inline static std::unordered_set<void *> pps_have_created_content_{};
 };
 
 // If We loaded the internals through `state_dict`, our `error_already_set`
@@ -788,6 +803,7 @@ PYBIND11_NOINLINE internals &get_internals() {
         // Slow path, something needs fetched from the state dict or created
         gil_scoped_acquire_simple gil;
         error_scope err_scope;
+        internals_pp_manager<internals>::fail_if_internals_recreated(&internals_ptr);
         internals_ptr.reset(new internals());
 
         if (!internals_ptr->instance_base) {
@@ -847,6 +863,7 @@ inline local_internals &get_local_internals() {
     auto &internals_ptr = *ppmgr.get_pp();
     if (!internals_ptr) {
         gil_scoped_acquire_simple gil;
+        internals_pp_manager<local_internals>::fail_if_internals_recreated(&internals_ptr);
         internals_ptr.reset(new local_internals());
     }
     return *internals_ptr;
