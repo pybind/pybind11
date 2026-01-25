@@ -699,7 +699,7 @@ public:
                 auto tpp = internals_p_tls();
                 {
                     std::lock_guard<std::mutex> lock(pp_set_mutex_);
-                    pps_have_created_content_.erase(tpp);
+                    pps_have_created_content_.erase(tpp); // untrack deleted pp
                     delete tpp;
                 }
             }
@@ -709,24 +709,24 @@ public:
 #endif
         {
             std::lock_guard<std::mutex> lock(pp_set_mutex_);
-            pps_have_created_content_.erase(internals_singleton_pp_);
+            pps_have_created_content_.erase(internals_singleton_pp_); // untrack deleted pp
             delete internals_singleton_pp_;
         }
         unref();
     }
 
-    void create_pp_content_once(std::unique_ptr<InternalsType> *pp) {
+    void create_pp_content_once(std::unique_ptr<InternalsType> *const pp) {
         std::lock_guard<std::mutex> lock(pp_set_mutex_);
 
-        // Prevent re-creation of internals after destruction during interpreter shutdown.
-        // If pybind11 code (e.g., tp_traverse/tp_clear calling py::cast) runs after internals
-        // have been destroyed, a new empty internals would be created, causing type lookup
-        // failures. See https://github.com/pybind/pybind11/pull/5958#discussion_r2717645230.
+        // Detect re-creation of internals after destruction during interpreter shutdown.
+        // If pybind11 code (e.g., tp_traverse/tp_clear calling py::cast) runs after internals have
+        // been destroyed, a new empty internals would be created, causing type lookup failures.
+        // See also get_or_create_pp_in_state_dict() comments.
         if (pps_have_created_content_.find(pp) != pps_have_created_content_.end()) {
             pybind11_fail("pybind11::detail::internals_pp_manager::create_pp_content_once() "
                           "FAILED: reentrant call detected while fetching pybind11 internals!");
         }
-        // Each pp can only create its internals once.
+        // Each interpreter can only create its internals once.
         pps_have_created_content_.insert(pp);
 
         // Assume the GIL is held here. May call back into Python.
@@ -745,7 +745,8 @@ private:
         // We cannot guarantee the destruction order of capsules in the interpreter state dict on
         // interpreter shutdown, so deleting internals too early could cause undefined behavior
         // when other pybind11 objects access `get_internals()` during finalization (which would
-        // recreate empty internals).
+        // recreate empty internals). See also create_pp_content_once() above.
+        // See https://github.com/pybind/pybind11/pull/5958#discussion_r2717645230.
         auto result = atomic_get_or_create_in_state_dict<std::unique_ptr<InternalsType>>(
             holder_id_, /*dtor=*/nullptr /* leak the capsule content */);
         auto *pp = result.first;
@@ -775,9 +776,9 @@ private:
     // main interpreter)
     std::unique_ptr<InternalsType> *internals_singleton_pp_ = nullptr;
 
-    // Tracks pointer-to-pointers whose internals have been created, to detect re-entrancy.
+    // Track pointer-to-pointers whose internals have been created, to detect re-entrancy.
     // Use instance member over static due to singleton pattern of this class.
-    std::unordered_set<std::unique_ptr<InternalsType> *> pps_have_created_content_;
+    std::unordered_set<void *> pps_have_created_content_;
     std::mutex pp_set_mutex_;
 };
 
