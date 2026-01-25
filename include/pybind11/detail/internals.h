@@ -710,22 +710,26 @@ public:
     }
 
     void create_pp_content_once(std::unique_ptr<InternalsType> *pp) {
-#ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
-        static std::mutex mtx;
-        std::lock_guard<std::mutex> lock(mtx);
+        // Assume the GIL is held
+        {
+#ifndef Py_GIL_DISABLED
+            const gil_scoped_release_simple gil_release{};
 #endif
+            static std::mutex mtx;
+            std::lock_guard<std::mutex> lock(mtx);
 
-        assert(*pp == nullptr);
-
-        // Prevent re-creation of internals after destruction during interpreter shutdown.
-        // If pybind11 code (e.g., tp_traverse/tp_clear calling py::cast) runs after internals
-        // have been destroyed, a new empty internals would be created, causing type lookup
-        // failures. See https://github.com/pybind/pybind11/pull/5958#discussion_r2717645230.
-        if (pps_have_created_content_.find(pp) != pps_have_created_content_.end()) {
-            pybind11_fail("Reentrant call detected while fetching pybind11 internals!");
+            // Prevent re-creation of internals after destruction during interpreter shutdown.
+            // If pybind11 code (e.g., tp_traverse/tp_clear calling py::cast) runs after internals
+            // have been destroyed, a new empty internals would be created, causing type lookup
+            // failures. See https://github.com/pybind/pybind11/pull/5958#discussion_r2717645230.
+            if (pps_have_created_content_.find(pp) != pps_have_created_content_.end()) {
+                pybind11_fail("Reentrant call detected while fetching pybind11 internals!");
+            }
+            // Each pp can only create its internals once.
+            pps_have_created_content_.insert(pp);
         }
-        // Each pp can only create its internals once.
-        pps_have_created_content_.insert(pp);
+
+        // Create the internals content. May call back into Python.
         pp->reset(new InternalsType());
     }
 
