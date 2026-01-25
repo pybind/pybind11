@@ -691,8 +691,6 @@ public:
     }
 
     void destroy() {
-        auto &pps_have_created_content_ = pps_have_created_content();
-
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
         if (has_seen_non_main_interpreter()) {
             auto *tstate = get_thread_state_unchecked();
@@ -711,13 +709,13 @@ public:
         unref();
     }
 
-    static void fail_if_internals_recreated(std::unique_ptr<InternalsType> *pp) {
+    void create_pp_content_once(std::unique_ptr<InternalsType> *pp) {
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
         static std::mutex mtx;
         std::lock_guard<std::mutex> lock(mtx);
 #endif
 
-        auto &pps_have_created_content_ = pps_have_created_content();
+        assert(*pp == nullptr);
 
         // Prevent re-creation of internals after destruction during interpreter shutdown.
         // If pybind11 code (e.g., tp_traverse/tp_clear calling py::cast) runs after internals
@@ -726,8 +724,9 @@ public:
         if (pps_have_created_content_.find(pp) != pps_have_created_content_.end()) {
             pybind11_fail("Reentrant call detected while fetching pybind11 internals!");
         }
-        // Each pp can only create its internals once. Mark this pp as having created its content.
+        // Each pp can only create its internals once.
         pps_have_created_content_.insert(pp);
+        pp->reset(new InternalsType());
     }
 
 private:
@@ -772,10 +771,8 @@ private:
     std::unique_ptr<InternalsType> *internals_singleton_pp_ = nullptr;
 
     // Tracks pointer-to-pointers whose internals have been created, to detect re-entrancy.
-    static std::unordered_set<void *> &pps_have_created_content() {
-        static std::unordered_set<void *> value{};
-        return value;
-    }
+    // Use instance member over static due to singleton pattern of this class.
+    std::unordered_set<void *> pps_have_created_content_;
 };
 
 // If We loaded the internals through `state_dict`, our `error_already_set`
@@ -816,8 +813,8 @@ PYBIND11_NOINLINE internals &get_internals() {
         // Slow path, something needs fetched from the state dict or created
         gil_scoped_acquire_simple gil;
         error_scope err_scope;
-        internals_pp_manager<internals>::fail_if_internals_recreated(&internals_ptr);
-        internals_ptr.reset(new internals());
+
+        ppmgr.create_pp_content_once(&internals_ptr);
 
         if (!internals_ptr->instance_base) {
             // This calls get_internals, so cannot be called from within the internals constructor
@@ -876,8 +873,9 @@ inline local_internals &get_local_internals() {
     auto &internals_ptr = *ppmgr.get_pp();
     if (!internals_ptr) {
         gil_scoped_acquire_simple gil;
-        internals_pp_manager<local_internals>::fail_if_internals_recreated(&internals_ptr);
-        internals_ptr.reset(new local_internals());
+        error_scope err_scope;
+
+        ppmgr.create_pp_content_once(&internals_ptr);
     }
     return *internals_ptr;
 }
