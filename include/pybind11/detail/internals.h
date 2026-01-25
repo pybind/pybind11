@@ -691,6 +691,8 @@ public:
     }
 
     void destroy() {
+        auto &pps_have_created_content_ = pps_have_created_content();
+
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
         if (has_seen_non_main_interpreter()) {
             auto *tstate = get_thread_state_unchecked();
@@ -710,6 +712,8 @@ public:
     }
 
     static void fail_if_internals_recreated(std::unique_ptr<InternalsType> *pp) {
+        auto &pps_have_created_content_ = pps_have_created_content();
+
         // Prevent re-creation of internals after destruction during interpreter shutdown.
         // If pybind11 code (e.g., tp_traverse/tp_clear calling py::cast) runs after internals
         // have been destroyed, a new empty internals would be created, causing type lookup
@@ -717,6 +721,7 @@ public:
         if (pps_have_created_content_.find(pp) != pps_have_created_content_.end()) {
             pybind11_fail("Reentrant call detected while fetching pybind11 internals!");
         }
+        // Each pp can only create its internals once. Mark this pp as having created its content.
         pps_have_created_content_.insert(pp);
     }
 
@@ -762,7 +767,10 @@ private:
     std::unique_ptr<InternalsType> *internals_singleton_pp_ = nullptr;
 
     // Tracks pointer-to-pointers whose internals have been created, to detect re-entrancy.
-    inline static std::unordered_set<void *> pps_have_created_content_{};
+    static std::unordered_set<void *> &pps_have_created_content() {
+        static std::unordered_set<void *> value{};
+        return value;
+    }
 };
 
 // If We loaded the internals through `state_dict`, our `error_already_set`
