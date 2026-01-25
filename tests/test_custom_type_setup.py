@@ -58,6 +58,7 @@ def test_indirect_cycle(gc_tester):
 )
 @pytest.mark.skipif("env.PYPY or env.GRAALPY")
 def test_py_cast_useable_on_shutdown():
+    """Test that py::cast works during interpreter shutdown."""
     env.check_script_success_in_subprocess(
         f"""
         import sys
@@ -67,8 +68,14 @@ def test_py_cast_useable_on_shutdown():
 
         from pybind11_tests import custom_type_setup as m
 
+        # Create a self-referential cycle that will be collected during shutdown.
+        # The tp_traverse and tp_clear callbacks call py::cast, which requires
+        # internals to still be valid.
         obj = m.ContainerOwnsPythonObjects()
         obj.append(obj)
+
+        # Add weakref callbacks that verify the capsule is still alive when the
+        # pybind11 object is garbage collected during shutdown.
         m.add_gc_checkers_with_weakrefs(obj)
         """
     )

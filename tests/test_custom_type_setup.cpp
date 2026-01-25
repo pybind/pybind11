@@ -36,9 +36,9 @@ void add_gc_checkers_with_weakrefs(const py::object &obj) {
     if (!global_capsule) {
         throw std::runtime_error("No global internals capsule found");
     }
-    (void) py::weakref(obj, py::cpp_function([global_capsule, obj](py::handle weakref) -> void {
-                           py::handle new_global_capsule = py::detail::get_internals_capsule();
-                           if (!new_global_capsule.is(global_capsule)) {
+    (void) py::weakref(obj, py::cpp_function([global_capsule](py::handle weakref) -> void {
+                           py::handle current_global_capsule = py::detail::get_internals_capsule();
+                           if (!current_global_capsule.is(global_capsule)) {
                                throw std::runtime_error(
                                    "Global internals capsule was destroyed prematurely");
                            }
@@ -51,9 +51,9 @@ void add_gc_checkers_with_weakrefs(const py::object &obj) {
         throw std::runtime_error("No local internals capsule found");
     }
     (void) py::weakref(
-        obj, py::cpp_function([local_capsule, obj](py::handle weakref) -> void {
-            py::handle new_local_capsule = py::detail::get_local_internals_capsule();
-            if (!new_local_capsule.is(local_capsule)) {
+        obj, py::cpp_function([local_capsule](py::handle weakref) -> void {
+            py::handle current_local_capsule = py::detail::get_local_internals_capsule();
+            if (!current_local_capsule.is(local_capsule)) {
                 throw std::runtime_error("Local internals capsule was destroyed prematurely");
             }
             weakref.dec_ref();
