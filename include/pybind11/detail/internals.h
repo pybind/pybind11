@@ -697,33 +697,37 @@ public:
             // this could be called without an active interpreter, just use what was cached
             if (!tstate || tstate->interp == last_istate_tls()) {
                 auto tpp = internals_p_tls();
-                pps_have_created_content_.erase(tpp);
-                delete tpp;
+                {
+                    std::lock_guard<std::mutex> lock(pps_creation_mutex_);
+                    pps_have_created_content_.erase(tpp);
+                    delete tpp;
+                }
             }
             unref();
             return;
         }
 #endif
-        pps_have_created_content_.erase(internals_singleton_pp_);
-        delete internals_singleton_pp_;
+        {
+            std::lock_guard<std::mutex> lock(pps_creation_mutex_);
+            pps_have_created_content_.erase(internals_singleton_pp_);
+            delete internals_singleton_pp_;
+        }
         unref();
     }
 
     void create_pp_content_once(std::unique_ptr<InternalsType> *pp) {
         // Assume the GIL is held
         {
-#ifndef Py_GIL_DISABLED
-            const gil_scoped_release_simple gil_release{};
-#endif
-            static std::mutex mtx;
-            std::lock_guard<std::mutex> lock(mtx);
+            std::lock_guard<std::mutex> lock(pps_creation_mutex_);
 
             // Prevent re-creation of internals after destruction during interpreter shutdown.
             // If pybind11 code (e.g., tp_traverse/tp_clear calling py::cast) runs after internals
             // have been destroyed, a new empty internals would be created, causing type lookup
             // failures. See https://github.com/pybind/pybind11/pull/5958#discussion_r2717645230.
             if (pps_have_created_content_.find(pp) != pps_have_created_content_.end()) {
-                pybind11_fail("Reentrant call detected while fetching pybind11 internals!");
+                pybind11_fail(
+                    "pybind11::detail::internals_pp_manager::create_pp_content_once() FAILED: "
+                    "reentrant call detected while fetching pybind11 internals!");
             }
             // Each pp can only create its internals once.
             pps_have_created_content_.insert(pp);
@@ -776,7 +780,8 @@ private:
 
     // Tracks pointer-to-pointers whose internals have been created, to detect re-entrancy.
     // Use instance member over static due to singleton pattern of this class.
-    std::unordered_set<void *> pps_have_created_content_;
+    std::unordered_set<std::unique_ptr<InternalsType> *> pps_have_created_content_;
+    std::mutex pps_creation_mutex_;
 };
 
 // If We loaded the internals through `state_dict`, our `error_already_set`
