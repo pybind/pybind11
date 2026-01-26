@@ -738,8 +738,6 @@ public:
                     "pybind11::detail::internals_pp_manager::create_pp_content_once() "
                     "FAILED: reentrant call detected while fetching pybind11 internals!");
             }
-            // Each interpreter can only create its internals once.
-            pps_have_created_content_.insert(pp);
         }
 
         // Assume the GIL is held here. May call back into Python.
@@ -757,6 +755,9 @@ public:
                 // Install the created content.
                 pp->swap(tmp);
             }
+
+            // Each interpreter can only create its internals once.
+            pps_have_created_content_.insert(pp);
         }
     }
 
