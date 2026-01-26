@@ -717,12 +717,17 @@ public:
 
     void create_pp_content_once(std::unique_ptr<InternalsType> *const pp) {
         {
+            // Lock scope must not include Python calls, which may require the GIL and cause
+            // deadlocks.
             std::lock_guard<std::mutex> lock(pp_set_mutex_);
 
             if (*pp) {
                 // Already created in another thread.
                 return;
             }
+
+            // At this point, pp->get() is nullptr.
+            // The content is either not yet created, or was previously destroyed via pp->reset().
 
             // Detect re-creation of internals after destruction during interpreter shutdown.
             // If pybind11 code (e.g., tp_traverse/tp_clear calling py::cast) runs after internals
