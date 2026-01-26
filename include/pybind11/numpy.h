@@ -30,9 +30,8 @@
 #include <vector>
 
 #ifdef PYBIND11_HAS_SPAN
-#include <span>
+#    include <span>
 #endif
-
 
 #if defined(PYBIND11_NUMPY_1_ONLY)
 #    error "PYBIND11_NUMPY_1_ONLY is no longer supported (see PR #5595)."
