@@ -744,7 +744,20 @@ public:
 
         // Assume the GIL is held here. May call back into Python.
         // Create the internals content.
-        pp->reset(new InternalsType());
+        auto tmp = std::unique_ptr<InternalsType>(new InternalsType());
+
+        {
+            // Lock scope must not include Python calls, which may require the GIL and cause
+            // deadlocks.
+            std::lock_guard<std::mutex> lock(pp_set_mutex_);
+
+            // Double-check that another thread didn't create the content while we were creating
+            // it above without holding the lock.
+            if (!*pp) {
+                // Install the created content.
+                pp->swap(tmp);
+            }
+        }
     }
 
 private:
