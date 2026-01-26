@@ -214,6 +214,10 @@
 #    define PYBIND11_HAS_STRING_VIEW 1
 #endif
 
+#if defined(PYBIND11_CPP20) && defined(__has_include) && __has_include(<span>)
+#    define PYBIND11_HAS_SPAN 1
+#endif
+
 #if (defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)) && !defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
 #    define PYBIND11_SIMPLE_GIL_MANAGEMENT
 #endif
