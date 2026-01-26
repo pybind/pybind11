@@ -781,7 +781,7 @@ private:
 
     // Track pointer-to-pointers whose internals have been created, to detect re-entrancy.
     // Use instance member over static due to singleton pattern of this class.
-    std::unordered_set<void *> pps_have_created_content_;
+    std::unordered_set<std::unique_ptr<InternalsType> *> pps_have_created_content_;
     std::mutex pp_set_mutex_;
 };
 
