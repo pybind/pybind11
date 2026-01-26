@@ -717,9 +717,6 @@ public:
 
     void create_pp_content_once(std::unique_ptr<InternalsType> *const pp) {
         {
-#ifndef Py_GIL_DISABLED
-            gil_scoped_release_simple gil_release{};
-#endif
             std::lock_guard<std::mutex> lock(pp_set_mutex_);
 
             if (*pp) {
