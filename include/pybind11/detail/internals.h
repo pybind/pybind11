@@ -740,8 +740,9 @@ public:
             }
         }
 
-        // Assume the GIL is held here. May call back into Python.
-        // Create the internals content.
+        // Assume the GIL is held here. May call back into Python. We cannot hold the lock with our
+        // mutex here. So there may be multiple threads creating the content at the same time. Only
+        // one will install its content to pp below. Others will be freed when going out of scope.
         auto tmp = std::unique_ptr<InternalsType>(new InternalsType());
 
         {
