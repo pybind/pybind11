@@ -716,18 +716,21 @@ public:
     }
 
     void create_pp_content_once(std::unique_ptr<InternalsType> *const pp) {
-        std::lock_guard<std::mutex> lock(pp_set_mutex_);
+        {
+            std::lock_guard<std::mutex> lock(pp_set_mutex_);
 
-        // Detect re-creation of internals after destruction during interpreter shutdown.
-        // If pybind11 code (e.g., tp_traverse/tp_clear calling py::cast) runs after internals have
-        // been destroyed, a new empty internals would be created, causing type lookup failures.
-        // See also get_or_create_pp_in_state_dict() comments.
-        if (pps_have_created_content_.find(pp) != pps_have_created_content_.end()) {
-            pybind11_fail("pybind11::detail::internals_pp_manager::create_pp_content_once() "
-                          "FAILED: reentrant call detected while fetching pybind11 internals!");
+            // Detect re-creation of internals after destruction during interpreter shutdown.
+            // If pybind11 code (e.g., tp_traverse/tp_clear calling py::cast) runs after internals
+            // have been destroyed, a new empty internals would be created, causing type lookup
+            // failures. See also get_or_create_pp_in_state_dict() comments.
+            if (pps_have_created_content_.find(pp) != pps_have_created_content_.end()) {
+                pybind11_fail(
+                    "pybind11::detail::internals_pp_manager::create_pp_content_once() "
+                    "FAILED: reentrant call detected while fetching pybind11 internals!");
+            }
+            // Each interpreter can only create its internals once.
+            pps_have_created_content_.insert(pp);
         }
-        // Each interpreter can only create its internals once.
-        pps_have_created_content_.insert(pp);
 
         // Assume the GIL is held here. May call back into Python.
         // Create the internals content.
