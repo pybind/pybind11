@@ -58,7 +58,10 @@ def test_indirect_cycle(gc_tester):
 )
 @pytest.mark.skipif("env.PYPY or env.GRAALPY")
 def test_py_cast_useable_on_shutdown():
-    """Test that py::cast works during interpreter shutdown."""
+    """Test that py::cast works during interpreter shutdown.
+
+    See PR #5972 and https://github.com/pybind/pybind11/pull/5958#discussion_r2717645230.
+    """
     env.check_script_success_in_subprocess(
         f"""
         import sys

@@ -64,7 +64,10 @@ void add_gc_checkers_with_weakrefs(const py::object &obj) {
 
 TEST_SUBMODULE(custom_type_setup, m) {
     py::class_<ContainerOwnsPythonObjects> cls(
-        m, "ContainerOwnsPythonObjects", py::custom_type_setup([](PyHeapTypeObject *heap_type) {
+        m,
+        "ContainerOwnsPythonObjects",
+        // Please review/update docs/advanced/classes.rst after making changes here.
+        py::custom_type_setup([](PyHeapTypeObject *heap_type) {
             auto *type = &heap_type->ht_type;
             type->tp_flags |= Py_TPFLAGS_HAVE_GC;
             type->tp_traverse = [](PyObject *self_base, visitproc visit, void *arg) {
