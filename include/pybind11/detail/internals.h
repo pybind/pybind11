@@ -724,9 +724,10 @@ public:
             // have been destroyed, a new empty internals would be created, causing type lookup
             // failures. See also get_or_create_pp_in_state_dict() comments.
             if (pps_have_created_content_.find(pp) != pps_have_created_content_.end()) {
-                pybind11_fail(
-                    "pybind11::detail::internals_pp_manager::create_pp_content_once() "
-                    "FAILED: reentrant call detected while fetching pybind11 internals!");
+                PyErr_WarnEx(PyExc_RuntimeWarning,
+                             "pybind11::detail::internals_pp_manager::create_pp_content_once() "
+                             "FAILED: reentrant call detected while fetching pybind11 internals!",
+                             /*stack_level=*/2);
             }
             // Each interpreter can only create its internals once.
             pps_have_created_content_.insert(pp);
