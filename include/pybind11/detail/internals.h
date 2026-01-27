@@ -716,6 +716,11 @@ public:
     }
 
     void create_pp_content_once(std::unique_ptr<InternalsType> *const pp) {
+        // Assume the GIL is held here. May call back into Python. We cannot hold the lock with our
+        // mutex here. So there may be multiple threads creating the content at the same time. Only
+        // one will install its content to pp below. Others will be freed when going out of scope.
+        auto tmp = std::unique_ptr<InternalsType>(new InternalsType());
+
         {
             // Lock scope must not include Python calls, which may require the GIL and cause
             // deadlocks.
@@ -738,27 +743,11 @@ public:
                     "pybind11::detail::internals_pp_manager::create_pp_content_once() "
                     "FAILED: reentrant call detected while fetching pybind11 internals!");
             }
-        }
-
-        // Assume the GIL is held here. May call back into Python. We cannot hold the lock with our
-        // mutex here. So there may be multiple threads creating the content at the same time. Only
-        // one will install its content to pp below. Others will be freed when going out of scope.
-        auto tmp = std::unique_ptr<InternalsType>(new InternalsType());
-
-        {
-            // Lock scope must not include Python calls, which may require the GIL and cause
-            // deadlocks.
-            std::lock_guard<std::mutex> lock(pp_set_mutex_);
-
-            // Double-check that another thread didn't create the content while we were creating
-            // it above without holding the lock.
-            if (!*pp) {
-                // Install the created content.
-                pp->swap(tmp);
-            }
 
             // Each interpreter can only create its internals once.
             pps_have_created_content_.insert(pp);
+            // Install the created content.
+            pp->swap(tmp);
         }
     }
 
