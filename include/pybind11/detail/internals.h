@@ -700,8 +700,8 @@ public:
                 {
                     std::lock_guard<std::mutex> lock(pp_set_mutex_);
                     pps_have_created_content_.erase(tpp); // untrack deleted pp
-                    delete tpp;
                 }
+                delete tpp; // may call back into Python
             }
             unref();
             return;
@@ -710,8 +710,8 @@ public:
         {
             std::lock_guard<std::mutex> lock(pp_set_mutex_);
             pps_have_created_content_.erase(internals_singleton_pp_); // untrack deleted pp
-            delete internals_singleton_pp_;
         }
+        delete internals_singleton_pp_; // may call back into Python
         unref();
     }
 
