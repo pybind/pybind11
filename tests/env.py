@@ -29,3 +29,31 @@ TYPES_ARE_IMMORTAL = (
     or GRAALPY
     or (CPYTHON and PY_GIL_DISABLED and (3, 13) <= sys.version_info < (3, 14))
 )
+
+
+def check_script_success_in_subprocess(code: str, *, rerun: int = 8) -> None:
+    """Runs the given code in a subprocess."""
+    import os
+    import subprocess
+    import sys
+    import textwrap
+
+    code = textwrap.dedent(code).strip()
+    try:
+        for _ in range(rerun):  # run flakily failing test multiple times
+            subprocess.check_output(
+                [sys.executable, "-c", code],
+                cwd=os.getcwd(),
+                stderr=subprocess.STDOUT,
+                text=True,
+            )
+    except subprocess.CalledProcessError as ex:
+        raise RuntimeError(
+            f"Subprocess failed with exit code {ex.returncode}.\n\n"
+            f"Code:\n"
+            f"```python\n"
+            f"{code}\n"
+            f"```\n\n"
+            f"Output:\n"
+            f"{ex.output}"
+        ) from None
