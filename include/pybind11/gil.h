@@ -97,6 +97,13 @@ public:
         }
 
         inc_ref();
+#    ifdef Py_GIL_DISABLED
+        if (!detail::compat_mutex_held_by_this_thread()) {
+            detail::get_compat_mutex().lock();
+            detail::compat_mutex_held_by_this_thread() = true;
+            acquired_compat_mutex_ = true;
+        }
+#    endif
     }
 
     gil_scoped_acquire(const gil_scoped_acquire &) = delete;
@@ -141,6 +148,12 @@ public:
     PYBIND11_NOINLINE void disarm() { active = false; }
 
     PYBIND11_NOINLINE ~gil_scoped_acquire() {
+#    ifdef Py_GIL_DISABLED
+        if (acquired_compat_mutex_) {
+            detail::compat_mutex_held_by_this_thread() = false;
+            detail::get_compat_mutex().unlock();
+        }
+#    endif
         dec_ref();
         if (release) {
             PyEval_SaveThread();
@@ -151,6 +164,9 @@ private:
     PyThreadState *tstate = nullptr;
     bool release = true;
     bool active = true;
+#    ifdef Py_GIL_DISABLED
+    bool acquired_compat_mutex_ = false;
+#    endif
 };
 
 class gil_scoped_release {
@@ -162,6 +178,13 @@ public:
         // `internals.tstate` for subsequent `gil_scoped_acquire` calls. Otherwise, an
         // initialization race could occur as multiple threads try `gil_scoped_acquire`.
         auto &internals = detail::get_internals();
+#    ifdef Py_GIL_DISABLED
+        if (detail::compat_mutex_held_by_this_thread()) {
+            detail::compat_mutex_held_by_this_thread() = false;
+            detail::get_compat_mutex().unlock();
+            released_compat_mutex_ = true;
+        }
+#    endif
         // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
         tstate = PyEval_SaveThread();
         if (disassoc) {
@@ -186,6 +209,12 @@ public:
         // `PyEval_RestoreThread()` should not be called if runtime is finalizing
         if (active) {
             PyEval_RestoreThread(tstate);
+#    ifdef Py_GIL_DISABLED
+            if (released_compat_mutex_) {
+                detail::get_compat_mutex().lock();
+                detail::compat_mutex_held_by_this_thread() = true;
+            }
+#    endif
         }
         if (disassoc) {
             detail::get_internals().tstate = tstate;
@@ -196,6 +225,9 @@ private:
     PyThreadState *tstate;
     bool disassoc;
     bool active = true;
+#    ifdef Py_GIL_DISABLED
+    bool released_compat_mutex_ = false;
+#    endif
 };
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
