@@ -84,7 +84,7 @@ jobs:
             python-version: '3.12'
             cmake-args: -DPYBIND11_TEST_SMART_HOLDER=ON -DPYBIND11_SIMPLE_GIL_MANAGEMENT=ON
           - runs-on: ubuntu-latest
-            python-version: '3.14t'
+            python-version: '3.13'
             cmake-args: -DCMAKE_CXX_STANDARD=20 -DPYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION=ON
           - runs-on: ubuntu-latest
             python-version: '3.14'
@@ -237,7 +237,7 @@ jobs:
 
 
   manylinux:
-    name: Manylinux on 🐍 3.14t
+    name: Manylinux on 🐍 3.13 • GIL
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 40
@@ -254,7 +254,7 @@ jobs:
         run: uv tool install ninja
 
       - name: Configure via preset
-        run: cmake --preset venv -DPYBIND11_CREATE_WITH_UV=python3.14t
+        run: cmake --preset venv -DPYBIND11_CREATE_WITH_UV=python3.13
 
       - name: Build C++11
         run: cmake --build --preset venv
