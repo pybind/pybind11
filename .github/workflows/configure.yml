@@ -64,7 +64,7 @@ jobs:
     # An action for adding a specific version of CMake:
     #   https://github.com/jwlawson/actions-setup-cmake
     - name: Setup CMake ${{ matrix.cmake }}
-      uses: jwlawson/actions-setup-cmake@v2.0
+      uses: jwlawson/actions-setup-cmake@v2.1
       with:
         cmake-version: ${{ matrix.cmake }}
 
