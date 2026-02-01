@@ -290,7 +290,7 @@ jobs:
         debug: ${{ matrix.python-debug }}
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v2.0
+      uses: jwlawson/actions-setup-cmake@v2.1
 
     - name: Valgrind cache
       if: matrix.valgrind
@@ -558,7 +558,7 @@ jobs:
       run: python3 -m pip install --upgrade pip
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v2.0
+      uses: jwlawson/actions-setup-cmake@v2.1
 
     - name: Configure
       shell: bash
@@ -894,7 +894,7 @@ jobs:
           ${{ matrix.python == '3.13' && runner.os == 'Windows' }}
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v2.0
+      uses: jwlawson/actions-setup-cmake@v2.1
 
     - name: Prepare MSVC
       uses: ilammy/msvc-dev-cmd@v1.13.0
@@ -944,7 +944,7 @@ jobs:
         architecture: x86
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v2.0
+      uses: jwlawson/actions-setup-cmake@v2.1
 
     - name: Prepare MSVC
       uses: ilammy/msvc-dev-cmd@v1.13.0
@@ -995,7 +995,7 @@ jobs:
       run: python3 -m pip install -r tests/requirements.txt
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v2.0
+      uses: jwlawson/actions-setup-cmake@v2.1
 
     - name: Configure C++20
       run: >
@@ -1177,7 +1177,7 @@ jobs:
           python-version: ${{ matrix.python }}
 
       - name: Update CMake
-        uses: jwlawson/actions-setup-cmake@v2.0
+        uses: jwlawson/actions-setup-cmake@v2.1
 
       - name: Install ninja-build tool
         uses: seanmiddleditch/gha-setup-ninja@v6
