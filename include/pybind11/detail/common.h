@@ -214,10 +214,6 @@
 #    define PYBIND11_HAS_STRING_VIEW 1
 #endif
 
-#if defined(PYBIND11_CPP20) && defined(__has_include) && __has_include(<span>)
-#    define PYBIND11_HAS_SPAN 1
-#endif
-
 #if (defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)) && !defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
 #    define PYBIND11_SIMPLE_GIL_MANAGEMENT
 #endif
@@ -254,6 +250,10 @@
 // Must be after including <version> or one of the other headers specified by the standard
 #if defined(__cpp_lib_char8_t) && __cpp_lib_char8_t >= 201811L
 #    define PYBIND11_HAS_U8STRING 1
+#endif
+
+#if defined(PYBIND11_CPP20) && defined(__cpp_lib_span) && __cpp_lib_span >= 202002L
+#    define PYBIND11_HAS_SPAN 1
 #endif
 
 // See description of PR #4246:
