@@ -241,7 +241,7 @@ public:
 
 #    if !(defined(PY_VERSION_HEX) && PY_VERSION_HEX >= 0x030E00C1 /* 3.14.0rc1 */)
 // Forward declaration of internal slow path function for usage in pycritical_section
-void _PyCriticalSection_BeginSlow(PyCriticalSection *c, PyMutex *m);
+extern "C" void _PyCriticalSection_BeginSlow(PyCriticalSection *c, PyMutex *m);
 #    endif
 
 class pycritical_section {
