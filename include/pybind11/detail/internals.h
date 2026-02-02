@@ -245,7 +245,11 @@ class pycritical_section {
 
 public:
     explicit pycritical_section(pymutex &m) : mutex(m) {
+#    if defined(PY_VERSION_HEX) && PY_VERSION_HEX >= 0x030E00C1
         PyCriticalSection_BeginMutex(&cs, &mutex.mutex);
+#    else
+        _PyCriticalSection_BeginMutex(_PyThreadState_GET(), &cs, &mutex.mutex);
+#    endif
     }
     ~pycritical_section() { PyCriticalSection_End(&cs); }
 
