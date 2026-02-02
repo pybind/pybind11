@@ -249,7 +249,8 @@ public:
 #    if defined(PY_VERSION_HEX) && PY_VERSION_HEX >= 0x030E00C1 // 3.14.0rc1
         PyCriticalSection_BeginMutex(&cs, &mutex.mutex);
 #    else
-        _PyCriticalSection_BeginMutex(_PyThreadState_GET(), &cs, &mutex.mutex);
+        // Use the slow path of internal API `_PyCriticalSection_BeginMutex` for older versions
+        _PyCriticalSection_BeginSlow(&cs, &mutex.mutex);
 #    endif
     }
     ~pycritical_section() { PyCriticalSection_End(&cs); }
