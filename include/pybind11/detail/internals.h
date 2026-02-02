@@ -230,12 +230,30 @@ using instance_map = std::unordered_multimap<const void *, instance *>;
 #ifdef Py_GIL_DISABLED
 // Wrapper around PyMutex to provide BasicLockable semantics
 class pymutex {
+    friend class pycritical_section;
     PyMutex mutex;
 
 public:
     pymutex() : mutex({}) {}
     void lock() { PyMutex_Lock(&mutex); }
     void unlock() { PyMutex_Unlock(&mutex); }
+};
+
+class pycritical_section {
+    pymutex &mutex;
+    PyCriticalSection cs;
+
+public:
+    explicit pycritical_section(pymutex &m) : mutex(m) {
+        PyCriticalSection_BeginMutex(&cs, &mutex.mutex);
+    }
+    ~pycritical_section() { PyCriticalSection_End(&cs); }
+
+    // Non-copyable and non-movable to prevent double-unlock
+    pycritical_section(const pycritical_section &) = delete;
+    pycritical_section &operator=(const pycritical_section &) = delete;
+    pycritical_section(pycritical_section &&) = delete;
+    pycritical_section &operator=(pycritical_section &&) = delete;
 };
 
 // Instance map shards are used to reduce mutex contention in free-threaded Python.
@@ -905,7 +923,7 @@ inline local_internals &get_local_internals() {
 }
 
 #ifdef Py_GIL_DISABLED
-#    define PYBIND11_LOCK_INTERNALS(internals) std::unique_lock<pymutex> lock((internals).mutex)
+#    define PYBIND11_LOCK_INTERNALS(internals) pycritical_section lock((internals).mutex)
 #else
 #    define PYBIND11_LOCK_INTERNALS(internals)
 #endif
@@ -934,7 +952,7 @@ inline auto with_exception_translators(const F &cb)
                    get_local_internals().registered_exception_translators)) {
     auto &internals = get_internals();
 #ifdef Py_GIL_DISABLED
-    std::unique_lock<pymutex> lock((internals).exception_translator_mutex);
+    pycritical_section lock((internals).exception_translator_mutex);
 #endif
     auto &local_internals = get_local_internals();
     return cb(internals.registered_exception_translators,
