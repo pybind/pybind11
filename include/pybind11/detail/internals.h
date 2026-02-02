@@ -239,7 +239,7 @@ public:
     void unlock() { PyMutex_Unlock(&mutex); }
 };
 
-#    if !(defined(PY_VERSION_HEX) && PY_VERSION_HEX >= 0x030E00C1 /* 3.14.0rc1 */)
+#    if PY_VERSION_HEX < 0x030E00C1 // 3.14.0rc1
 // Forward declaration of internal slow path function for usage in pycritical_section
 extern "C" void _PyCriticalSection_BeginSlow(PyCriticalSection *c, PyMutex *m);
 #    endif
@@ -251,7 +251,7 @@ class pycritical_section {
 public:
     explicit pycritical_section(pymutex &m) : mutex(m) {
         // PyCriticalSection_BeginMutex was added in Python 3.15.0a1 and backported to 3.14.0rc1
-#    if defined(PY_VERSION_HEX) && PY_VERSION_HEX >= 0x030E00C1 /* 3.14.0rc1 */
+#    if PY_VERSION_HEX >= 0x030E00C1 // 3.14.0rc1
         PyCriticalSection_BeginMutex(&cs, &mutex.mutex);
 #    else
         // Use the slow path of internal API `_PyCriticalSection_BeginMutex` for older versions
