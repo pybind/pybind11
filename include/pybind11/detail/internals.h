@@ -230,12 +230,30 @@ using instance_map = std::unordered_multimap<const void *, instance *>;
 #ifdef Py_GIL_DISABLED
 // Wrapper around PyMutex to provide BasicLockable semantics
 class pymutex {
+    friend class pycritical_section;
     PyMutex mutex;
 
 public:
     pymutex() : mutex({}) {}
     void lock() { PyMutex_Lock(&mutex); }
     void unlock() { PyMutex_Unlock(&mutex); }
+};
+
+class pycritical_section {
+    pymutex &mutex;
+    PyCriticalSection cs;
+
+public:
+    explicit pycritical_section(pymutex &m) : mutex(m) {
+        PyCriticalSection_BeginMutex(&cs, &mutex.mutex);
+    }
+    ~pycritical_section() { PyCriticalSection_End(&cs); }
+
+    // Non-copyable and non-movable to prevent double-unlock
+    pycritical_section(const pycritical_section &) = delete;
+    pycritical_section &operator=(const pycritical_section &) = delete;
+    pycritical_section(pycritical_section &&) = delete;
+    pycritical_section &operator=(pycritical_section &&) = delete;
 };
 
 // Instance map shards are used to reduce mutex contention in free-threaded Python.
@@ -337,19 +355,7 @@ struct internals {
     internals(internals &&other) = delete;
     internals &operator=(const internals &other) = delete;
     internals &operator=(internals &&other) = delete;
-    ~internals() {
-        // Normally this destructor runs during interpreter finalization and it may DECREF things.
-        // In odd finalization scenarios it might end up running after the interpreter has
-        // completely shut down, In that case, we should not decref these objects because pymalloc
-        // is gone.  This also applies across sub-interpreters, we should only DECREF when the
-        // original owning interpreter is active.
-        auto *cur_istate = get_interpreter_state_unchecked();
-        if (cur_istate && cur_istate == istate) {
-            Py_CLEAR(instance_base);
-            Py_CLEAR(default_metaclass);
-            Py_CLEAR(static_property_type);
-        }
-    }
+    ~internals() = default;
 };
 
 // the internals struct (above) is shared between all the modules. local_internals are only
@@ -359,8 +365,6 @@ struct internals {
 // impact any other modules, because the only things accessing the local internals is the
 // module that contains them.
 struct local_internals {
-    local_internals() : istate(get_interpreter_state_unchecked()) {}
-
     // It should be safe to use fast_type_map here because this entire
     // data structure is scoped to our single module, and thus a single
     // DSO and single instance of type_info for any particular type.
@@ -368,19 +372,6 @@ struct local_internals {
 
     std::forward_list<ExceptionTranslator> registered_exception_translators;
     PyTypeObject *function_record_py_type = nullptr;
-    PyInterpreterState *istate = nullptr;
-
-    ~local_internals() {
-        // Normally this destructor runs during interpreter finalization and it may DECREF things.
-        // In odd finalization scenarios it might end up running after the interpreter has
-        // completely shut down, In that case, we should not decref these objects because pymalloc
-        // is gone.  This also applies across sub-interpreters, we should only DECREF when the
-        // original owning interpreter is active.
-        auto *cur_istate = get_interpreter_state_unchecked();
-        if (cur_istate && cur_istate == istate) {
-            Py_CLEAR(function_record_py_type);
-        }
-    }
 };
 
 enum class holder_enum_t : uint8_t {
@@ -576,6 +567,10 @@ inline void translate_local_exception(std::exception_ptr p) {
 }
 #endif
 
+// Sentinel value for the `dtor` parameter of `atomic_get_or_create_in_state_dict`.
+// Indicates no destructor was explicitly provided (distinct from nullptr, which means "leak").
+#define PYBIND11_DTOR_USE_DELETE (reinterpret_cast<void (*)(PyObject *)>(1))
+
 // Get or create per-storage capsule in the current interpreter's state dict.
 //   - The storage is interpreter-dependent: different interpreters will have different storage.
 //     This is important when using multiple-interpreters, to avoid sharing unshareable objects
@@ -592,9 +587,14 @@ inline void translate_local_exception(std::exception_ptr p) {
 //
 // Returns: pair of (pointer to storage, bool indicating if newly created).
 //          The bool follows std::map::insert convention: true = created, false = existed.
+// `dtor`: optional destructor called when the interpreter shuts down.
+//   - If not provided: the storage will be deleted using `delete`.
+//   - If nullptr: the storage will be leaked (useful for singletons that outlive the interpreter).
+//   - If a function: that function will be called with the capsule object.
 template <typename Payload>
 std::pair<Payload *, bool> atomic_get_or_create_in_state_dict(const char *key,
-                                                              void (*dtor)(PyObject *) = nullptr) {
+                                                              void (*dtor)(PyObject *)
+                                                              = PYBIND11_DTOR_USE_DELETE) {
     error_scope err_scope; // preserve any existing Python error states
 
     auto state_dict = reinterpret_borrow<dict>(get_python_state_dict());
@@ -640,7 +640,7 @@ std::pair<Payload *, bool> atomic_get_or_create_in_state_dict(const char *key,
         // - Otherwise, our `new_capsule` is now in the dict, and it owns the storage and the state
         //   dict will incref it.  We need to set the caller's destructor on it, which will be
         //   called when the interpreter shuts down.
-        if (created && dtor) {
+        if (created && dtor != PYBIND11_DTOR_USE_DELETE) {
             if (PyCapsule_SetDestructor(capsule_obj, dtor) < 0) {
                 throw error_already_set();
             }
@@ -656,6 +656,8 @@ std::pair<Payload *, bool> atomic_get_or_create_in_state_dict(const char *key,
     }
     return std::pair<Payload *, bool>(static_cast<Payload *>(raw_ptr), created);
 }
+
+#undef PYBIND11_DTOR_USE_DELETE
 
 template <typename InternalsType>
 class internals_pp_manager {
@@ -713,42 +715,75 @@ public:
             // this could be called without an active interpreter, just use what was cached
             if (!tstate || tstate->interp == last_istate_tls()) {
                 auto tpp = internals_p_tls();
-
-                delete tpp;
+                {
+                    std::lock_guard<std::mutex> lock(pp_set_mutex_);
+                    pps_have_created_content_.erase(tpp); // untrack deleted pp
+                }
+                delete tpp; // may call back into Python
             }
             unref();
             return;
         }
 #endif
-        delete internals_singleton_pp_;
+        {
+            std::lock_guard<std::mutex> lock(pp_set_mutex_);
+            pps_have_created_content_.erase(internals_singleton_pp_); // untrack deleted pp
+        }
+        delete internals_singleton_pp_; // may call back into Python
         unref();
+    }
+
+    void create_pp_content_once(std::unique_ptr<InternalsType> *const pp) {
+        // Assume the GIL is held here. May call back into Python. We cannot hold the lock with our
+        // mutex here. So there may be multiple threads creating the content at the same time. Only
+        // one will install its content to pp below. Others will be freed when going out of scope.
+        auto tmp = std::unique_ptr<InternalsType>(new InternalsType());
+
+        {
+            // Lock scope must not include Python calls, which may require the GIL and cause
+            // deadlocks.
+            std::lock_guard<std::mutex> lock(pp_set_mutex_);
+
+            if (*pp) {
+                // Already created in another thread.
+                return;
+            }
+
+            // At this point, pp->get() is nullptr.
+            // The content is either not yet created, or was previously destroyed via pp->reset().
+
+            // Detect re-creation of internals after destruction during interpreter shutdown.
+            // If pybind11 code (e.g., tp_traverse/tp_clear calling py::cast) runs after internals
+            // have been destroyed, a new empty internals would be created, causing type lookup
+            // failures. See also get_or_create_pp_in_state_dict() comments.
+            if (pps_have_created_content_.find(pp) != pps_have_created_content_.end()) {
+                pybind11_fail(
+                    "pybind11::detail::internals_pp_manager::create_pp_content_once() "
+                    "FAILED: reentrant call detected while fetching pybind11 internals!");
+            }
+
+            // Each interpreter can only create its internals once.
+            pps_have_created_content_.insert(pp);
+            // Install the created content.
+            pp->swap(tmp);
+        }
     }
 
 private:
     internals_pp_manager(char const *id, on_fetch_function *on_fetch)
         : holder_id_(id), on_fetch_(on_fetch) {}
 
-    static void internals_shutdown(PyObject *capsule) {
-        auto *pp = static_cast<std::unique_ptr<InternalsType> *>(
-            PyCapsule_GetPointer(capsule, nullptr));
-        if (pp) {
-            pp->reset();
-        }
-        // We reset the unique_ptr's contents but cannot delete the unique_ptr itself here.
-        // The pp_manager in this module (and possibly other modules sharing internals) holds
-        // a raw pointer to this unique_ptr, and that pointer would dangle if we deleted it now.
-        //
-        // For pybind11-owned interpreters (via embed.h or subinterpreter.h), destroy() is
-        // called after Py_Finalize/Py_EndInterpreter completes, which safely deletes the
-        // unique_ptr. For interpreters not owned by pybind11 (e.g., a pybind11 extension
-        // loaded into an external interpreter), destroy() is never called and the unique_ptr
-        // shell (8 bytes, not its contents) is leaked.
-        // (See PR #5958 for ideas to eliminate this leak.)
-    }
-
     std::unique_ptr<InternalsType> *get_or_create_pp_in_state_dict() {
+        // The `unique_ptr<InternalsType>` is intentionally leaked on interpreter shutdown.
+        // Once an instance is created, it will never be deleted until the process exits (compare
+        // to interpreter shutdown in multiple-interpreter scenarios).
+        // We cannot guarantee the destruction order of capsules in the interpreter state dict on
+        // interpreter shutdown, so deleting internals too early could cause undefined behavior
+        // when other pybind11 objects access `get_internals()` during finalization (which would
+        // recreate empty internals). See also create_pp_content_once() above.
+        // See https://github.com/pybind/pybind11/pull/5958#discussion_r2717645230.
         auto result = atomic_get_or_create_in_state_dict<std::unique_ptr<InternalsType>>(
-            holder_id_, &internals_shutdown);
+            holder_id_, /*dtor=*/nullptr /* leak the capsule content */);
         auto *pp = result.first;
         bool created = result.second;
         // Only call on_fetch_ when fetching existing internals, not when creating new ones.
@@ -774,7 +809,12 @@ private:
     on_fetch_function *on_fetch_ = nullptr;
     // Pointer-to-pointer to the singleton internals for the first seen interpreter (may not be the
     // main interpreter)
-    std::unique_ptr<InternalsType> *internals_singleton_pp_;
+    std::unique_ptr<InternalsType> *internals_singleton_pp_ = nullptr;
+
+    // Track pointer-to-pointers whose internals have been created, to detect re-entrancy.
+    // Use instance member over static due to singleton pattern of this class.
+    std::unordered_set<std::unique_ptr<InternalsType> *> pps_have_created_content_;
+    std::mutex pp_set_mutex_;
 };
 
 // If We loaded the internals through `state_dict`, our `error_already_set`
@@ -815,7 +855,8 @@ PYBIND11_NOINLINE internals &get_internals() {
         // Slow path, something needs fetched from the state dict or created
         gil_scoped_acquire_simple gil;
         error_scope err_scope;
-        internals_ptr.reset(new internals());
+
+        ppmgr.create_pp_content_once(&internals_ptr);
 
         if (!internals_ptr->instance_base) {
             // This calls get_internals, so cannot be called from within the internals constructor
@@ -824,6 +865,31 @@ PYBIND11_NOINLINE internals &get_internals() {
         }
     }
     return *internals_ptr;
+}
+
+/// Return the PyObject* for the internals capsule (borrowed reference).
+/// Returns nullptr if the capsule doesn't exist yet.
+inline PyObject *get_internals_capsule() {
+    auto state_dict = reinterpret_borrow<dict>(get_python_state_dict());
+    return dict_getitemstring(state_dict.ptr(), PYBIND11_INTERNALS_ID);
+}
+
+/// Return the key used for local_internals in the state dict.
+/// This function ensures a consistent key is used across all call sites within the same
+/// compilation unit. The key includes the address of a static variable to make it unique per
+/// module (DSO), matching the behavior of get_local_internals_pp_manager().
+inline const std::string &get_local_internals_key() {
+    static const std::string key
+        = PYBIND11_MODULE_LOCAL_ID + std::to_string(reinterpret_cast<uintptr_t>(&key));
+    return key;
+}
+
+/// Return the PyObject* for the local_internals capsule (borrowed reference).
+/// Returns nullptr if the capsule doesn't exist yet.
+inline PyObject *get_local_internals_capsule() {
+    const auto &key = get_local_internals_key();
+    auto state_dict = reinterpret_borrow<dict>(get_python_state_dict());
+    return dict_getitemstring(state_dict.ptr(), key.c_str());
 }
 
 inline void ensure_internals() {
@@ -837,12 +903,10 @@ inline void ensure_internals() {
 }
 
 inline internals_pp_manager<local_internals> &get_local_internals_pp_manager() {
-    // Use the address of this static itself as part of the key, so that the value is uniquely tied
+    // Use the address of a static variable as part of the key, so that the value is uniquely tied
     // to where the module is loaded in memory
-    static const std::string this_module_idstr
-        = PYBIND11_MODULE_LOCAL_ID
-          + std::to_string(reinterpret_cast<uintptr_t>(&this_module_idstr));
-    return internals_pp_manager<local_internals>::get_instance(this_module_idstr.c_str(), nullptr);
+    return internals_pp_manager<local_internals>::get_instance(get_local_internals_key().c_str(),
+                                                               nullptr);
 }
 
 /// Works like `get_internals`, but for things which are locally registered.
@@ -850,13 +914,16 @@ inline local_internals &get_local_internals() {
     auto &ppmgr = get_local_internals_pp_manager();
     auto &internals_ptr = *ppmgr.get_pp();
     if (!internals_ptr) {
-        internals_ptr.reset(new local_internals());
+        gil_scoped_acquire_simple gil;
+        error_scope err_scope;
+
+        ppmgr.create_pp_content_once(&internals_ptr);
     }
     return *internals_ptr;
 }
 
 #ifdef Py_GIL_DISABLED
-#    define PYBIND11_LOCK_INTERNALS(internals) std::unique_lock<pymutex> lock((internals).mutex)
+#    define PYBIND11_LOCK_INTERNALS(internals) pycritical_section lock((internals).mutex)
 #else
 #    define PYBIND11_LOCK_INTERNALS(internals)
 #endif
@@ -885,7 +952,7 @@ inline auto with_exception_translators(const F &cb)
                    get_local_internals().registered_exception_translators)) {
     auto &internals = get_internals();
 #ifdef Py_GIL_DISABLED
-    std::unique_lock<pymutex> lock((internals).exception_translator_mutex);
+    pycritical_section lock((internals).exception_translator_mutex);
 #endif
     auto &local_internals = get_local_internals();
     return cb(internals.registered_exception_translators,

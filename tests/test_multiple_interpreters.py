@@ -3,7 +3,6 @@ from __future__ import annotations
 import contextlib
 import os
 import pickle
-import subprocess
 import sys
 import textwrap
 
@@ -219,6 +218,7 @@ PREAMBLE_CODE = textwrap.dedent(
     def test():
         import sys
 
+        sys.path.insert(0, {os.path.dirname(env.__file__)!r})
         sys.path.insert(0, {os.path.dirname(pybind11_tests.__file__)!r})
 
         import collections
@@ -269,36 +269,13 @@ def test_import_module_with_singleton_per_interpreter():
         interp.exec(code)
 
 
-def check_script_success_in_subprocess(code: str, *, rerun: int = 8) -> None:
-    """Runs the given code in a subprocess."""
-    code = textwrap.dedent(code).strip()
-    try:
-        for _ in range(rerun):  # run flakily failing test multiple times
-            subprocess.check_output(
-                [sys.executable, "-c", code],
-                cwd=os.getcwd(),
-                stderr=subprocess.STDOUT,
-                text=True,
-            )
-    except subprocess.CalledProcessError as ex:
-        raise RuntimeError(
-            f"Subprocess failed with exit code {ex.returncode}.\n\n"
-            f"Code:\n"
-            f"```python\n"
-            f"{code}\n"
-            f"```\n\n"
-            f"Output:\n"
-            f"{ex.output}"
-        ) from None
-
-
 @pytest.mark.skipif(
     sys.platform.startswith("emscripten"), reason="Requires loadable modules"
 )
 @pytest.mark.skipif(not CONCURRENT_INTERPRETERS_SUPPORT, reason="Requires 3.14.0b3+")
 def test_import_in_subinterpreter_after_main():
     """Tests that importing a module in a subinterpreter after the main interpreter works correctly"""
-    check_script_success_in_subprocess(
+    env.check_script_success_in_subprocess(
         PREAMBLE_CODE
         + textwrap.dedent(
             """
@@ -319,7 +296,7 @@ def test_import_in_subinterpreter_after_main():
         )
     )
 
-    check_script_success_in_subprocess(
+    env.check_script_success_in_subprocess(
         PREAMBLE_CODE
         + textwrap.dedent(
             """
@@ -354,7 +331,7 @@ def test_import_in_subinterpreter_after_main():
 @pytest.mark.skipif(not CONCURRENT_INTERPRETERS_SUPPORT, reason="Requires 3.14.0b3+")
 def test_import_in_subinterpreter_before_main():
     """Tests that importing a module in a subinterpreter before the main interpreter works correctly"""
-    check_script_success_in_subprocess(
+    env.check_script_success_in_subprocess(
         PREAMBLE_CODE
         + textwrap.dedent(
             """
@@ -375,7 +352,7 @@ def test_import_in_subinterpreter_before_main():
         )
     )
 
-    check_script_success_in_subprocess(
+    env.check_script_success_in_subprocess(
         PREAMBLE_CODE
         + textwrap.dedent(
             """
@@ -401,7 +378,7 @@ def test_import_in_subinterpreter_before_main():
         )
     )
 
-    check_script_success_in_subprocess(
+    env.check_script_success_in_subprocess(
         PREAMBLE_CODE
         + textwrap.dedent(
             """
@@ -434,7 +411,7 @@ def test_import_in_subinterpreter_before_main():
 @pytest.mark.skipif(not CONCURRENT_INTERPRETERS_SUPPORT, reason="Requires 3.14.0b3+")
 def test_import_in_subinterpreter_concurrently():
     """Tests that importing a module in multiple subinterpreters concurrently works correctly"""
-    check_script_success_in_subprocess(
+    env.check_script_success_in_subprocess(
         PREAMBLE_CODE
         + textwrap.dedent(
             """
