@@ -84,7 +84,7 @@ jobs:
             python-version: '3.12'
             cmake-args: -DPYBIND11_TEST_SMART_HOLDER=ON -DPYBIND11_SIMPLE_GIL_MANAGEMENT=ON
           - runs-on: ubuntu-latest
-            python-version: '3.13t'
+            python-version: '3.14t'
             cmake-args: -DCMAKE_CXX_STANDARD=20 -DPYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION=ON
           - runs-on: ubuntu-latest
             python-version: '3.14'
@@ -102,12 +102,12 @@ jobs:
           - runs-on: macos-15-intel
             python-version: '3.11'
             cmake-args: -DPYBIND11_TEST_SMART_HOLDER=ON
+          - runs-on: macos-15-intel
+            python-version: '3.13'
+            cmake-args: -DCMAKE_CXX_STANDARD=11
           - runs-on: macos-latest
             python-version: '3.12'
             cmake-args: -DCMAKE_CXX_STANDARD=17 -DPYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION=ON
-          - runs-on: macos-15-intel
-            python-version: '3.13t'
-            cmake-args: -DCMAKE_CXX_STANDARD=11
           - runs-on: macos-latest
             python-version: '3.14t'
             cmake-args: -DCMAKE_CXX_STANDARD=20
@@ -138,9 +138,6 @@ jobs:
           - runs-on: windows-2022
             python-version: '3.13'
             cmake-args: -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebugDLL
-          - runs-on: windows-latest
-            python-version: '3.13t'
-            cmake-args: -DCMAKE_CXX_STANDARD=17
           - runs-on: windows-latest
             python-version: '3.14'
             cmake-args: -DCMAKE_CXX_STANDARD=20
@@ -240,7 +237,7 @@ jobs:
 
 
   manylinux:
-    name: Manylinux on 🐍 3.13t • GIL
+    name: Manylinux on 🐍 3.14t
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 40
@@ -257,7 +254,7 @@ jobs:
         run: uv tool install ninja
 
       - name: Configure via preset
-        run: cmake --preset venv -DPYBIND11_CREATE_WITH_UV=python3.13t
+        run: cmake --preset venv -DPYBIND11_CREATE_WITH_UV=python3.14t
 
       - name: Build C++11
         run: cmake --build --preset venv
