@@ -363,8 +363,33 @@ TEST_SUBMODULE(builtin_casters, m) {
     m.def("complex_cast", [](float x) { return "{}"_s.format(x); });
     m.def("complex_cast",
           [](std::complex<float> x) { return "({}, {})"_s.format(x.real(), x.imag()); });
+    m.def(
+        "complex_cast_strict",
+        [](std::complex<float> x) { return "({}, {})"_s.format(x.real(), x.imag()); },
+        py::arg{}.noconvert());
+
     m.def("complex_convert", [](std::complex<float> x) { return x; });
     m.def("complex_noconvert", [](std::complex<float> x) { return x; }, py::arg{}.noconvert());
+
+    // test_overload_resolution_float_int
+    // Test that float overload registered before int overload gets selected when passing int
+    // This documents the breaking change: int can now match float in strict mode
+    m.def("overload_resolution_test", [](float x) { return "float: " + std::to_string(x); });
+    m.def("overload_resolution_test", [](int x) { return "int: " + std::to_string(x); });
+
+    // Test with noconvert (strict mode) - this is the key breaking change
+    m.def(
+        "overload_resolution_strict",
+        [](float x) { return "float_strict: " + std::to_string(x); },
+        py::arg{}.noconvert());
+    m.def("overload_resolution_strict", [](int x) { return "int_strict: " + std::to_string(x); });
+
+    // Test complex overload resolution: complex registered before float/int
+    m.def("overload_resolution_complex", [](std::complex<float> x) {
+        return "complex: (" + std::to_string(x.real()) + ", " + std::to_string(x.imag()) + ")";
+    });
+    m.def("overload_resolution_complex", [](float x) { return "float: " + std::to_string(x); });
+    m.def("overload_resolution_complex", [](int x) { return "int: " + std::to_string(x); });
 
     // test int vs. long (Python 2)
     m.def("int_cast", []() { return 42; });
