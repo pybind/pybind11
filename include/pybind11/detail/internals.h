@@ -239,14 +239,11 @@ public:
     void unlock() { PyMutex_Unlock(&mutex); }
 };
 
-#    if PY_VERSION_HEX < 0x030E00C1 // 3.14.0rc1
-// Forward declaration of internal slow path function for usage in pycritical_section
-extern "C" void _PyCriticalSection_BeginSlow(PyCriticalSection *c, PyMutex *m);
-#    endif
-
 class pycritical_section {
     pymutex &mutex;
+#    if PY_VERSION_HEX >= 0x030E00C1 // 3.14.0rc1
     PyCriticalSection cs;
+#    endif
 
 public:
     explicit pycritical_section(pymutex &m) : mutex(m) {
@@ -254,11 +251,17 @@ public:
 #    if PY_VERSION_HEX >= 0x030E00C1 // 3.14.0rc1
         PyCriticalSection_BeginMutex(&cs, &mutex.mutex);
 #    else
-        // Use the slow path of internal API `_PyCriticalSection_BeginMutex` for older versions
-        _PyCriticalSection_BeginSlow(&cs, &mutex.mutex);
+        // Fall back to direct mutex locking for older free-threaded Python versions
+        mutex.lock();
 #    endif
     }
-    ~pycritical_section() { PyCriticalSection_End(&cs); }
+    ~pycritical_section() {
+#    if PY_VERSION_HEX >= 0x030E00C1 // 3.14.0rc1
+        PyCriticalSection_End(&cs);
+#    else
+        mutex.unlock();
+#    endif
+    }
 
     // Non-copyable and non-movable to prevent double-unlock
     pycritical_section(const pycritical_section &) = delete;
