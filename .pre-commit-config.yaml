@@ -32,7 +32,7 @@ repos:
 
 # Ruff, the Python auto-correcting linter/formatter written in Rust
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.14.10
+  rev: v0.14.14
   hooks:
   - id: ruff-check
     args: ["--fix", "--show-fixes"]
@@ -88,7 +88,7 @@ repos:
 
 # Changes tabs to spaces
 - repo: https://github.com/Lucas-C/pre-commit-hooks
-  rev: "v1.5.5"
+  rev: "v1.5.6"
   hooks:
   - id: remove-tabs
     exclude: (^docs/.*|\.patch)?$
@@ -122,7 +122,7 @@ repos:
 # Use mirror because pre-commit autoupdate confuses tags in the upstream repo.
 # See https://github.com/crate-ci/typos/issues/390
 - repo: https://github.com/adhtruong/mirrors-typos
-  rev: "v1.41.0"
+  rev: "v1.42.3"
   hooks:
   - id: typos
     args: []
@@ -151,7 +151,7 @@ repos:
 
 # Check schemas on some of our YAML files
 - repo: https://github.com/python-jsonschema/check-jsonschema
-  rev: 0.36.0
+  rev: 0.36.1
   hooks:
   - id: check-readthedocs
   - id: check-github-workflows
