@@ -244,6 +244,10 @@ jobs:
       matrix:
         include:
           - container: quay.io/pypa/manylinux_2_28_x86_64:latest
+            python-version: '3.13t'
+          - container: quay.io/pypa/musllinux_1_2_x86_64:latest
+            python-version: '3.13t'
+          - container: quay.io/pypa/manylinux_2_28_x86_64:latest
             python-version: '3.14t'
           - container: quay.io/pypa/musllinux_1_2_x86_64:latest
             python-version: '3.14t'
