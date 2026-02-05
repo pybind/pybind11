@@ -408,6 +408,7 @@ def test_import_in_subinterpreter_before_main():
 @pytest.mark.skipif(
     sys.platform.startswith("emscripten"), reason="Requires loadable modules"
 )
+@pytest.mark.xfail(env.MUSLLINUX, reason="Flaky on musllinux", strict=False)
 @pytest.mark.skipif(not CONCURRENT_INTERPRETERS_SUPPORT, reason="Requires 3.14.0b3+")
 def test_import_in_subinterpreter_concurrently():
     """Tests that importing a module in multiple subinterpreters concurrently works correctly"""

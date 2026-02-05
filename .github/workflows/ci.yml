@@ -237,11 +237,23 @@ jobs:
 
 
   manylinux:
-    name: Manylinux on 🐍 3.14t
+    name: Manylinux on 🐍 ${{ matrix.python-version }} (${{ matrix.container }})
     if: github.event.pull_request.draft == false
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - container: quay.io/pypa/manylinux_2_28_x86_64:latest
+            python-version: '3.13t'
+          - container: quay.io/pypa/musllinux_1_2_x86_64:latest
+            python-version: '3.13t'
+          - container: quay.io/pypa/manylinux_2_28_x86_64:latest
+            python-version: '3.14t'
+          - container: quay.io/pypa/musllinux_1_2_x86_64:latest
+            python-version: '3.14t'
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    container: quay.io/pypa/musllinux_1_2_x86_64:latest
+    container: ${{ matrix.container }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -254,7 +266,7 @@ jobs:
         run: uv tool install ninja
 
       - name: Configure via preset
-        run: cmake --preset venv -DPYBIND11_CREATE_WITH_UV=python3.14t
+        run: cmake --preset venv -DPYBIND11_CREATE_WITH_UV="${{ matrix.python-version }}"
 
       - name: Build C++11
         run: cmake --build --preset venv

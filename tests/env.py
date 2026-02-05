@@ -11,6 +11,18 @@ MACOS = sys.platform.startswith("darwin")
 WIN = sys.platform.startswith("win32") or sys.platform.startswith("cygwin")
 FREEBSD = sys.platform.startswith("freebsd")
 
+MUSLLINUX = False
+MANYLINUX = False
+if LINUX:
+
+    def _is_musl() -> bool:
+        libc, _ = platform.libc_ver()
+        return libc == "musl" or (libc != "glibc" and libc != "")
+
+    MUSLLINUX = _is_musl()
+    MANYLINUX = not MUSLLINUX
+    del _is_musl
+
 CPYTHON = platform.python_implementation() == "CPython"
 PYPY = platform.python_implementation() == "PyPy"
 GRAALPY = sys.implementation.name == "graalpy"

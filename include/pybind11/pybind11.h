@@ -3173,7 +3173,11 @@ iterator make_iterator_impl(Iterator first, Sentinel last, Extra &&...extra) {
     using state = detail::iterator_state<Access, Policy, Iterator, Sentinel, ValueType, Extra...>;
     // TODO: state captures only the types of Extra, not the values
 
+    // For Python < 3.14.0rc1, pycritical_section uses direct mutex locking (same as a unique
+    // lock), which may deadlock during type registration. See detail/internals.h for details.
+#if PY_VERSION_HEX >= 0x030E00C1 // 3.14.0rc1
     PYBIND11_LOCK_INTERNALS(get_internals());
+#endif
     if (!detail::get_type_info(typeid(state), false)) {
         class_<state>(handle(), "iterator", pybind11::module_local())
             .def(

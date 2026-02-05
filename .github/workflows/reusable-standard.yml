@@ -44,7 +44,7 @@ jobs:
 
       - name: Setup Boost (Linux)
         if: runner.os == 'Linux'
-        run: sudo apt-get install libboost-dev
+        run: sudo apt-get update && sudo apt-get install -y libboost-dev
 
       - name: Setup Boost (macOS)
         if: runner.os == 'macOS'
