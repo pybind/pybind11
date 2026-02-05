@@ -230,7 +230,9 @@ using instance_map = std::unordered_multimap<const void *, instance *>;
 #ifdef Py_GIL_DISABLED
 // Wrapper around PyMutex to provide BasicLockable semantics
 class pymutex {
+#    if PY_VERSION_HEX >= 0x030E00C1 // 3.14.0rc1
     friend class pycritical_section;
+#    endif
     PyMutex mutex;
 
 public:
@@ -239,29 +241,17 @@ public:
     void unlock() { PyMutex_Unlock(&mutex); }
 };
 
+// PyCriticalSection_BeginMutex was added in Python 3.15.0a1 and backported to 3.14.0rc1
+#    if PY_VERSION_HEX >= 0x030E00C1 // 3.14.0rc1
 class pycritical_section {
     pymutex &mutex;
-#    if PY_VERSION_HEX >= 0x030E00C1 // 3.14.0rc1
     PyCriticalSection cs;
-#    endif
 
 public:
     explicit pycritical_section(pymutex &m) : mutex(m) {
-        // PyCriticalSection_BeginMutex was added in Python 3.15.0a1 and backported to 3.14.0rc1
-#    if PY_VERSION_HEX >= 0x030E00C1 // 3.14.0rc1
         PyCriticalSection_BeginMutex(&cs, &mutex.mutex);
-#    else
-        // Fall back to direct mutex locking for older free-threaded Python versions
-        mutex.lock();
-#    endif
     }
-    ~pycritical_section() {
-#    if PY_VERSION_HEX >= 0x030E00C1 // 3.14.0rc1
-        PyCriticalSection_End(&cs);
-#    else
-        mutex.unlock();
-#    endif
-    }
+    ~pycritical_section() { PyCriticalSection_End(&cs); }
 
     // Non-copyable and non-movable to prevent double-unlock
     pycritical_section(const pycritical_section &) = delete;
@@ -269,6 +259,9 @@ public:
     pycritical_section(pycritical_section &&) = delete;
     pycritical_section &operator=(pycritical_section &&) = delete;
 };
+#    else
+using pycritical_section = std::unique_lock<pymutex>;
+#    endif
 
 // Instance map shards are used to reduce mutex contention in free-threaded Python.
 struct instance_map_shard {
