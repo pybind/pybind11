@@ -29,6 +29,10 @@
 #include <utility>
 #include <vector>
 
+#ifdef PYBIND11_HAS_SPAN
+#    include <span>
+#endif
+
 #if defined(PYBIND11_NUMPY_1_ONLY)
 #    error "PYBIND11_NUMPY_1_ONLY is no longer supported (see PR #5595)."
 #endif
@@ -1143,6 +1147,13 @@ public:
     /// Dimensions of the array
     const ssize_t *shape() const { return detail::array_proxy(m_ptr)->dimensions; }
 
+#ifdef PYBIND11_HAS_SPAN
+    /// Dimensions of the array as a span
+    std::span<const ssize_t, std::dynamic_extent> shape_span() const {
+        return std::span(shape(), static_cast<std::size_t>(ndim()));
+    }
+#endif
+
     /// Dimension along a given axis
     ssize_t shape(ssize_t dim) const {
         if (dim >= ndim()) {
@@ -1153,6 +1164,13 @@ public:
 
     /// Strides of the array
     const ssize_t *strides() const { return detail::array_proxy(m_ptr)->strides; }
+
+#ifdef PYBIND11_HAS_SPAN
+    /// Strides of the array as a span
+    std::span<const ssize_t, std::dynamic_extent> strides_span() const {
+        return std::span(strides(), static_cast<std::size_t>(ndim()));
+    }
+#endif
 
     /// Stride along a given axis
     ssize_t strides(ssize_t dim) const {
