@@ -68,6 +68,45 @@ def test_array_attributes():
     assert not m.owndata(a)
 
 
+@pytest.mark.skipif(not hasattr(m, "shape_span"), reason="std::span not available")
+def test_shape_strides_span():
+    # Test 0-dimensional array (scalar)
+    a = np.array(42, "f8")
+    assert m.ndim(a) == 0
+    assert m.shape_span(a) == []
+    assert m.strides_span(a) == []
+
+    # Test 1-dimensional array
+    a = np.array([1, 2, 3, 4], "u2")
+    assert m.ndim(a) == 1
+    assert m.shape_span(a) == [4]
+    assert m.strides_span(a) == [2]
+
+    # Test 2-dimensional array
+    a = np.array([[1, 2, 3], [4, 5, 6]], "u2").view()
+    a.flags.writeable = False
+    assert m.ndim(a) == 2
+    assert m.shape_span(a) == [2, 3]
+    assert m.strides_span(a) == [6, 2]
+
+    # Test 3-dimensional array
+    a = np.array([[[1, 2], [3, 4]], [[5, 6], [7, 8]]], "i4")
+    assert m.ndim(a) == 3
+    assert m.shape_span(a) == [2, 2, 2]
+    # Verify spans match regular shape/strides
+    assert list(m.shape_span(a)) == list(m.shape(a))
+    assert list(m.strides_span(a)) == list(m.strides(a))
+
+    # Test that spans can be used to construct new arrays
+    original = np.array([[1, 2, 3], [4, 5, 6]], "f4")
+    new_array = m.array_from_spans(original)
+    assert new_array.shape == original.shape
+    assert new_array.strides == original.strides
+    assert new_array.dtype == original.dtype
+    # Verify data is shared (since we pass the same data pointer)
+    np.testing.assert_array_equal(new_array, original)
+
+
 @pytest.mark.parametrize(
     ("args", "ret"), [([], 0), ([0], 0), ([1], 3), ([0, 1], 1), ([1, 2], 5)]
 )

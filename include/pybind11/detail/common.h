@@ -252,6 +252,10 @@
 #    define PYBIND11_HAS_U8STRING 1
 #endif
 
+#if defined(PYBIND11_CPP20) && defined(__cpp_lib_span) && __cpp_lib_span >= 202002L
+#    define PYBIND11_HAS_SPAN 1
+#endif
+
 // See description of PR #4246:
 #if !defined(PYBIND11_NO_ASSERT_GIL_HELD_INCREF_DECREF) && !defined(NDEBUG)                       \
     && !defined(PYPY_VERSION) && !defined(PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF)

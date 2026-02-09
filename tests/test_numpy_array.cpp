@@ -14,6 +14,7 @@
 
 #include <cstdint>
 #include <utility>
+#include <vector>
 
 // Size / dtype checks.
 struct DtypeCheck {
@@ -245,6 +246,22 @@ TEST_SUBMODULE(numpy_array, sm) {
     sm.def("itemsize", [](const arr &a) { return a.itemsize(); });
     sm.def("nbytes", [](const arr &a) { return a.nbytes(); });
     sm.def("owndata", [](const arr &a) { return a.owndata(); });
+
+#ifdef PYBIND11_HAS_SPAN
+    // test_shape_strides_span
+    sm.def("shape_span", [](const arr &a) {
+        auto span = a.shape_span();
+        return std::vector<py::ssize_t>(span.begin(), span.end());
+    });
+    sm.def("strides_span", [](const arr &a) {
+        auto span = a.strides_span();
+        return std::vector<py::ssize_t>(span.begin(), span.end());
+    });
+    // Test that spans can be used to construct new arrays
+    sm.def("array_from_spans", [](const arr &a) {
+        return py::array(a.dtype(), a.shape_span(), a.strides_span(), a.data(), a);
+    });
+#endif
 
     // test_index_offset
     def_index_fn(index_at, const arr &);
