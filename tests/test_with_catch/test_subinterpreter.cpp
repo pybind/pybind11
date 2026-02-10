@@ -501,15 +501,21 @@ TEST_CASE("Per-Subinterpreter GIL") {
 
             // wait for something to set sync to our thread number
             // we are holding our subinterpreter's GIL
-            while (sync != num)
-                std::this_thread::sleep_for(std::chrono::microseconds(1));
+            {
+                py::gil_scoped_release nogil;
+                while (sync != num)
+                    std::this_thread::sleep_for(std::chrono::microseconds(1));
+            }
 
             // now change it so the next thread can move on
             ++sync;
 
             // but keep holding the GIL until after the next thread moves on as well
-            while (sync == num + 1)
-                std::this_thread::sleep_for(std::chrono::microseconds(1));
+            {
+                py::gil_scoped_release nogil;
+                while (sync == num + 1)
+                    std::this_thread::sleep_for(std::chrono::microseconds(1));
+            }
 
             // one last check before quitting the thread, the internals should be different
             auto sub_int
