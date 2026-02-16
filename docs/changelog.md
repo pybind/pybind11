@@ -15,7 +15,18 @@ entry" block in pull request descriptions.
 
 ## Version 3.0.2 (release date TBD)
 
+New Features:
+
+- Added helper functions to `py::array` that return shape and strides as `std::span` when available.
+  [#5974](https://github.com/pybind/pybind11/pull/5974)
+
 Bug fixes:
+
+- Added fallback locking for Python 3.13t where `PyCriticalSection_BeginMutex` is unavailable.
+  [#5981](https://github.com/pybind/pybind11/pull/5981)
+
+- Fixed race condition in `py::make_key_iterator` with free-threaded Python.
+  [#5971](https://github.com/pybind/pybind11/pull/5971)
 
 - MSVC 19.16 and earlier were blocked from using `std::launder` due to internal compiler errors.
   [#5968](https://github.com/pybind/pybind11/pull/5968)
@@ -23,8 +34,9 @@ Bug fixes:
 - Internals destructors were updated to check the owning interpreter before clearing Python objects.
   [#5965](https://github.com/pybind/pybind11/pull/5965)
 
-- pybind11 internals were updated to be deallocated during (sub-)interpreter shutdown to avoid memory leaks.
+- Internals shutdown handling was refined in two iterations before release: an initial finalization-time cleanup was followed by a safety adjustment to avoid late-shutdown `py::cast` segfaults.
   [#5958](https://github.com/pybind/pybind11/pull/5958)
+  [#5972](https://github.com/pybind/pybind11/pull/5972)
 
 - Fixed ambiguous `str(handle)` construction for `object`-derived types like `kwargs` or `dict` by templatizing the constructor with SFINAE.
   [#5949](https://github.com/pybind/pybind11/pull/5949)
@@ -146,6 +158,9 @@ Documentation:
 
 
 Tests:
+
+- Fixed deadlock in a free-threading test by releasing the GIL while waiting on synchronization.
+  [#5973](https://github.com/pybind/pybind11/pull/5973)
 
 - Calls to `env.deprecated_call()` were replaced with direct calls to `pytest.deprecated_call()`.
   [#5893](https://github.com/pybind/pybind11/pull/5893)
