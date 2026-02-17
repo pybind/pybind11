@@ -100,11 +100,8 @@ public:
         subclass causes a corresponding call to ``__getitem__``. Assigning a `handle`
         or `object` subclass causes a call to ``__setitem__``.
     \endrst */
-    item_accessor operator[](handle key) const;
-    /// See above (the only difference is that the key's reference is stolen)
-    item_accessor operator[](object &&key) const;
-    /// See above (the only difference is that the key is provided as a string literal)
-    item_accessor operator[](const char *key) const;
+    template <typename T>
+    item_accessor operator[](T &&key) const;
 
     /** \rst
         Return an internal functor to access the object's attributes. Casting the
@@ -2598,16 +2595,9 @@ iterator object_api<D>::end() const {
     return iterator::sentinel();
 }
 template <typename D>
-item_accessor object_api<D>::operator[](handle key) const {
-    return {derived(), reinterpret_borrow<object>(key)};
-}
-template <typename D>
-item_accessor object_api<D>::operator[](object &&key) const {
-    return {derived(), std::move(key)};
-}
-template <typename D>
-item_accessor object_api<D>::operator[](const char *key) const {
-    return {derived(), pybind11::str(key)};
+template <typename T>
+item_accessor object_api<D>::operator[](T &&key) const {
+    return {derived(), detail::object_or_cast(std::forward<T>(key)).template cast<object>()};
 }
 template <typename D>
 obj_attr_accessor object_api<D>::attr(handle key) const {

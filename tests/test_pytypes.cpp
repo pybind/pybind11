@@ -232,6 +232,20 @@ TEST_SUBMODULE(pytypes, m) {
             py::print("list item {}: {}"_s.format(index++, item));
         }
     });
+    m.def("access_list", []() {
+        py::list l1 = py::list();
+        l1.append(1);
+        l1.append(2);
+        return l1[1];
+    });
+    m.def("access_list_as_object", []() {
+        py::list l1 = py::list();
+        l1.append(1);
+        l1.append(2);
+        py::object l2 = std::move(l1);
+        return l2[1];
+    });
+
     // test_none
     m.def("get_none", [] { return py::none(); });
     m.def("print_none", [](const py::none &none) { py::print("none: {}"_s.format(none)); });
@@ -281,12 +295,44 @@ TEST_SUBMODULE(pytypes, m) {
           [](const py::dict &dict, const py::object &val) { return dict.contains(val); });
     m.def("dict_contains",
           [](const py::dict &dict, const char *val) { return dict.contains(val); });
+    m.def("access_dict_with_str", []() {
+        py::dict d1 = py::dict();
+        d1["x"] = 1;
+        return d1["x"];
+    });
+    m.def("access_dict_with_int", []() {
+        py::dict d1 = py::dict();
+        d1[1] = 1;
+        return d1[1];
+    });
+    m.def("access_dict_as_object_with_str", []() {
+        py::dict d1 = py::dict();
+        d1["x"] = 1;
+        py::object d2 = std::move(d1);
+        return d2["x"];
+    });
+    m.def("access_dict_as_object_with_int", []() {
+        py::dict d1 = py::dict();
+        d1[1] = 1;
+        py::object d2 = std::move(d1);
+        return d2[1];
+    });
 
     // test_tuple
     m.def("tuple_no_args", []() { return py::tuple{}; });
     m.def("tuple_ssize_t", []() { return py::tuple{(py::ssize_t) 0}; });
     m.def("tuple_size_t", []() { return py::tuple{(py::size_t) 0}; });
     m.def("get_tuple", []() { return py::make_tuple(42, py::none(), "spam"); });
+
+    m.def("access_tuple", [](py::tuple &tpl) {
+        return tpl[1];
+    });
+    m.def("access_tuple_as_object_with_int_index", [](py::object &tpl) {
+        return tpl[1];
+    });
+    m.def("access_tuple_as_object_with_int_index_multidimension", [](py::object &tpl) {
+        return tpl[1][2];
+    });
 
     // test_simple_namespace
     m.def("get_simple_namespace", []() {
