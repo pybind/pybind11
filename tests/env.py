@@ -4,12 +4,24 @@ import platform
 import sys
 import sysconfig
 
-import pytest
-
 ANDROID = sys.platform.startswith("android")
+IOS = sys.platform.startswith("ios")
 LINUX = sys.platform.startswith("linux")
 MACOS = sys.platform.startswith("darwin")
 WIN = sys.platform.startswith("win32") or sys.platform.startswith("cygwin")
+FREEBSD = sys.platform.startswith("freebsd")
+
+MUSLLINUX = False
+MANYLINUX = False
+if LINUX:
+
+    def _is_musl() -> bool:
+        libc, _ = platform.libc_ver()
+        return libc == "musl" or (libc != "glibc" and libc != "")
+
+    MUSLLINUX = _is_musl()
+    MANYLINUX = not MUSLLINUX
+    del _is_musl
 
 CPYTHON = platform.python_implementation() == "CPython"
 PYPY = platform.python_implementation() == "PyPy"
@@ -31,17 +43,29 @@ TYPES_ARE_IMMORTAL = (
 )
 
 
-def deprecated_call():
-    """
-    pytest.deprecated_call() seems broken in pytest<3.9.x; concretely, it
-    doesn't work on CPython 3.8.0 with pytest==3.3.2 on Ubuntu 18.04 (#2922).
+def check_script_success_in_subprocess(code: str, *, rerun: int = 8) -> None:
+    """Runs the given code in a subprocess."""
+    import os
+    import subprocess
+    import sys
+    import textwrap
 
-    This is a narrowed reimplementation of the following PR :(
-    https://github.com/pytest-dev/pytest/pull/4104
-    """
-    # TODO: Remove this when testing requires pytest>=3.9.
-    pieces = pytest.__version__.split(".")
-    pytest_major_minor = (int(pieces[0]), int(pieces[1]))
-    if pytest_major_minor < (3, 9):
-        return pytest.warns((DeprecationWarning, PendingDeprecationWarning))
-    return pytest.deprecated_call()
+    code = textwrap.dedent(code).strip()
+    try:
+        for _ in range(rerun):  # run flakily failing test multiple times
+            subprocess.check_output(
+                [sys.executable, "-c", code],
+                cwd=os.getcwd(),
+                stderr=subprocess.STDOUT,
+                text=True,
+            )
+    except subprocess.CalledProcessError as ex:
+        raise RuntimeError(
+            f"Subprocess failed with exit code {ex.returncode}.\n\n"
+            f"Code:\n"
+            f"```python\n"
+            f"{code}\n"
+            f"```\n\n"
+            f"Output:\n"
+            f"{ex.output}"
+        ) from None

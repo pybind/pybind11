@@ -15,6 +15,8 @@ target_link_libraries(smart_holder_poc_test PRIVATE pybind11::headers Catch2::Ca
 add_custom_target(
   test_pure_cpp
   COMMAND "$<TARGET_FILE:smart_holder_poc_test>"
-  WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
+  WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+  USES_TERMINAL # Ensures output is shown immediately (not buffered and possibly lost on crash)
+)
 
 add_dependencies(check test_pure_cpp)

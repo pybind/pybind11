@@ -7,8 +7,7 @@
 #include <thread>
 #include <utility>
 
-#if defined(PYBIND11_CPP20) && defined(__has_include) && __has_include(<barrier>)
-#    define PYBIND11_HAS_BARRIER 1
+#if defined(PYBIND11_HAS_STD_BARRIER)
 #    include <barrier>
 #endif
 
@@ -39,7 +38,7 @@ private:
     std::atomic_bool value_{false};
 };
 
-#if defined(PYBIND11_HAS_BARRIER)
+#if defined(PYBIND11_HAS_STD_BARRIER)
 
 // Modifying the C/C++ members of a Python object from multiple threads requires a critical section
 // to ensure thread safety and data integrity.
@@ -259,7 +258,7 @@ TEST_SUBMODULE(scoped_critical_section, m) {
     (void) BoolWrapperHandle.ptr(); // suppress unused variable warning
 
     m.attr("has_barrier") =
-#ifdef PYBIND11_HAS_BARRIER
+#ifdef PYBIND11_HAS_STD_BARRIER
         true;
 #else
         false;
