@@ -13,6 +13,7 @@
 #include "detail/dynamic_raw_ptr_cast_if_possible.h"
 #include "detail/exception_translation.h"
 #include "detail/function_record_pyobject.h"
+#include "detail/function_ref.h"
 #include "detail/init.h"
 #include "detail/native_enum_data.h"
 #include "detail/using_smart_holder.h"
@@ -386,6 +387,46 @@ protected:
         return unique_function_record(new detail::function_record());
     }
 
+private:
+    // This is outlined from the dispatch lambda in initialize to save
+    // on code size. Crucially, we use function_ref to type-erase the
+    // actual function lambda so that we can get code reuse for
+    // functions with the same Return, Args, and Guard.
+    template <typename Return, typename Guard, typename ArgsConverter, typename... Args>
+    static handle call_impl(detail::function_call &call, detail::function_ref<Return(Args...)> f) {
+        using namespace detail;
+        // Static assertion: function_ref must be trivially copyable to ensure safe pass-by-value.
+        // Lifetime safety: The function_ref is created from cap->f which lives in the capture
+        // object stored in the function record, and is only used synchronously within this
+        // function call. It is never stored beyond the scope of call_impl.
+        static_assert(std::is_trivially_copyable<detail::function_ref<Return(Args...)>>::value,
+                      "function_ref must be trivially copyable for safe pass-by-value usage");
+        using cast_out
+            = make_caster<conditional_t<std::is_void<Return>::value, void_type, Return>>;
+
+        ArgsConverter args_converter;
+        if (!args_converter.load_args(call)) {
+            return PYBIND11_TRY_NEXT_OVERLOAD;
+        }
+
+        /* Override policy for rvalues -- usually to enforce rvp::move on an rvalue */
+        return_value_policy policy
+            = return_value_policy_override<Return>::policy(call.func.policy);
+
+        /* Perform the function call */
+        handle result;
+        if (call.func.is_setter) {
+            (void) std::move(args_converter).template call<Return, Guard>(f);
+            result = none().release();
+        } else {
+            result = cast_out::cast(
+                std::move(args_converter).template call<Return, Guard>(f), policy, call.parent);
+        }
+
+        return result;
+    }
+
+protected:
     /// Special internal constructor for functors, lambda functions, etc.
     template <typename Func, typename Return, typename... Args, typename... Extra>
     void initialize(Func &&f, Return (*)(Args...), const Extra &...extra) {
@@ -448,13 +489,6 @@ protected:
 
         /* Dispatch code which converts function arguments and performs the actual function call */
         rec->impl = [](function_call &call) -> handle {
-            cast_in args_converter;
-
-            /* Try to cast the function arguments into the C++ domain */
-            if (!args_converter.load_args(call)) {
-                return PYBIND11_TRY_NEXT_OVERLOAD;
-            }
-
             /* Invoke call policy pre-call hook */
             process_attributes<Extra...>::precall(call);
 
@@ -463,24 +497,11 @@ protected:
                                                                           : call.func.data[0]);
             auto *cap = const_cast<capture *>(reinterpret_cast<const capture *>(data));
 
-            /* Override policy for rvalues -- usually to enforce rvp::move on an rvalue */
-            return_value_policy policy
-                = return_value_policy_override<Return>::policy(call.func.policy);
-
-            /* Function scope guard -- defaults to the compile-to-nothing `void_type` */
-            using Guard = extract_guard_t<Extra...>;
-
-            /* Perform the function call */
-            handle result;
-            if (call.func.is_setter) {
-                (void) std::move(args_converter).template call<Return, Guard>(cap->f);
-                result = none().release();
-            } else {
-                result = cast_out::cast(
-                    std::move(args_converter).template call<Return, Guard>(cap->f),
-                    policy,
-                    call.parent);
-            }
+            auto result = call_impl<Return,
+                                    /* Function scope guard -- defaults to the compile-to-nothing
+                                       `void_type` */
+                                    extract_guard_t<Extra...>,
+                                    cast_in>(call, detail::function_ref<Return(Args...)>(cap->f));
 
             /* Invoke call policy post-call hook */
             process_attributes<Extra...>::postcall(call, result);
@@ -2245,7 +2266,7 @@ public:
     static void add_base(detail::type_record &) {}
 
     template <typename Func, typename... Extra>
-    class_ &def(const char *name_, Func &&f, const Extra &...extra) {
+    PYBIND11_ALWAYS_INLINE class_ &def(const char *name_, Func &&f, const Extra &...extra) {
         cpp_function cf(method_adaptor<type>(std::forward<Func>(f)),
                         name(name_),
                         is_method(*this),
@@ -2830,37 +2851,12 @@ struct enum_base {
         pos_only())
 
         if (is_convertible) {
-            PYBIND11_ENUM_OP_CONV_LHS("__eq__", !b.is_none() && a.equal(b));
-            PYBIND11_ENUM_OP_CONV_LHS("__ne__", b.is_none() || !a.equal(b));
-
             if (is_arithmetic) {
-                PYBIND11_ENUM_OP_CONV("__lt__", a < b);
-                PYBIND11_ENUM_OP_CONV("__gt__", a > b);
-                PYBIND11_ENUM_OP_CONV("__le__", a <= b);
-                PYBIND11_ENUM_OP_CONV("__ge__", a >= b);
-                PYBIND11_ENUM_OP_CONV("__and__", a & b);
-                PYBIND11_ENUM_OP_CONV("__rand__", a & b);
-                PYBIND11_ENUM_OP_CONV("__or__", a | b);
-                PYBIND11_ENUM_OP_CONV("__ror__", a | b);
-                PYBIND11_ENUM_OP_CONV("__xor__", a ^ b);
-                PYBIND11_ENUM_OP_CONV("__rxor__", a ^ b);
                 m_base.attr("__invert__")
                     = cpp_function([](const object &arg) { return ~(int_(arg)); },
                                    name("__invert__"),
                                    is_method(m_base),
                                    pos_only());
-            }
-        } else {
-            PYBIND11_ENUM_OP_STRICT("__eq__", int_(a).equal(int_(b)), return false);
-            PYBIND11_ENUM_OP_STRICT("__ne__", !int_(a).equal(int_(b)), return true);
-
-            if (is_arithmetic) {
-#define PYBIND11_THROW throw type_error("Expected an enumeration of matching type!");
-                PYBIND11_ENUM_OP_STRICT("__lt__", int_(a) < int_(b), PYBIND11_THROW);
-                PYBIND11_ENUM_OP_STRICT("__gt__", int_(a) > int_(b), PYBIND11_THROW);
-                PYBIND11_ENUM_OP_STRICT("__le__", int_(a) <= int_(b), PYBIND11_THROW);
-                PYBIND11_ENUM_OP_STRICT("__ge__", int_(a) >= int_(b), PYBIND11_THROW);
-#undef PYBIND11_THROW
             }
         }
 
@@ -2977,6 +2973,69 @@ public:
 
         def(init([](Scalar i) { return static_cast<Type>(i); }), arg("value"));
         def_property_readonly("value", [](Type value) { return (Scalar) value; }, pos_only());
+#define PYBIND11_ENUM_OP_SAME_TYPE(op, expr)                                                      \
+    def(op, [](Type a, Type b) { return expr; }, pybind11::name(op), arg("other"), pos_only())
+#define PYBIND11_ENUM_OP_SAME_TYPE_RHS_MAY_BE_NONE(op, expr)                                      \
+    def(op, [](Type a, Type *b_ptr) { return expr; }, pybind11::name(op), arg("other"), pos_only())
+#define PYBIND11_ENUM_OP_SCALAR(op, op_expr)                                                      \
+    def(                                                                                          \
+        op,                                                                                       \
+        [](Type a, Scalar b) { return static_cast<Scalar>(a) op_expr b; },                        \
+        pybind11::name(op),                                                                       \
+        arg("other"),                                                                             \
+        pos_only())
+#define PYBIND11_ENUM_OP_CONV_ARITHMETIC(op, op_expr)                                             \
+    /* NOLINTNEXTLINE(bugprone-macro-parentheses) */                                              \
+    PYBIND11_ENUM_OP_SAME_TYPE(op, static_cast<Scalar>(a) op_expr static_cast<Scalar>(b));        \
+    PYBIND11_ENUM_OP_SCALAR(op, op_expr)
+#define PYBIND11_ENUM_OP_REJECT_UNRELATED_TYPE(op, strict_behavior)                               \
+    def(                                                                                          \
+        op,                                                                                       \
+        [](Type, const object &) { strict_behavior; },                                            \
+        pybind11::name(op),                                                                       \
+        arg("other"),                                                                             \
+        pos_only())
+#define PYBIND11_ENUM_OP_STRICT_ARITHMETIC(op, op_expr, strict_behavior)                          \
+    /* NOLINTNEXTLINE(bugprone-macro-parentheses) */                                              \
+    PYBIND11_ENUM_OP_SAME_TYPE(op, static_cast<Scalar>(a) op_expr static_cast<Scalar>(b));        \
+    PYBIND11_ENUM_OP_REJECT_UNRELATED_TYPE(op, strict_behavior);
+
+        PYBIND11_ENUM_OP_SAME_TYPE_RHS_MAY_BE_NONE("__eq__", b_ptr && a == *b_ptr);
+        PYBIND11_ENUM_OP_SAME_TYPE_RHS_MAY_BE_NONE("__ne__", !b_ptr || a != *b_ptr);
+        if (std::is_convertible<Type, Scalar>::value) {
+            PYBIND11_ENUM_OP_SCALAR("__eq__", ==);
+            PYBIND11_ENUM_OP_SCALAR("__ne__", !=);
+            if (is_arithmetic) {
+                PYBIND11_ENUM_OP_CONV_ARITHMETIC("__lt__", <);
+                PYBIND11_ENUM_OP_CONV_ARITHMETIC("__gt__", >);
+                PYBIND11_ENUM_OP_CONV_ARITHMETIC("__le__", <=);
+                PYBIND11_ENUM_OP_CONV_ARITHMETIC("__ge__", >=);
+                PYBIND11_ENUM_OP_CONV_ARITHMETIC("__and__", &);
+                PYBIND11_ENUM_OP_CONV_ARITHMETIC("__rand__", &);
+                PYBIND11_ENUM_OP_CONV_ARITHMETIC("__or__", |);
+                PYBIND11_ENUM_OP_CONV_ARITHMETIC("__ror__", |);
+                PYBIND11_ENUM_OP_CONV_ARITHMETIC("__xor__", ^);
+                PYBIND11_ENUM_OP_CONV_ARITHMETIC("__rxor__", ^);
+            }
+        } else if (is_arithmetic) {
+#define PYBIND11_ENUM_OP_THROW_TYPE_ERROR                                                         \
+    throw type_error("Expected an enumeration of matching type!");
+            PYBIND11_ENUM_OP_STRICT_ARITHMETIC("__lt__", <, PYBIND11_ENUM_OP_THROW_TYPE_ERROR);
+            PYBIND11_ENUM_OP_STRICT_ARITHMETIC("__gt__", >, PYBIND11_ENUM_OP_THROW_TYPE_ERROR);
+            PYBIND11_ENUM_OP_STRICT_ARITHMETIC("__le__", <=, PYBIND11_ENUM_OP_THROW_TYPE_ERROR);
+            PYBIND11_ENUM_OP_STRICT_ARITHMETIC("__ge__", >=, PYBIND11_ENUM_OP_THROW_TYPE_ERROR);
+#undef PYBIND11_ENUM_OP_THROW_TYPE_ERROR
+        }
+        PYBIND11_ENUM_OP_REJECT_UNRELATED_TYPE("__eq__", return false);
+        PYBIND11_ENUM_OP_REJECT_UNRELATED_TYPE("__ne__", return true);
+
+#undef PYBIND11_ENUM_OP_SAME_TYPE
+#undef PYBIND11_ENUM_OP_SAME_TYPE_RHS_MAY_BE_NONE
+#undef PYBIND11_ENUM_OP_SCALAR
+#undef PYBIND11_ENUM_OP_CONV_ARITHMETIC
+#undef PYBIND11_ENUM_OP_REJECT_UNRELATED_TYPE
+#undef PYBIND11_ENUM_OP_STRICT_ARITHMETIC
+
         def("__int__", [](Type value) { return (Scalar) value; }, pos_only());
         def("__index__", [](Type value) { return (Scalar) value; }, pos_only());
         attr("__setstate__") = cpp_function(
