@@ -84,7 +84,7 @@ jobs:
             python-version: '3.12'
             cmake-args: -DPYBIND11_TEST_SMART_HOLDER=ON -DPYBIND11_SIMPLE_GIL_MANAGEMENT=ON
           - runs-on: ubuntu-latest
-            python-version: '3.13t'
+            python-version: '3.14t'
             cmake-args: -DCMAKE_CXX_STANDARD=20 -DPYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION=ON
           - runs-on: ubuntu-latest
             python-version: '3.14'
@@ -102,12 +102,12 @@ jobs:
           - runs-on: macos-15-intel
             python-version: '3.11'
             cmake-args: -DPYBIND11_TEST_SMART_HOLDER=ON
+          - runs-on: macos-15-intel
+            python-version: '3.13'
+            cmake-args: -DCMAKE_CXX_STANDARD=11
           - runs-on: macos-latest
             python-version: '3.12'
             cmake-args: -DCMAKE_CXX_STANDARD=17 -DPYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION=ON
-          - runs-on: macos-15-intel
-            python-version: '3.13t'
-            cmake-args: -DCMAKE_CXX_STANDARD=11
           - runs-on: macos-latest
             python-version: '3.14t'
             cmake-args: -DCMAKE_CXX_STANDARD=20
@@ -138,9 +138,6 @@ jobs:
           - runs-on: windows-2022
             python-version: '3.13'
             cmake-args: -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebugDLL
-          - runs-on: windows-latest
-            python-version: '3.13t'
-            cmake-args: -DCMAKE_CXX_STANDARD=17
           - runs-on: windows-latest
             python-version: '3.14'
             cmake-args: -DCMAKE_CXX_STANDARD=20
@@ -240,11 +237,23 @@ jobs:
 
 
   manylinux:
-    name: Manylinux on 🐍 3.13t • GIL
+    name: Manylinux on 🐍 ${{ matrix.python-version }} (${{ matrix.container }})
     if: github.event.pull_request.draft == false
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - container: quay.io/pypa/manylinux_2_28_x86_64:latest
+            python-version: '3.13t'
+          - container: quay.io/pypa/musllinux_1_2_x86_64:latest
+            python-version: '3.13t'
+          - container: quay.io/pypa/manylinux_2_28_x86_64:latest
+            python-version: '3.14t'
+          - container: quay.io/pypa/musllinux_1_2_x86_64:latest
+            python-version: '3.14t'
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    container: quay.io/pypa/musllinux_1_2_x86_64:latest
+    container: ${{ matrix.container }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -257,7 +266,7 @@ jobs:
         run: uv tool install ninja
 
       - name: Configure via preset
-        run: cmake --preset venv -DPYBIND11_CREATE_WITH_UV=python3.13t
+        run: cmake --preset venv -DPYBIND11_CREATE_WITH_UV="${{ matrix.python-version }}"
 
       - name: Build C++11
         run: cmake --build --preset venv
@@ -293,7 +302,7 @@ jobs:
         debug: ${{ matrix.python-debug }}
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v2.0
+      uses: jwlawson/actions-setup-cmake@v2.1
 
     - name: Valgrind cache
       if: matrix.valgrind
@@ -485,6 +494,11 @@ jobs:
     steps:
     - uses: actions/checkout@v6
 
+    - name: Clean out unused stuff to save space
+      run: |
+        sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
+        sudo apt-get clean
+
     - name: Add NVHPC Repo
       run: |
         echo 'deb [trusted=yes] https://developer.download.nvidia.com/hpc-sdk/ubuntu/amd64 /' | \
@@ -492,10 +506,11 @@ jobs:
 
     - name: Install 🐍 3 & NVHPC
       run: |
-        sudo apt-get update -y && \
-        sudo apt-get install -y cmake environment-modules git python3-dev python3-pip python3-numpy && \
-        sudo apt-get install -y --no-install-recommends nvhpc-25-11 && \
+        sudo apt-get update -y
+        sudo apt-get install -y cmake environment-modules git python3-dev python3-pip python3-numpy
+        sudo apt-get install -y --no-install-recommends nvhpc-25-11
         sudo rm -rf /var/lib/apt/lists/*
+        apt-cache depends nvhpc-25-11
         python3 -m pip install --upgrade pip
         python3 -m pip install --upgrade pytest
 
@@ -555,7 +570,7 @@ jobs:
       run: python3 -m pip install --upgrade pip
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v2.0
+      uses: jwlawson/actions-setup-cmake@v2.1
 
     - name: Configure
       shell: bash
@@ -891,7 +906,7 @@ jobs:
           ${{ matrix.python == '3.13' && runner.os == 'Windows' }}
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v2.0
+      uses: jwlawson/actions-setup-cmake@v2.1
 
     - name: Prepare MSVC
       uses: ilammy/msvc-dev-cmd@v1.13.0
@@ -941,7 +956,7 @@ jobs:
         architecture: x86
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v2.0
+      uses: jwlawson/actions-setup-cmake@v2.1
 
     - name: Prepare MSVC
       uses: ilammy/msvc-dev-cmd@v1.13.0
@@ -992,7 +1007,7 @@ jobs:
       run: python3 -m pip install -r tests/requirements.txt
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v2.0
+      uses: jwlawson/actions-setup-cmake@v2.1
 
     - name: Configure C++20
       run: >
@@ -1174,7 +1189,7 @@ jobs:
           python-version: ${{ matrix.python }}
 
       - name: Update CMake
-        uses: jwlawson/actions-setup-cmake@v2.0
+        uses: jwlawson/actions-setup-cmake@v2.1
 
       - name: Install ninja-build tool
         uses: seanmiddleditch/gha-setup-ninja@v6

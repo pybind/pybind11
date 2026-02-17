@@ -207,7 +207,7 @@ extern "C" inline PyObject *pybind11_meta_call(PyObject *type, PyObject *args, P
 
 /// Cleanup the type-info for a pybind11-registered type.
 extern "C" inline void pybind11_meta_dealloc(PyObject *obj) {
-    with_internals([obj](internals &internals) {
+    with_internals_if_internals([obj](internals &internals) {
         auto *type = (PyTypeObject *) obj;
 
         // A pybind11-registered type will:
