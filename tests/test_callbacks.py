@@ -179,10 +179,11 @@ def test_async_callbacks():
     # do some work async
     work = [1, 2, 3, 4]
     m.test_async_callback(gen_f(), work)
-    # wait until work is done
-    from time import sleep
-
-    sleep(0.5)
+    # Wait for all detached worker threads to finish.
+    deadline = time.monotonic() + 5.0
+    while len(res) < len(work) and time.monotonic() < deadline:
+        time.sleep(0.01)
+    assert len(res) == len(work), f"Timed out waiting for callbacks: res={res!r}"
     assert sum(res) == sum(x + 3 for x in work)
 
 
