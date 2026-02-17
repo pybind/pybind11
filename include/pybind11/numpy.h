@@ -964,6 +964,15 @@ public:
         return detail::array_descriptor2_proxy(m_ptr)->flags;
     }
 
+    /// NumPy array type char
+    char type() const { return detail::array_descriptor_proxy(m_ptr)->type; }
+
+    /// NumPy array type num
+    int type_num() const { return detail::array_descriptor_proxy(m_ptr)->type_num; }
+
+    /// NumPy array element size
+    int elsize() const { return detail::array_descriptor_proxy(m_ptr)->elsize; }
+
 private:
     static object &_dtype_from_pep3118() {
         PYBIND11_CONSTINIT static gil_safe_call_once_and_store<object> storage;
@@ -1182,6 +1191,9 @@ public:
 
     /// Return the NumPy array flags
     int flags() const { return detail::array_proxy(m_ptr)->flags; }
+
+    /// Mutable NumPy array flags
+    int &flags() { return detail::array_proxy(m_ptr)->flags; }
 
     /// If set, the array is writeable (otherwise the buffer is read-only)
     bool writeable() const {
