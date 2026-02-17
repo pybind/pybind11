@@ -1662,6 +1662,21 @@ public:
         //       For Python 2, reinterpret_borrow was correct.
         return reinterpret_borrow<module_>(m);
     }
+
+    struct strip_leading_underscore_from_name {};
+
+    module_ make_alias(const char *name) {
+        module_ ret = *this;
+        ret.attr("__name__") = name;
+        return ret;
+    }
+
+    module_ make_alias(strip_leading_underscore_from_name) {
+        const char *name = PyModule_GetName(*this);
+        if (name && name[0] == '_')
+            name += 1;
+        return make_alias(name);
+    }
 };
 
 PYBIND11_NAMESPACE_BEGIN(detail)
