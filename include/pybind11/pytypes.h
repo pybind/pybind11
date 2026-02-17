@@ -732,6 +732,8 @@ struct error_fetch_and_normalize {
         return (PyErr_GivenExceptionMatches(m_type.ptr(), exc.ptr()) != 0);
     }
 
+    std::nested_exception get_cause_as_nested() const;
+
     // Not protecting these for simplicity.
     object m_type, m_value, m_trace;
 
@@ -752,13 +754,17 @@ PYBIND11_NAMESPACE_END(detail)
 /// thrown to propagate python-side errors back through C++ which can either be caught manually or
 /// else falls back to the function dispatcher (which then raises the captured error back to
 /// python).
-class PYBIND11_EXPORT_EXCEPTION error_already_set : public std::exception {
+class PYBIND11_EXPORT_EXCEPTION error_already_set : public std::exception,
+                                                    public std::nested_exception {
 public:
     /// Fetches the current Python exception (using PyErr_Fetch()), which will clear the
     /// current Python error indicator.
     error_already_set()
         : m_fetched_error{new detail::error_fetch_and_normalize("pybind11::error_already_set"),
-                          m_fetched_error_deleter} {}
+                          m_fetched_error_deleter} {
+        if (not nested_ptr())
+            static_cast<std::nested_exception &>(*this) = m_fetched_error->get_cause_as_nested();
+    }
 
     /// The what() result is built lazily on demand.
     /// WARNING: This member function needs to acquire the Python GIL. This can lead to
@@ -2667,6 +2673,20 @@ bool object_api<D>::rich_compare(object_api const &other, int value) const {
         throw error_already_set();
     }
     return rv == 1;
+}
+
+inline std::nested_exception error_fetch_and_normalize::get_cause_as_nested() const {
+    auto cause = reinterpret_steal<object>(PyException_GetCause(m_value.ptr()));
+    if (not cause or cause.is_none())
+        return std::nested_exception();
+    auto typ = type::of(cause);
+    auto tb = reinterpret_steal<object>(PyException_GetTraceback(cause.ptr()));
+    PyErr_Restore(typ.release().ptr(), cause.release().ptr(), tb.release().ptr());
+    try {
+        throw error_already_set();
+    } catch (...) {
+        return std::nested_exception();
+    }
 }
 
 #define PYBIND11_MATH_OPERATOR_UNARY(op, fn)                                                      \
