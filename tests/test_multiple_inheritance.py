@@ -498,3 +498,14 @@ def test_python_inherit_from_mi():
     assert o.g == 7
 
     assert o.get_g_g() == 7
+
+
+def test_trampoline_nesting():
+    with pytest.raises(RuntimeError):
+        m.ChainBaseA().resultA()
+    assert m.ChainChildA().resultA() == 1
+    with pytest.raises(RuntimeError):
+        m.ChainBaseB().resultB()
+    assert m.ChainChildB().resultB() == "A"
+    assert m.Joined().resultA() == 1
+    assert m.Joined().resultB() == "A"
