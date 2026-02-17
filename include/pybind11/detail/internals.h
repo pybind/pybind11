@@ -39,11 +39,11 @@
 /// further ABI-incompatible changes may be made before the ABI is officially
 /// changed to the new version.
 #ifndef PYBIND11_INTERNALS_VERSION
-#    define PYBIND11_INTERNALS_VERSION 11
+#    define PYBIND11_INTERNALS_VERSION 12
 #endif
 
-#if PYBIND11_INTERNALS_VERSION < 11
-#    error "PYBIND11_INTERNALS_VERSION 11 is the minimum for all platforms for pybind11v3."
+#if PYBIND11_INTERNALS_VERSION < 12
+#    error "PYBIND11_INTERNALS_VERSION 12 is the minimum for all platforms for pybind11 v3.1.0"
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
