@@ -20,15 +20,6 @@
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
-PYBIND11_NAMESPACE_BEGIN(detail)
-inline PyInterpreterState *get_interpreter_state_unchecked() {
-    auto cur_tstate = get_thread_state_unchecked();
-    if (cur_tstate)
-        return cur_tstate->interp;
-    else
-        return nullptr;
-}
-PYBIND11_NAMESPACE_END(detail)
 
 class subinterpreter;
 
@@ -76,7 +67,7 @@ public:
     /// Create a new subinterpreter with the specified configuration
     /// @note This function acquires (and then releases) the main interpreter GIL, but the main
     /// interpreter and its GIL are not required to be held prior to calling this function.
-    static inline subinterpreter create(PyInterpreterConfig const &cfg) {
+    static subinterpreter create(PyInterpreterConfig const &cfg) {
 
         error_scope err_scope;
         subinterpreter result;
@@ -84,7 +75,7 @@ public:
             // we must hold the main GIL in order to create a subinterpreter
             subinterpreter_scoped_activate main_guard(main());
 
-            auto prev_tstate = PyThreadState_Get();
+            auto *prev_tstate = PyThreadState_Get();
 
             PyStatus status;
 
@@ -103,13 +94,13 @@ public:
             }
 
             // this doesn't raise a normal Python exception, it provides an exit() status code.
-            if (PyStatus_Exception(status)) {
+            if (PyStatus_Exception(status) != 0) {
                 pybind11_fail("failed to create new sub-interpreter");
             }
 
             // upon success, the new interpreter is activated in this thread
             result.istate_ = result.creation_tstate_->interp;
-            detail::get_num_interpreters_seen() += 1; // there are now many interpreters
+            detail::has_seen_non_main_interpreter() = true;
             detail::get_internals(); // initialize internals.tstate, amongst other things...
 
             // In 3.13+ this state should be deleted right away, and the memory will be reused for
@@ -128,7 +119,7 @@ public:
 
     /// Calls create() with a default configuration of an isolated interpreter that disallows fork,
     /// exec, and Python threads.
-    static inline subinterpreter create() {
+    static subinterpreter create() {
         // same as the default config in the python docs
         PyInterpreterConfig cfg;
         std::memset(&cfg, 0, sizeof(cfg));
@@ -144,8 +135,8 @@ public:
             return;
         }
 
-        PyThreadState *destroy_tstate;
-        PyThreadState *old_tstate;
+        PyThreadState *destroy_tstate = nullptr;
+        PyThreadState *old_tstate = nullptr;
 
         // Python 3.12 requires us to keep the original PyThreadState alive until we are ready to
         // destroy the interpreter.  We prefer to use that to destroy the interpreter.
@@ -173,7 +164,7 @@ public:
         old_tstate = PyThreadState_Swap(destroy_tstate);
 #endif
 
-        bool switch_back = old_tstate && old_tstate->interp != istate_;
+        bool switch_back = (old_tstate != nullptr) && old_tstate->interp != istate_;
 
         // Internals always exists in the subinterpreter, this class enforces it when it creates
         // the subinterpreter. Even if it didn't, this only creates the pointer-to-pointer, not the
@@ -190,8 +181,9 @@ public:
         detail::get_local_internals_pp_manager().destroy();
 
         // switch back to the old tstate and old GIL (if there was one)
-        if (switch_back)
+        if (switch_back) {
             PyThreadState_Swap(old_tstate);
+        }
     }
 
     /// Get a handle to the main interpreter that can be used with subinterpreter_scoped_activate
@@ -214,11 +206,11 @@ public:
 
     /// Get the numerical identifier for the sub-interpreter
     int64_t id() const {
-        if (istate_ != nullptr)
+        if (istate_ != nullptr) {
             return PyInterpreterState_GetID(istate_);
-        else
-            return -1; // CPython uses one-up numbers from 0, so negative should be safe to return
-                       // here.
+        }
+        return -1; // CPython uses one-up numbers from 0, so negative should be safe to return
+                   // here.
     }
 
     /// Get the interpreter's state dict.  This interpreter's GIL must be held before calling!
@@ -271,7 +263,7 @@ inline subinterpreter_scoped_activate::subinterpreter_scoped_activate(subinterpr
     // make the interpreter active and acquire the GIL
     old_tstate_ = PyThreadState_Swap(tstate_);
 
-    // save this in internals for scoped_gil calls
+    // save this in internals for scoped_gil calls (see also: PR #5870)
     detail::get_internals().tstate = tstate_;
 }
 

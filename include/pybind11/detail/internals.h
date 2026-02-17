@@ -103,7 +103,7 @@ public:
         // However, in GraalPy (as of v24.2 or older), TSS is implemented by Java and this call
         // requires a living Python interpreter.
 #ifdef GRAALVM_PYTHON
-        if (!Py_IsInitialized() || _Py_IsFinalizing()) {
+        if (Py_IsInitialized() == 0 || _Py_IsFinalizing() != 0) {
             return;
         }
 #endif
@@ -143,6 +143,38 @@ inline PyTypeObject *make_default_metaclass();
 inline PyObject *make_object_base_type(PyTypeObject *metaclass);
 inline void translate_exception(std::exception_ptr p);
 
+inline PyThreadState *get_thread_state_unchecked() {
+#if defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
+    return PyThreadState_GET();
+#elif PY_VERSION_HEX < 0x030D0000
+    return _PyThreadState_UncheckedGet();
+#else
+    return PyThreadState_GetUnchecked();
+#endif
+}
+
+inline PyInterpreterState *get_interpreter_state_unchecked() {
+    auto *tstate = get_thread_state_unchecked();
+    return tstate ? tstate->interp : nullptr;
+}
+
+inline object get_python_state_dict() {
+    object state_dict;
+#if defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
+    state_dict = reinterpret_borrow<object>(PyEval_GetBuiltins());
+#else
+    auto *istate = get_interpreter_state_unchecked();
+    if (istate) {
+        state_dict = reinterpret_borrow<object>(PyInterpreterState_GetDict(istate));
+    }
+#endif
+    if (!state_dict) {
+        raise_from(PyExc_SystemError, "pybind11::detail::get_python_state_dict() FAILED");
+        throw error_already_set();
+    }
+    return state_dict;
+}
+
 // Python loads modules by default with dlopen with the RTLD_LOCAL flag; under libc++ and possibly
 // other STLs, this means `typeid(A)` from one module won't equal `typeid(A)` from another module
 // even when `A` is the same, non-hidden-visibility type (e.g. from a common include).  Under
@@ -176,11 +208,17 @@ struct type_equal_to {
 };
 #endif
 
+// For now, we don't bother adding a fancy hash for pointers and just
+// let the standard library use the identity hash function if that's
+// what it wants to do (e.g., as in libstdc++).
+template <typename value_type>
+using fast_type_map = std::unordered_map<const std::type_info *, value_type>;
+
 template <typename value_type>
 using type_map = std::unordered_map<std::type_index, value_type, type_hash, type_equal_to>;
 
 struct override_hash {
-    inline size_t operator()(const std::pair<const PyObject *, const char *> &v) const {
+    size_t operator()(const std::pair<const PyObject *, const char *> &v) const {
         size_t value = std::hash<const void *>()(v.first);
         value ^= std::hash<const void *>()(v.second) + 0x9e3779b9 + (value << 6) + (value >> 2);
         return value;
@@ -192,12 +230,44 @@ using instance_map = std::unordered_multimap<const void *, instance *>;
 #ifdef Py_GIL_DISABLED
 // Wrapper around PyMutex to provide BasicLockable semantics
 class pymutex {
+    friend class pycritical_section;
     PyMutex mutex;
 
 public:
     pymutex() : mutex({}) {}
     void lock() { PyMutex_Lock(&mutex); }
     void unlock() { PyMutex_Unlock(&mutex); }
+};
+
+class pycritical_section {
+    pymutex &mutex;
+#    if PY_VERSION_HEX >= 0x030E00C1 // 3.14.0rc1
+    PyCriticalSection cs;
+#    endif
+
+public:
+    explicit pycritical_section(pymutex &m) : mutex(m) {
+        // PyCriticalSection_BeginMutex was added in Python 3.15.0a1 and backported to 3.14.0rc1
+#    if PY_VERSION_HEX >= 0x030E00C1 // 3.14.0rc1
+        PyCriticalSection_BeginMutex(&cs, &mutex.mutex);
+#    else
+        // Fall back to direct mutex locking for older free-threaded Python versions
+        mutex.lock();
+#    endif
+    }
+    ~pycritical_section() {
+#    if PY_VERSION_HEX >= 0x030E00C1 // 3.14.0rc1
+        PyCriticalSection_End(&cs);
+#    else
+        mutex.unlock();
+#    endif
+    }
+
+    // Non-copyable and non-movable to prevent double-unlock
+    pycritical_section(const pycritical_section &) = delete;
+    pycritical_section &operator=(const pycritical_section &) = delete;
+    pycritical_section(pycritical_section &&) = delete;
+    pycritical_section &operator=(pycritical_section &&) = delete;
 };
 
 // Instance map shards are used to reduce mutex contention in free-threaded Python.
@@ -236,6 +306,15 @@ struct internals {
     pymutex mutex;
     pymutex exception_translator_mutex;
 #endif
+#if PYBIND11_INTERNALS_VERSION >= 12
+    // non-normative but fast "hint" for registered_types_cpp. Meant
+    // to be used as the first level of a two-level lookup: successful
+    // lookups are correct, but unsuccessful lookups need to try
+    // registered_types_cpp and then backfill this map if they find
+    // anything.
+    fast_type_map<type_info *> registered_types_cpp_fast;
+#endif
+
     // std::type_index -> pybind11's type information
     type_map<type_info *> registered_types_cpp;
     // PyTypeObject* -> base type_info(s)
@@ -260,7 +339,9 @@ struct internals {
     PyObject *instance_base = nullptr;
     // Unused if PYBIND11_SIMPLE_GIL_MANAGEMENT is defined:
     thread_specific_storage<PyThreadState> tstate;
-    thread_specific_storage<loader_life_support> loader_life_support_tls;
+#if PYBIND11_INTERNALS_VERSION <= 11
+    thread_specific_storage<loader_life_support> loader_life_support_tls; // OBSOLETE (PR #5830)
+#endif
     // Unused if PYBIND11_SIMPLE_GIL_MANAGEMENT is defined:
     PyInterpreterState *istate = nullptr;
 
@@ -268,11 +349,8 @@ struct internals {
 
     internals()
         : static_property_type(make_static_property_type()),
-          default_metaclass(make_default_metaclass()) {
-        PyThreadState *cur_tstate = PyThreadState_Get();
-        tstate = cur_tstate;
-
-        istate = cur_tstate->interp;
+          default_metaclass(make_default_metaclass()), istate(get_interpreter_state_unchecked()) {
+        tstate.set(nullptr); // See PR #5870
         registered_exception_translators.push_front(&translate_exception);
 #ifdef Py_GIL_DISABLED
         // Scale proportional to the number of cores. 2x is a heuristic to reduce contention.
@@ -301,7 +379,11 @@ struct internals {
 // impact any other modules, because the only things accessing the local internals is the
 // module that contains them.
 struct local_internals {
-    type_map<type_info *> registered_types_cpp;
+    // It should be safe to use fast_type_map here because this entire
+    // data structure is scoped to our single module, and thus a single
+    // DSO and single instance of type_info for any particular type.
+    fast_type_map<type_info *> registered_types_cpp;
+
     std::forward_list<ExceptionTranslator> registered_exception_translators;
     PyTypeObject *function_record_py_type = nullptr;
 };
@@ -336,6 +418,20 @@ struct type_info {
     void *get_buffer_data = nullptr;
     void *(*module_local_load)(PyObject *, const type_info *) = nullptr;
     holder_enum_t holder_enum_v = holder_enum_t::undefined;
+
+#if PYBIND11_INTERNALS_VERSION >= 12
+    // When a type appears in multiple DSOs,
+    // internals::registered_types_cpp_fast will have multiple distinct
+    // keys (the std::type_info from each DSO) mapped to the same
+    // detail::type_info*. We need to keep track of these aliases so that we clean
+    // them up when our type is deallocated. A linked list is appropriate
+    // because it is expected to be 1) usually empty and 2)
+    // when it's not empty, usually very small. See also `struct
+    // nb_alias_chain` added in
+    // https://github.com/wjakob/nanobind/commit/b515b1f7f2f4ecc0357818e6201c94a9f4cbfdc2
+    std::forward_list<const std::type_info *> alias_chain;
+#endif
+
     /* A simple type never occurs as a (direct or indirect) parent
      * of a class that makes use of multiple inheritance.
      * A type can be simple even if it has non-simple ancestors as long as it has no descendants.
@@ -347,6 +443,24 @@ struct type_info {
     bool module_local : 1;
 };
 
+/// Information stored in a capsule on py::native_enum() types. Since we don't
+/// create a type_info record for native enums, we must store here any
+/// information we will need about the enum at runtime.
+///
+/// If you make backward-incompatible changes to this structure, you must
+/// change the `attribute_name()` so that native enums from older version of
+/// pybind11 don't have their records reinterpreted. Better would be to keep
+/// the changes backward-compatible (i.e., only add new fields at the end)
+/// and detect/indicate their presence using the currently-unused `version`.
+struct native_enum_record {
+    const std::type_info *cpptype;
+    uint32_t size_bytes;
+    bool is_signed;
+    const uint8_t version = 1;
+
+    static const char *attribute_name() { return "__pybind11_native_enum__"; }
+};
+
 #define PYBIND11_INTERNALS_ID                                                                     \
     "__pybind11_internals_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                        \
         PYBIND11_COMPILER_TYPE_LEADING_UNDERSCORE PYBIND11_PLATFORM_ABI_ID "__"
@@ -355,21 +469,12 @@ struct type_info {
     "__pybind11_module_local_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                     \
         PYBIND11_COMPILER_TYPE_LEADING_UNDERSCORE PYBIND11_PLATFORM_ABI_ID "__"
 
-inline PyThreadState *get_thread_state_unchecked() {
-#if defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
-    return PyThreadState_GET();
-#elif PY_VERSION_HEX < 0x030D0000
-    return _PyThreadState_UncheckedGet();
-#else
-    return PyThreadState_GetUnchecked();
-#endif
-}
-
-/// We use this counter to figure out if there are or have been multiple subinterpreters active at
-/// any point. This must never decrease while any interpreter may be running in any thread!
-inline std::atomic<int> &get_num_interpreters_seen() {
-    static std::atomic<int> counter(0);
-    return counter;
+/// We use this to figure out if there are or have been multiple subinterpreters active at any
+/// point. This must never go from true to false while any interpreter may be running in any
+/// thread!
+inline std::atomic_bool &has_seen_non_main_interpreter() {
+    static std::atomic_bool multi(false);
+    return multi;
 }
 
 template <class T,
@@ -476,52 +581,126 @@ inline void translate_local_exception(std::exception_ptr p) {
 }
 #endif
 
-inline object get_python_state_dict() {
-    object state_dict;
-#if defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
-    state_dict = reinterpret_borrow<object>(PyEval_GetBuiltins());
-#else
-#    if PY_VERSION_HEX < 0x03090000
-    PyInterpreterState *istate = _PyInterpreterState_Get();
-#    else
-    PyInterpreterState *istate = PyInterpreterState_Get();
-#    endif
-    if (istate) {
-        state_dict = reinterpret_borrow<object>(PyInterpreterState_GetDict(istate));
+// Sentinel value for the `dtor` parameter of `atomic_get_or_create_in_state_dict`.
+// Indicates no destructor was explicitly provided (distinct from nullptr, which means "leak").
+#define PYBIND11_DTOR_USE_DELETE (reinterpret_cast<void (*)(PyObject *)>(1))
+
+// Get or create per-storage capsule in the current interpreter's state dict.
+//   - The storage is interpreter-dependent: different interpreters will have different storage.
+//     This is important when using multiple-interpreters, to avoid sharing unshareable objects
+//     between interpreters.
+//   - There is one storage per `key` in an interpreter and it is accessible between all extensions
+//     in the same interpreter.
+//   - The life span of the storage is tied to the interpreter: it will be kept alive until the
+//     interpreter shuts down.
+//
+// Use test-and-set pattern with `PyDict_SetDefault` for thread-safe concurrent access.
+// WARNING: There can be multiple threads creating the storage at the same time, while only one
+//          will succeed in inserting its capsule into the dict. Therefore, the deleter will be
+//          used to clean up the storage of the unused capsules.
+//
+// Returns: pair of (pointer to storage, bool indicating if newly created).
+//          The bool follows std::map::insert convention: true = created, false = existed.
+// `dtor`: optional destructor called when the interpreter shuts down.
+//   - If not provided: the storage will be deleted using `delete`.
+//   - If nullptr: the storage will be leaked (useful for singletons that outlive the interpreter).
+//   - If a function: that function will be called with the capsule object.
+template <typename Payload>
+std::pair<Payload *, bool> atomic_get_or_create_in_state_dict(const char *key,
+                                                              void (*dtor)(PyObject *)
+                                                              = PYBIND11_DTOR_USE_DELETE) {
+    error_scope err_scope; // preserve any existing Python error states
+
+    auto state_dict = reinterpret_borrow<dict>(get_python_state_dict());
+    PyObject *capsule_obj = nullptr;
+    bool created = false;
+
+    // Try to get existing storage (fast path).
+    capsule_obj = dict_getitemstring(state_dict.ptr(), key);
+    if (capsule_obj == nullptr) {
+        if (PyErr_Occurred()) {
+            throw error_already_set();
+        }
+        // Storage doesn't exist yet, create a new one.
+        // Use unique_ptr for exception safety: if capsule creation throws, the storage is
+        // automatically deleted.
+        auto storage_ptr = std::unique_ptr<Payload>(new Payload{});
+        auto new_capsule
+            = capsule(storage_ptr.get(),
+                      // The destructor will be called when the capsule is GC'ed.
+                      //  If the insert below fails (entry already in the dict), then this
+                      //  destructor will be called on the newly created capsule at the end of this
+                      //  function, and we want to just release this memory.
+                      /*destructor=*/[](void *v) { delete static_cast<Payload *>(v); });
+        // At this point, the capsule object is created successfully.
+        // Release the unique_ptr and let the capsule object own the storage to avoid double-free.
+        (void) storage_ptr.release();
+
+        // Use `PyDict_SetDefault` for atomic test-and-set:
+        //   - If key doesn't exist, inserts our capsule and returns it.
+        //   - If key exists (another thread inserted first), returns the existing value.
+        // This is thread-safe because `PyDict_SetDefault` will hold a lock on the dict.
+        //
+        // NOTE: Here we use `PyDict_SetDefault` instead of `PyDict_SetDefaultRef` because the
+        //       capsule is kept alive until interpreter shutdown, so we do not need to handle
+        //       incref and decref here.
+        capsule_obj = dict_setdefaultstring(state_dict.ptr(), key, new_capsule.ptr());
+        if (capsule_obj == nullptr) {
+            throw error_already_set();
+        }
+        created = (capsule_obj == new_capsule.ptr());
+        // - If key already existed, our `new_capsule` is not inserted, it will be destructed when
+        //   going out of scope here, and will call the destructor set above.
+        // - Otherwise, our `new_capsule` is now in the dict, and it owns the storage and the state
+        //   dict will incref it.  We need to set the caller's destructor on it, which will be
+        //   called when the interpreter shuts down.
+        if (created && dtor != PYBIND11_DTOR_USE_DELETE) {
+            if (PyCapsule_SetDestructor(capsule_obj, dtor) < 0) {
+                throw error_already_set();
+            }
+        }
     }
-#endif
-    if (!state_dict) {
-        raise_from(PyExc_SystemError, "pybind11::detail::get_python_state_dict() FAILED");
+
+    // Get the storage pointer from the capsule.
+    void *raw_ptr = PyCapsule_GetPointer(capsule_obj, /*name=*/nullptr);
+    if (!raw_ptr) {
+        raise_from(PyExc_SystemError,
+                   "pybind11::detail::atomic_get_or_create_in_state_dict() FAILED");
         throw error_already_set();
     }
-    return state_dict;
+    return std::pair<Payload *, bool>(static_cast<Payload *>(raw_ptr), created);
 }
+
+#undef PYBIND11_DTOR_USE_DELETE
 
 template <typename InternalsType>
 class internals_pp_manager {
 public:
     using on_fetch_function = void(InternalsType *);
-    internals_pp_manager(char const *id, on_fetch_function *on_fetch)
-        : holder_id_(id), on_fetch_(on_fetch) {}
+
+    static internals_pp_manager &get_instance(char const *id, on_fetch_function *on_fetch) {
+        static internals_pp_manager instance(id, on_fetch);
+        return instance;
+    }
 
     /// Get the current pointer-to-pointer, allocating it if it does not already exist.  May
     /// acquire the GIL. Will never return nullptr.
     std::unique_ptr<InternalsType> *get_pp() {
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
-        if (get_num_interpreters_seen() > 1) {
+        if (has_seen_non_main_interpreter()) {
             // Whenever the interpreter changes on the current thread we need to invalidate the
             // internals_pp so that it can be pulled from the interpreter's state dict.  That is
             // slow, so we use the current PyThreadState to check if it is necessary.
             auto *tstate = get_thread_state_unchecked();
-            if (!tstate || tstate->interp != last_istate_.get()) {
+            if (!tstate || tstate->interp != last_istate_tls()) {
                 gil_scoped_acquire_simple gil;
                 if (!tstate) {
                     tstate = get_thread_state_unchecked();
                 }
-                last_istate_ = tstate->interp;
-                internals_tls_p_ = get_or_create_pp_in_state_dict();
+                last_istate_tls() = tstate->interp;
+                internals_p_tls() = get_or_create_pp_in_state_dict();
             }
-            return internals_tls_p_.get();
+            return internals_p_tls();
         }
 #endif
         if (!internals_singleton_pp_) {
@@ -534,9 +713,9 @@ public:
     /// Drop all the references we're currently holding.
     void unref() {
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
-        if (get_num_interpreters_seen() > 1) {
-            last_istate_.reset();
-            internals_tls_p_.reset();
+        if (has_seen_non_main_interpreter()) {
+            last_istate_tls() = nullptr;
+            internals_p_tls() = nullptr;
             return;
         }
 #endif
@@ -545,56 +724,111 @@ public:
 
     void destroy() {
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
-        if (get_num_interpreters_seen() > 1) {
+        if (has_seen_non_main_interpreter()) {
             auto *tstate = get_thread_state_unchecked();
             // this could be called without an active interpreter, just use what was cached
-            if (!tstate || tstate->interp == last_istate_.get()) {
-                auto tpp = internals_tls_p_.get();
-                if (tpp) {
-                    delete tpp;
+            if (!tstate || tstate->interp == last_istate_tls()) {
+                auto tpp = internals_p_tls();
+                {
+                    std::lock_guard<std::mutex> lock(pp_set_mutex_);
+                    pps_have_created_content_.erase(tpp); // untrack deleted pp
                 }
+                delete tpp; // may call back into Python
             }
             unref();
             return;
         }
 #endif
-        delete internals_singleton_pp_;
+        {
+            std::lock_guard<std::mutex> lock(pp_set_mutex_);
+            pps_have_created_content_.erase(internals_singleton_pp_); // untrack deleted pp
+        }
+        delete internals_singleton_pp_; // may call back into Python
         unref();
     }
 
+    void create_pp_content_once(std::unique_ptr<InternalsType> *const pp) {
+        // Assume the GIL is held here. May call back into Python. We cannot hold the lock with our
+        // mutex here. So there may be multiple threads creating the content at the same time. Only
+        // one will install its content to pp below. Others will be freed when going out of scope.
+        auto tmp = std::unique_ptr<InternalsType>(new InternalsType());
+
+        {
+            // Lock scope must not include Python calls, which may require the GIL and cause
+            // deadlocks.
+            std::lock_guard<std::mutex> lock(pp_set_mutex_);
+
+            if (*pp) {
+                // Already created in another thread.
+                return;
+            }
+
+            // At this point, pp->get() is nullptr.
+            // The content is either not yet created, or was previously destroyed via pp->reset().
+
+            // Detect re-creation of internals after destruction during interpreter shutdown.
+            // If pybind11 code (e.g., tp_traverse/tp_clear calling py::cast) runs after internals
+            // have been destroyed, a new empty internals would be created, causing type lookup
+            // failures. See also get_or_create_pp_in_state_dict() comments.
+            if (pps_have_created_content_.find(pp) != pps_have_created_content_.end()) {
+                pybind11_fail(
+                    "pybind11::detail::internals_pp_manager::create_pp_content_once() "
+                    "FAILED: reentrant call detected while fetching pybind11 internals!");
+            }
+
+            // Each interpreter can only create its internals once.
+            pps_have_created_content_.insert(pp);
+            // Install the created content.
+            pp->swap(tmp);
+        }
+    }
+
 private:
+    internals_pp_manager(char const *id, on_fetch_function *on_fetch)
+        : holder_id_(id), on_fetch_(on_fetch) {}
+
     std::unique_ptr<InternalsType> *get_or_create_pp_in_state_dict() {
-        error_scope err_scope;
-        dict state_dict = get_python_state_dict();
-        auto internals_obj
-            = reinterpret_steal<object>(dict_getitemstringref(state_dict.ptr(), holder_id_));
-        std::unique_ptr<InternalsType> *pp = nullptr;
-        if (internals_obj) {
-            void *raw_ptr = PyCapsule_GetPointer(internals_obj.ptr(), /*name=*/nullptr);
-            if (!raw_ptr) {
-                raise_from(PyExc_SystemError,
-                           "pybind11::detail::internals_pp_manager::get_pp_from_dict() FAILED");
-                throw error_already_set();
-            }
-            pp = reinterpret_cast<std::unique_ptr<InternalsType> *>(raw_ptr);
-            if (on_fetch_ && pp) {
-                on_fetch_(pp->get());
-            }
-        } else {
-            pp = new std::unique_ptr<InternalsType>;
-            // NOLINTNEXTLINE(bugprone-casting-through-void)
-            state_dict[holder_id_] = capsule(reinterpret_cast<void *>(pp));
+        // The `unique_ptr<InternalsType>` is intentionally leaked on interpreter shutdown.
+        // Once an instance is created, it will never be deleted until the process exits (compare
+        // to interpreter shutdown in multiple-interpreter scenarios).
+        // We cannot guarantee the destruction order of capsules in the interpreter state dict on
+        // interpreter shutdown, so deleting internals too early could cause undefined behavior
+        // when other pybind11 objects access `get_internals()` during finalization (which would
+        // recreate empty internals). See also create_pp_content_once() above.
+        // See https://github.com/pybind/pybind11/pull/5958#discussion_r2717645230.
+        auto result = atomic_get_or_create_in_state_dict<std::unique_ptr<InternalsType>>(
+            holder_id_, /*dtor=*/nullptr /* leak the capsule content */);
+        auto *pp = result.first;
+        bool created = result.second;
+        // Only call on_fetch_ when fetching existing internals, not when creating new ones.
+        if (!created && on_fetch_ && pp) {
+            on_fetch_(pp->get());
         }
         return pp;
     }
 
+#ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
+    static PyInterpreterState *&last_istate_tls() {
+        static thread_local PyInterpreterState *last_istate = nullptr;
+        return last_istate;
+    }
+
+    static std::unique_ptr<InternalsType> *&internals_p_tls() {
+        static thread_local std::unique_ptr<InternalsType> *internals_p = nullptr;
+        return internals_p;
+    }
+#endif
+
     char const *holder_id_ = nullptr;
     on_fetch_function *on_fetch_ = nullptr;
-#ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
-    thread_specific_storage<PyInterpreterState> last_istate_;
-    thread_specific_storage<std::unique_ptr<InternalsType>> internals_tls_p_;
-#endif
-    std::unique_ptr<InternalsType> *internals_singleton_pp_;
+    // Pointer-to-pointer to the singleton internals for the first seen interpreter (may not be the
+    // main interpreter)
+    std::unique_ptr<InternalsType> *internals_singleton_pp_ = nullptr;
+
+    // Track pointer-to-pointers whose internals have been created, to detect re-entrancy.
+    // Use instance member over static due to singleton pattern of this class.
+    std::unordered_set<std::unique_ptr<InternalsType> *> pps_have_created_content_;
+    std::mutex pp_set_mutex_;
 };
 
 // If We loaded the internals through `state_dict`, our `error_already_set`
@@ -623,10 +857,8 @@ inline internals_pp_manager<internals> &get_internals_pp_manager() {
 #else
 #    define ON_FETCH_FN &check_internals_local_exception_translator
 #endif
-    static internals_pp_manager<internals> internals_pp_manager(PYBIND11_INTERNALS_ID,
-                                                                ON_FETCH_FN);
+    return internals_pp_manager<internals>::get_instance(PYBIND11_INTERNALS_ID, ON_FETCH_FN);
 #undef ON_FETCH_FN
-    return internals_pp_manager;
 }
 
 /// Return a reference to the current `internals` data
@@ -637,7 +869,8 @@ PYBIND11_NOINLINE internals &get_internals() {
         // Slow path, something needs fetched from the state dict or created
         gil_scoped_acquire_simple gil;
         error_scope err_scope;
-        internals_ptr.reset(new internals());
+
+        ppmgr.create_pp_content_once(&internals_ptr);
 
         if (!internals_ptr->instance_base) {
             // This calls get_internals, so cannot be called from within the internals constructor
@@ -648,15 +881,46 @@ PYBIND11_NOINLINE internals &get_internals() {
     return *internals_ptr;
 }
 
+/// Return the PyObject* for the internals capsule (borrowed reference).
+/// Returns nullptr if the capsule doesn't exist yet.
+inline PyObject *get_internals_capsule() {
+    auto state_dict = reinterpret_borrow<dict>(get_python_state_dict());
+    return dict_getitemstring(state_dict.ptr(), PYBIND11_INTERNALS_ID);
+}
+
+/// Return the key used for local_internals in the state dict.
+/// This function ensures a consistent key is used across all call sites within the same
+/// compilation unit. The key includes the address of a static variable to make it unique per
+/// module (DSO), matching the behavior of get_local_internals_pp_manager().
+inline const std::string &get_local_internals_key() {
+    static const std::string key
+        = PYBIND11_MODULE_LOCAL_ID + std::to_string(reinterpret_cast<uintptr_t>(&key));
+    return key;
+}
+
+/// Return the PyObject* for the local_internals capsule (borrowed reference).
+/// Returns nullptr if the capsule doesn't exist yet.
+inline PyObject *get_local_internals_capsule() {
+    const auto &key = get_local_internals_key();
+    auto state_dict = reinterpret_borrow<dict>(get_python_state_dict());
+    return dict_getitemstring(state_dict.ptr(), key.c_str());
+}
+
+inline void ensure_internals() {
+    pybind11::detail::get_internals_pp_manager().unref();
+#ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
+    if (PyInterpreterState_Get() != PyInterpreterState_Main()) {
+        has_seen_non_main_interpreter() = true;
+    }
+#endif
+    pybind11::detail::get_internals();
+}
+
 inline internals_pp_manager<local_internals> &get_local_internals_pp_manager() {
-    // Use the address of this static itself as part of the key, so that the value is uniquely tied
+    // Use the address of a static variable as part of the key, so that the value is uniquely tied
     // to where the module is loaded in memory
-    static const std::string this_module_idstr
-        = PYBIND11_MODULE_LOCAL_ID
-          + std::to_string(reinterpret_cast<uintptr_t>(&this_module_idstr));
-    static internals_pp_manager<local_internals> local_internals_pp_manager(
-        this_module_idstr.c_str(), nullptr);
-    return local_internals_pp_manager;
+    return internals_pp_manager<local_internals>::get_instance(get_local_internals_key().c_str(),
+                                                               nullptr);
 }
 
 /// Works like `get_internals`, but for things which are locally registered.
@@ -664,13 +928,16 @@ inline local_internals &get_local_internals() {
     auto &ppmgr = get_local_internals_pp_manager();
     auto &internals_ptr = *ppmgr.get_pp();
     if (!internals_ptr) {
-        internals_ptr.reset(new local_internals());
+        gil_scoped_acquire_simple gil;
+        error_scope err_scope;
+
+        ppmgr.create_pp_content_once(&internals_ptr);
     }
     return *internals_ptr;
 }
 
 #ifdef Py_GIL_DISABLED
-#    define PYBIND11_LOCK_INTERNALS(internals) std::unique_lock<pymutex> lock((internals).mutex)
+#    define PYBIND11_LOCK_INTERNALS(internals) pycritical_section lock((internals).mutex)
 #else
 #    define PYBIND11_LOCK_INTERNALS(internals)
 #endif
@@ -683,12 +950,23 @@ inline auto with_internals(const F &cb) -> decltype(cb(get_internals())) {
 }
 
 template <typename F>
+inline void with_internals_if_internals(const F &cb) {
+    auto &ppmgr = get_internals_pp_manager();
+    auto &internals_ptr = *ppmgr.get_pp();
+    if (internals_ptr) {
+        auto &internals = *internals_ptr;
+        PYBIND11_LOCK_INTERNALS(internals);
+        cb(internals);
+    }
+}
+
+template <typename F>
 inline auto with_exception_translators(const F &cb)
     -> decltype(cb(get_internals().registered_exception_translators,
                    get_local_internals().registered_exception_translators)) {
     auto &internals = get_internals();
 #ifdef Py_GIL_DISABLED
-    std::unique_lock<pymutex> lock((internals).exception_translator_mutex);
+    pycritical_section lock((internals).exception_translator_mutex);
 #endif
     auto &local_internals = get_local_internals();
     return cb(internals.registered_exception_translators,

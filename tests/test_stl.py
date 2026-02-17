@@ -22,7 +22,7 @@ def test_vector(doc):
     assert doc(m.cast_vector) == "cast_vector() -> list[int]"
     assert (
         doc(m.load_vector)
-        == "load_vector(arg0: collections.abc.Sequence[typing.SupportsInt]) -> bool"
+        == "load_vector(arg0: collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex]) -> bool"
     )
 
     # Test regression caused by 936: pointers to stl containers weren't castable
@@ -51,7 +51,7 @@ def test_array(doc):
     )
     assert (
         doc(m.load_array)
-        == 'load_array(arg0: typing.Annotated[collections.abc.Sequence[typing.SupportsInt], "FixedSize(2)"]) -> bool'
+        == 'load_array(arg0: typing.Annotated[collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex], "FixedSize(2)"]) -> bool'
     )
 
 
@@ -72,7 +72,7 @@ def test_valarray(doc):
     assert doc(m.cast_valarray) == "cast_valarray() -> list[int]"
     assert (
         doc(m.load_valarray)
-        == "load_valarray(arg0: collections.abc.Sequence[typing.SupportsInt]) -> bool"
+        == "load_valarray(arg0: collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex]) -> bool"
     )
 
 
@@ -234,7 +234,7 @@ def test_reference_sensitive_optional(doc):
 
     assert (
         doc(m.double_or_zero_refsensitive)
-        == "double_or_zero_refsensitive(arg0: typing.SupportsInt | None) -> int"
+        == "double_or_zero_refsensitive(arg0: typing.SupportsInt | typing.SupportsIndex | None) -> int"
     )
 
     assert m.half_or_none_refsensitive(0) is None
@@ -352,7 +352,7 @@ def test_variant(doc):
 
     assert (
         doc(m.load_variant)
-        == "load_variant(arg0: typing.SupportsInt | str | typing.SupportsFloat | None) -> str"
+        == "load_variant(arg0: typing.SupportsInt | typing.SupportsIndex | str | typing.SupportsFloat | typing.SupportsIndex | None) -> str"
     )
 
 
@@ -368,7 +368,7 @@ def test_variant_monostate(doc):
 
     assert (
         doc(m.load_monostate_variant)
-        == "load_monostate_variant(arg0: None | typing.SupportsInt | str) -> str"
+        == "load_monostate_variant(arg0: None | typing.SupportsInt | typing.SupportsIndex | str) -> str"
     )
 
 
@@ -388,7 +388,7 @@ def test_stl_pass_by_pointer(msg):
         msg(excinfo.value)
         == """
         stl_pass_by_pointer(): incompatible function arguments. The following argument types are supported:
-            1. (v: collections.abc.Sequence[typing.SupportsInt] = None) -> list[int]
+            1. (v: collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex] = None) -> list[int]
 
         Invoked with:
     """
@@ -400,7 +400,7 @@ def test_stl_pass_by_pointer(msg):
         msg(excinfo.value)
         == """
         stl_pass_by_pointer(): incompatible function arguments. The following argument types are supported:
-            1. (v: collections.abc.Sequence[typing.SupportsInt] = None) -> list[int]
+            1. (v: collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex] = None) -> list[int]
 
         Invoked with: None
     """
@@ -615,7 +615,7 @@ def test_sequence_caster_protocol(doc):
     # convert mode
     assert (
         doc(m.roundtrip_std_vector_int)
-        == "roundtrip_std_vector_int(arg0: collections.abc.Sequence[typing.SupportsInt]) -> list[int]"
+        == "roundtrip_std_vector_int(arg0: collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex]) -> list[int]"
     )
     assert m.roundtrip_std_vector_int([1, 2, 3]) == [1, 2, 3]
     assert m.roundtrip_std_vector_int((1, 2, 3)) == [1, 2, 3]
@@ -668,7 +668,7 @@ def test_mapping_caster_protocol(doc):
     # convert mode
     assert (
         doc(m.roundtrip_std_map_str_int)
-        == "roundtrip_std_map_str_int(arg0: collections.abc.Mapping[str, typing.SupportsInt]) -> dict[str, int]"
+        == "roundtrip_std_map_str_int(arg0: collections.abc.Mapping[str, typing.SupportsInt | typing.SupportsIndex]) -> dict[str, int]"
     )
     assert m.roundtrip_std_map_str_int(a1b2c3) == a1b2c3
     assert m.roundtrip_std_map_str_int(FormalMappingLike(**a1b2c3)) == a1b2c3
@@ -714,7 +714,7 @@ def test_set_caster_protocol(doc):
     # convert mode
     assert (
         doc(m.roundtrip_std_set_int)
-        == "roundtrip_std_set_int(arg0: collections.abc.Set[typing.SupportsInt]) -> set[int]"
+        == "roundtrip_std_set_int(arg0: collections.abc.Set[typing.SupportsInt | typing.SupportsIndex]) -> set[int]"
     )
     assert m.roundtrip_std_set_int({1, 2, 3}) == {1, 2, 3}
     assert m.roundtrip_std_set_int(FormalSetLike(1, 2, 3)) == {1, 2, 3}

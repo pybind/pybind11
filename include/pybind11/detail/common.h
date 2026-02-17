@@ -19,7 +19,7 @@
 /* -- start version constants -- */
 #define PYBIND11_VERSION_MAJOR 3
 #define PYBIND11_VERSION_MINOR 0
-#define PYBIND11_VERSION_MICRO 1
+#define PYBIND11_VERSION_MICRO 2
 // ALPHA = 0xA, BETA = 0xB, GAMMA = 0xC (release candidate), FINAL = 0xF (stable release)
 // - The release level is set to "alpha" for development versions.
 //   Use 0xA0 (LEVEL=0xA, SERIAL=0) for development versions.
@@ -27,7 +27,7 @@
 #define PYBIND11_VERSION_RELEASE_LEVEL PY_RELEASE_LEVEL_FINAL
 #define PYBIND11_VERSION_RELEASE_SERIAL 0
 // String version of (micro, release level, release serial), e.g.: 0a0, 0b1, 0rc1, 0
-#define PYBIND11_VERSION_PATCH 1
+#define PYBIND11_VERSION_PATCH 2
 /* -- end version constants -- */
 
 #if !defined(Py_PACK_FULL_VERSION)
@@ -87,7 +87,7 @@
 #    endif
 #endif
 
-#if defined(__cpp_lib_launder) && !(defined(_MSC_VER) && (_MSC_VER < 1914))
+#if defined(__cpp_lib_launder) && !(defined(_MSC_VER) && (_MSC_VER < 1920)) // See PR #5968
 #    define PYBIND11_STD_LAUNDER std::launder
 #    define PYBIND11_HAS_STD_LAUNDER 1
 #else
@@ -101,6 +101,10 @@
 #else
 #    define PYBIND11_CONSTINIT
 #    define PYBIND11_DTOR_CONSTEXPR
+#endif
+
+#if defined(PYBIND11_CPP20) && defined(__has_include) && __has_include(<barrier>)
+#    define PYBIND11_HAS_STD_BARRIER 1
 #endif
 
 // Compiler version assertions
@@ -248,6 +252,10 @@
 #    define PYBIND11_HAS_U8STRING 1
 #endif
 
+#if defined(PYBIND11_CPP20) && defined(__cpp_lib_span) && __cpp_lib_span >= 202002L
+#    define PYBIND11_HAS_SPAN 1
+#endif
+
 // See description of PR #4246:
 #if !defined(PYBIND11_NO_ASSERT_GIL_HELD_INCREF_DECREF) && !defined(NDEBUG)                       \
     && !defined(PYPY_VERSION) && !defined(PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF)
@@ -322,6 +330,13 @@
 #define PYBIND11_BYTES_AS_STRING PyBytes_AsString
 #define PYBIND11_BYTES_SIZE PyBytes_Size
 #define PYBIND11_LONG_CHECK(o) PyLong_Check(o)
+// In PyPy 7.3.3, `PyIndex_Check` is implemented by calling `__index__`,
+// while CPython only considers the existence of `nb_index`/`__index__`.
+#if !defined(PYPY_VERSION)
+#    define PYBIND11_INDEX_CHECK(o) PyIndex_Check(o)
+#else
+#    define PYBIND11_INDEX_CHECK(o) hasattr(o, "__index__")
+#endif
 #define PYBIND11_LONG_AS_LONGLONG(o) PyLong_AsLongLong(o)
 #define PYBIND11_LONG_FROM_SIGNED(o) PyLong_FromSsize_t((ssize_t) (o))
 #define PYBIND11_LONG_FROM_UNSIGNED(o) PyLong_FromSize_t((size_t) (o))
@@ -430,12 +445,11 @@ Note that this is run once for each (sub-)interpreter the module is imported int
 possibly concurrently.  The PyModuleDef is allowed to be static, but the PyObject* resulting from
 PyModuleDef_Init should be treated like any other PyObject (so not shared across interpreters).
  */
-#define PYBIND11_MODULE_PYINIT(name, pre_init, ...)                                               \
+#define PYBIND11_MODULE_PYINIT(name, ...)                                                         \
     static int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject *);                                 \
     PYBIND11_PLUGIN_IMPL(name) {                                                                  \
         PYBIND11_CHECK_PYTHON_VERSION                                                             \
-        pre_init;                                                                                 \
-        PYBIND11_ENSURE_INTERNALS_READY                                                           \
+        pybind11::detail::ensure_internals();                                                     \
         static ::pybind11::detail::slots_array mod_def_slots = ::pybind11::detail::init_slots(    \
             &PYBIND11_CONCAT(pybind11_exec_, name), ##__VA_ARGS__);                               \
         static PyModuleDef def{/* m_base */ PyModuleDef_HEAD_INIT,                                \
@@ -454,6 +468,7 @@ PyModuleDef_Init should be treated like any other PyObject (so not shared across
     static void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ &);                     \
     int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject * pm) {                                    \
         try {                                                                                     \
+            pybind11::detail::ensure_internals();                                                 \
             auto m = pybind11::reinterpret_borrow<::pybind11::module_>(pm);                       \
             if (!pybind11::detail::get_cached_module(m.attr("__spec__").attr("name"))) {          \
                 PYBIND11_CONCAT(pybind11_init_, name)(m);                                         \
@@ -507,8 +522,7 @@ PyModuleDef_Init should be treated like any other PyObject (so not shared across
 
 \endrst */
 #define PYBIND11_MODULE(name, variable, ...)                                                      \
-    PYBIND11_MODULE_PYINIT(                                                                       \
-        name, (pybind11::detail::get_num_interpreters_seen() += 1), ##__VA_ARGS__)                \
+    PYBIND11_MODULE_PYINIT(name, ##__VA_ARGS__)                                                   \
     PYBIND11_MODULE_EXEC(name, variable)
 
 // pop gnu-zero-variadic-macro-arguments
@@ -579,14 +593,10 @@ enum class return_value_policy : uint8_t {
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-inline static constexpr int log2(size_t n, int k = 0) {
-    return (n <= 1) ? k : log2(n >> 1, k + 1);
-}
+static constexpr int log2(size_t n, int k = 0) { return (n <= 1) ? k : log2(n >> 1, k + 1); }
 
 // Returns the size as a multiple of sizeof(void *), rounded up.
-inline static constexpr size_t size_in_ptrs(size_t s) {
-    return 1 + ((s - 1) >> log2(sizeof(void *)));
-}
+static constexpr size_t size_in_ptrs(size_t s) { return 1 + ((s - 1) >> log2(sizeof(void *))); }
 
 /**
  * The space to allocate for simple layout instance holders (see below) in multiple of the size of
@@ -1293,8 +1303,7 @@ template <typename... Args>
 #if defined(_MSC_VER) && _MSC_VER < 1920 // MSVC 2017
 constexpr
 #endif
-    inline void
-    silence_unused_warnings(Args &&...) {
+    inline void silence_unused_warnings(Args &&...) {
 }
 
 // MSVC warning C4100: Unreferenced formal parameter

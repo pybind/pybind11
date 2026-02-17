@@ -120,24 +120,23 @@ goodies:
 - With little extra effort, C++ types can be pickled and unpickled
   similar to regular Python objects.
 
-Supported compilers
--------------------
+Supported platforms & compilers
+-------------------------------
 
-1. Clang/LLVM 3.3 or newer (for Apple Xcode's clang, this is 5.0.0 or
-   newer)
-2. GCC 4.8 or newer
-3. Microsoft Visual Studio 2022 or newer (2019 probably works, but was dropped in CI)
-4. Intel classic C++ compiler 18 or newer (ICC 20.2 tested in CI)
-5. Cygwin/GCC (previously tested on 2.5.1)
-6. NVCC (CUDA 11.0 tested in CI)
-7. NVIDIA PGI (20.9 tested in CI)
+pybind11 is exercised in continuous integration across a range of operating
+systems, Python versions, C++ standards, and toolchains. For an up-to-date
+view of the combinations we currently test, please see the
+`pybind11 GitHub Actions <https://github.com/pybind/pybind11/actions?query=branch%3Amaster>`_
+logs.
 
-Supported Platforms
--------------------
-
-* Windows, Linux, macOS, and iOS
-* CPython 3.8+, Pyodide, PyPy, and GraalPy
-* C++11, C++14, C++17, C++20, and C++23
+The test matrix naturally evolves over time as older platforms and compilers
+fall out of use and new ones are added by the community. Closely related
+versions of a tested compiler or platform will often work as well in practice,
+but we cannot promise to validate every possible combination. If a
+configuration you rely on is missing from the matrix or regresses, issues and
+pull requests to extend coverage are very welcome. At the same time, we need
+to balance the size of the test matrix with the available CI resources,
+such as GitHub's limits on concurrent jobs under the free tier.
 
 About
 -----

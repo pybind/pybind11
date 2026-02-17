@@ -209,6 +209,7 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("get_tuple_from_iterable", [](const py::iterable &iter) { return py::tuple(iter); });
     // test_float
     m.def("get_float", [] { return py::float_(0.0f); });
+    m.def("float_roundtrip", [](py::float_ f) { return f; });
     // test_list
     m.def("list_no_args", []() { return py::list{}; });
     m.def("list_ssize_t", []() { return py::list{(py::ssize_t) 0}; });
@@ -1210,4 +1211,6 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("check_type_is", [](const py::object &x) -> py::typing::TypeIs<RealNumber> {
         return py::isinstance<RealNumber>(x);
     });
+
+    m.def("const_kwargs_ref_to_str", [](const py::kwargs &kwargs) { return py::str(kwargs); });
 }

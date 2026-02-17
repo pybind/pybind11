@@ -76,12 +76,14 @@ conduit_headers = {
 }
 
 detail_headers = {
+    "include/pybind11/detail/argument_vector.h",
     "include/pybind11/detail/class.h",
     "include/pybind11/detail/common.h",
     "include/pybind11/detail/cpp_conduit.h",
     "include/pybind11/detail/descr.h",
     "include/pybind11/detail/dynamic_raw_ptr_cast_if_possible.h",
     "include/pybind11/detail/function_record_pyobject.h",
+    "include/pybind11/detail/holder_caster_foreign_helpers.h",
     "include/pybind11/detail/init.h",
     "include/pybind11/detail/internals.h",
     "include/pybind11/detail/native_enum_data.h",

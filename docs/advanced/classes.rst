@@ -972,9 +972,14 @@ Module-local class bindings
 ===========================
 
 When creating a binding for a class, pybind11 by default makes that binding
-"global" across modules.  What this means is that a type defined in one module
-can be returned from any module resulting in the same Python type.  For
-example, this allows the following:
+"global" across modules. What this means is that instances whose type is
+defined with a ``py::class_`` statement in one module can be passed to or
+returned from a function defined in any other module that is "ABI compatible"
+with the first, i.e., that was built with sufficiently similar versions of
+pybind11 and of the C++ compiler and C++ standard library. The internal data
+structures that pybind11 uses to keep track of its types and instances are
+shared just as they would be if everything were in the same module.
+For example, this allows the following:
 
 .. code-block:: cpp
 
@@ -1376,11 +1381,22 @@ You can do that using ``py::custom_type_setup``:
 
 .. code-block:: cpp
 
-   struct OwnsPythonObjects {
-       py::object value = py::none();
+   struct ContainerOwnsPythonObjects {
+       std::vector<py::object> list;
+
+       void append(const py::object &obj) { list.emplace_back(obj); }
+       py::object at(py::ssize_t index) const {
+           if (index >= size() || index < 0) {
+               throw py::index_error("Index out of range");
+           }
+           return list.at(py::size_t(index));
+       }
+       py::ssize_t size() const { return py::ssize_t_cast(list.size()); }
+       void clear() { list.clear(); }
    };
-   py::class_<OwnsPythonObjects> cls(
-       m, "OwnsPythonObjects", py::custom_type_setup([](PyHeapTypeObject *heap_type) {
+
+   py::class_<ContainerOwnsPythonObjects> cls(
+       m, "ContainerOwnsPythonObjects", py::custom_type_setup([](PyHeapTypeObject *heap_type) {
            auto *type = &heap_type->ht_type;
            type->tp_flags |= Py_TPFLAGS_HAVE_GC;
            type->tp_traverse = [](PyObject *self_base, visitproc visit, void *arg) {
@@ -1389,20 +1405,28 @@ You can do that using ``py::custom_type_setup``:
                Py_VISIT(Py_TYPE(self_base));
    #endif
                if (py::detail::is_holder_constructed(self_base)) {
-                   auto &self = py::cast<OwnsPythonObjects&>(py::handle(self_base));
-                   Py_VISIT(self.value.ptr());
+                   auto &self = py::cast<ContainerOwnsPythonObjects &>(py::handle(self_base));
+                   for (auto &item : self.list) {
+                       Py_VISIT(item.ptr());
+                   }
                }
                return 0;
            };
            type->tp_clear = [](PyObject *self_base) {
                if (py::detail::is_holder_constructed(self_base)) {
-                   auto &self = py::cast<OwnsPythonObjects&>(py::handle(self_base));
-                   self.value = py::none();
+                   auto &self = py::cast<ContainerOwnsPythonObjects &>(py::handle(self_base));
+                   for (auto &item : self.list) {
+                       Py_CLEAR(item.ptr());
+                   }
+                   self.list.clear();
                }
                return 0;
            };
        }));
    cls.def(py::init<>());
-   cls.def_readwrite("value", &OwnsPythonObjects::value);
+   cls.def("append", &ContainerOwnsPythonObjects::append);
+   cls.def("at", &ContainerOwnsPythonObjects::at);
+   cls.def("size", &ContainerOwnsPythonObjects::size);
+   cls.def("clear", &ContainerOwnsPythonObjects::clear);
 
 .. versionadded:: 2.8

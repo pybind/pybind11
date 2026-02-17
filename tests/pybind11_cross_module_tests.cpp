@@ -16,6 +16,15 @@
 #include <numeric>
 #include <utility>
 
+class CrossDSOClass {
+public:
+    CrossDSOClass() = default;
+    virtual ~CrossDSOClass();
+    CrossDSOClass(const CrossDSOClass &) = default;
+};
+
+CrossDSOClass::~CrossDSOClass() = default;
+
 PYBIND11_MODULE(pybind11_cross_module_tests, m, py::mod_gil_not_used()) {
     m.doc() = "pybind11 cross-module test module";
 
@@ -26,7 +35,9 @@ PYBIND11_MODULE(pybind11_cross_module_tests, m, py::mod_gil_not_used()) {
 
     // test_load_external
     bind_local<ExternalType1>(m, "ExternalType1", py::module_local());
-    bind_local<ExternalType2>(m, "ExternalType2", py::module_local());
+    bind_local<ExternalType2, 0, std::shared_ptr<ExternalType2>>(
+        m, "ExternalType2", py::module_local());
+    bind_local<ExternalType3, 0, py::smart_holder>(m, "ExternalType3", py::module_local());
 
     // test_exceptions.py
     py::register_local_exception<LocalSimpleException>(m, "LocalSimpleException");
@@ -146,4 +157,7 @@ PYBIND11_MODULE(pybind11_cross_module_tests, m, py::mod_gil_not_used()) {
     // which appears when this header is missing.
     m.def("missing_header_arg", [](const std::vector<float> &) {});
     m.def("missing_header_return", []() { return std::vector<float>(); });
+
+    // test_class_cross_module_use_after_one_module_dealloc
+    m.def("consume_cross_dso_class", [](const CrossDSOClass &) {});
 }

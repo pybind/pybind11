@@ -34,10 +34,7 @@ PYBIND11_NAMESPACE_BEGIN(typing)
     There is no additional enforcement of types at runtime.
 */
 
-template <typename... Types>
-class Tuple : public tuple {
-    using tuple::tuple;
-};
+// Tuple type hint defined in cast.h for use in py::make_tuple to avoid circular includes
 
 template <typename K, typename V>
 class Dict : public dict {

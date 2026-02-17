@@ -27,7 +27,9 @@ PYBIND11_FINDPYTHON = true
 
 [tool.cibuildwheel]
 test-sources = ["tests", "pyproject.toml"]
-test-command = "python -m pytest -o timeout=0 -p no:cacheprovider tests"
+test-command = "python -m pytest -v -o timeout=120 -p no:cacheprovider tests"
+# Pyodide doesn't have signal.setitimer, so pytest-timeout can't work with timeout > 0
+pyodide.test-command = "python -m pytest -v -o timeout=0 -p no:cacheprovider tests"
 environment.PIP_ONLY_BINARY = "numpy"
 environment.PIP_PREFER_BINARY = "1"
 

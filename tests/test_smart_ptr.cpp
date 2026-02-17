@@ -161,6 +161,8 @@ public:
         print_created(this);
         pointer_set<MyObject4a>().insert(this);
     };
+    MyObject4a(const MyObject4a &) = delete;
+
     int value;
 
     static void cleanupAllInstances() {
@@ -182,6 +184,7 @@ protected:
 class MyObject4b : public MyObject4a {
 public:
     explicit MyObject4b(int i) : MyObject4a(i) { print_created(this); }
+    MyObject4b(const MyObject4b &) = delete;
     ~MyObject4b() override { print_destroyed(this); }
 };
 
@@ -189,6 +192,7 @@ public:
 class MyObject5 { // managed by huge_unique_ptr
 public:
     explicit MyObject5(int value) : value{value} { print_created(this); }
+    MyObject5(const MyObject5 &) = delete;
     ~MyObject5() { print_destroyed(this); }
     int value;
 };
@@ -216,7 +220,7 @@ struct SharedPtrRef {
         ~A() { print_destroyed(this); }
     };
 
-    A value = {};
+    A value;
     std::shared_ptr<A> shared = std::make_shared<A>();
 };
 
@@ -224,13 +228,14 @@ struct SharedPtrRef {
 struct SharedFromThisRef {
     struct B : std::enable_shared_from_this<B> {
         B() { print_created(this); }
-        // NOLINTNEXTLINE(bugprone-copy-constructor-init)
+        // NOLINTNEXTLINE(bugprone-copy-constructor-init, readability-redundant-member-init)
         B(const B &) : std::enable_shared_from_this<B>() { print_copy_created(this); }
+        // NOLINTNEXTLINE(readability-redundant-member-init)
         B(B &&) noexcept : std::enable_shared_from_this<B>() { print_move_created(this); }
         ~B() { print_destroyed(this); }
     };
 
-    B value = {};
+    B value;
     std::shared_ptr<B> shared = std::make_shared<B>();
 };
 
@@ -245,6 +250,7 @@ struct SharedFromThisVirt : virtual SharedFromThisVBase {};
 // test_move_only_holder
 struct C {
     C() { print_created(this); }
+    C(const C &) = delete;
     ~C() { print_destroyed(this); }
 };
 
@@ -265,6 +271,7 @@ struct TypeForHolderWithAddressOf {
 // test_move_only_holder_with_addressof_operator
 struct TypeForMoveOnlyHolderWithAddressOf {
     explicit TypeForMoveOnlyHolderWithAddressOf(int value) : value{value} { print_created(this); }
+    TypeForMoveOnlyHolderWithAddressOf(const TypeForMoveOnlyHolderWithAddressOf &) = delete;
     ~TypeForMoveOnlyHolderWithAddressOf() { print_destroyed(this); }
     std::string toString() const {
         return "MoveOnlyHolderWithAddressOf[" + std::to_string(value) + "]";

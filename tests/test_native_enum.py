@@ -59,7 +59,6 @@ FUNC_SIG_RENDERING_MEMBERS = ()
 ENUM_TYPES_AND_MEMBERS = (
     (m.smallenum, SMALLENUM_MEMBERS),
     (m.color, COLOR_MEMBERS),
-    (m.altitude, ALTITUDE_MEMBERS),
     (m.flags_uchar, FLAGS_UCHAR_MEMBERS),
     (m.flags_uint, FLAGS_UINT_MEMBERS),
     (m.export_values, EXPORT_VALUES_MEMBERS),
@@ -320,3 +319,59 @@ def test_native_enum_missing_finalize_failure():
     if not isinstance(m.native_enum_missing_finalize_failure, str):
         m.native_enum_missing_finalize_failure()
         pytest.fail("Process termination expected.")
+
+
+def test_unregister_native_enum_when_destroyed():
+    # For stability when running tests in parallel, this test should be the
+    # only one that touches `m.altitude` or calls `m.bind_altitude`.
+
+    def test_altitude_enum():
+        # Logic copied from test_enum_type / test_enum_members.
+        # We don't test altitude there to avoid possible clashes if
+        # parallelizing against other tests in this file, and we also
+        # don't want to hold any references to the enumerators that
+        # would prevent GCing the enum type below.
+        assert isinstance(m.altitude, enum.EnumMeta)
+        assert m.altitude.__module__ == m.__name__
+        for name, value in ALTITUDE_MEMBERS:
+            assert m.altitude[name].value == value
+
+    def test_altitude_binding():
+        assert m.is_high_altitude(m.altitude.high)
+        assert not m.is_high_altitude(m.altitude.low)
+        assert m.get_altitude() is m.altitude.high
+        with pytest.raises(TypeError, match="incompatible function arguments"):
+            m.is_high_altitude("oops")
+
+    m.bind_altitude(m)
+    test_altitude_enum()
+    test_altitude_binding()
+
+    if env.TYPES_ARE_IMMORTAL:
+        pytest.skip("can't GC type objects on this platform")
+
+    # Delete the enum type. Returning an instance from Python should fail
+    # rather than accessing a deleted object.
+    pytest.delattr_and_ensure_destroyed((m, "altitude"))
+    with pytest.raises(TypeError, match="Unable to convert function return"):
+        m.get_altitude()
+    with pytest.raises(TypeError, match="incompatible function arguments"):
+        m.is_high_altitude("oops")
+
+    # Recreate the enum type; should not have any duplicate-binding error
+    m.bind_altitude(m)
+    test_altitude_enum()
+    test_altitude_binding()
+
+    # Remove the pybind11 capsule without removing the type; enum is still
+    # usable but can't be passed to/from bound functions
+    del m.altitude.__pybind11_native_enum__
+    pytest.gc_collect()
+    test_altitude_enum()  # enum itself still works
+
+    with pytest.raises(TypeError, match="Unable to convert function return"):
+        m.get_altitude()
+    with pytest.raises(TypeError, match="incompatible function arguments"):
+        m.is_high_altitude(m.altitude.high)
+
+    del m.altitude

@@ -36,9 +36,9 @@ struct PySpBase : SpBase, py::trampoline_self_life_support {
 struct SpBaseTester {
     std::shared_ptr<SpBase> get_object() const { return m_obj; }
     void set_object(std::shared_ptr<SpBase> obj) { m_obj = std::move(obj); }
-    bool is_base_used() { return m_obj->is_base_used(); }
-    bool has_instance() { return (bool) m_obj; }
-    bool has_python_instance() { return m_obj && m_obj->has_python_instance(); }
+    bool is_base_used() const { return m_obj->is_base_used(); }
+    bool has_instance() const { return (bool) m_obj; }
+    bool has_python_instance() const { return m_obj && m_obj->has_python_instance(); }
     void set_nonpython_instance() { m_obj = std::make_shared<SpBase>(); }
     std::shared_ptr<SpBase> m_obj;
 };

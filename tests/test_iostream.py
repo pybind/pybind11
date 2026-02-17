@@ -6,7 +6,18 @@ from io import StringIO
 
 import pytest
 
+import env
 from pybind11_tests import iostream as m
+
+if env.WIN:
+    wv_build = sys.getwindowsversion().build
+    skip_if_ge = 26100
+    if wv_build >= skip_if_ge:
+        pytest.skip(
+            f"Windows build {wv_build} >= {skip_if_ge}:"
+            " Skipping iostream capture (redirection regression needs investigation)",
+            allow_module_level=True,
+        )
 
 
 def test_captured(capsys):
@@ -277,11 +288,7 @@ def test_redirect_both(capfd):
 def test_threading():
     with m.ostream_redirect(stdout=True, stderr=False):
         # start some threads
-        threads = []
-
-        # start some threads
-        for _j in range(20):
-            threads.append(m.TestThread())
+        threads = [m.TestThread() for _j in range(20)]
 
         # give the threads some time to fail
         threads[0].sleep()

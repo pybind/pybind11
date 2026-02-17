@@ -21,6 +21,31 @@ TEST_SUBMODULE(local_bindings, m) {
     // test_load_external
     m.def("load_external1", [](ExternalType1 &e) { return e.i; });
     m.def("load_external2", [](ExternalType2 &e) { return e.i; });
+    m.def("load_external3", [](ExternalType3 &e) { return e.i; });
+
+    struct SharedKeepAlive {
+        std::shared_ptr<int> contents;
+        int value() const { return contents ? *contents : -20251012; }
+        long use_count() const { return contents.use_count(); }
+    };
+    py::class_<SharedKeepAlive>(m, "SharedKeepAlive")
+        .def_property_readonly("value", &SharedKeepAlive::value)
+        .def_property_readonly("use_count", &SharedKeepAlive::use_count);
+    m.def("load_external2_shared", [](const std::shared_ptr<ExternalType2> &p) {
+        return SharedKeepAlive{std::shared_ptr<int>(p, &p->i)};
+    });
+    m.def("load_external3_shared", [](const std::shared_ptr<ExternalType3> &p) {
+        return SharedKeepAlive{std::shared_ptr<int>(p, &p->i)};
+    });
+    m.def("load_external1_unique", [](std::unique_ptr<ExternalType1> p) { return p->i; });
+    m.def("load_external3_unique", [](std::unique_ptr<ExternalType3> p) { return p->i; });
+
+    // Aspects of set_foreign_holder that are not covered:
+    // - loading a foreign instance into a custom holder should fail
+    // - we're only covering the case where the local module doesn't know
+    //   about the type; the paths where it does (e.g., if both global and
+    //   foreign-module-local bindings exist for the same type) should work
+    //   the same way (they use the same code so they very likely do)
 
     // test_local_bindings
     // Register a class with py::module_local:
