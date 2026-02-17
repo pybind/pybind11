@@ -27,7 +27,7 @@ jobs:
         PYODIDE_BUILD_EXPORTS: whole_archive
       with:
         package-dir: tests
-        only: cp312-pyodide_wasm32
+        only: cp313-pyodide_wasm32
 
   build-ios:
     name: iOS wheel ${{ matrix.runs-on }}
@@ -48,7 +48,6 @@ jobs:
     - uses: pypa/cibuildwheel@v3.3
       env:
         CIBW_PLATFORM: ios
-        CIBW_SKIP: cp314-*  # https://github.com/pypa/cibuildwheel/issues/2494
       with:
         package-dir: tests
 
