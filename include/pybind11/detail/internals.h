@@ -191,7 +191,7 @@ inline bool same_type(const std::type_info &lhs, const std::type_info &rhs) {
 }
 
 struct type_hash {
-    size_t operator()(const std::type_index &t) const {
+    size_t operator()(const std::type_index &t) const noexcept {
         size_t hash = 5381;
         const char *ptr = t.name();
         while (auto c = static_cast<unsigned char>(*ptr++)) {
@@ -202,7 +202,7 @@ struct type_hash {
 };
 
 struct type_equal_to {
-    bool operator()(const std::type_index &lhs, const std::type_index &rhs) const {
+    bool operator()(const std::type_index &lhs, const std::type_index &rhs) const noexcept {
         return lhs.name() == rhs.name() || std::strcmp(lhs.name(), rhs.name()) == 0;
     }
 };
@@ -218,7 +218,7 @@ template <typename value_type>
 using type_map = std::unordered_map<std::type_index, value_type, type_hash, type_equal_to>;
 
 struct override_hash {
-    size_t operator()(const std::pair<const PyObject *, const char *> &v) const {
+    size_t operator()(const std::pair<const PyObject *, const char *> &v) const noexcept {
         size_t value = std::hash<const void *>()(v.first);
         value ^= std::hash<const void *>()(v.second) + 0x9e3779b9 + (value << 6) + (value >> 2);
         return value;
