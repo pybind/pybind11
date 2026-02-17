@@ -84,11 +84,11 @@ jobs:
             python-version: '3.12'
             cmake-args: -DPYBIND11_TEST_SMART_HOLDER=ON -DPYBIND11_SIMPLE_GIL_MANAGEMENT=ON
           - runs-on: ubuntu-latest
-            python-version: '3.13t'
+            python-version: '3.14t'
             cmake-args: -DCMAKE_CXX_STANDARD=20 -DPYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION=ON
           - runs-on: ubuntu-latest
             python-version: '3.14'
-            cmake-args: -DCMAKE_CXX_STANDARD=14 -DCMAKE_CXX_FLAGS="-DPYBIND11_HAS_SUBINTERPRETER_SUPPORT=0"
+            cmake-args: -DCMAKE_CXX_STANDARD=14
           - runs-on: ubuntu-latest
             python-version: 'pypy-3.10'
             cmake-args: -DCMAKE_CXX_STANDARD=14
@@ -96,22 +96,22 @@ jobs:
             python-version: 'graalpy-24.1'
 
           # No SciPy for macOS ARM
-          - runs-on: macos-13
+          - runs-on: macos-15-intel
             python-version: '3.8'
             cmake-args: -DCMAKE_CXX_STANDARD=14
-          - runs-on: macos-13
+          - runs-on: macos-15-intel
             python-version: '3.11'
             cmake-args: -DPYBIND11_TEST_SMART_HOLDER=ON
+          - runs-on: macos-15-intel
+            python-version: '3.13'
+            cmake-args: -DCMAKE_CXX_STANDARD=11
           - runs-on: macos-latest
             python-version: '3.12'
             cmake-args: -DCMAKE_CXX_STANDARD=17 -DPYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION=ON
-          - runs-on: macos-13
-            python-version: '3.13t'
-            cmake-args: -DCMAKE_CXX_STANDARD=11
           - runs-on: macos-latest
             python-version: '3.14t'
             cmake-args: -DCMAKE_CXX_STANDARD=20
-          - runs-on: macos-13
+          - runs-on: macos-15-intel
             python-version: 'pypy-3.10'
             cmake-args: -DCMAKE_CXX_STANDARD=17
           - runs-on: macos-latest
@@ -138,9 +138,6 @@ jobs:
           - runs-on: windows-2022
             python-version: '3.13'
             cmake-args: -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebugDLL
-          - runs-on: windows-latest
-            python-version: '3.13t'
-            cmake-args: -DCMAKE_CXX_STANDARD=17
           - runs-on: windows-latest
             python-version: '3.14'
             cmake-args: -DCMAKE_CXX_STANDARD=20
@@ -182,7 +179,7 @@ jobs:
     timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Setup Python ${{ matrix.python-version }}
       uses: actions/setup-python@v6
@@ -191,7 +188,7 @@ jobs:
         allow-prereleases: true
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v6
+      uses: astral-sh/setup-uv@v7
       with:
         enable-cache: true
 
@@ -229,6 +226,7 @@ jobs:
       run: cmake --build . --target pytest
 
     - name: Compiled tests
+      timeout-minutes: 3
       run: cmake --build . --target cpptest
 
     - name: Interface test
@@ -239,13 +237,25 @@ jobs:
 
 
   manylinux:
-    name: Manylinux on 🐍 3.13t • GIL
+    name: Manylinux on 🐍 ${{ matrix.python-version }} (${{ matrix.container }})
     if: github.event.pull_request.draft == false
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - container: quay.io/pypa/manylinux_2_28_x86_64:latest
+            python-version: '3.13t'
+          - container: quay.io/pypa/musllinux_1_2_x86_64:latest
+            python-version: '3.13t'
+          - container: quay.io/pypa/manylinux_2_28_x86_64:latest
+            python-version: '3.14t'
+          - container: quay.io/pypa/musllinux_1_2_x86_64:latest
+            python-version: '3.14t'
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    container: quay.io/pypa/musllinux_1_2_x86_64:latest
+    container: ${{ matrix.container }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -256,7 +266,7 @@ jobs:
         run: uv tool install ninja
 
       - name: Configure via preset
-        run: cmake --preset venv -DPYBIND11_CREATE_WITH_UV=python3.13t
+        run: cmake --preset venv -DPYBIND11_CREATE_WITH_UV="${{ matrix.python-version }}"
 
       - name: Build C++11
         run: cmake --build --preset venv
@@ -283,7 +293,7 @@ jobs:
     timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Setup Python ${{ matrix.python-version }} (deadsnakes)
       uses: deadsnakes/action@v3.2.0
@@ -292,11 +302,11 @@ jobs:
         debug: ${{ matrix.python-debug }}
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v2.0
+      uses: jwlawson/actions-setup-cmake@v2.1
 
     - name: Valgrind cache
       if: matrix.valgrind
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       id: cache-valgrind
       with:
         path: valgrind
@@ -334,6 +344,7 @@ jobs:
       run: cmake --build --preset default --target pytest
 
     - name: C++ tests
+      timeout-minutes: 3
       run: cmake --build --preset default --target cpptest
 
     - name: Visibility test
@@ -371,7 +382,7 @@ jobs:
     timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Add wget and python3
       run: apt-get update && apt-get install -y python3-dev python3-numpy python3-pytest libeigen3-dev
@@ -393,6 +404,7 @@ jobs:
       run: cmake --build build --target pytest
 
     - name: C++ tests
+      timeout-minutes: 3
       run: cmake --build build --target cpptest
 
     - name: Interface test
@@ -409,7 +421,7 @@ jobs:
     timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     # tzdata will try to ask for the timezone, so set the DEBIAN_FRONTEND
     - name: Install 🐍 3
@@ -433,7 +445,7 @@ jobs:
 #    container: centos:8
 #
 #    steps:
-#    - uses: actions/checkout@v5
+#    - uses: actions/checkout@v6
 #
 #    - name: Add Python 3 and a few requirements
 #      run: yum update -y && yum install -y git python3-devel python3-numpy python3-pytest make environment-modules
@@ -470,17 +482,22 @@ jobs:
 
 
   # Testing on Ubuntu + NVHPC (previous PGI) compilers, which seems to require more workarounds
-  ubuntu-nvhpc7:
+  ubuntu-nvhpc:
     if: github.event.pull_request.draft == false
-    runs-on: ubuntu-22.04
-    name: "🐍 3 • NVHPC 23.5 • C++17 • x64"
+    runs-on: ubuntu-24.04
+    name: "🐍 3 • NVHPC 25.11 • C++17 • x64"
     timeout-minutes: 90
 
     env:
       # tzdata will try to ask for the timezone, so set the DEBIAN_FRONTEND
       DEBIAN_FRONTEND: 'noninteractive'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
+
+    - name: Clean out unused stuff to save space
+      run: |
+        sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
+        sudo apt-get clean
 
     - name: Add NVHPC Repo
       run: |
@@ -489,10 +506,11 @@ jobs:
 
     - name: Install 🐍 3 & NVHPC
       run: |
-        sudo apt-get update -y && \
-        sudo apt-get install -y cmake environment-modules git python3-dev python3-pip python3-numpy && \
-        sudo apt-get install -y --no-install-recommends nvhpc-23-5 && \
+        sudo apt-get update -y
+        sudo apt-get install -y cmake environment-modules git python3-dev python3-pip python3-numpy
+        sudo apt-get install -y --no-install-recommends nvhpc-25-11
         sudo rm -rf /var/lib/apt/lists/*
+        apt-cache depends nvhpc-25-11
         python3 -m pip install --upgrade pip
         python3 -m pip install --upgrade pytest
 
@@ -502,7 +520,7 @@ jobs:
       shell: bash
       run: |
         source /etc/profile.d/modules.sh
-        module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/23.5
+        module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/25.11
         cmake -S . -B build -DDOWNLOAD_CATCH=ON \
                             -DCMAKE_CXX_STANDARD=17 \
                             -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)") \
@@ -510,12 +528,13 @@ jobs:
                             -DPYBIND11_TEST_FILTER="test_smart_ptr.cpp"
 
     - name: Build
-      run: cmake --build build -j 2 --verbose
+      run: cmake --build build -j $(nproc) --verbose
 
     - name: Python tests
       run: cmake --build build --target pytest
 
     - name: C++ tests
+      timeout-minutes: 3
       run: cmake --build build --target cpptest
 
     - name: Interface test
@@ -542,7 +561,7 @@ jobs:
     timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Add Python 3
       run: apt-get update; apt-get install -y python3-dev python3-numpy python3-pytest python3-pip libeigen3-dev
@@ -551,7 +570,7 @@ jobs:
       run: python3 -m pip install --upgrade pip
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v2.0
+      uses: jwlawson/actions-setup-cmake@v2.1
 
     - name: Configure
       shell: bash
@@ -570,6 +589,7 @@ jobs:
       run: cmake --build build --target pytest
 
     - name: C++ tests
+      timeout-minutes: 3
       run: cmake --build build --target cpptest
 
     - name: Interface test
@@ -606,7 +626,7 @@ jobs:
     name: "🐍 3 • ICC latest • x64"
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Add apt repo
       run: |
@@ -652,6 +672,7 @@ jobs:
         cmake --build build-11 --target check
 
     - name: C++ tests C++11
+      timeout-minutes: 3
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
         cmake --build build-11 --target cpptest
@@ -689,6 +710,7 @@ jobs:
         cmake --build build-17 --target check
 
     - name: C++ tests C++17
+      timeout-minutes: 3
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
         cmake --build build-17 --target cpptest
@@ -720,7 +742,7 @@ jobs:
 
     steps:
     - name: Latest actions/checkout
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
 
     - name: Add Python 3.8
       if: matrix.container == 'almalinux:8'
@@ -760,6 +782,7 @@ jobs:
       run: cmake --build build --target pytest
 
     - name: C++ tests
+      timeout-minutes: 3
       run: cmake --build build --target cpptest
 
     - name: Interface test
@@ -778,7 +801,8 @@ jobs:
     timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v1  # v1 is required to run inside docker
+    # v1 required for i386/debian container; pinned to SHA to prevent dependabot updates
+    - uses: actions/checkout@544eadc6bf3d226fd7a7a9f0dc5b5bf7ca0675b9  # v1
 
     - name: Install requirements
       run: |
@@ -823,7 +847,7 @@ jobs:
     timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - uses: actions/setup-python@v6
       with:
@@ -870,7 +894,7 @@ jobs:
     timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Setup Python ${{ matrix.python }}
       uses: actions/setup-python@v6
@@ -882,7 +906,7 @@ jobs:
           ${{ matrix.python == '3.13' && runner.os == 'Windows' }}
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v2.0
+      uses: jwlawson/actions-setup-cmake@v2.1
 
     - name: Prepare MSVC
       uses: ilammy/msvc-dev-cmd@v1.13.0
@@ -923,7 +947,7 @@ jobs:
     timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Setup Python ${{ matrix.python }}
       uses: actions/setup-python@v6
@@ -932,7 +956,7 @@ jobs:
         architecture: x86
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v2.0
+      uses: jwlawson/actions-setup-cmake@v2.1
 
     - name: Prepare MSVC
       uses: ilammy/msvc-dev-cmd@v1.13.0
@@ -972,7 +996,7 @@ jobs:
     timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Setup Python ${{ matrix.python }}
       uses: actions/setup-python@v6
@@ -983,7 +1007,7 @@ jobs:
       run: python3 -m pip install -r tests/requirements.txt
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v2.0
+      uses: jwlawson/actions-setup-cmake@v2.1
 
     - name: Configure C++20
       run: >
@@ -1000,6 +1024,7 @@ jobs:
       run: cmake --build build --target pytest
 
     - name: C++20 tests
+      timeout-minutes: 3
       run: cmake --build build --target cpptest -j 2
 
     - name: Interface test C++20
@@ -1059,7 +1084,7 @@ jobs:
           mingw-w64-${{matrix.env}}-catch
           ${{ matrix.extra_install }}
 
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Configure C++11
       # LTO leads to many undefined reference like
@@ -1076,6 +1101,7 @@ jobs:
       run: cmake --build build --target pytest -j 2
 
     - name: C++11 tests
+      timeout-minutes: 3
       run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build --target cpptest -j 2
 
     - name: Interface test C++11
@@ -1100,6 +1126,7 @@ jobs:
       run: cmake --build build2 --target pytest -j 2
 
     - name: C++14 tests
+      timeout-minutes: 3
       run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build2 --target cpptest -j 2
 
     - name: Interface test C++14
@@ -1124,6 +1151,7 @@ jobs:
       run: cmake --build build3 --target pytest -j 2
 
     - name: C++17 tests
+      timeout-minutes: 3
       run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build3 --target cpptest -j 2
 
     - name: Interface test C++17
@@ -1150,10 +1178,10 @@ jobs:
         run: env
 
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Set up Clang
-        uses: egor-tensin/setup-clang@v1
+        uses: egor-tensin/setup-clang@v2
 
       - name: Setup Python ${{ matrix.python }}
         uses: actions/setup-python@v6
@@ -1161,7 +1189,7 @@ jobs:
           python-version: ${{ matrix.python }}
 
       - name: Update CMake
-        uses: jwlawson/actions-setup-cmake@v2.0
+        uses: jwlawson/actions-setup-cmake@v2.1
 
       - name: Install ninja-build tool
         uses: seanmiddleditch/gha-setup-ninja@v6
@@ -1195,6 +1223,7 @@ jobs:
         run: cmake --build . --target pytest -j 2
 
       - name: C++ tests
+        timeout-minutes: 3
         run: cmake --build . --target cpptest -j 2
 
       - name: Interface test
@@ -1205,3 +1234,136 @@ jobs:
 
       - name: Clean directory
         run: git clean -fdx
+
+  # Clang with MSVC/Windows SDK toolchain + python.org CPython (Windows ARM)
+  windows_arm_clang_msvc:
+    if: github.event.pull_request.draft == false
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-11-arm]
+        python: ['3.13']
+
+    runs-on: "${{ matrix.os }}"
+    timeout-minutes: 90
+
+    name: "🐍 ${{ matrix.python }} • ${{ matrix.os }} • clang-msvc"
+
+    steps:
+      - name: Show env
+        run: env
+
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Python ${{ matrix.python }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+          architecture: arm64
+
+      - name: Run pip installs
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements.txt
+
+      - name: Configure CMake
+        run: >
+          cmake -G Ninja -S . -B .
+          -DPYBIND11_WERROR=OFF
+          -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF
+          -DDOWNLOAD_CATCH=ON
+          -DDOWNLOAD_EIGEN=ON
+          -DCMAKE_CXX_COMPILER=clang++
+          -DCMAKE_CXX_STANDARD=20
+          -DPython_ROOT_DIR="$env:Python_ROOT_DIR"
+
+      - name: Build
+        run: cmake --build . -j 2
+
+      - name: Python tests
+        run: cmake --build . --target pytest -j 2
+
+      - name: C++ tests
+        timeout-minutes: 3
+        run: cmake --build . --target cpptest -j 2
+
+      - name: Interface test
+        run: cmake --build . --target test_cmake_build -j 2
+
+      - name: Visibility test
+        run: cmake --build . --target test_cross_module_rtti -j 2
+
+  # Clang in MSYS2/MinGW-w64 CLANGARM64 toolchain + MSYS2 Python (Windows ARM)
+  windows_arm_clang_msys2:
+    if: github.event.pull_request.draft == false
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-11-arm]
+
+    runs-on: "${{ matrix.os }}"
+    timeout-minutes: 90
+
+    name: "${{ matrix.os }} • clang-msys2"
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        submodules: true
+
+    - uses: msys2/setup-msys2@v2
+      with:
+        msystem: CLANGARM64
+        update: true
+        install: |
+          mingw-w64-clang-aarch64-cmake
+          mingw-w64-clang-aarch64-clang
+          mingw-w64-clang-aarch64-ninja
+          mingw-w64-clang-aarch64-python-pip
+          mingw-w64-clang-aarch64-python-pytest
+          mingw-w64-clang-aarch64-python-numpy
+
+    - name: Debug info
+      run: |
+        clang++ --version
+        cmake --version
+        ninja --version
+        python --version
+
+    - name: Run pip installs
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install -r tests/requirements.txt
+
+    - name: Configure CMake
+      run: >-
+        cmake -S . -B build
+        -DPYBIND11_WERROR=OFF
+        -DDOWNLOAD_CATCH=ON
+        -DDOWNLOAD_EIGEN=ON
+        -DCMAKE_CXX_COMPILER=clang++
+        -DCMAKE_CXX_STANDARD=20
+        -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")
+
+    - name: Build
+      run: cmake --build build -j 2
+
+    - name: Python tests
+      run: cmake --build build --target pytest -j 2
+
+    - name: C++ tests
+      timeout-minutes: 3
+      run: PYTHONHOME=/clangarm64 PYTHONPATH=/clangarm64 cmake --build build --target cpptest -j 2
+
+    - name: Interface test
+      run: cmake --build build --target test_cmake_build -j 2
+
+    - name: Visibility test
+      run: cmake --build build --target test_cross_module_rtti -j 2

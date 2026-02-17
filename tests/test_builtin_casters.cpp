@@ -392,7 +392,7 @@ TEST_SUBMODULE(builtin_casters, m) {
     m.def("overload_resolution_complex", [](int x) { return "int: " + std::to_string(x); });
 
     // test int vs. long (Python 2)
-    m.def("int_cast", []() { return (int) 42; });
+    m.def("int_cast", []() { return 42; });
     m.def("long_cast", []() { return (long) 42; });
     m.def("longlong_cast", []() { return ULLONG_MAX; });
 

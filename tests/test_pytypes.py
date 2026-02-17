@@ -1367,3 +1367,8 @@ def test_arg_return_type_hints(doc, backport_typehints):
         backport_typehints(doc(m.check_type_guard))
         == "check_type_guard(arg0: list[object]) -> typing.TypeGuard[list[float]]"
     )
+
+
+def test_const_kwargs_ref_to_str():
+    assert m.const_kwargs_ref_to_str() == "{}"
+    assert m.const_kwargs_ref_to_str(a=1) == "{'a': 1}"

@@ -18,8 +18,8 @@
 // See also: https://github.com/python/cpython/blob/HEAD/Include/patchlevel.h
 /* -- start version constants -- */
 #define PYBIND11_VERSION_MAJOR 3
-#define PYBIND11_VERSION_MINOR 0
-#define PYBIND11_VERSION_MICRO 2
+#define PYBIND11_VERSION_MINOR 1
+#define PYBIND11_VERSION_MICRO 0
 // ALPHA = 0xA, BETA = 0xB, GAMMA = 0xC (release candidate), FINAL = 0xF (stable release)
 // - The release level is set to "alpha" for development versions.
 //   Use 0xA0 (LEVEL=0xA, SERIAL=0) for development versions.
@@ -27,7 +27,7 @@
 #define PYBIND11_VERSION_RELEASE_LEVEL PY_RELEASE_LEVEL_ALPHA
 #define PYBIND11_VERSION_RELEASE_SERIAL 0
 // String version of (micro, release level, release serial), e.g.: 0a0, 0b1, 0rc1, 0
-#define PYBIND11_VERSION_PATCH 2a0
+#define PYBIND11_VERSION_PATCH 0a0
 /* -- end version constants -- */
 
 #if !defined(Py_PACK_FULL_VERSION)
@@ -87,7 +87,7 @@
 #    endif
 #endif
 
-#if defined(__cpp_lib_launder) && !(defined(_MSC_VER) && (_MSC_VER < 1914))
+#if defined(__cpp_lib_launder) && !(defined(_MSC_VER) && (_MSC_VER < 1920)) // See PR #5968
 #    define PYBIND11_STD_LAUNDER std::launder
 #    define PYBIND11_HAS_STD_LAUNDER 1
 #else
@@ -250,6 +250,10 @@
 // Must be after including <version> or one of the other headers specified by the standard
 #if defined(__cpp_lib_char8_t) && __cpp_lib_char8_t >= 201811L
 #    define PYBIND11_HAS_U8STRING 1
+#endif
+
+#if defined(PYBIND11_CPP20) && defined(__cpp_lib_span) && __cpp_lib_span >= 202002L
+#    define PYBIND11_HAS_SPAN 1
 #endif
 
 // See description of PR #4246:
@@ -441,12 +445,11 @@ Note that this is run once for each (sub-)interpreter the module is imported int
 possibly concurrently.  The PyModuleDef is allowed to be static, but the PyObject* resulting from
 PyModuleDef_Init should be treated like any other PyObject (so not shared across interpreters).
  */
-#define PYBIND11_MODULE_PYINIT(name, pre_init, ...)                                               \
+#define PYBIND11_MODULE_PYINIT(name, ...)                                                         \
     static int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject *);                                 \
     PYBIND11_PLUGIN_IMPL(name) {                                                                  \
         PYBIND11_CHECK_PYTHON_VERSION                                                             \
-        pre_init;                                                                                 \
-        PYBIND11_ENSURE_INTERNALS_READY                                                           \
+        pybind11::detail::ensure_internals();                                                     \
         static ::pybind11::detail::slots_array mod_def_slots = ::pybind11::detail::init_slots(    \
             &PYBIND11_CONCAT(pybind11_exec_, name), ##__VA_ARGS__);                               \
         static PyModuleDef def{/* m_base */ PyModuleDef_HEAD_INIT,                                \
@@ -465,6 +468,7 @@ PyModuleDef_Init should be treated like any other PyObject (so not shared across
     static void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ &);                     \
     int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject * pm) {                                    \
         try {                                                                                     \
+            pybind11::detail::ensure_internals();                                                 \
             auto m = pybind11::reinterpret_borrow<::pybind11::module_>(pm);                       \
             if (!pybind11::detail::get_cached_module(m.attr("__spec__").attr("name"))) {          \
                 PYBIND11_CONCAT(pybind11_init_, name)(m);                                         \
@@ -518,8 +522,7 @@ PyModuleDef_Init should be treated like any other PyObject (so not shared across
 
 \endrst */
 #define PYBIND11_MODULE(name, variable, ...)                                                      \
-    PYBIND11_MODULE_PYINIT(                                                                       \
-        name, (pybind11::detail::get_num_interpreters_seen() += 1), ##__VA_ARGS__)                \
+    PYBIND11_MODULE_PYINIT(name, ##__VA_ARGS__)                                                   \
     PYBIND11_MODULE_EXEC(name, variable)
 
 // pop gnu-zero-variadic-macro-arguments
@@ -590,14 +593,10 @@ enum class return_value_policy : uint8_t {
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-inline static constexpr int log2(size_t n, int k = 0) {
-    return (n <= 1) ? k : log2(n >> 1, k + 1);
-}
+static constexpr int log2(size_t n, int k = 0) { return (n <= 1) ? k : log2(n >> 1, k + 1); }
 
 // Returns the size as a multiple of sizeof(void *), rounded up.
-inline static constexpr size_t size_in_ptrs(size_t s) {
-    return 1 + ((s - 1) >> log2(sizeof(void *)));
-}
+static constexpr size_t size_in_ptrs(size_t s) { return 1 + ((s - 1) >> log2(sizeof(void *))); }
 
 /**
  * The space to allocate for simple layout instance holders (see below) in multiple of the size of
