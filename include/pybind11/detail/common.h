@@ -871,14 +871,6 @@ template <typename C, typename R, typename... A>
 struct remove_class<R (C::*)(A...) const noexcept> {
     using type = R(A...);
 };
-template <typename C, typename R, typename... A>
-struct remove_class<R (C::*)(A...) & noexcept> {
-    using type = R(A...);
-};
-template <typename C, typename R, typename... A>
-struct remove_class<R (C::*)(A...) const & noexcept> {
-    using type = R(A...);
-};
 #endif
 /// Helper template to strip away type modifiers
 template <typename T>

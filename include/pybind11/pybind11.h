@@ -1965,6 +1965,24 @@ auto method_adaptor(Return (Class::*pmf)(Args...) const noexcept)
         "Cannot bind an inaccessible base class method; use a lambda definition instead");
     return pmf;
 }
+
+template <typename Derived, typename Return, typename Class, typename... Args>
+auto method_adaptor(Return (Class::*pmf)(Args...) & noexcept)
+    -> Return (Derived::*)(Args...) & noexcept {
+    static_assert(
+        detail::is_accessible_base_of<Class, Derived>::value,
+        "Cannot bind an inaccessible base class method; use a lambda definition instead");
+    return pmf;
+}
+
+template <typename Derived, typename Return, typename Class, typename... Args>
+auto method_adaptor(Return (Class::*pmf)(Args...) const & noexcept)
+    -> Return (Derived::*)(Args...) const & noexcept {
+    static_assert(
+        detail::is_accessible_base_of<Class, Derived>::value,
+        "Cannot bind an inaccessible base class method; use a lambda definition instead");
+    return pmf;
+}
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(detail)

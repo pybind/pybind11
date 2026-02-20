@@ -78,6 +78,12 @@ TEST_SUBMODULE(numpy_vectorize, m) {
     struct VectorizeTestClass {
         explicit VectorizeTestClass(int v) : value{v} {};
         float method(int x, float y) const { return y + (float) (x + value); }
+        // Exercises vectorize(Return (Class::*)(Args...) noexcept)
+        float method_noexcept(int x, float y) noexcept { return y + (float) (x + value); }
+        // Exercises vectorize(Return (Class::*)(Args...) const noexcept)
+        float method_const_noexcept(int x, float y) const noexcept {
+            return y + (float) (x + value);
+        }
         int value = 0;
     };
     py::class_<VectorizeTestClass> vtc(m, "VectorizeTestClass");
@@ -85,6 +91,8 @@ TEST_SUBMODULE(numpy_vectorize, m) {
 
     // Automatic vectorizing of methods
     vtc.def("method", py::vectorize(&VectorizeTestClass::method));
+    vtc.def("method_noexcept", py::vectorize(&VectorizeTestClass::method_noexcept));
+    vtc.def("method_const_noexcept", py::vectorize(&VectorizeTestClass::method_const_noexcept));
 
     // test_trivial_broadcasting
     // Internal optimization test for whether the input is trivially broadcastable:

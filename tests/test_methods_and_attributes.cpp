@@ -161,13 +161,19 @@ public:
     double sum() const { return rw_value + ro_value; }
 };
 
-// Issue #2234: noexcept methods in an unregistered base should be bindable on the derived class
+// Issue #2234: noexcept methods in an unregistered base should be bindable on the derived class.
 // In C++17, noexcept is part of the function type, so &Derived::method resolves to
 // a Base member function pointer with noexcept, requiring explicit template specializations.
 class NoexceptUnregisteredBase {
 public:
+    // Exercises cpp_function(Return (Class::*)(Args...) const noexcept, ...)
     int value() const noexcept { return m_value; }
+    // Exercises cpp_function(Return (Class::*)(Args...) noexcept, ...)
     void set_value(int v) noexcept { m_value = v; }
+    // Exercises cpp_function(Return (Class::*)(Args...) & noexcept, ...)
+    void increment() & noexcept { ++m_value; }
+    // Exercises cpp_function(Return (Class::*)(Args...) const & noexcept, ...)
+    int capped_value() const & noexcept { return m_value < 100 ? m_value : 100; }
 
 private:
     int m_value = 99;
@@ -176,6 +182,17 @@ class NoexceptDerived : public NoexceptUnregisteredBase {
 public:
     using NoexceptUnregisteredBase::NoexceptUnregisteredBase;
 };
+
+// Exercises overload_cast with noexcept member function pointers (issue #2234).
+// In C++17, overload_cast must have noexcept variants to resolve noexcept overloads.
+struct NoexceptOverloaded {
+    py::str method(int) noexcept { return "(int)"; }
+    py::str method(int) const noexcept { return "(int) const"; }
+    py::str method(float) noexcept { return "(float)"; }
+};
+// Exercises overload_cast with noexcept free function pointers.
+int noexcept_free_func(int x) noexcept { return x + 1; }
+int noexcept_free_func(float x) noexcept { return static_cast<int>(x) + 2; }
 
 // Test explicit lvalue ref-qualification
 struct RefQualified {
@@ -495,14 +512,54 @@ TEST_SUBMODULE(methods_and_attributes, m) {
     // unregistered base class must resolve `self` to the derived type, not the base type.
     py::class_<NoexceptDerived>(m, "NoexceptDerived")
         .def(py::init<>())
+        // cpp_function(Return (Class::*)(Args...) const noexcept, ...)
         .def("value", &NoexceptDerived::value)
-        .def("set_value", &NoexceptDerived::set_value);
+        // cpp_function(Return (Class::*)(Args...) noexcept, ...)
+        .def("set_value", &NoexceptDerived::set_value)
+        // cpp_function(Return (Class::*)(Args...) & noexcept, ...)
+        .def("increment", &NoexceptDerived::increment)
+        // cpp_function(Return (Class::*)(Args...) const & noexcept, ...)
+        .def("capped_value", &NoexceptDerived::capped_value);
 
 #ifdef __cpp_noexcept_function_type
-    // method_adaptor must also handle noexcept member function pointers (issue #2234)
-    using AdaptedNoexcept = decltype(py::method_adaptor<NoexceptDerived>(&NoexceptDerived::value));
-    static_assert(std::is_same<AdaptedNoexcept, int (NoexceptDerived::*)() const noexcept>::value,
+    // method_adaptor must also handle noexcept member function pointers (issue #2234).
+    // Verify the noexcept specifier is preserved in the resulting Derived pointer type.
+    using AdaptedConstNoexcept
+        = decltype(py::method_adaptor<NoexceptDerived>(&NoexceptDerived::value));
+    static_assert(
+        std::is_same<AdaptedConstNoexcept, int (NoexceptDerived::*)() const noexcept>::value, "");
+    using AdaptedNoexcept
+        = decltype(py::method_adaptor<NoexceptDerived>(&NoexceptDerived::set_value));
+    static_assert(std::is_same<AdaptedNoexcept, void (NoexceptDerived::*)(int) noexcept>::value,
                   "");
+#endif
+
+    // test_noexcept_overload_cast (issue #2234)
+    // overload_cast must have noexcept operator() overloads so it can resolve noexcept methods.
+#ifdef PYBIND11_OVERLOAD_CAST
+    py::class_<NoexceptOverloaded>(m, "NoexceptOverloaded")
+        .def(py::init<>())
+        // overload_cast_impl::operator()(Return (Class::*)(Args...) noexcept, false_type)
+        .def("method", py::overload_cast<int>(&NoexceptOverloaded::method))
+        // overload_cast_impl::operator()(Return (Class::*)(Args...) const noexcept, true_type)
+        .def("method_const", py::overload_cast<int>(&NoexceptOverloaded::method, py::const_))
+        // overload_cast_impl::operator()(Return (Class::*)(Args...) noexcept, false_type) float
+        .def("method_float", py::overload_cast<float>(&NoexceptOverloaded::method));
+    // overload_cast_impl::operator()(Return (*)(Args...) noexcept)
+    m.def("noexcept_free_func", py::overload_cast<int>(noexcept_free_func));
+    m.def("noexcept_free_func_float", py::overload_cast<float>(noexcept_free_func));
+#else
+    // Fallback using explicit static_cast for C++11/14
+    py::class_<NoexceptOverloaded>(m, "NoexceptOverloaded")
+        .def(py::init<>())
+        .def("method",
+             static_cast<py::str (NoexceptOverloaded::*)(int)>(&NoexceptOverloaded::method))
+        .def("method_const",
+             static_cast<py::str (NoexceptOverloaded::*)(int) const>(&NoexceptOverloaded::method))
+        .def("method_float",
+             static_cast<py::str (NoexceptOverloaded::*)(float)>(&NoexceptOverloaded::method));
+    m.def("noexcept_free_func", static_cast<int (*)(int)>(noexcept_free_func));
+    m.def("noexcept_free_func_float", static_cast<int (*)(float)>(noexcept_free_func));
 #endif
 
     // test_methods_and_attributes

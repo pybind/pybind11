@@ -523,11 +523,44 @@ def test_noexcept_base():
     In C++17 noexcept is part of the function type, so &Derived::noexcept_method resolves
     to a Base member-function pointer with noexcept specifier.  pybind11 must use the Derived
     type as `self`, not the Base type, otherwise the call raises TypeError at runtime.
+
+    Covers all four new cpp_function constructor specialisations:
+      - Return (Class::*)(Args...) noexcept          (set_value)
+      - Return (Class::*)(Args...) const noexcept    (value)
+      - Return (Class::*)(Args...) & noexcept        (increment)
+      - Return (Class::*)(Args...) const & noexcept  (capped_value)
     """
     obj = m.NoexceptDerived()
+    # const noexcept
     assert obj.value() == 99
+    # noexcept (non-const)
     obj.set_value(7)
     assert obj.value() == 7
+    # & noexcept (non-const lvalue ref-qualified)
+    obj.increment()
+    assert obj.value() == 8
+    # const & noexcept (const lvalue ref-qualified)
+    assert obj.capped_value() == 8
+    obj.set_value(200)
+    assert obj.capped_value() == 100  # capped at 100
+
+
+def test_noexcept_overload_cast():
+    """Test issue #2234: overload_cast must handle noexcept member and free function pointers.
+
+    In C++17 noexcept is part of the function type, so overload_cast_impl needs dedicated
+    operator() overloads for noexcept free functions and non-const/const member functions.
+    """
+    obj = m.NoexceptOverloaded()
+    # overload_cast_impl::operator()(Return (Class::*)(Args...) noexcept, false_type)
+    assert obj.method(1) == "(int)"
+    # overload_cast_impl::operator()(Return (Class::*)(Args...) const noexcept, true_type)
+    assert obj.method_const(2) == "(int) const"
+    # overload_cast_impl::operator()(Return (Class::*)(Args...) noexcept, false_type) float
+    assert obj.method_float(3.0) == "(float)"
+    # overload_cast_impl::operator()(Return (*)(Args...) noexcept)
+    assert m.noexcept_free_func(10) == 11
+    assert m.noexcept_free_func_float(10.0) == 12
 
 
 def test_ref_qualified():
