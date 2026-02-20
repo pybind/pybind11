@@ -517,6 +517,19 @@ def test_unregistered_base_implementations():
     assert a.ro_value_prop == 1.75
 
 
+def test_noexcept_base():
+    """Test issue #2234: binding noexcept methods inherited from an unregistered base class.
+
+    In C++17 noexcept is part of the function type, so &Derived::noexcept_method resolves
+    to a Base member-function pointer with noexcept specifier.  pybind11 must use the Derived
+    type as `self`, not the Base type, otherwise the call raises TypeError at runtime.
+    """
+    obj = m.NoexceptDerived()
+    assert obj.value() == 99
+    obj.set_value(7)
+    assert obj.value() == 7
+
+
 def test_ref_qualified():
     """Tests that explicit lvalue ref-qualified methods can be called just like their
     non ref-qualified counterparts."""

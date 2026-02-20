@@ -370,6 +370,48 @@ public:
                    extra...);
     }
 
+#ifdef __cpp_noexcept_function_type
+    /// Construct a cpp_function from a class method (non-const, no ref-qualifier, noexcept)
+    template <typename Return, typename Class, typename... Arg, typename... Extra>
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    cpp_function(Return (Class::*f)(Arg...) noexcept, const Extra &...extra) {
+        initialize(
+            [f](Class *c, Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
+            (Return (*)(Class *, Arg...)) nullptr,
+            extra...);
+    }
+
+    /// Construct a cpp_function from a class method (non-const, lvalue ref-qualifier, noexcept)
+    template <typename Return, typename Class, typename... Arg, typename... Extra>
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    cpp_function(Return (Class::*f)(Arg...) & noexcept, const Extra &...extra) {
+        initialize(
+            [f](Class *c, Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
+            (Return (*)(Class *, Arg...)) nullptr,
+            extra...);
+    }
+
+    /// Construct a cpp_function from a class method (const, no ref-qualifier, noexcept)
+    template <typename Return, typename Class, typename... Arg, typename... Extra>
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    cpp_function(Return (Class::*f)(Arg...) const noexcept, const Extra &...extra) {
+        initialize([f](const Class *c,
+                       Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
+                   (Return (*)(const Class *, Arg...)) nullptr,
+                   extra...);
+    }
+
+    /// Construct a cpp_function from a class method (const, lvalue ref-qualifier, noexcept)
+    template <typename Return, typename Class, typename... Arg, typename... Extra>
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    cpp_function(Return (Class::*f)(Arg...) const & noexcept, const Extra &...extra) {
+        initialize([f](const Class *c,
+                       Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
+                   (Return (*)(const Class *, Arg...)) nullptr,
+                   extra...);
+    }
+#endif
+
     /// Return the function name
     object name() const { return attr("__name__"); }
 
@@ -1905,6 +1947,26 @@ auto method_adaptor(Return (Class::*pmf)(Args...) const) -> Return (Derived::*)(
     return pmf;
 }
 
+#ifdef __cpp_noexcept_function_type
+template <typename Derived, typename Return, typename Class, typename... Args>
+auto method_adaptor(Return (Class::*pmf)(Args...) noexcept)
+    -> Return (Derived::*)(Args...) noexcept {
+    static_assert(
+        detail::is_accessible_base_of<Class, Derived>::value,
+        "Cannot bind an inaccessible base class method; use a lambda definition instead");
+    return pmf;
+}
+
+template <typename Derived, typename Return, typename Class, typename... Args>
+auto method_adaptor(Return (Class::*pmf)(Args...) const noexcept)
+    -> Return (Derived::*)(Args...) const noexcept {
+    static_assert(
+        detail::is_accessible_base_of<Class, Derived>::value,
+        "Cannot bind an inaccessible base class method; use a lambda definition instead");
+    return pmf;
+}
+#endif
+
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 // Helper for the property_cpp_function static member functions below.
@@ -2360,6 +2422,18 @@ public:
     class_ &def_buffer(Return (Class::*func)(Args...) const) {
         return def_buffer([func](const type &obj) { return (obj.*func)(); });
     }
+
+#ifdef __cpp_noexcept_function_type
+    template <typename Return, typename Class, typename... Args>
+    class_ &def_buffer(Return (Class::*func)(Args...) noexcept) {
+        return def_buffer([func](type &obj) { return (obj.*func)(); });
+    }
+
+    template <typename Return, typename Class, typename... Args>
+    class_ &def_buffer(Return (Class::*func)(Args...) const noexcept) {
+        return def_buffer([func](const type &obj) { return (obj.*func)(); });
+    }
+#endif
 
     template <typename C, typename D, typename... Extra>
     class_ &def_readwrite(const char *name, D C::*pm, const Extra &...extra) {

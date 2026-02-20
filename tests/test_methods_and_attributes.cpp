@@ -161,6 +161,22 @@ public:
     double sum() const { return rw_value + ro_value; }
 };
 
+// Issue #2234: noexcept methods in an unregistered base should be bindable on the derived class
+// In C++17, noexcept is part of the function type, so &Derived::method resolves to
+// a Base member function pointer with noexcept, requiring explicit template specializations.
+class NoexceptUnregisteredBase {
+public:
+    int value() const noexcept { return m_value; }
+    void set_value(int v) noexcept { m_value = v; }
+
+private:
+    int m_value = 99;
+};
+class NoexceptDerived : public NoexceptUnregisteredBase {
+public:
+    using NoexceptUnregisteredBase::NoexceptUnregisteredBase;
+};
+
 // Test explicit lvalue ref-qualification
 struct RefQualified {
     int value = 0;
@@ -473,6 +489,21 @@ TEST_SUBMODULE(methods_and_attributes, m) {
     using Adapted
         = decltype(py::method_adaptor<RegisteredDerived>(&RegisteredDerived::do_nothing));
     static_assert(std::is_same<Adapted, void (RegisteredDerived::*)() const>::value, "");
+
+    // test_noexcept_base (issue #2234)
+    // In C++17, noexcept is part of the function type. Binding a noexcept method from an
+    // unregistered base class must resolve `self` to the derived type, not the base type.
+    py::class_<NoexceptDerived>(m, "NoexceptDerived")
+        .def(py::init<>())
+        .def("value", &NoexceptDerived::value)
+        .def("set_value", &NoexceptDerived::set_value);
+
+#ifdef __cpp_noexcept_function_type
+    // method_adaptor must also handle noexcept member function pointers (issue #2234)
+    using AdaptedNoexcept = decltype(py::method_adaptor<NoexceptDerived>(&NoexceptDerived::value));
+    static_assert(std::is_same<AdaptedNoexcept, int (NoexceptDerived::*)() const noexcept>::value,
+                  "");
+#endif
 
     // test_methods_and_attributes
     py::class_<RefQualified>(m, "RefQualified")
