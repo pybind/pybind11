@@ -79,6 +79,7 @@ TEST_SUBMODULE(numpy_vectorize, m) {
         explicit VectorizeTestClass(int v) : value{v} {};
         float method(int x, float y) const { return y + (float) (x + value); }
         // Exercises vectorize(Return (Class::*)(Args...) noexcept)
+        // NOLINTNEXTLINE(readability-make-member-function-const)
         float method_noexcept(int x, float y) noexcept { return y + (float) (x + value); }
         // Exercises vectorize(Return (Class::*)(Args...) const noexcept)
         float method_const_noexcept(int x, float y) const noexcept {
