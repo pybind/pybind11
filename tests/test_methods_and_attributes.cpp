@@ -566,6 +566,17 @@ TEST_SUBMODULE(methods_and_attributes, m) {
 #endif
         ;
 
+    // Verify that &&-qualified methods cannot be called on lvalues, only on rvalues.
+    // This confirms that the cpp_function lambda must use std::move(*c).*f, not c->*f.
+#if __cplusplus >= 201703L
+    static_assert(!std::is_invocable<std::string (RValueRefUnregisteredBase::*)() &&,
+                                     RValueRefUnregisteredBase &>::value,
+                  "&&-qualified method must not be callable on lvalue");
+    static_assert(std::is_invocable<std::string (RValueRefUnregisteredBase::*)() &&,
+                                    RValueRefUnregisteredBase &&>::value,
+                  "&&-qualified method must be callable on rvalue");
+#endif
+
     // Verify method_adaptor preserves &&/const&& qualifiers when rebinding.
     using AdaptedRRef = decltype(py::method_adaptor<RValueRefDerived>(&RValueRefDerived::take));
     static_assert(std::is_same<AdaptedRRef, std::string (RValueRefDerived::*)() &&>::value, "");
