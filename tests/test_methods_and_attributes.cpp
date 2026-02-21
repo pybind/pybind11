@@ -187,14 +187,17 @@ public:
 // cpp_function(Return (Class::*)(Args...) const &&, ...) via an unregistered base.
 class RValueRefUnregisteredBase {
 public:
-    // Exercises cpp_function(Return (Class::*)(Args...) &&, ...)
-    int take() && { return m_value; } // NOLINT(readability-make-member-function-const)
+    // Exercises cpp_function(Return (Class::*)(Args...) &&, ...).
+    // Moves m_payload to verify that std::move(*c).*f is used in the lambda body.
+    std::string take() && { // NOLINT(readability-make-member-function-const)
+        return std::move(m_payload);
+    }
     // Exercises cpp_function(Return (Class::*)(Args...) const &&, ...)
     int peek() const && { return m_value; }
 #ifdef __cpp_noexcept_function_type
     // Exercises cpp_function(Return (Class::*)(Args...) && noexcept, ...)
-    int take_noexcept() && noexcept { // NOLINT(readability-make-member-function-const)
-        return m_value;
+    std::string take_noexcept() && noexcept { // NOLINT(readability-make-member-function-const)
+        return std::move(m_payload);
     }
     // Exercises cpp_function(Return (Class::*)(Args...) const && noexcept, ...)
     int peek_noexcept() const && noexcept { return m_value; }
@@ -202,6 +205,7 @@ public:
 
 private:
     int m_value = 77;
+    std::string m_payload{"rref_payload"};
 };
 class RValueRefDerived : public RValueRefUnregisteredBase {
 public:
@@ -564,7 +568,7 @@ TEST_SUBMODULE(methods_and_attributes, m) {
 
     // Verify method_adaptor preserves &&/const&& qualifiers when rebinding.
     using AdaptedRRef = decltype(py::method_adaptor<RValueRefDerived>(&RValueRefDerived::take));
-    static_assert(std::is_same<AdaptedRRef, int (RValueRefDerived::*)() &&>::value, "");
+    static_assert(std::is_same<AdaptedRRef, std::string (RValueRefDerived::*)() &&>::value, "");
     using AdaptedConstRRef
         = decltype(py::method_adaptor<RValueRefDerived>(&RValueRefDerived::peek));
     static_assert(std::is_same<AdaptedConstRRef, int (RValueRefDerived::*)() const &&>::value, "");
@@ -582,8 +586,9 @@ TEST_SUBMODULE(methods_and_attributes, m) {
                   "");
     using AdaptedRRefNoexcept
         = decltype(py::method_adaptor<RValueRefDerived>(&RValueRefDerived::take_noexcept));
-    static_assert(
-        std::is_same < AdaptedRRefNoexcept, int (RValueRefDerived::*)() && noexcept > ::value, "");
+    static_assert(std::is_same < AdaptedRRefNoexcept,
+                  std::string (RValueRefDerived::*)() && noexcept > ::value,
+                  "");
     using AdaptedConstRRefNoexcept
         = decltype(py::method_adaptor<RValueRefDerived>(&RValueRefDerived::peek_noexcept));
     static_assert(std::is_same < AdaptedConstRRefNoexcept,

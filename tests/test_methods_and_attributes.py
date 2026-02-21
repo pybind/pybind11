@@ -549,6 +549,9 @@ def test_rvalue_ref_qualified_methods():
     """Test that rvalue-ref-qualified (&&/const&&) methods from an unregistered base bind
     correctly with `self` resolved to the derived type.
 
+    take() moves m_payload out on each call, so the second call returns "".
+    This confirms that the cpp_function lambda uses std::move(*c).*f rather than c->*f.
+
     Covers:
       - Return (Class::*)(Args...) &&              (take)
       - Return (Class::*)(Args...) const &&        (peek)
@@ -556,14 +559,19 @@ def test_rvalue_ref_qualified_methods():
       - Return (Class::*)(Args...) const && noexcept (peek_noexcept, C++17 only)
     """
     obj = m.RValueRefDerived()
-    # && (rvalue ref-qualified, non-const)
-    assert obj.take() == 77
-    # const && (rvalue ref-qualified, const)
+    # && moves m_payload: first call gets the value, second gets empty string
+    assert obj.take() == "rref_payload"
+    assert obj.take() == ""
+    # const && doesn't move: peek() is stable across calls
+    assert obj.peek() == 77
     assert obj.peek() == 77
     # noexcept variants are bound only under C++17; skip gracefully if absent
     if hasattr(obj, "take_noexcept"):
-        assert obj.take_noexcept() == 77
+        obj2 = m.RValueRefDerived()
+        assert obj2.take_noexcept() == "rref_payload"
+        assert obj2.take_noexcept() == ""
     if hasattr(obj, "peek_noexcept"):
+        assert obj.peek_noexcept() == 77
         assert obj.peek_noexcept() == 77
 
 
