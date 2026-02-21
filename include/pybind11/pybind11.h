@@ -2018,7 +2018,7 @@ template <typename Derived,
           typename Adapted = typename Traits::type>
 constexpr PYBIND11_ALWAYS_INLINE Adapted adapt_member_ptr(T pmf) {
     static_assert(
-        is_accessible_base_of<typename Traits::source_class, Derived>::value,
+        detail::is_accessible_base_of<typename Traits::source_class, Derived>::value,
         "Cannot bind an inaccessible base class method; use a lambda definition instead");
     return pmf;
 }
