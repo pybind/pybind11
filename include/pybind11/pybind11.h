@@ -2026,45 +2026,31 @@ constexpr PYBIND11_ALWAYS_INLINE Adapted adapt_member_ptr(T pmf) {
 PYBIND11_NAMESPACE_END(detail)
 
 /// Given a pointer to a member function, cast it to its `Derived` version.
-/// Forward everything else unchanged.
-template <typename /*Derived*/, typename F>
+/// For all other callables (lambdas, function pointers, etc.), forward unchanged.
+///
+/// Two overloads cover all cases without explicit per-qualifier instantiations:
+///
+///  (1) Generic fallback — disabled for member function pointers so that (2) wins
+///      without any partial-ordering ambiguity.
+///  (2) MFP overload — SFINAE on rebind_member_ptr::type, which exists for every
+///      supported qualifier combination (const, &, &&, noexcept, ...).  A single
+///      template therefore covers all combinations that rebind_member_ptr handles.
+template <
+    typename /*Derived*/,
+    typename F,
+    detail::enable_if_t<!std::is_member_function_pointer<detail::remove_reference_t<F>>::value,
+                        int>
+    = 0>
 constexpr auto method_adaptor(F &&f) -> decltype(std::forward<F>(f)) {
     return std::forward<F>(f);
 }
 
-// One thin overload per supported member-function-pointer qualifier combination.
-// Specific parameter types are required so partial ordering prefers these over the F&& fallback.
-// The shared body (static_assert + implicit cast) lives in detail::adapt_member_ptr.
-// The no-qualifier overload is written out explicitly to avoid invoking the macro with an empty
-// argument, which triggers MSVC warning C4003.
-template <typename Derived, typename Return, typename Class, typename... Args>
-constexpr auto method_adaptor(Return (Class::*pmf)(Args...)) -> Return (Derived::*)(Args...) {
+template <typename Derived,
+          typename T,
+          typename Adapted = typename detail::rebind_member_ptr<Derived, T>::type>
+constexpr Adapted method_adaptor(T pmf) {
     return detail::adapt_member_ptr<Derived>(pmf);
 }
-// The qualifiers argument appears in type position, not expression position, so
-// parenthesizing it would produce invalid C++.
-// NOLINTBEGIN(bugprone-macro-parentheses)
-#define PYBIND11_METHOD_ADAPTOR(qualifiers)                                                       \
-    template <typename Derived, typename Return, typename Class, typename... Args>                \
-    constexpr auto method_adaptor(Return (Class::*pmf)(Args...) qualifiers)                       \
-        -> Return (Derived::*)(Args...) qualifiers {                                              \
-        return detail::adapt_member_ptr<Derived>(pmf);                                            \
-    }
-PYBIND11_METHOD_ADAPTOR(const)
-PYBIND11_METHOD_ADAPTOR(&)
-PYBIND11_METHOD_ADAPTOR(const &)
-PYBIND11_METHOD_ADAPTOR(&&)
-PYBIND11_METHOD_ADAPTOR(const &&)
-#ifdef __cpp_noexcept_function_type
-PYBIND11_METHOD_ADAPTOR(noexcept)
-PYBIND11_METHOD_ADAPTOR(const noexcept)
-PYBIND11_METHOD_ADAPTOR(& noexcept)
-PYBIND11_METHOD_ADAPTOR(const & noexcept)
-PYBIND11_METHOD_ADAPTOR(&& noexcept)
-PYBIND11_METHOD_ADAPTOR(const && noexcept)
-#endif
-#undef PYBIND11_METHOD_ADAPTOR
-// NOLINTEND(bugprone-macro-parentheses)
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
