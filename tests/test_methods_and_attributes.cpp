@@ -188,12 +188,14 @@ public:
 class RValueRefUnregisteredBase {
 public:
     // Exercises cpp_function(Return (Class::*)(Args...) &&, ...)
-    int take() && { return m_value; }
+    int take() && { return m_value; } // NOLINT(readability-make-member-function-const)
     // Exercises cpp_function(Return (Class::*)(Args...) const &&, ...)
     int peek() const && { return m_value; }
 #ifdef __cpp_noexcept_function_type
     // Exercises cpp_function(Return (Class::*)(Args...) && noexcept, ...)
-    int take_noexcept() && noexcept { return m_value; }
+    int take_noexcept() && noexcept { // NOLINT(readability-make-member-function-const)
+        return m_value;
+    }
     // Exercises cpp_function(Return (Class::*)(Args...) const && noexcept, ...)
     int peek_noexcept() const && noexcept { return m_value; }
 #endif

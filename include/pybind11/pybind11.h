@@ -1978,6 +1978,9 @@ template <typename Derived, typename T>
 struct rebind_member_ptr {};
 
 // Define one specialization per supported qualifier combination via a local macro.
+// The qualifiers argument appears in type position, not expression position, so
+// parenthesizing it would produce invalid C++.
+// NOLINTBEGIN(bugprone-macro-parentheses)
 #define PYBIND11_REBIND_MEMBER_PTR(qualifiers)                                                    \
     template <typename Derived, typename Return, typename Class, typename... Args>                \
     struct rebind_member_ptr<Derived, Return (Class::*)(Args...) qualifiers> {                    \
@@ -1999,6 +2002,7 @@ PYBIND11_REBIND_MEMBER_PTR(&& noexcept);
 PYBIND11_REBIND_MEMBER_PTR(const && noexcept);
 #endif
 #undef PYBIND11_REBIND_MEMBER_PTR
+// NOLINTEND(bugprone-macro-parentheses)
 
 /// Shared implementation body for all method_adaptor member-function-pointer overloads.
 /// Asserts Base is accessible from Derived, then casts the member pointer.
@@ -2006,7 +2010,7 @@ template <typename Derived,
           typename T,
           typename Traits = rebind_member_ptr<Derived, T>,
           typename Adapted = typename Traits::type>
-PYBIND11_ALWAYS_INLINE Adapted adapt_member_ptr(T pmf) {
+constexpr PYBIND11_ALWAYS_INLINE Adapted adapt_member_ptr(T pmf) {
     static_assert(
         is_accessible_base_of<typename Traits::source_class, Derived>::value,
         "Cannot bind an inaccessible base class method; use a lambda definition instead");
@@ -2018,17 +2022,20 @@ PYBIND11_NAMESPACE_END(detail)
 /// Given a pointer to a member function, cast it to its `Derived` version.
 /// Forward everything else unchanged.
 template <typename /*Derived*/, typename F>
-auto method_adaptor(F &&f) -> decltype(std::forward<F>(f)) {
+constexpr auto method_adaptor(F &&f) -> decltype(std::forward<F>(f)) {
     return std::forward<F>(f);
 }
 
 // One thin overload per supported member-function-pointer qualifier combination.
 // Specific parameter types are required so partial ordering prefers these over the F&& fallback.
 // The shared body (static_assert + implicit cast) lives in detail::adapt_member_ptr.
+// The qualifiers argument appears in type position, not expression position, so
+// parenthesizing it would produce invalid C++.
+// NOLINTBEGIN(bugprone-macro-parentheses)
 #define PYBIND11_METHOD_ADAPTOR(qualifiers)                                                       \
     template <typename Derived, typename Return, typename Class, typename... Args>                \
-    auto method_adaptor(Return (Class::*pmf)(Args...) qualifiers) -> Return (Derived::*)(Args...) \
-        qualifiers {                                                                              \
+    constexpr auto method_adaptor(Return (Class::*pmf)(Args...) qualifiers)                       \
+        -> Return (Derived::*)(Args...) qualifiers {                                              \
         return detail::adapt_member_ptr<Derived>(pmf);                                            \
     }
 PYBIND11_METHOD_ADAPTOR()
@@ -2046,6 +2053,7 @@ PYBIND11_METHOD_ADAPTOR(&& noexcept)
 PYBIND11_METHOD_ADAPTOR(const && noexcept)
 #endif
 #undef PYBIND11_METHOD_ADAPTOR
+// NOLINTEND(bugprone-macro-parentheses)
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
