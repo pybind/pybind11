@@ -545,6 +545,28 @@ def test_noexcept_base():
     assert obj.capped_value() == 100  # capped at 100
 
 
+def test_rvalue_ref_qualified_methods():
+    """Test that rvalue-ref-qualified (&&/const&&) methods from an unregistered base bind
+    correctly with `self` resolved to the derived type.
+
+    Covers:
+      - Return (Class::*)(Args...) &&              (take)
+      - Return (Class::*)(Args...) const &&        (peek)
+      - Return (Class::*)(Args...) && noexcept     (take_noexcept, C++17 only)
+      - Return (Class::*)(Args...) const && noexcept (peek_noexcept, C++17 only)
+    """
+    obj = m.RValueRefDerived()
+    # && (rvalue ref-qualified, non-const)
+    assert obj.take() == 77
+    # const && (rvalue ref-qualified, const)
+    assert obj.peek() == 77
+    # noexcept variants are bound only under C++17; skip gracefully if absent
+    if hasattr(obj, "take_noexcept"):
+        assert obj.take_noexcept() == 77
+    if hasattr(obj, "peek_noexcept"):
+        assert obj.peek_noexcept() == 77
+
+
 def test_noexcept_overload_cast():
     """Test issue #2234: overload_cast must handle noexcept member and free function pointers.
 

@@ -370,6 +370,30 @@ public:
                    extra...);
     }
 
+    /// Construct a cpp_function from a class method (non-const, rvalue ref-qualifier)
+    template <typename Return, typename Class, typename... Arg, typename... Extra>
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    cpp_function(Return (Class::*f)(Arg...) &&, const Extra &...extra) {
+        initialize(
+            [f](Class *c, Arg... args) -> Return {
+                return (std::move(*c).*f)(std::forward<Arg>(args)...);
+            },
+            (Return (*)(Class *, Arg...)) nullptr,
+            extra...);
+    }
+
+    /// Construct a cpp_function from a class method (const, rvalue ref-qualifier)
+    template <typename Return, typename Class, typename... Arg, typename... Extra>
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    cpp_function(Return (Class::*f)(Arg...) const &&, const Extra &...extra) {
+        initialize(
+            [f](const Class *c, Arg... args) -> Return {
+                return (std::move(*c).*f)(std::forward<Arg>(args)...);
+            },
+            (Return (*)(const Class *, Arg...)) nullptr,
+            extra...);
+    }
+
 #ifdef __cpp_noexcept_function_type
     /// Construct a cpp_function from a class method (non-const, no ref-qualifier, noexcept)
     template <typename Return, typename Class, typename... Arg, typename... Extra>
@@ -409,6 +433,30 @@ public:
                        Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
                    (Return (*)(const Class *, Arg...)) nullptr,
                    extra...);
+    }
+
+    /// Construct a cpp_function from a class method (non-const, rvalue ref-qualifier, noexcept)
+    template <typename Return, typename Class, typename... Arg, typename... Extra>
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    cpp_function(Return (Class::*f)(Arg...) && noexcept, const Extra &...extra) {
+        initialize(
+            [f](Class *c, Arg... args) -> Return {
+                return (std::move(*c).*f)(std::forward<Arg>(args)...);
+            },
+            (Return (*)(Class *, Arg...)) nullptr,
+            extra...);
+    }
+
+    /// Construct a cpp_function from a class method (const, rvalue ref-qualifier, noexcept)
+    template <typename Return, typename Class, typename... Arg, typename... Extra>
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    cpp_function(Return (Class::*f)(Arg...) const && noexcept, const Extra &...extra) {
+        initialize(
+            [f](const Class *c, Arg... args) -> Return {
+                return (std::move(*c).*f)(std::forward<Arg>(args)...);
+            },
+            (Return (*)(const Class *, Arg...)) nullptr,
+            extra...);
     }
 #endif
 
@@ -1922,6 +1970,49 @@ inline void add_class_method(object &cls, const char *name_, const cpp_function 
     }
 }
 
+/// Type trait to rebind a member function pointer's class to `Derived`, preserving all
+/// cv/ref/noexcept qualifiers. The primary template has no `type` member, providing SFINAE
+/// failure for unsupported member function pointer types. `source_class` holds the original
+/// class for use in `is_accessible_base_of` checks.
+template <typename Derived, typename T>
+struct rebind_member_ptr {};
+
+// Define one specialization per supported qualifier combination via a local macro.
+#define PYBIND11_REBIND_MEMBER_PTR(qualifiers)                                                    \
+    template <typename Derived, typename Return, typename Class, typename... Args>                \
+    struct rebind_member_ptr<Derived, Return (Class::*)(Args...) qualifiers> {                    \
+        using type = Return (Derived::*)(Args...) qualifiers;                                     \
+        using source_class = Class;                                                               \
+    }
+PYBIND11_REBIND_MEMBER_PTR();
+PYBIND11_REBIND_MEMBER_PTR(const);
+PYBIND11_REBIND_MEMBER_PTR(&);
+PYBIND11_REBIND_MEMBER_PTR(const &);
+PYBIND11_REBIND_MEMBER_PTR(&&);
+PYBIND11_REBIND_MEMBER_PTR(const &&);
+#ifdef __cpp_noexcept_function_type
+PYBIND11_REBIND_MEMBER_PTR(noexcept);
+PYBIND11_REBIND_MEMBER_PTR(const noexcept);
+PYBIND11_REBIND_MEMBER_PTR(& noexcept);
+PYBIND11_REBIND_MEMBER_PTR(const & noexcept);
+PYBIND11_REBIND_MEMBER_PTR(&& noexcept);
+PYBIND11_REBIND_MEMBER_PTR(const && noexcept);
+#endif
+#undef PYBIND11_REBIND_MEMBER_PTR
+
+/// Shared implementation body for all method_adaptor member-function-pointer overloads.
+/// Asserts Base is accessible from Derived, then casts the member pointer.
+template <typename Derived,
+          typename T,
+          typename Traits = rebind_member_ptr<Derived, T>,
+          typename Adapted = typename Traits::type>
+PYBIND11_ALWAYS_INLINE Adapted adapt_member_ptr(T pmf) {
+    static_assert(
+        is_accessible_base_of<typename Traits::source_class, Derived>::value,
+        "Cannot bind an inaccessible base class method; use a lambda definition instead");
+    return pmf;
+}
+
 PYBIND11_NAMESPACE_END(detail)
 
 /// Given a pointer to a member function, cast it to its `Derived` version.
@@ -1931,76 +2022,30 @@ auto method_adaptor(F &&f) -> decltype(std::forward<F>(f)) {
     return std::forward<F>(f);
 }
 
-template <typename Derived, typename Return, typename Class, typename... Args>
-auto method_adaptor(Return (Class::*pmf)(Args...)) -> Return (Derived::*)(Args...) {
-    static_assert(
-        detail::is_accessible_base_of<Class, Derived>::value,
-        "Cannot bind an inaccessible base class method; use a lambda definition instead");
-    return pmf;
-}
-
-template <typename Derived, typename Return, typename Class, typename... Args>
-auto method_adaptor(Return (Class::*pmf)(Args...) const) -> Return (Derived::*)(Args...) const {
-    static_assert(
-        detail::is_accessible_base_of<Class, Derived>::value,
-        "Cannot bind an inaccessible base class method; use a lambda definition instead");
-    return pmf;
-}
-
-template <typename Derived, typename Return, typename Class, typename... Args>
-auto method_adaptor(Return (Class::*pmf)(Args...) &) -> Return (Derived::*)(Args...) & {
-    static_assert(
-        detail::is_accessible_base_of<Class, Derived>::value,
-        "Cannot bind an inaccessible base class method; use a lambda definition instead");
-    return pmf;
-}
-
-template <typename Derived, typename Return, typename Class, typename... Args>
-auto method_adaptor(Return (Class::*pmf)(Args...) const &)
-    -> Return (Derived::*)(Args...) const & {
-    static_assert(
-        detail::is_accessible_base_of<Class, Derived>::value,
-        "Cannot bind an inaccessible base class method; use a lambda definition instead");
-    return pmf;
-}
-
+// One thin overload per supported member-function-pointer qualifier combination.
+// Specific parameter types are required so partial ordering prefers these over the F&& fallback.
+// The shared body (static_assert + implicit cast) lives in detail::adapt_member_ptr.
+#define PYBIND11_METHOD_ADAPTOR(qualifiers)                                                       \
+    template <typename Derived, typename Return, typename Class, typename... Args>                \
+    auto method_adaptor(Return (Class::*pmf)(Args...) qualifiers) -> Return (Derived::*)(Args...) \
+        qualifiers {                                                                              \
+        return detail::adapt_member_ptr<Derived>(pmf);                                            \
+    }
+PYBIND11_METHOD_ADAPTOR()
+PYBIND11_METHOD_ADAPTOR(const)
+PYBIND11_METHOD_ADAPTOR(&)
+PYBIND11_METHOD_ADAPTOR(const &)
+PYBIND11_METHOD_ADAPTOR(&&)
+PYBIND11_METHOD_ADAPTOR(const &&)
 #ifdef __cpp_noexcept_function_type
-template <typename Derived, typename Return, typename Class, typename... Args>
-auto method_adaptor(Return (Class::*pmf)(Args...) noexcept)
-    -> Return (Derived::*)(Args...) noexcept {
-    static_assert(
-        detail::is_accessible_base_of<Class, Derived>::value,
-        "Cannot bind an inaccessible base class method; use a lambda definition instead");
-    return pmf;
-}
-
-template <typename Derived, typename Return, typename Class, typename... Args>
-auto method_adaptor(Return (Class::*pmf)(Args...) const noexcept)
-    -> Return (Derived::*)(Args...) const noexcept {
-    static_assert(
-        detail::is_accessible_base_of<Class, Derived>::value,
-        "Cannot bind an inaccessible base class method; use a lambda definition instead");
-    return pmf;
-}
-
-template <typename Derived, typename Return, typename Class, typename... Args>
-auto method_adaptor(Return (Class::*pmf)(Args...) & noexcept)
-    -> Return (Derived::*)(Args...) & noexcept {
-    static_assert(
-        detail::is_accessible_base_of<Class, Derived>::value,
-        "Cannot bind an inaccessible base class method; use a lambda definition instead");
-    return pmf;
-}
-
-template <typename Derived, typename Return, typename Class, typename... Args>
-auto method_adaptor(Return (Class::*pmf)(Args...) const & noexcept)
-    -> Return (Derived::*)(Args...) const & noexcept {
-    static_assert(
-        detail::is_accessible_base_of<Class, Derived>::value,
-        "Cannot bind an inaccessible base class method; use a lambda definition instead");
-    return pmf;
-}
+PYBIND11_METHOD_ADAPTOR(noexcept)
+PYBIND11_METHOD_ADAPTOR(const noexcept)
+PYBIND11_METHOD_ADAPTOR(& noexcept)
+PYBIND11_METHOD_ADAPTOR(const & noexcept)
+PYBIND11_METHOD_ADAPTOR(&& noexcept)
+PYBIND11_METHOD_ADAPTOR(const && noexcept)
 #endif
+#undef PYBIND11_METHOD_ADAPTOR
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
