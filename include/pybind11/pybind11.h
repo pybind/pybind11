@@ -1980,6 +1980,13 @@ struct rebind_member_ptr {};
 // Define one specialization per supported qualifier combination via a local macro.
 // The qualifiers argument appears in type position, not expression position, so
 // parenthesizing it would produce invalid C++.
+// The no-qualifier specialization is written out explicitly to avoid invoking the macro with an
+// empty argument, which triggers MSVC warning C4003.
+template <typename Derived, typename Return, typename Class, typename... Args>
+struct rebind_member_ptr<Derived, Return (Class::*)(Args...)> {
+    using type = Return (Derived::*)(Args...);
+    using source_class = Class;
+};
 // NOLINTBEGIN(bugprone-macro-parentheses)
 #define PYBIND11_REBIND_MEMBER_PTR(qualifiers)                                                    \
     template <typename Derived, typename Return, typename Class, typename... Args>                \
@@ -1987,7 +1994,6 @@ struct rebind_member_ptr {};
         using type = Return (Derived::*)(Args...) qualifiers;                                     \
         using source_class = Class;                                                               \
     }
-PYBIND11_REBIND_MEMBER_PTR();
 PYBIND11_REBIND_MEMBER_PTR(const);
 PYBIND11_REBIND_MEMBER_PTR(&);
 PYBIND11_REBIND_MEMBER_PTR(const &);
@@ -2029,6 +2035,12 @@ constexpr auto method_adaptor(F &&f) -> decltype(std::forward<F>(f)) {
 // One thin overload per supported member-function-pointer qualifier combination.
 // Specific parameter types are required so partial ordering prefers these over the F&& fallback.
 // The shared body (static_assert + implicit cast) lives in detail::adapt_member_ptr.
+// The no-qualifier overload is written out explicitly to avoid invoking the macro with an empty
+// argument, which triggers MSVC warning C4003.
+template <typename Derived, typename Return, typename Class, typename... Args>
+constexpr auto method_adaptor(Return (Class::*pmf)(Args...)) -> Return (Derived::*)(Args...) {
+    return detail::adapt_member_ptr<Derived>(pmf);
+}
 // The qualifiers argument appears in type position, not expression position, so
 // parenthesizing it would produce invalid C++.
 // NOLINTBEGIN(bugprone-macro-parentheses)
@@ -2038,7 +2050,6 @@ constexpr auto method_adaptor(F &&f) -> decltype(std::forward<F>(f)) {
         -> Return (Derived::*)(Args...) qualifiers {                                              \
         return detail::adapt_member_ptr<Derived>(pmf);                                            \
     }
-PYBIND11_METHOD_ADAPTOR()
 PYBIND11_METHOD_ADAPTOR(const)
 PYBIND11_METHOD_ADAPTOR(&)
 PYBIND11_METHOD_ADAPTOR(const &)
