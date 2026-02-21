@@ -1056,14 +1056,30 @@ struct strip_function_object {
     using type = typename remove_class<decltype(&F::operator())>::type;
 };
 
+// Strip noexcept from a free function type (C++17: noexcept is part of the type).
+template <typename T>
+struct remove_noexcept {
+    using type = T;
+};
+#ifdef __cpp_noexcept_function_type
+template <typename R, typename... A>
+struct remove_noexcept<R(A...) noexcept> {
+    using type = R(A...);
+};
+#endif
+template <typename T>
+using remove_noexcept_t = typename remove_noexcept<T>::type;
+
 // Extracts the function signature from a function, function pointer or lambda.
+// Strips noexcept from the result so that factory/pickle_factory partial specializations
+// (which match plain Return(Args...)) work correctly with noexcept callables (issue #2234).
 template <typename Function, typename F = remove_reference_t<Function>>
-using function_signature_t = conditional_t<
+using function_signature_t = remove_noexcept_t<conditional_t<
     std::is_function<F>::value,
     F,
     typename conditional_t<std::is_pointer<F>::value || std::is_member_pointer<F>::value,
                            std::remove_pointer<F>,
-                           strip_function_object<F>>::type>;
+                           strip_function_object<F>>::type>>;
 
 /// Returns true if the type looks like a lambda: that is, isn't a function, pointer or member
 /// pointer.  Note that this can catch all sorts of other things, too; this is intended to be used
@@ -1212,6 +1228,25 @@ struct overload_cast_impl {
         -> decltype(pmf) {
         return pmf;
     }
+
+#ifdef __cpp_noexcept_function_type
+    template <typename Return>
+    constexpr auto operator()(Return (*pf)(Args...) noexcept) const noexcept -> decltype(pf) {
+        return pf;
+    }
+
+    template <typename Return, typename Class>
+    constexpr auto operator()(Return (Class::*pmf)(Args...) noexcept,
+                              std::false_type = {}) const noexcept -> decltype(pmf) {
+        return pmf;
+    }
+
+    template <typename Return, typename Class>
+    constexpr auto operator()(Return (Class::*pmf)(Args...) const noexcept,
+                              std::true_type) const noexcept -> decltype(pmf) {
+        return pmf;
+    }
+#endif
 };
 PYBIND11_NAMESPACE_END(detail)
 

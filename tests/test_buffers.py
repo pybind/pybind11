@@ -399,3 +399,25 @@ def test_to_pybuffer_contiguity(type):
         m.get_py_buffer(dmat, m.PyBUF_ANY_CONTIGUOUS)
     with pytest.raises(expected_exception):
         m.get_py_buffer(dmat, m.PyBUF_F_CONTIGUOUS)
+
+
+def test_noexcept_def_buffer():
+    """Test issue #2234: def_buffer with noexcept member function pointers.
+
+    Covers both new def_buffer specialisations:
+      - def_buffer(Return (Class::*)(Args...) noexcept)
+      - def_buffer(Return (Class::*)(Args...) const noexcept)
+    """
+    # non-const noexcept member function form
+    buf = m.OneDBuffer(5)
+    arr = np.frombuffer(buf, dtype=np.float32)
+    assert arr.shape == (5,)
+    arr[2] = 3.14
+    arr2 = np.frombuffer(buf, dtype=np.float32)
+    assert arr2[2] == pytest.approx(3.14)
+
+    # const noexcept member function form
+    cbuf = m.OneDBufferConst(4)
+    carr = np.frombuffer(cbuf, dtype=np.float32)
+    assert carr.shape == (4,)
+    assert carr.flags["WRITEABLE"] is False

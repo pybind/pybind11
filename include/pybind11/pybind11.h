@@ -370,6 +370,96 @@ public:
                    extra...);
     }
 
+    /// Construct a cpp_function from a class method (non-const, rvalue ref-qualifier)
+    template <typename Return, typename Class, typename... Arg, typename... Extra>
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    cpp_function(Return (Class::*f)(Arg...) &&, const Extra &...extra) {
+        initialize(
+            [f](Class *c, Arg... args) -> Return {
+                return (std::move(*c).*f)(std::forward<Arg>(args)...);
+            },
+            (Return (*)(Class *, Arg...)) nullptr,
+            extra...);
+    }
+
+    /// Construct a cpp_function from a class method (const, rvalue ref-qualifier)
+    template <typename Return, typename Class, typename... Arg, typename... Extra>
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    cpp_function(Return (Class::*f)(Arg...) const &&, const Extra &...extra) {
+        initialize(
+            [f](const Class *c, Arg... args) -> Return {
+                return (std::move(*c).*f)(std::forward<Arg>(args)...);
+            },
+            (Return (*)(const Class *, Arg...)) nullptr,
+            extra...);
+    }
+
+#ifdef __cpp_noexcept_function_type
+    /// Construct a cpp_function from a class method (non-const, no ref-qualifier, noexcept)
+    template <typename Return, typename Class, typename... Arg, typename... Extra>
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    cpp_function(Return (Class::*f)(Arg...) noexcept, const Extra &...extra) {
+        initialize(
+            [f](Class *c, Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
+            (Return (*)(Class *, Arg...)) nullptr,
+            extra...);
+    }
+
+    /// Construct a cpp_function from a class method (non-const, lvalue ref-qualifier, noexcept)
+    template <typename Return, typename Class, typename... Arg, typename... Extra>
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    cpp_function(Return (Class::*f)(Arg...) & noexcept, const Extra &...extra) {
+        initialize(
+            [f](Class *c, Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
+            (Return (*)(Class *, Arg...)) nullptr,
+            extra...);
+    }
+
+    /// Construct a cpp_function from a class method (const, no ref-qualifier, noexcept)
+    template <typename Return, typename Class, typename... Arg, typename... Extra>
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    cpp_function(Return (Class::*f)(Arg...) const noexcept, const Extra &...extra) {
+        initialize([f](const Class *c,
+                       Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
+                   (Return (*)(const Class *, Arg...)) nullptr,
+                   extra...);
+    }
+
+    /// Construct a cpp_function from a class method (const, lvalue ref-qualifier, noexcept)
+    template <typename Return, typename Class, typename... Arg, typename... Extra>
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    cpp_function(Return (Class::*f)(Arg...) const & noexcept, const Extra &...extra) {
+        initialize([f](const Class *c,
+                       Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
+                   (Return (*)(const Class *, Arg...)) nullptr,
+                   extra...);
+    }
+
+    /// Construct a cpp_function from a class method (non-const, rvalue ref-qualifier, noexcept)
+    template <typename Return, typename Class, typename... Arg, typename... Extra>
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    cpp_function(Return (Class::*f)(Arg...) && noexcept, const Extra &...extra) {
+        initialize(
+            [f](Class *c, Arg... args) -> Return {
+                return (std::move(*c).*f)(std::forward<Arg>(args)...);
+            },
+            (Return (*)(Class *, Arg...)) nullptr,
+            extra...);
+    }
+
+    /// Construct a cpp_function from a class method (const, rvalue ref-qualifier, noexcept)
+    template <typename Return, typename Class, typename... Arg, typename... Extra>
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    cpp_function(Return (Class::*f)(Arg...) const && noexcept, const Extra &...extra) {
+        initialize(
+            [f](const Class *c, Arg... args) -> Return {
+                return (std::move(*c).*f)(std::forward<Arg>(args)...);
+            },
+            (Return (*)(const Class *, Arg...)) nullptr,
+            extra...);
+    }
+#endif
+
     /// Return the function name
     object name() const { return attr("__name__"); }
 
@@ -1880,29 +1970,86 @@ inline void add_class_method(object &cls, const char *name_, const cpp_function 
     }
 }
 
+/// Type trait to rebind a member function pointer's class to `Derived`, preserving all
+/// cv/ref/noexcept qualifiers. The primary template has no `type` member, providing SFINAE
+/// failure for unsupported member function pointer types. `source_class` holds the original
+/// class for use in `is_accessible_base_of` checks.
+template <typename Derived, typename T>
+struct rebind_member_ptr {};
+
+// Define one specialization per supported qualifier combination via a local macro.
+// The qualifiers argument appears in type position, not expression position, so
+// parenthesizing it would produce invalid C++.
+// The no-qualifier specialization is written out explicitly to avoid invoking the macro with an
+// empty argument, which triggers MSVC warning C4003.
+template <typename Derived, typename Return, typename Class, typename... Args>
+struct rebind_member_ptr<Derived, Return (Class::*)(Args...)> {
+    using type = Return (Derived::*)(Args...);
+    using source_class = Class;
+};
+// NOLINTBEGIN(bugprone-macro-parentheses)
+#define PYBIND11_REBIND_MEMBER_PTR(qualifiers)                                                    \
+    template <typename Derived, typename Return, typename Class, typename... Args>                \
+    struct rebind_member_ptr<Derived, Return (Class::*)(Args...) qualifiers> {                    \
+        using type = Return (Derived::*)(Args...) qualifiers;                                     \
+        using source_class = Class;                                                               \
+    }
+PYBIND11_REBIND_MEMBER_PTR(const);
+PYBIND11_REBIND_MEMBER_PTR(&);
+PYBIND11_REBIND_MEMBER_PTR(const &);
+PYBIND11_REBIND_MEMBER_PTR(&&);
+PYBIND11_REBIND_MEMBER_PTR(const &&);
+#ifdef __cpp_noexcept_function_type
+PYBIND11_REBIND_MEMBER_PTR(noexcept);
+PYBIND11_REBIND_MEMBER_PTR(const noexcept);
+PYBIND11_REBIND_MEMBER_PTR(& noexcept);
+PYBIND11_REBIND_MEMBER_PTR(const & noexcept);
+PYBIND11_REBIND_MEMBER_PTR(&& noexcept);
+PYBIND11_REBIND_MEMBER_PTR(const && noexcept);
+#endif
+#undef PYBIND11_REBIND_MEMBER_PTR
+// NOLINTEND(bugprone-macro-parentheses)
+
+/// Shared implementation body for all method_adaptor member-function-pointer overloads.
+/// Asserts Base is accessible from Derived, then casts the member pointer.
+template <typename Derived,
+          typename T,
+          typename Traits = rebind_member_ptr<Derived, T>,
+          typename Adapted = typename Traits::type>
+constexpr PYBIND11_ALWAYS_INLINE Adapted adapt_member_ptr(T pmf) {
+    static_assert(
+        detail::is_accessible_base_of<typename Traits::source_class, Derived>::value,
+        "Cannot bind an inaccessible base class method; use a lambda definition instead");
+    return pmf;
+}
+
 PYBIND11_NAMESPACE_END(detail)
 
 /// Given a pointer to a member function, cast it to its `Derived` version.
-/// Forward everything else unchanged.
-template <typename /*Derived*/, typename F>
-auto method_adaptor(F &&f) -> decltype(std::forward<F>(f)) {
+/// For all other callables (lambdas, function pointers, etc.), forward unchanged.
+///
+/// Two overloads cover all cases without explicit per-qualifier instantiations:
+///
+///  (1) Generic fallback — disabled for member function pointers so that (2) wins
+///      without any partial-ordering ambiguity.
+///  (2) MFP overload — SFINAE on rebind_member_ptr::type, which exists for every
+///      supported qualifier combination (const, &, &&, noexcept, ...).  A single
+///      template therefore covers all combinations that rebind_member_ptr handles.
+template <
+    typename /*Derived*/,
+    typename F,
+    detail::enable_if_t<!std::is_member_function_pointer<detail::remove_reference_t<F>>::value,
+                        int>
+    = 0>
+constexpr auto method_adaptor(F &&f) -> decltype(std::forward<F>(f)) {
     return std::forward<F>(f);
 }
 
-template <typename Derived, typename Return, typename Class, typename... Args>
-auto method_adaptor(Return (Class::*pmf)(Args...)) -> Return (Derived::*)(Args...) {
-    static_assert(
-        detail::is_accessible_base_of<Class, Derived>::value,
-        "Cannot bind an inaccessible base class method; use a lambda definition instead");
-    return pmf;
-}
-
-template <typename Derived, typename Return, typename Class, typename... Args>
-auto method_adaptor(Return (Class::*pmf)(Args...) const) -> Return (Derived::*)(Args...) const {
-    static_assert(
-        detail::is_accessible_base_of<Class, Derived>::value,
-        "Cannot bind an inaccessible base class method; use a lambda definition instead");
-    return pmf;
+template <typename Derived,
+          typename T,
+          typename Adapted = typename detail::rebind_member_ptr<Derived, T>::type>
+constexpr Adapted method_adaptor(T pmf) {
+    return detail::adapt_member_ptr<Derived>(pmf);
 }
 
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -2360,6 +2507,18 @@ public:
     class_ &def_buffer(Return (Class::*func)(Args...) const) {
         return def_buffer([func](const type &obj) { return (obj.*func)(); });
     }
+
+#ifdef __cpp_noexcept_function_type
+    template <typename Return, typename Class, typename... Args>
+    class_ &def_buffer(Return (Class::*func)(Args...) noexcept) {
+        return def_buffer([func](type &obj) { return (obj.*func)(); });
+    }
+
+    template <typename Return, typename Class, typename... Args>
+    class_ &def_buffer(Return (Class::*func)(Args...) const noexcept) {
+        return def_buffer([func](const type &obj) { return (obj.*func)(); });
+    }
+#endif
 
     template <typename C, typename D, typename... Extra>
     class_ &def_readwrite(const char *name, D C::*pm, const Extra &...extra) {

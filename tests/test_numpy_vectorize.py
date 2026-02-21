@@ -246,6 +246,22 @@ def test_method_vectorization():
     assert np.all(o.method(x, y) == [[14, 15], [24, 25]])
 
 
+def test_noexcept_method_vectorization():
+    """Test issue #2234: vectorize must handle noexcept member function pointers.
+
+    Covers both new vectorize specialisations:
+      - vectorize(Return (Class::*)(Args...) noexcept)
+      - vectorize(Return (Class::*)(Args...) const noexcept)
+    """
+    o = m.VectorizeTestClass(3)
+    x = np.array([1, 2], dtype="int")
+    y = np.array([[10], [20]], dtype="float32")
+    # vectorize(Return (Class::*)(Args...) noexcept)
+    assert np.all(o.method_noexcept(x, y) == [[14, 15], [24, 25]])
+    # vectorize(Return (Class::*)(Args...) const noexcept)
+    assert np.all(o.method_const_noexcept(x, y) == [[14, 15], [24, 25]])
+
+
 def test_array_collapse():
     assert not isinstance(m.vectorized_func(1, 2, 3), np.ndarray)
     assert not isinstance(m.vectorized_func(np.array(1), 2, 3), np.ndarray)

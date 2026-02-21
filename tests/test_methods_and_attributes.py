@@ -517,6 +517,82 @@ def test_unregistered_base_implementations():
     assert a.ro_value_prop == 1.75
 
 
+def test_noexcept_base():
+    """Test issue #2234: binding noexcept methods inherited from an unregistered base class.
+
+    In C++17 noexcept is part of the function type, so &Derived::noexcept_method resolves
+    to a Base member-function pointer with noexcept specifier.  pybind11 must use the Derived
+    type as `self`, not the Base type, otherwise the call raises TypeError at runtime.
+
+    Covers all four new cpp_function constructor specialisations:
+      - Return (Class::*)(Args...) noexcept          (set_value)
+      - Return (Class::*)(Args...) const noexcept    (value)
+      - Return (Class::*)(Args...) & noexcept        (increment)
+      - Return (Class::*)(Args...) const & noexcept  (capped_value)
+    """
+    obj = m.NoexceptDerived()
+    # const noexcept
+    assert obj.value() == 99
+    # noexcept (non-const)
+    obj.set_value(7)
+    assert obj.value() == 7
+    # & noexcept (non-const lvalue ref-qualified)
+    obj.increment()
+    assert obj.value() == 8
+    # const & noexcept (const lvalue ref-qualified)
+    assert obj.capped_value() == 8
+    obj.set_value(200)
+    assert obj.capped_value() == 100  # capped at 100
+
+
+def test_rvalue_ref_qualified_methods():
+    """Test that rvalue-ref-qualified (&&/const&&) methods from an unregistered base bind
+    correctly with `self` resolved to the derived type.
+
+    take() moves m_payload out on each call, so the second call returns "".
+    This confirms that the cpp_function lambda uses std::move(*c).*f rather than c->*f.
+
+    Covers:
+      - Return (Class::*)(Args...) &&              (take)
+      - Return (Class::*)(Args...) const &&        (peek)
+      - Return (Class::*)(Args...) && noexcept     (take_noexcept, C++17 only)
+      - Return (Class::*)(Args...) const && noexcept (peek_noexcept, C++17 only)
+    """
+    obj = m.RValueRefDerived()
+    # && moves m_payload: first call gets the value, second gets empty string
+    assert obj.take() == "rref_payload"
+    assert obj.take() == ""
+    # const && doesn't move: peek() is stable across calls
+    assert obj.peek() == 77
+    assert obj.peek() == 77
+    # noexcept variants are bound only under C++17; skip gracefully if absent
+    if hasattr(obj, "take_noexcept"):
+        obj2 = m.RValueRefDerived()
+        assert obj2.take_noexcept() == "rref_payload"
+        assert obj2.take_noexcept() == ""
+    if hasattr(obj, "peek_noexcept"):
+        assert obj.peek_noexcept() == 77
+        assert obj.peek_noexcept() == 77
+
+
+def test_noexcept_overload_cast():
+    """Test issue #2234: overload_cast must handle noexcept member and free function pointers.
+
+    In C++17 noexcept is part of the function type, so overload_cast_impl needs dedicated
+    operator() overloads for noexcept free functions and non-const/const member functions.
+    """
+    obj = m.NoexceptOverloaded()
+    # overload_cast_impl::operator()(Return (Class::*)(Args...) noexcept, false_type)
+    assert obj.method(1) == "(int)"
+    # overload_cast_impl::operator()(Return (Class::*)(Args...) const noexcept, true_type)
+    assert obj.method_const(2) == "(int) const"
+    # overload_cast_impl::operator()(Return (Class::*)(Args...) noexcept, false_type) float
+    assert obj.method_float(3.0) == "(float)"
+    # overload_cast_impl::operator()(Return (*)(Args...) noexcept)
+    assert m.noexcept_free_func(10) == 11
+    assert m.noexcept_free_func_float(10.0) == 12
+
+
 def test_ref_qualified():
     """Tests that explicit lvalue ref-qualified methods can be called just like their
     non ref-qualified counterparts."""

@@ -161,6 +161,68 @@ public:
     double sum() const { return rw_value + ro_value; }
 };
 
+// Issue #2234: noexcept methods in an unregistered base should be bindable on the derived class.
+// In C++17, noexcept is part of the function type, so &Derived::method resolves to
+// a Base member function pointer with noexcept, requiring explicit template specializations.
+class NoexceptUnregisteredBase {
+public:
+    // Exercises cpp_function(Return (Class::*)(Args...) const noexcept, ...)
+    int value() const noexcept { return m_value; }
+    // Exercises cpp_function(Return (Class::*)(Args...) noexcept, ...)
+    void set_value(int v) noexcept { m_value = v; }
+    // Exercises cpp_function(Return (Class::*)(Args...) & noexcept, ...)
+    void increment() & noexcept { ++m_value; }
+    // Exercises cpp_function(Return (Class::*)(Args...) const & noexcept, ...)
+    int capped_value() const & noexcept { return m_value < 100 ? m_value : 100; }
+
+private:
+    int m_value = 99;
+};
+class NoexceptDerived : public NoexceptUnregisteredBase {
+public:
+    using NoexceptUnregisteredBase::NoexceptUnregisteredBase;
+};
+
+// Exercises cpp_function(Return (Class::*)(Args...) &&, ...) and
+// cpp_function(Return (Class::*)(Args...) const &&, ...) via an unregistered base.
+class RValueRefUnregisteredBase {
+public:
+    // Exercises cpp_function(Return (Class::*)(Args...) &&, ...).
+    // Moves m_payload to verify that std::move(*c).*f is used in the lambda body.
+    std::string take() && { // NOLINT(readability-make-member-function-const)
+        return std::move(m_payload);
+    }
+    // Exercises cpp_function(Return (Class::*)(Args...) const &&, ...)
+    int peek() const && { return m_value; }
+#ifdef __cpp_noexcept_function_type
+    // Exercises cpp_function(Return (Class::*)(Args...) && noexcept, ...)
+    std::string take_noexcept() && noexcept { // NOLINT(readability-make-member-function-const)
+        return std::move(m_payload);
+    }
+    // Exercises cpp_function(Return (Class::*)(Args...) const && noexcept, ...)
+    int peek_noexcept() const && noexcept { return m_value; }
+#endif
+
+private:
+    int m_value = 77;
+    std::string m_payload{"rref_payload"};
+};
+class RValueRefDerived : public RValueRefUnregisteredBase {
+public:
+    using RValueRefUnregisteredBase::RValueRefUnregisteredBase;
+};
+
+// Exercises overload_cast with noexcept member function pointers (issue #2234).
+// In C++17, overload_cast must have noexcept variants to resolve noexcept overloads.
+struct NoexceptOverloaded {
+    py::str method(int) noexcept { return "(int)"; }
+    py::str method(int) const noexcept { return "(int) const"; }
+    py::str method(float) noexcept { return "(float)"; }
+};
+// Exercises overload_cast with noexcept free function pointers.
+int noexcept_free_func(int x) noexcept { return x + 1; }
+int noexcept_free_func(float x) noexcept { return static_cast<int>(x) + 2; }
+
 // Test explicit lvalue ref-qualification
 struct RefQualified {
     int value = 0;
@@ -473,6 +535,105 @@ TEST_SUBMODULE(methods_and_attributes, m) {
     using Adapted
         = decltype(py::method_adaptor<RegisteredDerived>(&RegisteredDerived::do_nothing));
     static_assert(std::is_same<Adapted, void (RegisteredDerived::*)() const>::value, "");
+
+    // test_noexcept_base (issue #2234)
+    // In C++17, noexcept is part of the function type. Binding a noexcept method from an
+    // unregistered base class must resolve `self` to the derived type, not the base type.
+    py::class_<NoexceptDerived>(m, "NoexceptDerived")
+        .def(py::init<>())
+        // cpp_function(Return (Class::*)(Args...) const noexcept, ...)
+        .def("value", &NoexceptDerived::value)
+        // cpp_function(Return (Class::*)(Args...) noexcept, ...)
+        .def("set_value", &NoexceptDerived::set_value)
+        // cpp_function(Return (Class::*)(Args...) & noexcept, ...)
+        .def("increment", &NoexceptDerived::increment)
+        // cpp_function(Return (Class::*)(Args...) const & noexcept, ...)
+        .def("capped_value", &NoexceptDerived::capped_value);
+
+    // test_rvalue_ref_qualified_methods: rvalue-ref-qualified methods from an unregistered base.
+    // method_adaptor must rebind &&/const&& member pointers to the derived type.
+    py::class_<RValueRefDerived>(m, "RValueRefDerived")
+        .def(py::init<>())
+        // cpp_function(Return (Class::*)(Args...) &&, ...)
+        .def("take", &RValueRefDerived::take)
+        // cpp_function(Return (Class::*)(Args...) const &&, ...)
+        .def("peek", &RValueRefDerived::peek)
+#ifdef __cpp_noexcept_function_type
+        // cpp_function(Return (Class::*)(Args...) && noexcept, ...)
+        .def("take_noexcept", &RValueRefDerived::take_noexcept)
+        // cpp_function(Return (Class::*)(Args...) const && noexcept, ...)
+        .def("peek_noexcept", &RValueRefDerived::peek_noexcept)
+#endif
+        ;
+
+    // Verify that &&-qualified methods cannot be called on lvalues, only on rvalues.
+    // This confirms that the cpp_function lambda must use std::move(*c).*f, not c->*f.
+#if __cplusplus >= 201703L
+    static_assert(!std::is_invocable<std::string (RValueRefUnregisteredBase::*)() &&,
+                                     RValueRefUnregisteredBase &>::value,
+                  "&&-qualified method must not be callable on lvalue");
+    static_assert(std::is_invocable<std::string (RValueRefUnregisteredBase::*)() &&,
+                                    RValueRefUnregisteredBase &&>::value,
+                  "&&-qualified method must be callable on rvalue");
+#endif
+
+    // Verify method_adaptor preserves &&/const&& qualifiers when rebinding.
+    using AdaptedRRef = decltype(py::method_adaptor<RValueRefDerived>(&RValueRefDerived::take));
+    static_assert(std::is_same<AdaptedRRef, std::string (RValueRefDerived::*)() &&>::value, "");
+    using AdaptedConstRRef
+        = decltype(py::method_adaptor<RValueRefDerived>(&RValueRefDerived::peek));
+    static_assert(std::is_same<AdaptedConstRRef, int (RValueRefDerived::*)() const &&>::value, "");
+
+#ifdef __cpp_noexcept_function_type
+    // method_adaptor must also handle noexcept member function pointers (issue #2234).
+    // Verify the noexcept specifier is preserved in the resulting Derived pointer type.
+    using AdaptedConstNoexcept
+        = decltype(py::method_adaptor<NoexceptDerived>(&NoexceptDerived::value));
+    static_assert(
+        std::is_same<AdaptedConstNoexcept, int (NoexceptDerived::*)() const noexcept>::value, "");
+    using AdaptedNoexcept
+        = decltype(py::method_adaptor<NoexceptDerived>(&NoexceptDerived::set_value));
+    static_assert(std::is_same<AdaptedNoexcept, void (NoexceptDerived::*)(int) noexcept>::value,
+                  "");
+    using AdaptedRRefNoexcept
+        = decltype(py::method_adaptor<RValueRefDerived>(&RValueRefDerived::take_noexcept));
+    static_assert(std::is_same < AdaptedRRefNoexcept,
+                  std::string (RValueRefDerived::*)() && noexcept > ::value,
+                  "");
+    using AdaptedConstRRefNoexcept
+        = decltype(py::method_adaptor<RValueRefDerived>(&RValueRefDerived::peek_noexcept));
+    static_assert(std::is_same < AdaptedConstRRefNoexcept,
+                  int (RValueRefDerived::*)() const && noexcept > ::value,
+                  "");
+#endif
+
+    // test_noexcept_overload_cast (issue #2234)
+    // overload_cast must have noexcept operator() overloads so it can resolve noexcept methods.
+#ifdef PYBIND11_OVERLOAD_CAST
+    py::class_<NoexceptOverloaded>(m, "NoexceptOverloaded")
+        .def(py::init<>())
+        // overload_cast_impl::operator()(Return (Class::*)(Args...) noexcept, false_type)
+        .def("method", py::overload_cast<int>(&NoexceptOverloaded::method))
+        // overload_cast_impl::operator()(Return (Class::*)(Args...) const noexcept, true_type)
+        .def("method_const", py::overload_cast<int>(&NoexceptOverloaded::method, py::const_))
+        // overload_cast_impl::operator()(Return (Class::*)(Args...) noexcept, false_type) float
+        .def("method_float", py::overload_cast<float>(&NoexceptOverloaded::method));
+    // overload_cast_impl::operator()(Return (*)(Args...) noexcept)
+    m.def("noexcept_free_func", py::overload_cast<int>(noexcept_free_func));
+    m.def("noexcept_free_func_float", py::overload_cast<float>(noexcept_free_func));
+#else
+    // Fallback using explicit static_cast for C++11/14
+    py::class_<NoexceptOverloaded>(m, "NoexceptOverloaded")
+        .def(py::init<>())
+        .def("method",
+             static_cast<py::str (NoexceptOverloaded::*)(int)>(&NoexceptOverloaded::method))
+        .def("method_const",
+             static_cast<py::str (NoexceptOverloaded::*)(int) const>(&NoexceptOverloaded::method))
+        .def("method_float",
+             static_cast<py::str (NoexceptOverloaded::*)(float)>(&NoexceptOverloaded::method));
+    m.def("noexcept_free_func", static_cast<int (*)(int)>(noexcept_free_func));
+    m.def("noexcept_free_func_float", static_cast<int (*)(float)>(noexcept_free_func));
+#endif
 
     // test_methods_and_attributes
     py::class_<RefQualified>(m, "RefQualified")
