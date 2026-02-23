@@ -1229,29 +1229,22 @@ struct overload_cast_impl {
         return pmf;
     }
 
-    template <typename Return, typename Class>
-    constexpr auto operator()(Return (Class::*pmf)(Args...) &, std::false_type = {}) const noexcept
-        -> decltype(pmf) {
-        return pmf;
+    // Define const/non-const member-pointer selector pairs for qualifier combinations.
+    // The `qualifiers` parameter is used in type position, where extra parentheses are invalid.
+    // NOLINTBEGIN(bugprone-macro-parentheses)
+#define PYBIND11_OVERLOAD_CAST_MEMBER_PTR(qualifiers)                                             \
+    template <typename Return, typename Class>                                                    \
+    constexpr auto operator()(Return (Class::*pmf)(Args...) qualifiers, std::false_type = {})     \
+        const noexcept -> decltype(pmf) {                                                         \
+        return pmf;                                                                               \
+    }                                                                                             \
+    template <typename Return, typename Class>                                                    \
+    constexpr auto operator()(Return (Class::*pmf)(Args...) const qualifiers, std::true_type)     \
+        const noexcept -> decltype(pmf) {                                                         \
+        return pmf;                                                                               \
     }
-
-    template <typename Return, typename Class>
-    constexpr auto operator()(Return (Class::*pmf)(Args...) const &, std::true_type) const noexcept
-        -> decltype(pmf) {
-        return pmf;
-    }
-
-    template <typename Return, typename Class>
-    constexpr auto operator()(Return (Class::*pmf)(Args...) &&,
-                              std::false_type = {}) const noexcept -> decltype(pmf) {
-        return pmf;
-    }
-
-    template <typename Return, typename Class>
-    constexpr auto operator()(Return (Class::*pmf)(Args...) const &&,
-                              std::true_type) const noexcept -> decltype(pmf) {
-        return pmf;
-    }
+    PYBIND11_OVERLOAD_CAST_MEMBER_PTR(&)
+    PYBIND11_OVERLOAD_CAST_MEMBER_PTR(&&)
 
 #ifdef __cpp_noexcept_function_type
     template <typename Return>
@@ -1259,42 +1252,12 @@ struct overload_cast_impl {
         return pf;
     }
 
-    template <typename Return, typename Class>
-    constexpr auto operator()(Return (Class::*pmf)(Args...) noexcept,
-                              std::false_type = {}) const noexcept -> decltype(pmf) {
-        return pmf;
-    }
-
-    template <typename Return, typename Class>
-    constexpr auto operator()(Return (Class::*pmf)(Args...) const noexcept,
-                              std::true_type) const noexcept -> decltype(pmf) {
-        return pmf;
-    }
-
-    template <typename Return, typename Class>
-    constexpr auto operator()(Return (Class::*pmf)(Args...) & noexcept,
-                              std::false_type = {}) const noexcept -> decltype(pmf) {
-        return pmf;
-    }
-
-    template <typename Return, typename Class>
-    constexpr auto operator()(Return (Class::*pmf)(Args...) const & noexcept,
-                              std::true_type) const noexcept -> decltype(pmf) {
-        return pmf;
-    }
-
-    template <typename Return, typename Class>
-    constexpr auto operator()(Return (Class::*pmf)(Args...) && noexcept,
-                              std::false_type = {}) const noexcept -> decltype(pmf) {
-        return pmf;
-    }
-
-    template <typename Return, typename Class>
-    constexpr auto operator()(Return (Class::*pmf)(Args...) const && noexcept,
-                              std::true_type) const noexcept -> decltype(pmf) {
-        return pmf;
-    }
+    PYBIND11_OVERLOAD_CAST_MEMBER_PTR(noexcept)
+    PYBIND11_OVERLOAD_CAST_MEMBER_PTR(& noexcept)
+    PYBIND11_OVERLOAD_CAST_MEMBER_PTR(&& noexcept)
 #endif
+#undef PYBIND11_OVERLOAD_CAST_MEMBER_PTR
+    // NOLINTEND(bugprone-macro-parentheses)
 };
 PYBIND11_NAMESPACE_END(detail)
 
