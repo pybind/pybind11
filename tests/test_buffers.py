@@ -421,3 +421,42 @@ def test_noexcept_def_buffer():
     carr = np.frombuffer(cbuf, dtype=np.float32)
     assert carr.shape == (4,)
     assert carr.flags["WRITEABLE"] is False
+
+
+def test_ref_qualified_def_buffer():
+    """Test issue #2234 follow-up: def_buffer with ref-qualified member function pointers.
+
+    Covers:
+      - def_buffer(Return (Class::*)(Args...) &)
+      - def_buffer(Return (Class::*)(Args...) const &)
+      - def_buffer(Return (Class::*)(Args...) & noexcept)
+      - def_buffer(Return (Class::*)(Args...) const & noexcept)
+    """
+    # non-const lvalue ref-qualified member function form
+    buf = m.OneDBufferLRef(5)
+    arr = np.frombuffer(buf, dtype=np.float32)
+    assert arr.shape == (5,)
+    arr[1] = 2.5
+    arr2 = np.frombuffer(buf, dtype=np.float32)
+    assert arr2[1] == pytest.approx(2.5)
+
+    # const lvalue ref-qualified member function form
+    cbuf = m.OneDBufferConstLRef(4)
+    carr = np.frombuffer(cbuf, dtype=np.float32)
+    assert carr.shape == (4,)
+    assert carr.flags["WRITEABLE"] is False
+
+    # noexcept ref-qualified forms are available only when noexcept is part of function type
+    if hasattr(m, "OneDBufferLRefNoexcept"):
+        nbuf = m.OneDBufferLRefNoexcept(3)
+        narr = np.frombuffer(nbuf, dtype=np.float32)
+        assert narr.shape == (3,)
+        narr[2] = 7.0
+        narr2 = np.frombuffer(nbuf, dtype=np.float32)
+        assert narr2[2] == pytest.approx(7.0)
+
+    if hasattr(m, "OneDBufferConstLRefNoexcept"):
+        ncbuf = m.OneDBufferConstLRefNoexcept(2)
+        ncarr = np.frombuffer(ncbuf, dtype=np.float32)
+        assert ncarr.shape == (2,)
+        assert ncarr.flags["WRITEABLE"] is False

@@ -1229,6 +1229,30 @@ struct overload_cast_impl {
         return pmf;
     }
 
+    template <typename Return, typename Class>
+    constexpr auto operator()(Return (Class::*pmf)(Args...) &, std::false_type = {}) const noexcept
+        -> decltype(pmf) {
+        return pmf;
+    }
+
+    template <typename Return, typename Class>
+    constexpr auto operator()(Return (Class::*pmf)(Args...) const &, std::true_type) const noexcept
+        -> decltype(pmf) {
+        return pmf;
+    }
+
+    template <typename Return, typename Class>
+    constexpr auto operator()(Return (Class::*pmf)(Args...) &&,
+                              std::false_type = {}) const noexcept -> decltype(pmf) {
+        return pmf;
+    }
+
+    template <typename Return, typename Class>
+    constexpr auto operator()(Return (Class::*pmf)(Args...) const &&,
+                              std::true_type) const noexcept -> decltype(pmf) {
+        return pmf;
+    }
+
 #ifdef __cpp_noexcept_function_type
     template <typename Return>
     constexpr auto operator()(Return (*pf)(Args...) noexcept) const noexcept -> decltype(pf) {
@@ -1243,6 +1267,30 @@ struct overload_cast_impl {
 
     template <typename Return, typename Class>
     constexpr auto operator()(Return (Class::*pmf)(Args...) const noexcept,
+                              std::true_type) const noexcept -> decltype(pmf) {
+        return pmf;
+    }
+
+    template <typename Return, typename Class>
+    constexpr auto operator()(Return (Class::*pmf)(Args...) & noexcept,
+                              std::false_type = {}) const noexcept -> decltype(pmf) {
+        return pmf;
+    }
+
+    template <typename Return, typename Class>
+    constexpr auto operator()(Return (Class::*pmf)(Args...) const & noexcept,
+                              std::true_type) const noexcept -> decltype(pmf) {
+        return pmf;
+    }
+
+    template <typename Return, typename Class>
+    constexpr auto operator()(Return (Class::*pmf)(Args...) && noexcept,
+                              std::false_type = {}) const noexcept -> decltype(pmf) {
+        return pmf;
+    }
+
+    template <typename Return, typename Class>
+    constexpr auto operator()(Return (Class::*pmf)(Args...) const && noexcept,
                               std::true_type) const noexcept -> decltype(pmf) {
         return pmf;
     }

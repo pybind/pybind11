@@ -2508,6 +2508,16 @@ public:
         return def_buffer([func](const type &obj) { return (obj.*func)(); });
     }
 
+    template <typename Return, typename Class, typename... Args>
+    class_ &def_buffer(Return (Class::*func)(Args...) &) {
+        return def_buffer([func](type &obj) { return (obj.*func)(); });
+    }
+
+    template <typename Return, typename Class, typename... Args>
+    class_ &def_buffer(Return (Class::*func)(Args...) const &) {
+        return def_buffer([func](const type &obj) { return (obj.*func)(); });
+    }
+
 #ifdef __cpp_noexcept_function_type
     template <typename Return, typename Class, typename... Args>
     class_ &def_buffer(Return (Class::*func)(Args...) noexcept) {
@@ -2516,6 +2526,16 @@ public:
 
     template <typename Return, typename Class, typename... Args>
     class_ &def_buffer(Return (Class::*func)(Args...) const noexcept) {
+        return def_buffer([func](const type &obj) { return (obj.*func)(); });
+    }
+
+    template <typename Return, typename Class, typename... Args>
+    class_ &def_buffer(Return (Class::*func)(Args...) & noexcept) {
+        return def_buffer([func](type &obj) { return (obj.*func)(); });
+    }
+
+    template <typename Return, typename Class, typename... Args>
+    class_ &def_buffer(Return (Class::*func)(Args...) const & noexcept) {
         return def_buffer([func](const type &obj) { return (obj.*func)(); });
     }
 #endif

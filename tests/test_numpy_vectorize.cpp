@@ -78,6 +78,11 @@ TEST_SUBMODULE(numpy_vectorize, m) {
     struct VectorizeTestClass {
         explicit VectorizeTestClass(int v) : value{v} {};
         float method(int x, float y) const { return y + (float) (x + value); }
+        // Exercises vectorize(Return (Class::*)(Args...) &)
+        // NOLINTNEXTLINE(readability-make-member-function-const)
+        float method_lref(int x, float y) & { return y + (float) (x + value); }
+        // Exercises vectorize(Return (Class::*)(Args...) const &)
+        float method_const_lref(int x, float y) const & { return y + (float) (x + value); }
         // Exercises vectorize(Return (Class::*)(Args...) noexcept)
         // NOLINTNEXTLINE(readability-make-member-function-const)
         float method_noexcept(int x, float y) noexcept { return y + (float) (x + value); }
@@ -85,6 +90,15 @@ TEST_SUBMODULE(numpy_vectorize, m) {
         float method_const_noexcept(int x, float y) const noexcept {
             return y + (float) (x + value);
         }
+#ifdef __cpp_noexcept_function_type
+        // Exercises vectorize(Return (Class::*)(Args...) & noexcept)
+        // NOLINTNEXTLINE(readability-make-member-function-const)
+        float method_lref_noexcept(int x, float y) & noexcept { return y + (float) (x + value); }
+        // Exercises vectorize(Return (Class::*)(Args...) const & noexcept)
+        float method_const_lref_noexcept(int x, float y) const & noexcept {
+            return y + (float) (x + value);
+        }
+#endif
         int value = 0;
     };
     py::class_<VectorizeTestClass> vtc(m, "VectorizeTestClass");
@@ -92,8 +106,15 @@ TEST_SUBMODULE(numpy_vectorize, m) {
 
     // Automatic vectorizing of methods
     vtc.def("method", py::vectorize(&VectorizeTestClass::method));
+    vtc.def("method_lref", py::vectorize(&VectorizeTestClass::method_lref));
+    vtc.def("method_const_lref", py::vectorize(&VectorizeTestClass::method_const_lref));
     vtc.def("method_noexcept", py::vectorize(&VectorizeTestClass::method_noexcept));
     vtc.def("method_const_noexcept", py::vectorize(&VectorizeTestClass::method_const_noexcept));
+#ifdef __cpp_noexcept_function_type
+    vtc.def("method_lref_noexcept", py::vectorize(&VectorizeTestClass::method_lref_noexcept));
+    vtc.def("method_const_lref_noexcept",
+            py::vectorize(&VectorizeTestClass::method_const_lref_noexcept));
+#endif
 
     // test_trivial_broadcasting
     // Internal optimization test for whether the input is trivially broadcastable:

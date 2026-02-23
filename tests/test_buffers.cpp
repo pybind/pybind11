@@ -485,4 +485,87 @@ TEST_SUBMODULE(buffers, m) {
     py::class_<OneDBufferConst>(m, "OneDBufferConst", py::buffer_protocol())
         .def(py::init<py::ssize_t>())
         .def_buffer(&OneDBufferConst::get_buffer);
+
+    // test_ref_qualified_def_buffer
+    struct OneDBufferLRef {
+        float *m_data;
+        py::ssize_t m_n;
+        explicit OneDBufferLRef(py::ssize_t n) : m_data(new float[(size_t) n]()), m_n(n) {}
+        ~OneDBufferLRef() { delete[] m_data; }
+        // Exercises def_buffer(Return (Class::*)(Args...) &)
+        py::buffer_info get_buffer() & {
+            return py::buffer_info(m_data,
+                                   sizeof(float),
+                                   py::format_descriptor<float>::format(),
+                                   1,
+                                   {m_n},
+                                   {(py::ssize_t) sizeof(float)});
+        }
+    };
+    py::class_<OneDBufferLRef>(m, "OneDBufferLRef", py::buffer_protocol())
+        .def(py::init<py::ssize_t>())
+        .def_buffer(&OneDBufferLRef::get_buffer);
+
+    struct OneDBufferConstLRef {
+        float *m_data;
+        py::ssize_t m_n;
+        explicit OneDBufferConstLRef(py::ssize_t n) : m_data(new float[(size_t) n]()), m_n(n) {}
+        ~OneDBufferConstLRef() { delete[] m_data; }
+        // Exercises def_buffer(Return (Class::*)(Args...) const &)
+        py::buffer_info get_buffer() const & {
+            return py::buffer_info(m_data,
+                                   sizeof(float),
+                                   py::format_descriptor<float>::format(),
+                                   1,
+                                   {m_n},
+                                   {(py::ssize_t) sizeof(float)},
+                                   /*readonly=*/true);
+        }
+    };
+    py::class_<OneDBufferConstLRef>(m, "OneDBufferConstLRef", py::buffer_protocol())
+        .def(py::init<py::ssize_t>())
+        .def_buffer(&OneDBufferConstLRef::get_buffer);
+
+#ifdef __cpp_noexcept_function_type
+    struct OneDBufferLRefNoexcept {
+        float *m_data;
+        py::ssize_t m_n;
+        explicit OneDBufferLRefNoexcept(py::ssize_t n) : m_data(new float[(size_t) n]()), m_n(n) {}
+        ~OneDBufferLRefNoexcept() { delete[] m_data; }
+        // Exercises def_buffer(Return (Class::*)(Args...) & noexcept)
+        py::buffer_info get_buffer() & noexcept {
+            return py::buffer_info(m_data,
+                                   sizeof(float),
+                                   py::format_descriptor<float>::format(),
+                                   1,
+                                   {m_n},
+                                   {(py::ssize_t) sizeof(float)});
+        }
+    };
+    py::class_<OneDBufferLRefNoexcept>(m, "OneDBufferLRefNoexcept", py::buffer_protocol())
+        .def(py::init<py::ssize_t>())
+        .def_buffer(&OneDBufferLRefNoexcept::get_buffer);
+
+    struct OneDBufferConstLRefNoexcept {
+        float *m_data;
+        py::ssize_t m_n;
+        explicit OneDBufferConstLRefNoexcept(py::ssize_t n)
+            : m_data(new float[(size_t) n]()), m_n(n) {}
+        ~OneDBufferConstLRefNoexcept() { delete[] m_data; }
+        // Exercises def_buffer(Return (Class::*)(Args...) const & noexcept)
+        py::buffer_info get_buffer() const & noexcept {
+            return py::buffer_info(m_data,
+                                   sizeof(float),
+                                   py::format_descriptor<float>::format(),
+                                   1,
+                                   {m_n},
+                                   {(py::ssize_t) sizeof(float)},
+                                   /*readonly=*/true);
+        }
+    };
+    py::class_<OneDBufferConstLRefNoexcept>(
+        m, "OneDBufferConstLRefNoexcept", py::buffer_protocol())
+        .def(py::init<py::ssize_t>())
+        .def_buffer(&OneDBufferConstLRefNoexcept::get_buffer);
+#endif
 }

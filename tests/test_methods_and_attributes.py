@@ -593,6 +593,35 @@ def test_noexcept_overload_cast():
     assert m.noexcept_free_func_float(10.0) == 12
 
 
+def test_ref_qualified_overload_cast():
+    """Test issue #2234 follow-up: overload_cast with ref-qualified member pointers.
+
+    Covers:
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) &, false_type)
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) const &, true_type)
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) &&, false_type)
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) const &&, true_type)
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) & noexcept, false_type)
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) const & noexcept, true_type)
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) && noexcept, false_type)
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) const && noexcept, true_type)
+    """
+    obj = m.RefQualifiedOverloaded()
+    assert obj.method_lref(1) == "(int) &"
+    assert obj.method_const_lref(1) == "(int) const &"
+    assert obj.method_rref(1.0) == "(float) &&"
+    assert obj.method_const_rref(1.0) == "(float) const &&"
+
+    if hasattr(obj, "method_lref_noexcept"):
+        assert obj.method_lref_noexcept(1) == "(long) & noexcept"
+    if hasattr(obj, "method_const_lref_noexcept"):
+        assert obj.method_const_lref_noexcept(1) == "(long) const & noexcept"
+    if hasattr(obj, "method_rref_noexcept"):
+        assert obj.method_rref_noexcept(1.0) == "(double) && noexcept"
+    if hasattr(obj, "method_const_rref_noexcept"):
+        assert obj.method_const_rref_noexcept(1.0) == "(double) const && noexcept"
+
+
 def test_ref_qualified():
     """Tests that explicit lvalue ref-qualified methods can be called just like their
     non ref-qualified counterparts."""

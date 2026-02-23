@@ -223,6 +223,20 @@ struct NoexceptOverloaded {
 int noexcept_free_func(int x) noexcept { return x + 1; }
 int noexcept_free_func(float x) noexcept { return static_cast<int>(x) + 2; }
 
+// Exercises overload_cast with ref-qualified member function pointers.
+struct RefQualifiedOverloaded {
+    py::str method(int) & { return "(int) &"; }
+    py::str method(int) const & { return "(int) const &"; }
+    py::str method(float) && { return "(float) &&"; }
+    py::str method(float) const && { return "(float) const &&"; }
+#ifdef __cpp_noexcept_function_type
+    py::str method(long) & noexcept { return "(long) & noexcept"; }
+    py::str method(long) const & noexcept { return "(long) const & noexcept"; }
+    py::str method(double) && noexcept { return "(double) && noexcept"; }
+    py::str method(double) const && noexcept { return "(double) const && noexcept"; }
+#endif
+};
+
 // Test explicit lvalue ref-qualification
 struct RefQualified {
     int value = 0;
@@ -621,6 +635,32 @@ TEST_SUBMODULE(methods_and_attributes, m) {
     // overload_cast_impl::operator()(Return (*)(Args...) noexcept)
     m.def("noexcept_free_func", py::overload_cast<int>(noexcept_free_func));
     m.def("noexcept_free_func_float", py::overload_cast<float>(noexcept_free_func));
+
+    py::class_<RefQualifiedOverloaded>(m, "RefQualifiedOverloaded")
+        .def(py::init<>())
+        // overload_cast_impl::operator()(Return (Class::*)(Args...) &, false_type)
+        .def("method_lref", py::overload_cast<int>(&RefQualifiedOverloaded::method))
+        // overload_cast_impl::operator()(Return (Class::*)(Args...) const &, true_type)
+        .def("method_const_lref",
+             py::overload_cast<int>(&RefQualifiedOverloaded::method, py::const_))
+        // overload_cast_impl::operator()(Return (Class::*)(Args...) &&, false_type)
+        .def("method_rref", py::overload_cast<float>(&RefQualifiedOverloaded::method))
+        // overload_cast_impl::operator()(Return (Class::*)(Args...) const &&, true_type)
+        .def("method_const_rref",
+             py::overload_cast<float>(&RefQualifiedOverloaded::method, py::const_))
+#    ifdef __cpp_noexcept_function_type
+        // overload_cast_impl::operator()(Return (Class::*)(Args...) & noexcept, false_type)
+        .def("method_lref_noexcept", py::overload_cast<long>(&RefQualifiedOverloaded::method))
+        // overload_cast_impl::operator()(Return (Class::*)(Args...) const & noexcept, true_type)
+        .def("method_const_lref_noexcept",
+             py::overload_cast<long>(&RefQualifiedOverloaded::method, py::const_))
+        // overload_cast_impl::operator()(Return (Class::*)(Args...) && noexcept, false_type)
+        .def("method_rref_noexcept", py::overload_cast<double>(&RefQualifiedOverloaded::method))
+        // overload_cast_impl::operator()(Return (Class::*)(Args...) const && noexcept, true_type)
+        .def("method_const_rref_noexcept",
+             py::overload_cast<double>(&RefQualifiedOverloaded::method, py::const_))
+#    endif
+        ;
 #else
     // Fallback using explicit static_cast for C++11/14
     py::class_<NoexceptOverloaded>(m, "NoexceptOverloaded")
@@ -633,6 +673,36 @@ TEST_SUBMODULE(methods_and_attributes, m) {
              static_cast<py::str (NoexceptOverloaded::*)(float)>(&NoexceptOverloaded::method));
     m.def("noexcept_free_func", static_cast<int (*)(int)>(noexcept_free_func));
     m.def("noexcept_free_func_float", static_cast<int (*)(float)>(noexcept_free_func));
+
+    py::class_<RefQualifiedOverloaded>(m, "RefQualifiedOverloaded")
+        .def(py::init<>())
+        .def("method_lref",
+             static_cast<py::str (RefQualifiedOverloaded::*)(int) &>(
+                 &RefQualifiedOverloaded::method))
+        .def("method_const_lref",
+             static_cast<py::str (RefQualifiedOverloaded::*)(int) const &>(
+                 &RefQualifiedOverloaded::method))
+        .def("method_rref",
+             static_cast<py::str (RefQualifiedOverloaded::*)(float) &&>(
+                 &RefQualifiedOverloaded::method))
+        .def("method_const_rref",
+             static_cast<py::str (RefQualifiedOverloaded::*)(float) const &&>(
+                 &RefQualifiedOverloaded::method))
+#    ifdef __cpp_noexcept_function_type
+        .def("method_lref_noexcept",
+             static_cast<py::str (RefQualifiedOverloaded::*)(long) & noexcept>(
+                 &RefQualifiedOverloaded::method))
+        .def("method_const_lref_noexcept",
+             static_cast<py::str (RefQualifiedOverloaded::*)(long) const & noexcept>(
+                 &RefQualifiedOverloaded::method))
+        .def("method_rref_noexcept",
+             static_cast < py::str (RefQualifiedOverloaded::*)(double)
+                 && noexcept > (&RefQualifiedOverloaded::method))
+        .def("method_const_rref_noexcept",
+             static_cast < py::str (RefQualifiedOverloaded::*)(double) const && noexcept
+                 > (&RefQualifiedOverloaded::method))
+#    endif
+        ;
 #endif
 
     // test_methods_and_attributes
