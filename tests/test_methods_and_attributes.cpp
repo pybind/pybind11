@@ -237,6 +237,48 @@ struct RefQualifiedOverloaded {
 #endif
 };
 
+// Compile-only guard: catch overload_cast resolution regressions/ambiguities early.
+using RefQualifiedOverloadedIntCast = py::detail::overload_cast_impl<int>;
+using RefQualifiedOverloadedFloatCast = py::detail::overload_cast_impl<float>;
+static_assert(
+    std::is_same<decltype(RefQualifiedOverloadedIntCast{}(&RefQualifiedOverloaded::method)),
+                 py::str (RefQualifiedOverloaded::*)(int) &>::value,
+    "");
+static_assert(std::is_same<decltype(RefQualifiedOverloadedIntCast{}(
+                               &RefQualifiedOverloaded::method, py::const_)),
+                           py::str (RefQualifiedOverloaded::*)(int) const &>::value,
+              "");
+static_assert(
+    std::is_same<decltype(RefQualifiedOverloadedFloatCast{}(&RefQualifiedOverloaded::method)),
+                 py::str (RefQualifiedOverloaded::*)(float) &&>::value,
+    "");
+static_assert(std::is_same<decltype(RefQualifiedOverloadedFloatCast{}(
+                               &RefQualifiedOverloaded::method, py::const_)),
+                           py::str (RefQualifiedOverloaded::*)(float) const &&>::value,
+              "");
+
+#ifdef __cpp_noexcept_function_type
+using RefQualifiedOverloadedLongCast = py::detail::overload_cast_impl<long>;
+using RefQualifiedOverloadedDoubleCast = py::detail::overload_cast_impl<double>;
+static_assert(
+    std::is_same<decltype(RefQualifiedOverloadedLongCast{}(&RefQualifiedOverloaded::method)),
+                 py::str (RefQualifiedOverloaded::*)(long) & noexcept>::value,
+    "");
+static_assert(std::is_same<decltype(RefQualifiedOverloadedLongCast{}(
+                               &RefQualifiedOverloaded::method, py::const_)),
+                           py::str (RefQualifiedOverloaded::*)(long) const & noexcept>::value,
+              "");
+static_assert(std::is_same
+                  < decltype(RefQualifiedOverloadedDoubleCast{}(&RefQualifiedOverloaded::method)),
+              py::str (RefQualifiedOverloaded::*)(double) && noexcept > ::value,
+              "");
+static_assert(std::is_same
+                  < decltype(RefQualifiedOverloadedDoubleCast{}(&RefQualifiedOverloaded::method,
+                                                                py::const_)),
+              py::str (RefQualifiedOverloaded::*)(double) const && noexcept > ::value,
+              "");
+#endif
+
 // Test explicit lvalue ref-qualification
 struct RefQualified {
     int value = 0;
