@@ -57,9 +57,11 @@ pybind11 = "pybind11.share.pkgconfig"
 test = [
   "pytest",
   "build",
-  "tomlkit",
 ]
-dev = [{ include-group = "test" }]
+dev = [
+  "tomlkit",
+  { include-group = "test" }
+]
 
 
 [tool.scikit-build]
