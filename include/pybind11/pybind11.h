@@ -2508,6 +2508,8 @@ public:
         return def_buffer([func](const type &obj) { return (obj.*func)(); });
     }
 
+    // Intentionally no &&/const&& overloads: buffer protocol callbacks are invoked on an
+    // existing Python object and should not move-from self.
     template <typename Return, typename Class, typename... Args>
     class_ &def_buffer(Return (Class::*func)(Args...) &) {
         return def_buffer([func](type &obj) { return (obj.*func)(); });

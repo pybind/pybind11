@@ -2327,6 +2327,8 @@ Helper vectorize(Return (Class::*f)(Args...) const) {
     return Helper(std::mem_fn(f));
 }
 
+// Intentionally no &&/const&& overloads: vectorized method calls operate on the bound Python
+// instance and should not consume/move-from self.
 // Vectorize a class method (non-const, lvalue ref-qualified):
 template <typename Return,
           typename Class,
