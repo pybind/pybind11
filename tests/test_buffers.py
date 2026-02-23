@@ -7,7 +7,7 @@ import struct
 import pytest
 
 import env
-from pybind11_tests import ConstructorStats
+from pybind11_tests import ConstructorStats, defined___cpp_noexcept_function_type
 from pybind11_tests import buffers as m
 
 np = pytest.importorskip("numpy")
@@ -446,17 +446,26 @@ def test_ref_qualified_def_buffer():
     assert carr.shape == (4,)
     assert carr.flags["WRITEABLE"] is False
 
-    # noexcept ref-qualified forms are available only when noexcept is part of function type
-    if hasattr(m, "OneDBufferLRefNoexcept"):
-        nbuf = m.OneDBufferLRefNoexcept(3)
-        narr = np.frombuffer(nbuf, dtype=np.float32)
-        assert narr.shape == (3,)
-        narr[2] = 7.0
-        narr2 = np.frombuffer(nbuf, dtype=np.float32)
-        assert narr2[2] == pytest.approx(7.0)
 
-    if hasattr(m, "OneDBufferConstLRefNoexcept"):
-        ncbuf = m.OneDBufferConstLRefNoexcept(2)
-        ncarr = np.frombuffer(ncbuf, dtype=np.float32)
-        assert ncarr.shape == (2,)
-        assert ncarr.flags["WRITEABLE"] is False
+@pytest.mark.skipif(
+    not defined___cpp_noexcept_function_type,
+    reason="Requires __cpp_noexcept_function_type",
+)
+def test_ref_qualified_noexcept_def_buffer():
+    """Test issue #2234 follow-up: def_buffer with noexcept ref-qualified member pointers.
+
+    Covers:
+      - def_buffer(Return (Class::*)(Args...) & noexcept)
+      - def_buffer(Return (Class::*)(Args...) const & noexcept)
+    """
+    nbuf = m.OneDBufferLRefNoexcept(3)
+    narr = np.frombuffer(nbuf, dtype=np.float32)
+    assert narr.shape == (3,)
+    narr[2] = 7.0
+    narr2 = np.frombuffer(nbuf, dtype=np.float32)
+    assert narr2[2] == pytest.approx(7.0)
+
+    ncbuf = m.OneDBufferConstLRefNoexcept(2)
+    ncarr = np.frombuffer(ncbuf, dtype=np.float32)
+    assert ncarr.shape == (2,)
+    assert ncarr.flags["WRITEABLE"] is False

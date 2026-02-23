@@ -5,7 +5,7 @@ import sys
 import pytest
 
 import env
-from pybind11_tests import ConstructorStats
+from pybind11_tests import ConstructorStats, defined___cpp_noexcept_function_type
 from pybind11_tests import methods_and_attributes as m
 
 NO_GETTER_MSG = (
@@ -555,8 +555,6 @@ def test_rvalue_ref_qualified_methods():
     Covers:
       - Return (Class::*)(Args...) &&              (take)
       - Return (Class::*)(Args...) const &&        (peek)
-      - Return (Class::*)(Args...) && noexcept     (take_noexcept, C++17 only)
-      - Return (Class::*)(Args...) const && noexcept (peek_noexcept, C++17 only)
     """
     obj = m.RValueRefDerived()
     # && moves m_payload: first call gets the value, second gets empty string
@@ -565,14 +563,24 @@ def test_rvalue_ref_qualified_methods():
     # const && doesn't move: peek() is stable across calls
     assert obj.peek() == 77
     assert obj.peek() == 77
-    # noexcept variants are bound only under C++17; skip gracefully if absent
-    if hasattr(obj, "take_noexcept"):
-        obj2 = m.RValueRefDerived()
-        assert obj2.take_noexcept() == "rref_payload"
-        assert obj2.take_noexcept() == ""
-    if hasattr(obj, "peek_noexcept"):
-        assert obj.peek_noexcept() == 77
-        assert obj.peek_noexcept() == 77
+
+
+@pytest.mark.skipif(
+    not defined___cpp_noexcept_function_type,
+    reason="Requires __cpp_noexcept_function_type",
+)
+def test_noexcept_rvalue_ref_qualified_methods():
+    """Test noexcept rvalue-ref-qualified methods from an unregistered base.
+
+    Covers:
+      - Return (Class::*)(Args...) && noexcept       (take_noexcept)
+      - Return (Class::*)(Args...) const && noexcept (peek_noexcept)
+    """
+    obj = m.RValueRefDerived()
+    assert obj.take_noexcept() == "rref_payload"
+    assert obj.take_noexcept() == ""
+    assert obj.peek_noexcept() == 77
+    assert obj.peek_noexcept() == 77
 
 
 def test_noexcept_overload_cast():
@@ -612,14 +620,25 @@ def test_ref_qualified_overload_cast():
     assert obj.method_rref(1.0) == "(float) &&"
     assert obj.method_const_rref(1.0) == "(float) const &&"
 
-    if hasattr(obj, "method_lref_noexcept"):
-        assert obj.method_lref_noexcept(1) == "(long) & noexcept"
-    if hasattr(obj, "method_const_lref_noexcept"):
-        assert obj.method_const_lref_noexcept(1) == "(long) const & noexcept"
-    if hasattr(obj, "method_rref_noexcept"):
-        assert obj.method_rref_noexcept(1.0) == "(double) && noexcept"
-    if hasattr(obj, "method_const_rref_noexcept"):
-        assert obj.method_const_rref_noexcept(1.0) == "(double) const && noexcept"
+
+@pytest.mark.skipif(
+    not defined___cpp_noexcept_function_type,
+    reason="Requires __cpp_noexcept_function_type",
+)
+def test_noexcept_ref_qualified_overload_cast():
+    """Test issue #2234 follow-up: overload_cast with noexcept ref-qualified member pointers.
+
+    Covers:
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) & noexcept, false_type)
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) const & noexcept, true_type)
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) && noexcept, false_type)
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) const && noexcept, true_type)
+    """
+    obj = m.RefQualifiedOverloaded()
+    assert obj.method_lref_noexcept(1) == "(long) & noexcept"
+    assert obj.method_const_lref_noexcept(1) == "(long) const & noexcept"
+    assert obj.method_rref_noexcept(1.0) == "(double) && noexcept"
+    assert obj.method_const_rref_noexcept(1.0) == "(double) const && noexcept"
 
 
 def test_ref_qualified():
