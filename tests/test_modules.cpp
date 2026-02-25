@@ -123,6 +123,6 @@ TEST_SUBMODULE(modules, m) {
     m.def("def_submodule", [](py::module_ m, const char *name) { return m.def_submodule(name); });
 
     // Test std::string versions of def_submodule and def
-    py::module m_sub_string = m.def_submodule(std::string("subsubmodule_string"));
+    py::module m_sub_string = m.def_submodule(std::string("submodule_string"));
     m_sub_string.def(std::string("submodule_string_func"), []() { return "submodule_string_func()"; });
 }
