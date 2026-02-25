@@ -1652,7 +1652,7 @@ public:
     }
 
     /** \rst
-        Overload of `add_object` taking the function name and documentation as a ``std::string``.
+        Overload of `add_object` taking the function name as a ``std::string``.
     \endrst */
     PYBIND11_NOINLINE void add_object(const std::string& name, handle obj, bool overwrite = false) {
         return add_object(name.c_str(), obj, overwrite);
@@ -1697,6 +1697,17 @@ public:
         //       returned from PyInit_...
         //       For Python 2, reinterpret_borrow was correct.
         return reinterpret_borrow<module_>(m);
+    }
+
+    /** \rst
+        Overload of `create_extension_module` taking the module name and documentation as ``std::string``.
+    \endrst */
+    static module_ create_extension_module(const std::string& name,
+                                           const std::string& doc,
+                                           PyModuleDef *def,
+                                           mod_gil_not_used gil_not_used
+                                           = mod_gil_not_used(false)) {
+        return create_extension_module(name.c_str(), doc.c_str(), def, gil_not_used);
     }
 };
 
