@@ -7,8 +7,8 @@ import pytest
 import env
 from pybind11_tests import ConstructorStats
 from pybind11_tests import modules as m
-from pybind11_tests.modules import subsubmodule as ms
 from pybind11_tests.modules import submodule_string as mstr
+from pybind11_tests.modules import subsubmodule as ms
 
 
 def test_nested_modules():
