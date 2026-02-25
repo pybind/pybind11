@@ -124,5 +124,6 @@ TEST_SUBMODULE(modules, m) {
 
     // Test std::string versions of def_submodule and def
     py::module m_sub_string = m.def_submodule(std::string("submodule_string"));
-    m_sub_string.def(std::string("submodule_string_func"), []() { return "submodule_string_func()"; });
+    m_sub_string.def(std::string("submodule_string_func"),
+                     []() { return "submodule_string_func()"; });
 }

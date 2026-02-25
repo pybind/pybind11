@@ -1545,7 +1545,7 @@ public:
         Overload of `def` taking the function name as a ``std::string``.
     \endrst */
     template <typename Func, typename... Extra>
-    module_ &def(const std::string& name_, Func &&f, const Extra &...extra) {
+    module_ &def(const std::string &name_, Func &&f, const Extra &...extra) {
         return def(name_.c_str(), f, std::forward<Extra>(extra)...);
     }
 
@@ -1598,16 +1598,14 @@ public:
     /** \rst
         Overload of `def_submodule` taking the function name and documentation as ``std::string``.
     \endrst */
-    module_ def_submodule(const std::string& name, const std::string& doc) {
+    module_ def_submodule(const std::string &name, const std::string &doc) {
         return def_submodule(name.c_str(), doc.c_str());
     }
 
     /** \rst
         Overload of `def_submodule` taking the function name as a ``std::string``.
     \endrst */
-    module_ def_submodule(const std::string& name) {
-        return def_submodule(name.c_str(), nullptr);
-    }
+    module_ def_submodule(const std::string &name) { return def_submodule(name.c_str(), nullptr); }
 
     /// Import and return a module or throws `error_already_set`.
     static module_ import(const char *name) {
@@ -1621,9 +1619,7 @@ public:
     /** \rst
         Overload of `import` taking the function name as a ``std::string``.
     \endrst */
-    static module_ import(const std::string& name) {
-        return import(name.c_str());
-    }
+    static module_ import(const std::string &name) { return import(name.c_str()); }
 
     /// Reload the module or throws `error_already_set`.
     void reload() {
@@ -1654,7 +1650,8 @@ public:
     /** \rst
         Overload of `add_object` taking the function name as a ``std::string``.
     \endrst */
-    PYBIND11_NOINLINE void add_object(const std::string& name, handle obj, bool overwrite = false) {
+    PYBIND11_NOINLINE void
+    add_object(const std::string &name, handle obj, bool overwrite = false) {
         return add_object(name.c_str(), obj, overwrite);
     }
 
@@ -1700,10 +1697,11 @@ public:
     }
 
     /** \rst
-        Overload of `create_extension_module` taking the module name and documentation as ``std::string``.
+        Overload of `create_extension_module` taking the module name and documentation as
+    ``std::string``.
     \endrst */
-    static module_ create_extension_module(const std::string& name,
-                                           const std::string& doc,
+    static module_ create_extension_module(const std::string &name,
+                                           const std::string &doc,
                                            PyModuleDef *def,
                                            mod_gil_not_used gil_not_used
                                            = mod_gil_not_used(false)) {
