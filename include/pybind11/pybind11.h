@@ -1542,6 +1542,14 @@ public:
     }
 
     /** \rst
+        Overload of `def` taking the function name as a ``std::string``.
+    \endrst */
+    template <typename Func, typename... Extra>
+    module_ &def(const std::string& name_, Func &&f, const Extra &...extra) {
+        return def(name_.c_str(), f, std::forward<Extra>(extra)...);
+    }
+
+    /** \rst
         Create and return a new Python submodule with the given name and docstring.
         This also works recursively, i.e.
 
@@ -1587,6 +1595,20 @@ public:
         return result;
     }
 
+    /** \rst
+        Overload of `def_submodule` taking the function name and documentation as ``std::string``.
+    \endrst */
+    module_ def_submodule(const std::string& name, const std::string& doc) {
+        return def_submodule(name.c_str(), doc.c_str());
+    }
+
+    /** \rst
+        Overload of `def_submodule` taking the function name as a ``std::string``.
+    \endrst */
+    module_ def_submodule(const std::string& name) {
+        return def_submodule(name.c_str(), nullptr);
+    }
+
     /// Import and return a module or throws `error_already_set`.
     static module_ import(const char *name) {
         PyObject *obj = PyImport_ImportModule(name);
@@ -1594,6 +1616,13 @@ public:
             throw error_already_set();
         }
         return reinterpret_steal<module_>(obj);
+    }
+
+    /** \rst
+        Overload of `import` taking the function name as a ``std::string``.
+    \endrst */
+    static module_ import(const std::string& name) {
+        return import(name.c_str());
     }
 
     /// Reload the module or throws `error_already_set`.
@@ -1620,6 +1649,13 @@ public:
         }
 
         PyModule_AddObject(ptr(), name, obj.inc_ref().ptr() /* steals a reference */);
+    }
+
+    /** \rst
+        Overload of `add_object` taking the function name and documentation as a ``std::string``.
+    \endrst */
+    PYBIND11_NOINLINE void add_object(const std::string& name, handle obj, bool overwrite = false) {
+        return add_object(name.c_str(), obj, overwrite);
     }
 
     // DEPRECATED (since PR #5688): Use PyModuleDef directly instead.
