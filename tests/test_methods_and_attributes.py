@@ -383,6 +383,23 @@ def test_cyclic_gc():
     assert cstats.alive() == 0
 
 
+@pytest.mark.xfail("env.PYPY")
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
+def test_dynamic_attr_dealloc_frees_dict_contents():
+    """Regression: py::dynamic_attr() objects must free __dict__ contents on dealloc.
+
+    pybind11_object_dealloc() did not call PyObject_ClearManagedDict() before tp_free(),
+    causing objects stored in __dict__ to have their refcounts permanently abandoned on
+    Python 3.14+ (where tp_free no longer implicitly clears the managed dict).
+    This caused capsule destructors to never run, leaking the underlying C++ data.
+    """
+    instance = m.make_dynamic_attr_with_capsule()
+    assert not m.is_dynamic_attr_capsule_freed()
+    del instance
+    pytest.gc_collect()
+    assert m.is_dynamic_attr_capsule_freed()
+
+
 def test_bad_arg_default(msg):
     from pybind11_tests import detailed_error_messages_enabled
 
