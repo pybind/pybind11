@@ -72,13 +72,13 @@ jobs:
       run: twine check dist/*
 
     - name: Save standard package
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: standard
         path: dist/pybind11-*
 
     - name: Save global package
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: global
         path: dist/*global-*
@@ -100,10 +100,10 @@ jobs:
 
     steps:
     # Downloads all to directories matching the artifact names
-    - uses: actions/download-artifact@v7
+    - uses: actions/download-artifact@v8
 
     - name: Generate artifact attestation for sdist and wheel
-      uses: actions/attest-build-provenance@v3
+      uses: actions/attest-build-provenance@v4
       with:
         subject-path: "*/pybind11*"
 
