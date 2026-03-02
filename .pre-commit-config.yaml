@@ -25,14 +25,14 @@ repos:
 
 # Clang format the codebase automatically
 - repo: https://github.com/pre-commit/mirrors-clang-format
-  rev: "v21.1.8"
+  rev: "v22.1.0"
   hooks:
   - id: clang-format
     types_or: [c++, c, cuda]
 
 # Ruff, the Python auto-correcting linter/formatter written in Rust
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.14.14
+  rev: v0.15.4
   hooks:
   - id: ruff-check
     args: ["--fix", "--show-fixes"]
@@ -122,7 +122,7 @@ repos:
 # Use mirror because pre-commit autoupdate confuses tags in the upstream repo.
 # See https://github.com/crate-ci/typos/issues/390
 - repo: https://github.com/adhtruong/mirrors-typos
-  rev: "v1.42.3"
+  rev: "v1.44.0"
   hooks:
   - id: typos
     args: []
@@ -144,14 +144,14 @@ repos:
 
 # PyLint has native support - not always usable, but works for us
 - repo: https://github.com/PyCQA/pylint
-  rev: "v4.0.4"
+  rev: "v4.0.5"
   hooks:
   - id: pylint
     files: ^pybind11
 
 # Check schemas on some of our YAML files
 - repo: https://github.com/python-jsonschema/check-jsonschema
-  rev: 0.36.1
+  rev: 0.37.0
   hooks:
   - id: check-readthedocs
   - id: check-github-workflows
