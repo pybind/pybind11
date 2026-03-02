@@ -304,11 +304,10 @@ struct constructor {
             extra...);
     }
 
-    template <
-        typename Class,
-        typename... Extra,
-        enable_if_t<Class::has_alias && std::is_constructible<Cpp<Class>, Args...>::value, int>
-        = 0>
+    template <typename Class,
+              typename... Extra,
+              enable_if_t<Class::has_alias && std::is_constructible<Cpp<Class>, Args...>::value,
+                          int> = 0>
     static void execute(Class &cl, const Extra &...extra) {
         cl.def(
             "__init__",
@@ -325,11 +324,10 @@ struct constructor {
             extra...);
     }
 
-    template <
-        typename Class,
-        typename... Extra,
-        enable_if_t<Class::has_alias && !std::is_constructible<Cpp<Class>, Args...>::value, int>
-        = 0>
+    template <typename Class,
+              typename... Extra,
+              enable_if_t<Class::has_alias && !std::is_constructible<Cpp<Class>, Args...>::value,
+                          int> = 0>
     static void execute(Class &cl, const Extra &...extra) {
         cl.def(
             "__init__",
@@ -345,11 +343,10 @@ struct constructor {
 // Implementing class for py::init_alias<...>()
 template <typename... Args>
 struct alias_constructor {
-    template <
-        typename Class,
-        typename... Extra,
-        enable_if_t<Class::has_alias && std::is_constructible<Alias<Class>, Args...>::value, int>
-        = 0>
+    template <typename Class,
+              typename... Extra,
+              enable_if_t<Class::has_alias && std::is_constructible<Alias<Class>, Args...>::value,
+                          int> = 0>
     static void execute(Class &cl, const Extra &...extra) {
         cl.def(
             "__init__",

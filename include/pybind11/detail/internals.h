@@ -59,15 +59,13 @@ using ExceptionTranslator = void (*)(std::exception_ptr);
 #    define PYBIND11_TLS_KEY_INIT(var)                                                            \
         _Pragma("clang diagnostic push")                                         /**/             \
             _Pragma("clang diagnostic ignored \"-Wmissing-field-initializers\"") /**/             \
-            Py_tss_t var                                                                          \
-            = Py_tss_NEEDS_INIT;                                                                  \
+            Py_tss_t var = Py_tss_NEEDS_INIT;                                                     \
         _Pragma("clang diagnostic pop")
 #elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
 #    define PYBIND11_TLS_KEY_INIT(var)                                                            \
         _Pragma("GCC diagnostic push")                                         /**/               \
             _Pragma("GCC diagnostic ignored \"-Wmissing-field-initializers\"") /**/               \
-            Py_tss_t var                                                                          \
-            = Py_tss_NEEDS_INIT;                                                                  \
+            Py_tss_t var = Py_tss_NEEDS_INIT;                                                     \
         _Pragma("GCC diagnostic pop")
 #else
 #    define PYBIND11_TLS_KEY_INIT(var) Py_tss_t var = Py_tss_NEEDS_INIT;
