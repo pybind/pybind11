@@ -32,6 +32,7 @@ def test_nested_modules():
     )
 
     assert mstr.submodule_string_func() == "submodule_string_func()"
+    assert mstr.submodule_string_func_with_arg(x=2) == 3
 
 
 def test_reference_internal():
