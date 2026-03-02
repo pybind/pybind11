@@ -168,6 +168,9 @@ ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK = (*ALL_BASIC_TESTS, _intentional_dead
 
 
 def _run_in_process(target, *args, **kwargs):
+    if env.ANDROID or env.IOS or sys.platform.startswith("emscripten"):
+        pytest.skip("Requires subprocess support")
+
     test_fn = target if len(args) == 0 else args[0]
     # Do not need to wait much, 10s should be more than enough.
     timeout = 0.1 if test_fn is _intentional_deadlock else 10
