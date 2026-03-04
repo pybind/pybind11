@@ -43,6 +43,23 @@ struct WithConstCharPtrMember {
     const char *const_char_ptr_member = "ConstChar*";
 };
 
+enum class TinyLevel {
+    A = 0,
+    B = 1,
+};
+
+struct HolderWithEnum {
+    TinyLevel level = TinyLevel::A;
+};
+
+struct LegacyThing {
+    int value = 7;
+};
+
+struct HolderWithLegacyMember {
+    LegacyThing legacy;
+};
+
 } // namespace test_class_sh_property
 
 TEST_SUBMODULE(class_sh_property, m) {
@@ -91,4 +108,18 @@ TEST_SUBMODULE(class_sh_property, m) {
     py::classh<WithConstCharPtrMember>(m, "WithConstCharPtrMember")
         .def(py::init<>())
         .def_readonly("const_char_ptr_member", &WithConstCharPtrMember::const_char_ptr_member);
+
+    py::enum_<TinyLevel>(m, "TinyLevel").value("A", TinyLevel::A).value("B", TinyLevel::B);
+
+    py::classh<HolderWithEnum>(m, "HolderWithEnum")
+        .def(py::init<>())
+        .def_readwrite("level", &HolderWithEnum::level);
+
+    py::class_<LegacyThing>(m, "LegacyThing")
+        .def(py::init<>())
+        .def_readwrite("value", &LegacyThing::value);
+
+    py::classh<HolderWithLegacyMember>(m, "HolderWithLegacyMember")
+        .def(py::init<>())
+        .def_readwrite("legacy", &HolderWithLegacyMember::legacy);
 }
