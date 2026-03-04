@@ -2013,10 +2013,16 @@ struct property_cpp_function_sh_raw_ptr_member {
 // This prevents disowning of the Python object owning the member.
 template <typename T, typename D>
 struct property_cpp_function_sh_member_held_by_value {
+    static bool use_smart_holder_member_aliasing() {
+        type_info *tinfo = get_type_info(typeid(D), /*throw_if_missing=*/true);
+        return tinfo->holder_enum_v == holder_enum_t::smart_holder;
+    }
+
     template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function readonly(PM pm, const handle &hdl) {
         type_info *tinfo = get_type_info(typeid(T), /*throw_if_missing=*/true);
-        if (tinfo->holder_enum_v == holder_enum_t::smart_holder) {
+        if (tinfo->holder_enum_v == holder_enum_t::smart_holder
+            && use_smart_holder_member_aliasing()) {
             return cpp_function(
                 [pm](handle c_hdl) -> std::shared_ptr<typename std::add_const<D>::type> {
                     std::shared_ptr<T> c_sp
@@ -2033,7 +2039,8 @@ struct property_cpp_function_sh_member_held_by_value {
     template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function read(PM pm, const handle &hdl) {
         type_info *tinfo = get_type_info(typeid(T), /*throw_if_missing=*/true);
-        if (tinfo->holder_enum_v == holder_enum_t::smart_holder) {
+        if (tinfo->holder_enum_v == holder_enum_t::smart_holder
+            && use_smart_holder_member_aliasing()) {
             return cpp_function(
                 [pm](handle c_hdl) -> std::shared_ptr<D> {
                     std::shared_ptr<T> c_sp
