@@ -503,6 +503,15 @@ extern "C" inline void pybind11_object_dealloc(PyObject *self) {
         PyObject_GC_UnTrack(self);
     }
 
+#if PY_VERSION_HEX >= 0x030D0000
+    // On Python 3.13+, PyObject_GC_Del no longer implicitly clears the managed
+    // dict. Without this call, objects stored in __dict__ of py::dynamic_attr()
+    // types have their refcounts abandoned, causing permanent memory leaks.
+    if (PyType_HasFeature(type, Py_TPFLAGS_MANAGED_DICT)) {
+        PyObject_ClearManagedDict(self);
+    }
+#endif
+
     clear_instance(self);
 
     type->tp_free(self);
