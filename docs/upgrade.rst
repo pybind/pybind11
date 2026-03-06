@@ -12,17 +12,17 @@ v3.1
 ====
 
 The major new feature in pybind11 v3.1 is support for
-:ref:`interoperability with other binding frameworks <interop>` and other
+:ref:`interoperability with foreign binding frameworks <interop>` including other
 (future) versions of pybind11. See the linked documentation for details.
 
 This support was added in an ABI-compatible way, so you can combine pybind11
 v3.1 extensions with v3.0 extensions. Classes and enums bound using pybind11
 v3.1 support all interoperability features. Classes and ``py::enum_``\s bound
-using pybind11 v3.0 can still be exported manually by a pybind11 v3.1 extension
-calling ``py::export_for_interop()``, but they won't be exported automatically
-and they can't be returned by value from a foreign binding.
-``py::native_enum``\s bound using pybind11 v3.0 don't support the
-interoperability mechanism at all.
+using pybind11 v3.0 can still be exported manually by having a pybind11 v3.1
+extension calling ``py::export_to_foreign()`` on them, but they won't be exported
+automatically and they can't be returned by value from a foreign binding (only
+by pointer). ``py::native_enum``\s bound using pybind11 v3.0 don't support the
+foreign interoperability mechanism at all.
 
 There is one implication of the new interoperability support that might result
 in new compiler errors for some previously-working binding code. Previously,

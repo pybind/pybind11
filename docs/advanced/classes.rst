@@ -1064,17 +1064,23 @@ This makes the Python-side ``dogs.Pet`` and ``cats.Pet`` into distinct classes,
 avoiding the conflict and allowing both modules to be loaded.  C++ code in the
 ``dogs`` module that casts or returns a ``Pet`` instance will result in a
 ``dogs.Pet`` Python instance, while C++ code in the ``cats`` module will result
-in a ``cats.Pet`` Python instance.
+in a ``cats.Pet`` Python instance. Note that these are two fully independent
+Python classes, which is relevant when doing ``isinstance()`` tests in Python.
 
-This does come with two caveats, however: First, external modules cannot return
-or cast a ``Pet`` instance to Python (unless they also provide their own local
-bindings).  Second, from the Python point of view they are two distinct classes.
+In the ``dogs`` module, ``cats.Pet`` is treated as a :ref:`foreign binding
+<inerop>`, and vice versa for ``dogs.Pet`` in the ``cats`` module. In any other
+module, both will be treated as foreign bindings. This means that each of
+``dogs`` and ``cats`` will *return* C++ ``Pet`` objects as instances of its own
+Python ``Pet`` class, but will *accept* ``Pet`` instances whose type was bound
+by either module. Inside a module that is neither ``dogs`` nor ``cats``,
+returning a ``Pet`` will produce either a ``dogs.Pet`` or a ``cats.Pet``,
+depending on which module was imported first. (This order can be changed via
+calls to ``py::import_foreign()``, which move the nominated type to the front
+of the priority list among all foreign bindings for its C++ type.)
 
-Note that the locality only applies in the C++ -> Python direction.  When
-passing such a ``py::module_local`` type into a C++ function, the module-local
-classes are still considered.  This means that if the following function is
-added to any module (including but not limited to the ``cats`` and ``dogs``
-modules above) it will be callable with either a ``dogs.Pet`` or ``cats.Pet``
+As a concrete example, if the following function is added to any
+module (including but not limited to the ``cats`` and ``dogs`` modules
+above), it will be callable with either a ``dogs.Pet`` or ``cats.Pet``
 argument:
 
 .. code-block:: cpp
@@ -1095,9 +1101,9 @@ does *not* bind ``Pets`` at all).
     ('Rover', 'Fluffy', 'Fluffy')
 
 It is possible to use ``py::module_local()`` registrations in one module even
-if another module registers the same type globally: within the module with the
+if another module registers the same type globally. Within the module with the
 module-local definition, all C++ instances will be cast to the associated bound
-Python type.  In other modules any such values are converted to the global
+Python type. In other modules, any such values are converted to the global
 Python type created elsewhere.
 
 .. note::

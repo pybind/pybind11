@@ -40,9 +40,8 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 // Forward declaration, implemented in foreign.h
-void *try_foreign_bindings(const std::type_info *type,
-                           void *(*attempt)(void *closure, pymb_binding *binding),
-                           void *closure);
+template <class Fn>
+void *try_foreign_bindings(const std::type_info *type, const Fn& attempt);
 
 /// A life support system for temporary objects created by `type_caster::load()`.
 /// Adding a patient will keep it alive up until the enclosing function returns.
@@ -295,25 +294,22 @@ PYBIND11_NOINLINE detail::type_info *get_type_info(const std::type_info &tp,
 }
 
 PYBIND11_NOINLINE handle get_type_handle(const std::type_info &tp,
-                                         bool throw_if_missing,
-                                         bool foreign_ok) {
+                                         bool throw_if_missing) {
     if (detail::type_info *type_info = get_type_info(tp)) {
         return handle(reinterpret_cast<PyObject *>(type_info->type));
     }
-    if (foreign_ok) {
-        auto &interop_internals = detail::get_interop_internals();
-        if (interop_internals.imported_any) {
-            handle ret = with_internals([&](internals &) {
-                auto it = interop_internals.bindings.find(tp);
-                if (it != interop_internals.bindings.end() && !it->second.empty()) {
-                    pymb_binding *binding = *it->second.begin();
-                    return handle(reinterpret_cast<PyObject *>(binding->pytype));
-                }
-                return handle();
-            });
-            if (ret) {
-                return ret;
+    auto &interop_internals = detail::get_interop_internals();
+    if (interop_internals.imported_any) {
+        handle ret = with_internals([&](internals &) {
+            auto it = interop_internals.bindings.find(tp);
+            if (it != interop_internals.bindings.end() && !it->second.empty()) {
+                pymb_binding *binding = *it->second.begin();
+                return handle(reinterpret_cast<PyObject *>(binding->pytype));
             }
+            return handle();
+        });
+        if (ret) {
+            return ret;
         }
     }
     if (throw_if_missing) {
@@ -1060,58 +1056,51 @@ public:
     }
 
     static handle cast_foreign(const cast_sources &srcs,
-                               return_value_policy policy,
+                               return_value_policy policy_,
                                handle parent,
                                bool has_holder) {
-        struct capture {
-            const void *src;
-            pymb_rv_policy policy = pymb_rv_policy_none;
-            pymb_to_python_feedback feedback{};
-            const cast_sources *srcs;
-        } cap;
+        const void *src = nullptr;
+        pymb_rv_policy policy = pymb_rv_policy_none;
+        pymb_to_python_feedback feedback{};
 
-        auto attempt = +[](void *closure, pymb_binding *binding) -> void * {
-            capture &cap = *(capture *) closure;
-            void *ret = binding->framework->to_python(
-                binding, const_cast<void *>(cap.src), cap.policy, &cap.feedback);
-            if (ret) {
-                cap.srcs->used_foreign = binding->framework;
-                cap.srcs->is_new = cap.feedback.is_new;
-            }
-            return ret;
-        };
-
-        cap.srcs = &srcs;
-        switch (policy) {
+        switch (policy_) {
             case return_value_policy::automatic:
-                cap.policy = pymb_rv_policy_take_ownership;
+                policy = pymb_rv_policy_take_ownership;
                 break;
             case return_value_policy::automatic_reference:
             case return_value_policy::reference:
-                cap.policy
-                    = has_holder ? pymb_rv_policy_share_ownership : pymb_rv_policy_reference;
+                policy = has_holder ? pymb_rv_policy_share_ownership : pymb_rv_policy_reference;
                 break;
             case return_value_policy::reference_internal:
                 if (!parent) {
                     return nullptr;
                 }
-                cap.policy = pymb_rv_policy_share_ownership;
+                policy = pymb_rv_policy_share_ownership;
                 break;
             case return_value_policy::take_ownership:
             case return_value_policy::copy:
             case return_value_policy::move:
-                cap.policy = (pymb_rv_policy) (uint8_t) policy;
+                policy = (pymb_rv_policy) (uint8_t) policy_;
                 break;
         }
 
+        auto attempt = [&, policy](pymb_binding *binding) -> void * {
+            void *ret = binding->framework->to_python(binding, src, policy, &feedback);
+            if (ret) {
+                srcs.used_foreign = binding->framework;
+                srcs.is_new = feedback.is_new;
+            }
+            return ret;
+        };
+
         void *result_v = nullptr;
         if (srcs.downcast.cpptype) {
-            cap.src = srcs.downcast.cppobj;
-            result_v = try_foreign_bindings(srcs.downcast.cpptype, attempt, &cap);
+            src = srcs.downcast.cppobj;
+            result_v = try_foreign_bindings(srcs.downcast.cpptype, attempt);
         }
         if (!result_v && srcs.original.cpptype) {
-            cap.src = srcs.original.cppobj;
-            result_v = try_foreign_bindings(srcs.original.cpptype, attempt, &cap);
+            src = srcs.original.cppobj;
+            result_v = try_foreign_bindings(srcs.original.cpptype, attempt);
         }
 
         auto *result = (PyObject *) result_v;
@@ -1306,23 +1295,17 @@ public:
             return false;
         }
 
-        struct capture {
-            handle src;
-            bool convert;
-        } cap{src, convert};
-
-        auto attempt = +[](void *closure, pymb_binding *binding) -> void * {
-            capture &cap = *(capture *) closure;
+        auto attempt = [=](pymb_binding *binding) -> void * {
             void (*keep_referenced)(void *, PyObject *) = nullptr;
             if (loader_life_support::can_add_patient()) {
                 keep_referenced
                     = [](void *, PyObject *item) { loader_life_support::add_patient(item); };
             }
             return binding->framework->from_python(
-                binding, cap.src.ptr(), cap.convert, keep_referenced, nullptr);
+                binding, src.ptr(), convert, keep_referenced, nullptr);
         };
 
-        if (void *result = try_foreign_bindings(cpptype, attempt, &cap)) {
+        if (void *result = try_foreign_bindings(cpptype, attempt)) {
             value = result;
             return true;
         }

@@ -380,8 +380,8 @@ inline bool is_uniquely_referenced(PyObject *obj) {
 #define PYBIND11_ENSURE_INTERNALS_READY                                                           \
     {                                                                                             \
         pybind11::detail::get_internals_pp_manager().unref();                                     \
-        pybind11::detail::get_interop_internals_pp_manager().unref();                             \
         pybind11::detail::get_internals();                                                        \
+        pybind11::detail::init_foreign_internals();                                               \
     }
 
 #if !defined(GRAALVM_PYTHON)

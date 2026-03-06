@@ -18,10 +18,12 @@
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-// pybind11 exception translator that tries all known foreign ones
+// pybind11 exception translator that tries all known foreign ones;
+// this will be registered in the pybind11 list of exception translators,
+// in the 2nd position from the end (last position is for the fallback translator)
 PYBIND11_NOINLINE void foreign_exception_translator(std::exception_ptr p) {
-    auto &interop_internals = get_interop_internals();
-    for (pymb_framework *fw : interop_internals.exc_frameworks) {
+    auto &foreign_internals = get_foreign_internals();
+    for (pymb_framework *fw : foreign_internals.exc_frameworks) {
         if (fw->translate_exception(&p) != 0) {
             return;
         }
@@ -29,11 +31,11 @@ PYBIND11_NOINLINE void foreign_exception_translator(std::exception_ptr p) {
     std::rethrow_exception(p);
 }
 
-// When learning about a new foreign type, should we automatically use it?
-inline bool should_autoimport_foreign(interop_internals &interop_internals,
-                                      pymb_binding *binding) {
-    return interop_internals.import_all && binding->framework->abi_lang == pymb_abi_lang_cpp
-           && binding->framework->abi_extra == interop_internals.self->abi_extra;
+// When learning about a new foreign type, is it legal to automatically use it?
+inline bool can_autoimport_foreign(foreign_internals &foreign_internals,
+                                   pymb_binding *binding) {
+    return binding->framework->abi_lang == pymb_abi_lang_cpp
+           && binding->framework->abi_extra == foreign_internals.self->abi_extra;
 }
 
 // Determine whether a pybind11 type is module-local from a different module
@@ -44,60 +46,98 @@ inline bool is_local_to_other_module(type_info *ti) {
 
 // Add the given `binding` to our type maps so that we can use it to satisfy
 // from- and to-Python requests for the given C++ type
-inline void import_foreign_binding(pymb_binding *binding, const std::type_info *cpptype) noexcept {
+inline void import_foreign_binding(pymb_binding *binding,
+                                   const std::type_info *cpptype,
+                                   bool manual) noexcept {
     // Caller must hold the internals lock
-    auto &interop_internals = get_interop_internals();
-    interop_internals.imported_any = true;
-    auto &lst = interop_internals.bindings[*cpptype];
-    for (pymb_binding *existing : lst) {
-        if (existing == binding) {
-            return; // already imported
+    auto &foreign_internals = get_foreign_internals();
+    foreign_internals.imported_any = true;
+    auto &lst = foreign_internals.bindings[*cpptype];
+    if (auto pos = lst.find(binding)) {
+        if (manual && pos != lst.data() + lst.size() - 1) {
+            // If binding was already imported, move it to the front of the
+            // list so it will be preferred for future conversions
+            ++foreign_internals.bindings_update_count;
+            std::move(lst.data(), pos, lst.data() + 1);
+            lst[0] = binding;
         }
+    } else {
+        ++foreign_internals.bindings_update_count;
+        lst.push_back(binding);
     }
-    ++interop_internals.bindings_update_count;
-    lst.append(binding);
 }
 
-// Callback functions for other frameworks to operate on our objects
-// or tell us about theirs
+// ----------------------------------------------------------------------
+// pymetabind callback functions that other frameworks will use to operate
+// on our objects or tell us about theirs
+// ----------------------------------------------------------------------
 
-inline void *interop_cb_from_python(pymb_binding *binding,
+// NB: for all pymetabind bindings provided by pybind11, pymb_binding::context
+// is either the detail::type_info* (for a py::class_ or py::enum_) or nullptr
+// (for a py::native_enum).
+
+inline void *foreign_cb_from_python(pymb_binding *binding,
                                     PyObject *pyobj,
                                     uint8_t convert,
                                     void (*keep_referenced)(void *ctx, PyObject *obj),
                                     void *keep_referenced_ctx) noexcept {
     if (binding->context == nullptr) {
         // This is a native enum type. We can only return a pointer to the C++
-        // enum if we're able to allocate a temporary.
-        handle pytype((PyObject *) binding->pytype);
+        // enum if we're able to allocate a temporary, since there aren't any
+        // bytes inside the Python enum instance that can validly be interpreted
+        // as a C++ enum object.
+        handle pytype(reinterpret_cast<PyObject *>(binding->pytype));
         if (!keep_referenced || !isinstance(pyobj, pytype)) {
             return nullptr;
         }
         try {
+            // Get the pybind11 enum record for this enum
             auto cap
                 = reinterpret_borrow<capsule>(pytype.attr(native_enum_record::attribute_name()));
             auto *info = cap.get_pointer<native_enum_record>();
+
+            // The C++ integer enum value is stored as the `value` attribute
+            // of the Python enum object. Obtain it as a py::int_ object, then
+            // extract the underlying integer. If negative, cast to unsigned
+            // in order to reduce dupliation of code paths; this preserves the
+            // original bit pattern on any reasonable implementation.
             auto value = handle(pyobj).attr("value");
             uint64_t ival = 0;
             if (info->is_signed && handle(value) < int_(0)) {
-                ival = (uint64_t) cast<int64_t>(value);
+                ival = static_cast<uint64_t>(cast<int64_t>(value));
             } else {
                 ival = cast<uint64_t>(value);
             }
+
+            // Copy from `ival` the correct number of low-order bytes for the
+            // actual enum type. The bytes we need are the first ones on
+            // little-endian platforms and the last on big-endian.
+            // We could also switch between 8 codepaths for signed/unsigned
+            // 1/2/4/8-byte, but doing it this way is less bloaty.
             bytes holder{reinterpret_cast<const char *>(&ival)
                              + PYBIND11_BIG_ENDIAN * size_t(8 - info->size_bytes),
                          info->size_bytes};
+
+            // Ask the caller to keep our `holder` alive until they're done using
+            // the pointer we gave them, and return the pointer to its contents.
             keep_referenced(keep_referenced_ctx, holder.ptr());
             return PyBytes_AsString(holder.ptr());
         } catch (error_already_set &exc) {
+            // pymetabind doesn't provide any way to return full exception info
+            // for from-Python conversions, so fall back on writing it to stderr
             exc.discard_as_unraisable("Error converting native enum from Python");
             return nullptr;
         }
     }
 
+    // If it's not a native enum, it must be a py::class_ type (which includes
+    // old-style py::enum_).
+
 #if defined(PYBIND11_HAS_OPTIONAL)
     using maybe_life_support = std::optional<loader_life_support>;
 #else
+    // No-frills duplicate of partial functionality of std::optional, for
+    // backward compatibility with compilers that don't support it.
     struct maybe_life_support {
         union {
             loader_life_support supp;
@@ -118,6 +158,9 @@ inline void *interop_cb_from_python(pymb_binding *binding,
         }
     };
 #endif
+
+    // Create a loader_life_support only if we will be able to hand off
+    // (to our caller) the ownership of the references added to it
     maybe_life_support holder;
     if (keep_referenced) {
         holder.emplace();
@@ -131,6 +174,8 @@ inline void *interop_cb_from_python(pymb_binding *binding,
             ret = caster.value;
         }
     } catch (...) {
+        // pymetabind doesn't provide any way to return full exception info
+        // for from-Python conversions, so fall back on writing it to stderr
         translate_exception(std::current_exception());
         PyErr_WriteUnraisable(pyobj);
     }
@@ -145,7 +190,7 @@ inline void *interop_cb_from_python(pymb_binding *binding,
 
 // This wraps the call to type_info::init_instance() in some cases when casting
 // a pybind11-bound object to Python on behalf of a foreign framework. It
-// inhibits registration of the new instance so that interop_cb_keep_alive()
+// inhibits registration of the new instance so that foreign_cb_keep_alive()
 // can fix up the holder before other threads start using the new instance.
 inline void init_instance_unregistered(instance *inst, const void *holder) {
     assert(holder == nullptr && !inst->owned);
@@ -165,7 +210,7 @@ inline void init_instance_unregistered(instance *inst, const void *holder) {
     v_h.type->init_instance(inst, nullptr);
 }
 
-inline PyObject *interop_cb_to_python(pymb_binding *binding,
+inline PyObject *foreign_cb_to_python(pymb_binding *binding,
                                       void *cobj,
                                       enum pymb_rv_policy rvp_,
                                       pymb_to_python_feedback *feedback) noexcept {
@@ -173,40 +218,53 @@ inline PyObject *interop_cb_to_python(pymb_binding *binding,
     feedback->is_new = 0;   // unless overridden below
 
     if (cobj == nullptr) {
+        // Converting null to Python produces a None object
         return none().release().ptr();
     }
 
-    if (!binding->context) {
+    if (binding->context == nullptr) {
         // Native enum type
         try {
-            handle pytype((PyObject *) binding->pytype);
+            // Get the pybind11 enum record for this enum type, so we can
+            // determine its size and signedness
+            handle pytype(reinterpret_cast<PyObject *>(binding->pytype));
             auto cap
                 = reinterpret_borrow<capsule>(pytype.attr(native_enum_record::attribute_name()));
             auto *info = cap.get_pointer<native_enum_record>();
+
+            // Get the underlying integer value of the C++ enum object
+            // we're converting to Python
             uint64_t key = 0;
             switch (info->size_bytes) {
                 case 1:
-                    key = *(uint8_t *) cobj;
+                    key = *reinterpret_cast<uint8_t *>(cobj);
                     break;
                 case 2:
-                    key = *(uint16_t *) cobj;
+                    key = *reinterpret_cast<uint16_t *>(cobj);
                     break;
                 case 4:
-                    key = *(uint32_t *) cobj;
+                    key = *reinterpret_cast<uint32_t *>(cobj);
                     break;
                 case 8:
-                    key = *(uint64_t *) cobj;
+                    key = *reinterpret_cast<uint64_t *>(cobj);
                     break;
                 default:
                     return nullptr;
             }
             if (rvp_ == pymb_rv_policy_take_ownership) {
+                // Rare case: returning a heap-allocated enum; the Python
+                // enum object can't actually carry ownership, so delete it
+                // immediately now that we've extracted the contents
                 ::operator delete(cobj);
             }
             if (info->is_signed) {
-                auto ikey = (int64_t) key;
+                // Reinterpret the unsigned value we extracted above as signed
+                auto ikey = static_cast<int64_t>(key);
                 if (info->size_bytes < 8) {
-                    // sign extend
+                    // If we extracted less than 8 bytes, we need to sign
+                    // extend (fill the higher-order bits of the int64 with
+                    // the sign bit of the smaller value we extracted); this
+                    // is a standard idiom for that
                     ikey <<= (64 - (info->size_bytes * 8));
                     ikey >>= (64 - (info->size_bytes * 8));
                 }
@@ -219,19 +277,24 @@ inline PyObject *interop_cb_to_python(pymb_binding *binding,
         }
     }
 
+    // Otherwise this is a py::class_ or py::enum_ binding
+
     const auto *ti = static_cast<const type_info *>(binding->context);
     return_value_policy rvp = return_value_policy::automatic;
     bool inhibit_registration = false;
 
+    // Convert pymetabind RVP to pybind11 RVP
     switch (rvp_) {
         case pymb_rv_policy_take_ownership:
         case pymb_rv_policy_copy:
         case pymb_rv_policy_move:
         case pymb_rv_policy_reference:
-            // These have the same values and semantics as our own policies
-            rvp = (return_value_policy) rvp_;
+            // These have the same numeric values and semantics as our own policies
+            rvp = static_cast<return_value_policy>(rvp_);
             break;
         case pymb_rv_policy_share_ownership:
+            // Treat as `reference` for the initial creation; we'll fix it up
+            // later
             rvp = return_value_policy::reference;
             inhibit_registration = true;
             break;
@@ -246,10 +309,16 @@ inline PyObject *interop_cb_to_python(pymb_binding *binding,
 
     copy_or_move_ctor copy_ctor = nullptr, move_ctor = nullptr;
     if (rvp == return_value_policy::copy || rvp == return_value_policy::move) {
+        // If we're making a copy or a move, we need to fetch the copy
+        // and move constructors. Ideally they would be stored in the type_info
+        // but for now we have a parallel map in order to maintain ABI compat.
+        // If they're not present (such as because this pytype was created by
+        // a version of pybind11 that didn't know about pymetabind) we'll
+        // leave them as null and accept a failure of cast() below.
         with_internals([&](internals &) {
-            auto &interop_internals = get_interop_internals();
-            auto it = interop_internals.copy_move_ctors.find(*ti->cpptype);
-            if (it != interop_internals.copy_move_ctors.end()) {
+            auto &foreign_internals = get_foreign_internals();
+            auto it = foreign_internals.copy_move_ctors.find(*ti->cpptype);
+            if (it != foreign_internals.copy_move_ctors.end()) {
                 std::tie(copy_ctor, move_ctor) = it->second;
             }
         });
@@ -261,7 +330,7 @@ inline PyObject *interop_cb_to_python(pymb_binding *binding,
             srcs.init_instance = init_instance_unregistered;
         }
         handle ret = type_caster_generic::cast(srcs, rvp, {}, copy_ctor, move_ctor);
-        feedback->is_new = uint8_t(srcs.is_new);
+        feedback->is_new = static_cast<uint8_t>(srcs.is_new);
         return ret.ptr();
     } catch (...) {
         translate_exception(std::current_exception());
@@ -269,28 +338,36 @@ inline PyObject *interop_cb_to_python(pymb_binding *binding,
     }
 }
 
-inline int interop_cb_keep_alive(PyObject *nurse,
+inline int foreign_cb_keep_alive(PyObject *nurse,
                                  pymb_keep_alive_type type,
                                  void *payload,
                                  void (*cb)(void *)) noexcept {
     try {
-        do { // single-iteration loop to reduce nesting level
+        // This do-while loop only executes one iteration, and exists purely
+        // to reduce the nesting level by allowing use of `break` statements.
+        // Within it, we're trying to represent this keep-alive by setting a
+        // shared_ptr on `nurse` with an appropriate deleter, which is
+        // only possible for an object that was freshly created using
+        // pymb_rv_policy_share_ownership. After the do-while we'll handle
+        // the more common keep alive case. The special shared_ptr cases here
+        // are essential to allow a shared_ptr<T> returned from a foreign-bound
+        // function to be acceptable as a shared_ptr<T> argument to a
+        // pybind11-bound function.
+        do {
             if (!is_uniquely_referenced(nurse)) {
-                break;
+                break; // someone else might hold a reference to this object
             }
-            // See if we can install this as a shared_ptr deleter rather than
-            // a keep_alive, since the very first keep_alive for a new object
-            // might be to let it carry shared_ptr ownership. This helps
-            // a shared_ptr<T> returned from a foreign binding be acceptable
-            // as a shared_ptr<T> argument to a pybind11-bound function.
             values_and_holders vhs{nurse};
             if (vhs.size() != 1) {
-                break;
+                break; // instance of a pytype that inherits multiple cpptypes
             }
             value_and_holder v_h = *vhs.begin();
             if (v_h.instance_registered()) {
-                break;
+                break; // someone else might concurrently obtain a reference
             }
+            // After this point, no early break allowed -- we're committing to
+            // register the instance regardless of whether we successfully set
+            // the keep_alive via shared_ptr or not.
             bool can_set_shared_ptr = (v_h.type->holder_enum_v == holder_enum_t::std_shared_ptr
                                        && !v_h.holder_constructed());
             bool can_set_smart_holder = (v_h.type->holder_enum_v == holder_enum_t::smart_holder
@@ -306,8 +383,7 @@ inline int interop_cb_keep_alive(PyObject *nurse,
                     case pymb_keep_alive_pyobject: {
                         PyObject *patient = static_cast<PyObject *>(payload);
                         Py_INCREF(patient);
-                        result = std::shared_ptr<void>(
-                            std::shared_ptr<PyObject>(patient, Py_DecRef), v_h.value_ptr());
+                        result = std::shared_ptr<PyObject>(patient, Py_DecRef);
                         break;
                     }
                     case pymb_keep_alive_cpp_shared_ptr_void: {
@@ -354,6 +430,8 @@ inline int interop_cb_keep_alive(PyObject *nurse,
             }
         } while (false);
 
+        // Normal keep-alive logic for all instances except those newly
+        // created with pymb_rv_polcy_share_ownership
         switch (type) {
             case pymb_keep_alive_callback: {
                 capsule patient{payload, cb};
@@ -381,7 +459,7 @@ inline int interop_cb_keep_alive(PyObject *nurse,
     }
 }
 
-inline int interop_cb_translate_exception(void *eptr) noexcept {
+inline int foreign_cb_translate_exception(void *eptr) noexcept {
     return with_exception_translators(
         [&](std::forward_list<ExceptionTranslator> &exception_translators,
             std::forward_list<ExceptionTranslator> & /*local_exception_translators*/) {
@@ -389,8 +467,11 @@ inline int interop_cb_translate_exception(void *eptr) noexcept {
             // an exception that was raised from a different framework, thus a
             // different extension module, so nothing local to us will apply.
             // Try global translators, except the last one or two.
-            std::exception_ptr &e = *(std::exception_ptr *) eptr;
+            std::exception_ptr &e = *static_cast<std::exception_ptr *>(eptr);
             auto it = exception_translators.begin();
+            // We will iterate `it` and `leader` in lockstep until `leader`
+            // reaches the end of the list, so however far past `it` we advance
+            // `leader` is the number of trailing translators we won't call.
             auto leader = it;
             // - The last one is the default translator. It translates
             //   standard exceptions, which we should leave up to the
@@ -401,7 +482,7 @@ inline int interop_cb_translate_exception(void *eptr) noexcept {
             //   frameworks' exceptions), it's the second-last one and should
             //   be skipped too. We don't want mutual recursion between
             //   different frameworks' translators.
-            if (!get_interop_internals().exc_frameworks.empty()) {
+            if (!get_foreign_internals().exc_frameworks.empty()) {
                 ++leader;
             }
 
@@ -436,52 +517,53 @@ inline int interop_cb_translate_exception(void *eptr) noexcept {
         });
 }
 
-inline void interop_cb_remove_local_binding(pymb_binding *binding) noexcept {
+inline void foreign_cb_remove_local_binding(pymb_binding *binding) noexcept {
     with_internals([&](internals &) {
-        auto &interop_internals = get_interop_internals();
+        auto &foreign_internals = get_foreign_internals();
         const auto *cpptype = (const std::type_info *) binding->native_type;
-        auto it = interop_internals.bindings.find(*cpptype);
-        if (it != interop_internals.bindings.end() && it->second.erase(binding)) {
-            ++interop_internals.bindings_update_count;
+        auto it = foreign_internals.bindings.find(*cpptype);
+        if (it != foreign_internals.bindings.end() && it->second.erase_one(binding)) {
+            ++foreign_internals.bindings_update_count;
             if (it->second.empty()) {
-                interop_internals.bindings.erase(it);
+                foreign_internals.bindings.erase(it);
             }
         }
     });
 }
 
-inline void interop_cb_free_local_binding(pymb_binding *binding) noexcept {
+inline void foreign_cb_free_local_binding(pymb_binding *binding) noexcept {
     free(const_cast<char *>(binding->source_name));
     delete binding;
 }
 
-inline void interop_cb_add_foreign_binding(pymb_binding *binding) noexcept {
+inline void foreign_cb_add_foreign_binding(pymb_binding *binding) noexcept {
     with_internals([&](internals &) {
-        auto &interop_internals = get_interop_internals();
-        if (should_autoimport_foreign(interop_internals, binding)) {
-            import_foreign_binding(binding, (const std::type_info *) binding->native_type);
+        auto &local_internals = get_local_internals();
+        if (local_internals.foreign_import_all &&
+            can_autoimport_foreign(*local_internals->foreign_internals, binding)) {
+            import_foreign_binding(binding, (const std::type_info *) binding->native_type, false);
         }
     });
 }
 
-inline void interop_cb_remove_foreign_binding(pymb_binding *binding) noexcept {
+inline void foreign_cb_remove_foreign_binding(pymb_binding *binding) noexcept {
     with_internals([&](internals &) {
-        auto &interop_internals = get_interop_internals();
+        auto &foreign_internals = get_foreign_internals();
         auto remove_from_type = [&](const std::type_info *type) {
-            auto it = interop_internals.bindings.find(*type);
-            if (it != interop_internals.bindings.end() && it->second.erase(binding)) {
-                ++interop_internals.bindings_update_count;
+            auto it = foreign_internals.bindings.find(*type);
+            if (it != foreign_internals.bindings.end() && it->second.erase_one(binding)) {
+                ++foreign_internals.bindings_update_count;
                 if (it->second.empty()) {
-                    interop_internals.bindings.erase(it);
+                    foreign_internals.bindings.erase(it);
                 }
             }
         };
-        bool should_remove_auto = should_autoimport_foreign(interop_internals, binding);
-        auto it = interop_internals.manual_imports.find(binding);
-        if (it != interop_internals.manual_imports.end()) {
+        bool should_remove_auto = can_autoimport_foreign(foreign_internals, binding);
+        auto it = foreign_internals.manual_imports.find(binding);
+        if (it != foreign_internals.manual_imports.end()) {
             remove_from_type(it->second);
             should_remove_auto &= (it->second != binding->native_type);
-            interop_internals.manual_imports.erase(it);
+            foreign_internals.manual_imports.erase(it);
         }
         if (should_remove_auto) {
             remove_from_type((const std::type_info *) binding->native_type);
@@ -489,13 +571,13 @@ inline void interop_cb_remove_foreign_binding(pymb_binding *binding) noexcept {
     });
 }
 
-inline void interop_cb_add_foreign_framework(pymb_framework *framework) noexcept {
+inline void foreign_cb_add_foreign_framework(pymb_framework *framework) noexcept {
     if (framework->translate_exception) {
         with_exception_translators(
             [&](std::forward_list<ExceptionTranslator> &exception_translators,
                 std::forward_list<ExceptionTranslator> &) {
-                auto &interop_internals = get_interop_internals();
-                if (interop_internals.exc_frameworks.empty()) {
+                auto &foreign_internals = get_foreign_internals();
+                if (foreign_internals.exc_frameworks.empty()) {
                     // First foreign framework with an exception translator.
                     // Add our `foreign_exception_translator` wrapper in the
                     // 2nd-last position (last is the default exception
@@ -508,21 +590,21 @@ inline void interop_cb_add_foreign_framework(pymb_framework *framework) noexcept
                     exception_translators.insert_after(trailer, foreign_exception_translator);
                 }
                 // Add the new framework at the end of the list
-                auto it = interop_internals.exc_frameworks.before_begin();
-                while (std::next(it) != interop_internals.exc_frameworks.end()) {
+                auto it = foreign_internals.exc_frameworks.before_begin();
+                while (std::next(it) != foreign_internals.exc_frameworks.end()) {
                     ++it;
                 }
-                interop_internals.exc_frameworks.insert_after(it, framework);
+                foreign_internals.exc_frameworks.insert_after(it, framework);
             });
     }
 }
 
-inline void interop_cb_remove_foreign_framework(pymb_framework *framework) noexcept {
+inline void foreign_cb_remove_foreign_framework(pymb_framework *framework) noexcept {
     // No need for locking; the interpreter is already finalizing
     // at this point (and might be already finalized, so we can't do any
     // Python API calls)
     if (framework->translate_exception) {
-        get_interop_internals().exc_frameworks.remove(framework);
+        get_foreign_internals().exc_frameworks.remove(framework);
         // No need to bother removing the foreign_exception_translator if
         // this was the last of the exc_frameworks. In the unlikely event
         // that something needs an exception translated during finalization,
@@ -533,7 +615,7 @@ inline void interop_cb_remove_foreign_framework(pymb_framework *framework) noexc
 // (end of callbacks)
 
 // Advertise our existence, and the above callbacks, to other frameworks
-PYBIND11_NOINLINE bool interop_internals::initialize() {
+PYBIND11_NOINLINE pymb_framework *foreign_internals::init_framework() {
     pymb_registry *registry = nullptr;
     bool inited_by_us = with_internals([&](internals &) {
         if (self) {
@@ -552,29 +634,48 @@ PYBIND11_NOINLINE bool interop_internals::initialize() {
         self->flags = 0;
         self->abi_lang = pymb_abi_lang_cpp;
         self->abi_extra = PYBIND11_PLATFORM_ABI_ID;
-        self->from_python = interop_cb_from_python;
-        self->to_python = interop_cb_to_python;
-        self->keep_alive = interop_cb_keep_alive;
-        self->translate_exception = interop_cb_translate_exception;
-        self->remove_local_binding = interop_cb_remove_local_binding;
-        self->free_local_binding = interop_cb_free_local_binding;
-        self->add_foreign_binding = interop_cb_add_foreign_binding;
-        self->remove_foreign_binding = interop_cb_remove_foreign_binding;
-        self->add_foreign_framework = interop_cb_add_foreign_framework;
-        self->remove_foreign_framework = interop_cb_remove_foreign_framework;
+        self->from_python = foreign_cb_from_python;
+        self->to_python = foreign_cb_to_python;
+        self->keep_alive = foreign_cb_keep_alive;
+        self->translate_exception = foreign_cb_translate_exception;
+        self->remove_local_binding = foreign_cb_remove_local_binding;
+        self->free_local_binding = foreign_cb_free_local_binding;
+        self->add_foreign_binding = foreign_cb_add_foreign_binding;
+        self->remove_foreign_binding = foreign_cb_remove_foreign_binding;
+        self->add_foreign_framework = foreign_cb_add_foreign_framework;
+        self->remove_foreign_framework = foreign_cb_remove_foreign_framework;
         return true;
     });
     if (inited_by_us) {
         // Unlock internals before calling add_framework, so that the callbacks
-        // (interop_cb_add_foreign_binding, etc) can safely re-lock it.
+        // (foreign_cb_add_foreign_binding, etc) can safely re-lock it.
         pymb_add_framework(registry, self.get());
     }
-    return inited_by_us;
+    return self.get();
 }
 
-inline interop_internals::~interop_internals() {
-    if (self && bindings.empty()) {
+inline foreign_internals::~foreign_internals() {
+    if (!self) {
+        // never set up in the first place
+        return;
+    }
+
+    // We can only clean up the framework if it has no bindings still active
+    bool any_alive = false;
+    for (const auto &entry : bindings) {
+        for (pymb_binding *binding : entry.second) {
+            if (binding->framework == self.get()) {
+                any_alive = true;
+                break;
+            }
+        }
+    }
+    if (!any_alive) {
         pymb_remove_framework(self.get());
+    } else {
+        // Leak framework so the still-existing bindings can be used during
+        // teardown of other frameworks
+        self.release();
     }
 }
 
@@ -582,21 +683,23 @@ inline interop_internals::~interop_internals() {
 // foreign binding provided by the given `pytype`. If cpptype is nullptr, infer
 // the C++ type by looking at the binding, and require that its ABI match ours.
 // Throws an exception on failure. Caller must hold the internals lock and have
-// already called interop_internals.initialize_if_needed().
-PYBIND11_NOINLINE void import_for_interop(handle pytype, const std::type_info *cpptype) {
-    auto &interop_internals = get_interop_internals();
+// already called foreign_internals.ensure().
+PYBIND11_NOINLINE void import_foreign(handle pytype, const std::type_info *cpptype) {
+    auto &local_internals = get_local_internals();
+    auto &foreign_internals = *local_internals->foreign_internals;
+    foreign_internals.ensure_framework();
     pymb_binding *binding = pymb_get_binding(pytype.ptr());
     if (!binding) {
-        pybind11_fail("pybind11::import_for_interop(): type does not define "
+        pybind11_fail("pybind11::import_foreign(): type does not define "
                       "a __pymetabind_binding__");
     }
     if (binding->pytype != (PyTypeObject *) pytype.ptr()) {
-        pybind11_fail("pybind11::import_for_interop(): the binding associated "
+        pybind11_fail("pybind11::import_foreign(): the binding associated "
                       "with the type you specified is for a different type; "
                       "pass the type object that was created by the other "
                       "framework, not its subclass");
     }
-    if (binding->framework == interop_internals.self.get()) {
+    if (binding->framework == foreign_internals.self.get()) {
         // Can't call get_type_info() because it would lock internals and
         // they're already locked
         auto &internals = get_internals();
@@ -606,130 +709,66 @@ PYBIND11_NOINLINE void import_for_interop(handle pytype, const std::type_info *c
             // Allow importing module-local types from other pybind11 modules,
             // even if they're ABI-compatible with us and thus use the same
             // pymb_framework. The import is not doing much here; the export
-            // alone would put the binding in interop_internals where we can
+            // alone would put the binding in foreign_internals where we can
             // see it.
         } else {
-            pybind11_fail("pybind11::import_for_interop(): type is not foreign");
+            pybind11_fail("pybind11::import_foreign(): type is not foreign");
         }
     }
     if (!cpptype) {
         if (binding->framework->abi_lang != pymb_abi_lang_cpp) {
-            pybind11_fail("pybind11::import_for_interop(): type is not "
+            pybind11_fail("pybind11::import_foreign(): type is not "
                           "written in C++, so you must specify a C++ type");
         }
-        if (binding->framework->abi_extra != interop_internals.self->abi_extra) {
-            pybind11_fail("pybind11::import_for_interop(): type has "
+        if (binding->framework->abi_extra != foreign_internals.self->abi_extra) {
+            pybind11_fail("pybind11::import_foreign(): type has "
                           "incompatible C++ ABI with this module");
         }
         cpptype = (const std::type_info *) binding->native_type;
     }
 
-    auto result = interop_internals.manual_imports.emplace(binding, cpptype);
+    auto result = foreign_internals.manual_imports.emplace(binding, cpptype);
     if (!result.second) {
         const auto *existing = (const std::type_info *) result.first->second;
         if (existing != cpptype && *existing != *cpptype) {
-            pybind11_fail("pybind11::import_for_interop(): type was "
+            pybind11_fail("pybind11::import_foreign(): type was "
                           "already imported as a different C++ type");
         }
     }
-    import_foreign_binding(binding, cpptype);
-}
-
-// Call `import_foreign_binding()` for every ABI-compatible type provided by
-// other C++ binding frameworks used by extension modules loaded in this
-// interpreter, both those that exist now and those bound in the future.
-PYBIND11_NOINLINE void interop_enable_import_all() {
-    auto &interop_internals = get_interop_internals();
-    bool proceed = with_internals([&](internals &) {
-        if (interop_internals.import_all) {
-            return false;
-        }
-        interop_internals.import_all = true;
-        return true;
-    });
-    if (!proceed) {
-        return;
+    if (!local_internals.foreign_import_all) {
+        // Mark this binding as having been specifically requested by the
+        // current extension module, so that it can bypass the don't-import
+        // default
+        local_internals.foreign_local_imports.emplace(cpptype, binding->framework);
     }
-    if (interop_internals.initialize_if_needed()) {
-        // pymb_add_framework tells us about every existing type when we
-        // register, so if we register with import enabled, we're done
-        return;
-    }
-    // If we enable import after registering, we have to iterate over the
-    // list of types ourselves. Do this without the internals lock held so
-    // we can reuse the pymb callback functions. interop_internals registry +
-    // self never change once they're non-null, so we can access them
-    // without locking here.
-    struct pymb_registry *registry = interop_internals.self->registry;
-    pymb_lock_registry(registry);
-    // NOLINTNEXTLINE(modernize-use-auto)
-    PYMB_LIST_FOREACH(struct pymb_binding *, binding, registry->bindings) {
-        if (binding->framework != interop_internals.self.get()) {
-            interop_cb_add_foreign_binding(binding);
-        }
-    }
-    pymb_unlock_registry(registry);
+    import_foreign_binding(binding, cpptype, /*manual=*/true);
 }
 
 // Expose hooks for other frameworks to use to work with the given pybind11
-// type object. `ti` may be nullptr if exporting a native enum.
-// Caller must hold the internals lock and have already called
-// interop_internals.initialize_if_needed().
+// type object. This occurs by default at binding time unless
+// `disable_foreign_export()` has been called. `ti` may be nullptr if exporting
+// a native enum. Caller must hold the internals lock and have already called
+// foreign_internals.ensure_framework().
 PYBIND11_NOINLINE void
-export_for_interop(const std::type_info *cpptype, PyTypeObject *pytype, type_info *ti) {
-    auto &interop_internals = get_interop_internals();
-    auto &lst = interop_internals.bindings[*cpptype];
+export_to_foreign(const std::type_info *cpptype, PyTypeObject *pytype, type_info *ti) {
+    auto &foreign_internals = get_foreign_internals();
+    auto &lst = foreign_internals.bindings[*cpptype];
     for (pymb_binding *existing : lst) {
-        if (existing->framework == interop_internals.self.get() && existing->pytype == pytype) {
-            return; // already imported
+        if (existing->framework == foreign_internals.self.get() && existing->pytype == pytype) {
+            return; // already exported
         }
     }
 
     auto *binding = new pymb_binding{};
-    binding->framework = interop_internals.self.get();
+    binding->framework = foreign_internals.self.get();
     binding->pytype = pytype;
     binding->native_type = cpptype;
     binding->source_name = PYBIND11_COMPAT_STRDUP(clean_type_id(cpptype->name()).c_str());
     binding->context = ti;
 
-    ++interop_internals.bindings_update_count;
+    ++foreign_internals.bindings_update_count;
     lst.append(binding);
     pymb_add_binding(binding, /* tp_finalize_will_remove */ 0);
-}
-
-// Call `export_type_to_foreign()` for each type that currently exists in our
-// internals structure and each type created in the future.
-PYBIND11_NOINLINE void interop_enable_export_all() {
-    auto &interop_internals = get_interop_internals();
-    bool proceed = with_internals([&](internals &) {
-        if (interop_internals.export_all) {
-            return false;
-        }
-        interop_internals.export_all = true;
-        interop_internals.export_for_interop = &detail::export_for_interop;
-        return true;
-    });
-    if (!proceed) {
-        return;
-    }
-    interop_internals.initialize_if_needed();
-    with_internals([&](internals &internals) {
-        for (const auto &entry : internals.registered_types_cpp) {
-            auto *ti = entry.second;
-            detail::export_for_interop(ti->cpptype, ti->type, ti);
-        }
-        for (const auto &entry : internals.native_enum_type_map) {
-            try {
-                auto cap = reinterpret_borrow<capsule>(
-                    handle(entry.second).attr(native_enum_record::attribute_name()));
-                auto *info = cap.get_pointer<native_enum_record>();
-                detail::export_for_interop(info->cpptype, (PyTypeObject *) entry.second, nullptr);
-            } catch (error_already_set &) { // NOLINT(bugprone-empty-catch)
-                // Ignore native enums without a __pybind11_enum__ capsule;
-                // they might be from an older version of pybind11
-            }
-        }
-    });
 }
 
 // Invoke `attempt(closure, binding)` for each foreign binding `binding`
@@ -740,18 +779,19 @@ PYBIND11_NOINLINE void *try_foreign_bindings(const std::type_info *type,
                                                               pymb_binding *binding),
                                              void *closure) {
     auto &internals = get_internals();
-    auto &interop_internals = get_interop_internals();
-    uint32_t update_count = interop_internals.bindings_update_count;
+    auto &local_internals = get_local_internals();
+    auto &foreign_internals = *local_internals.foreign_internals;
+    uint32_t update_count = foreign_internals.bindings_update_count;
 
     do {
         PYBIND11_LOCK_INTERNALS(internals);
         (void) internals; // suppress unused warning on non-ft builds
-        auto it = interop_internals.bindings.find(*type);
-        if (it == interop_internals.bindings.end()) {
+        auto it = foreign_internals.bindings.find(*type);
+        if (it == foreign_internals.bindings.end()) {
             return nullptr;
         }
         for (pymb_binding *binding : it->second) {
-            if (binding->framework == interop_internals.self.get()
+            if (binding->framework == foreign_internals.self.get()
                 && (!binding->context
                     || !is_local_to_other_module((type_info *) binding->context))) {
                 // Don't try to use our own types, unless they're module-local
@@ -759,6 +799,15 @@ PYBIND11_NOINLINE void *try_foreign_bindings(const std::type_info *type,
                 // (The module-local escape hatch is only relevant for
                 // to-Python conversions; from-Python won't try foreign if it
                 // sees the capsule for other-module-local.)
+                continue;
+            }
+
+            if (!local_internals.foreign_import_all &&
+                local_internals.foreign_local_imports.find({type, binding->framework}) ==
+                local_internals.foreign_local_imports.end()) {
+                // If this extension module called disable_foreign_import(), then
+                // don't consider types unless they were explicitly imported after
+                // that call.
                 continue;
             }
 
@@ -777,54 +826,73 @@ PYBIND11_NOINLINE void *try_foreign_bindings(const std::type_info *type,
             // Make sure our iterator wasn't invalidated by something that
             // was done within attempt(), or concurrently during attempt()
             // while we didn't hold the internals lock
-            if (interop_internals.bindings_update_count != update_count) {
+            if (foreign_internals.bindings_update_count != update_count) {
                 // Concurrent update occurred; stop iterating
                 break;
             }
         }
-        if (interop_internals.bindings_update_count != update_count) {
+        if (foreign_internals.bindings_update_count != update_count) {
             // We broke out early due to a concurrent update. Retry from the top.
-            update_count = interop_internals.bindings_update_count;
+            update_count = foreign_internals.bindings_update_count;
             continue;
         }
         return nullptr;
     } while (true);
 }
 
+// Friendlier version which calls `attempt(binding)` for each binding,
+// with captures carried in the lambda.
+template <class Fn>
+void *try_foreign_bindings(const std::type_info *type, const Fn& attempt) {
+    return try_foreign_bindings(type,
+                                +[](void *closure, pymb_binding *binding) {
+                                    return (*static_cast<const Fn *>(closure))(binding);
+                                },
+                                &attempt);
+}
+
 PYBIND11_NAMESPACE_END(detail)
 
-inline void interoperate_by_default(bool export_all = true, bool import_all = true) {
-    auto &interop_internals = detail::get_interop_internals();
-    if (import_all && !interop_internals.import_all) {
-        detail::interop_enable_import_all();
-    }
-    if (export_all && !interop_internals.export_all) {
-        detail::interop_enable_export_all();
-    }
+// Disable the automatic importation of all bindings exported by other C++
+// frameworks. After this call, no foreign bindings will be used unless
+// the specific binding is named in a call to import_foreign() that occurs
+// after this call.
+PYBIND11_NOINLINE void disable_foreign_import() {
+    auto &local_internals = get_local_internals();
+    local_internals.foreign_import_all = false;
+    local_internals.foreign_local_imports.clear();
+}
+
+// Disable the automatic exportation of our own bindings for other frameworks
+// to use. This only applies to future executions of binding statements
+// (py::class_, py::native_enum, etc); bindings already created remain exported.
+PYBIND11_NOINLINE void disable_foreign_export() {
+    auto &local_internals = get_local_internals();
+    local_internals.foreign_export_all = false;
 }
 
 template <class T = void>
-inline void import_for_interop(handle pytype) {
+inline void import_foreign(handle pytype) {
     if (!PyType_Check(pytype.ptr())) {
-        pybind11_fail("pybind11::import_for_interop(): expected a type object");
+        pybind11_fail("pybind11::import_foreign(): expected a type object");
     }
     const std::type_info *cpptype = std::is_void<T>::value ? nullptr : &typeid(T);
-    auto &interop_internals = detail::get_interop_internals();
-    interop_internals.initialize_if_needed();
+    auto &foreign_internals = detail::get_foreign_internals();
+    foreign_internals.ensure_framework();
     detail::with_internals(
-        [&](detail::internals &) { detail::import_for_interop(pytype, cpptype); });
+        [&](detail::internals &) { detail::import_foreign(pytype, cpptype); });
 }
 
-inline void export_for_interop(handle ty) {
+inline void export_to_foreign(handle ty) {
     if (!PyType_Check(ty.ptr())) {
-        pybind11_fail("pybind11::export_for_interop(): expected a type object");
+        pybind11_fail("pybind11::export_foreign(): expected a type object");
     }
-    auto &interop_internals = detail::get_interop_internals();
-    interop_internals.initialize_if_needed();
+    auto &foreign_internals = detail::get_foreign_internals();
+    foreign_internals.ensure_framework();
     detail::type_info *ti = detail::get_type_info((PyTypeObject *) ty.ptr());
     if (ti) {
         detail::with_internals(
-            [&](detail::internals &) { detail::export_for_interop(ti->cpptype, ti->type, ti); });
+            [&](detail::internals &) { detail::export_to_foreign(ti->cpptype, ti->type, ti); });
         return;
     }
     // Not a class_; maybe it's a native_enum?
@@ -835,7 +903,7 @@ inline void export_for_interop(handle ty) {
         bool ours = detail::with_internals([&](detail::internals &internals) {
             auto it = internals.native_enum_type_map.find(*info->cpptype);
             if (it != internals.native_enum_type_map.end() && it->second == ty.ptr()) {
-                detail::export_for_interop(info->cpptype, (PyTypeObject *) ty.ptr(), nullptr);
+                detail::export_to_foreign(info->cpptype, (PyTypeObject *) ty.ptr(), nullptr);
                 return true;
             }
             return false;
@@ -846,7 +914,7 @@ inline void export_for_interop(handle ty) {
     } catch (error_already_set &) { // NOLINT(bugprone-empty-catch)
         // Could be an older native enum without __pybind11_enum__ capsule
     }
-    pybind11_fail("pybind11::export_for_interop: not a "
+    pybind11_fail("pybind11::export_to_foreign: not a "
                   "pybind11 class or enum bound in this domain");
 }
 

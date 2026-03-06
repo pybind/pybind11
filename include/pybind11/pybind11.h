@@ -165,7 +165,7 @@ inline std::string generate_function_signature(const char *type_caster_name_fiel
             if (!t) {
                 pybind11_fail("Internal error while parsing type signature (1)");
             }
-            handle th = detail::get_type_handle(*t, false, true);
+            handle th = detail::get_type_handle(*t, false);
             if (!th) {
                 th = detail::global_internals_native_enum_type_map_get_item(*t);
             }
