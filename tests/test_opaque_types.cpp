@@ -109,13 +109,14 @@ TEST_SUBMODULE(opaque_types, m) {
     py::class_<VecArray3d>(m, "VecArray3d")
         .def(py::init<>())
         .def("push_back", [](VecArray3d &v, const Array3d &a) { v.push_back(a); })
-        .def("__getitem__",
-             [](const VecArray3d &v, std::size_t i) -> const Array3d & {
-                 if (i >= v.size()) {
-                     throw py::index_error();
-                 }
-                 return v[i];
-             },
-             py::return_value_policy::reference_internal)
+        .def(
+            "__getitem__",
+            [](const VecArray3d &v, std::size_t i) -> const Array3d & {
+                if (i >= v.size()) {
+                    throw py::index_error();
+                }
+                return v[i];
+            },
+            py::return_value_policy::reference_internal)
         .def("__len__", [](const VecArray3d &v) { return v.size(); });
 }
