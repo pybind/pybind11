@@ -11,6 +11,7 @@
 
 #include "pybind11_tests.h"
 
+#include <array>
 #include <vector>
 
 // IMPORTANT: Disable internal pybind11 translation mechanisms for STL data structures
@@ -20,7 +21,17 @@
 // bit is just the default `std::vector` allocator).
 PYBIND11_MAKE_OPAQUE(std::vector<std::string, std::allocator<std::string>>)
 
+// Test for GitHub issue #5988: PYBIND11_MAKE_OPAQUE with std::array types.
+// These types are not used as converted types in other test files, so they
+// can safely be made opaque here without ODR violations.
+PYBIND11_MAKE_OPAQUE(std::array<double, 3>)
+PYBIND11_MAKE_OPAQUE(std::vector<std::array<double, 3>>)
+
 using StringList = std::vector<std::string, std::allocator<std::string>>;
+
+// Type aliases for issue #5988 test
+using Array3d = std::array<double, 3>;
+using VecArray3d = std::vector<Array3d>;
 
 TEST_SUBMODULE(opaque_types, m) {
     // test_string_list
@@ -74,4 +85,38 @@ TEST_SUBMODULE(opaque_types, m) {
         .def(py::init<>())
         .def_readwrite("i", &IntFloat::i)
         .def_readwrite("f", &IntFloat::f);
+
+    // test_issue_5988: PYBIND11_MAKE_OPAQUE with std::array and nested containers
+    // (Regression test for crash when importing modules with opaque std::array types)
+    py::class_<Array3d>(m, "Array3d")
+        .def(py::init<>())
+        .def("__getitem__",
+             [](const Array3d &a, std::size_t i) -> double {
+                 if (i >= a.size()) {
+                     throw py::index_error();
+                 }
+                 return a[i];
+             })
+        .def("__setitem__",
+             [](Array3d &a, std::size_t i, double v) {
+                 if (i >= a.size()) {
+                     throw py::index_error();
+                 }
+                 a[i] = v;
+             })
+        .def("__len__", [](const Array3d &a) { return a.size(); });
+
+    py::class_<VecArray3d>(m, "VecArray3d")
+        .def(py::init<>())
+        .def("push_back", [](VecArray3d &v, const Array3d &a) { v.push_back(a); })
+        .def(
+            "__getitem__",
+            [](const VecArray3d &v, std::size_t i) -> const Array3d & {
+                if (i >= v.size()) {
+                    throw py::index_error();
+                }
+                return v[i];
+            },
+            py::return_value_policy::reference_internal)
+        .def("__len__", [](const VecArray3d &v) { return v.size(); });
 }
