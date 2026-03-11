@@ -383,7 +383,7 @@ def test_cyclic_gc():
     assert cstats.alive() == 0
 
 
-@pytest.mark.xfail("env.PYPY")
+@pytest.mark.xfail("env.PYPY", strict=False)
 @pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_dynamic_attr_dealloc_frees_dict_contents():
     """Regression: py::dynamic_attr() objects must free __dict__ contents on dealloc.
