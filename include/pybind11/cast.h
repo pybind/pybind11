@@ -1021,7 +1021,19 @@ public:
             return smart_holder_type_caster_support::smart_holder_from_shared_ptr(
                 src, policy, parent, srcs.result);
         }
-        return type_caster_base<type>::cast_holder(srcs, &src);
+
+        auto *tinfo = srcs.result.tinfo;
+        if (tinfo != nullptr && tinfo->holder_enum_v == holder_enum_t::std_shared_ptr) {
+            return type_caster_base<type>::cast_holder(srcs, &src);
+        }
+
+        if (parent) {
+            return type_caster_base<type>::cast(
+                srcs, return_value_policy::reference_internal, parent);
+        }
+
+        throw cast_error("Unable to convert std::shared_ptr<T> to Python when the bound type "
+                         "does not use std::shared_ptr or py::smart_holder as its holder type");
     }
 
     // This function will succeed even if the `responsible_parent` does not own the
