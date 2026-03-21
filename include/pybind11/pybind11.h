@@ -2049,6 +2049,10 @@ template <typename Derived,
           typename T,
           typename Adapted = typename detail::rebind_member_ptr<Derived, T>::type>
 constexpr Adapted method_adaptor(T pmf) {
+    // Expected to be redundant (SFINAE on rebind_member_ptr) but cheap and makes the intent
+    // explicit.
+    static_assert(std::is_member_function_pointer<T>::value,
+                  "method_adaptor: T must be a member function pointer");
     return detail::adapt_member_ptr<Derived>(pmf);
 }
 
