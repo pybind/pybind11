@@ -1028,8 +1028,7 @@ public:
         }
 
         if (parent) {
-            return type_caster_base<type>::cast(
-                srcs, return_value_policy::reference_internal, parent);
+            return type_caster_base<type>::cast(srcs, policy, parent);
         }
 
         throw cast_error("Unable to convert std::shared_ptr<T> to Python when the bound type "
