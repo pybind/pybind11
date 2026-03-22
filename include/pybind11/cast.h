@@ -2243,8 +2243,13 @@ public:
         if (m_names) {
             nargs -= m_names.size();
         }
-        PyObject *result = _PyObject_Vectorcall(
-            ptr, m_args.data() + 1, nargs | PY_VECTORCALL_ARGUMENTS_OFFSET, m_names.ptr());
+        PyObject *result =
+#if PY_VERSION_HEX >= 0x03090000
+            PyObject_Vectorcall(
+#else
+            _PyObject_Vectorcall(
+#endif
+                ptr, m_args.data() + 1, nargs | PY_VECTORCALL_ARGUMENTS_OFFSET, m_names.ptr());
         if (!result) {
             throw error_already_set();
         }
