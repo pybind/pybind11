@@ -166,17 +166,19 @@ def test_readonly_const_char_ptr_member():
     assert obj.const_char_ptr_member == "ConstChar*"
 
 
+# See PR #6008
 def test_enum_member_with_smart_holder_def_readwrite():
-    obj = m.HolderWithEnum()
-    assert obj.level == m.TinyLevel.A
+    obj = m.ShWithEnumABMember()
+    assert obj.level == m.EnumAB.A
     for _ in range(100):
         v = obj.level
-        assert v == m.TinyLevel.A
+        assert v == m.EnumAB.A
         del v
 
 
+# See PR #6008
 def test_non_smart_holder_member_type_with_smart_holder_owner():
-    obj = m.HolderWithLegacyMember()
+    obj = m.ShWithSimpleStructMember()
     for _ in range(1000):
         v = obj.legacy
         assert v.value == 7

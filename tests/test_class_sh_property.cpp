@@ -43,21 +43,22 @@ struct WithConstCharPtrMember {
     const char *const_char_ptr_member = "ConstChar*";
 };
 
-enum class TinyLevel {
+// See PR #6008
+enum class EnumAB {
     A = 0,
     B = 1,
 };
 
-struct HolderWithEnum {
-    TinyLevel level = TinyLevel::A;
+struct ShWithEnumABMember {
+    EnumAB level = EnumAB::A;
 };
 
-struct LegacyThing {
+struct SimpleStruct {
     int value = 7;
 };
 
-struct HolderWithLegacyMember {
-    LegacyThing legacy;
+struct ShWithSimpleStructMember {
+    SimpleStruct legacy;
 };
 
 } // namespace test_class_sh_property
@@ -109,17 +110,18 @@ TEST_SUBMODULE(class_sh_property, m) {
         .def(py::init<>())
         .def_readonly("const_char_ptr_member", &WithConstCharPtrMember::const_char_ptr_member);
 
-    py::enum_<TinyLevel>(m, "TinyLevel").value("A", TinyLevel::A).value("B", TinyLevel::B);
+    // See PR #6008
+    py::enum_<EnumAB>(m, "EnumAB").value("A", EnumAB::A).value("B", EnumAB::B);
 
-    py::classh<HolderWithEnum>(m, "HolderWithEnum")
+    py::classh<ShWithEnumABMember>(m, "ShWithEnumABMember")
         .def(py::init<>())
-        .def_readwrite("level", &HolderWithEnum::level);
+        .def_readwrite("level", &ShWithEnumABMember::level);
 
-    py::class_<LegacyThing>(m, "LegacyThing")
+    py::class_<SimpleStruct>(m, "SimpleStruct")
         .def(py::init<>())
-        .def_readwrite("value", &LegacyThing::value);
+        .def_readwrite("value", &SimpleStruct::value);
 
-    py::classh<HolderWithLegacyMember>(m, "HolderWithLegacyMember")
+    py::classh<ShWithSimpleStructMember>(m, "ShWithSimpleStructMember")
         .def(py::init<>())
-        .def_readwrite("legacy", &HolderWithLegacyMember::legacy);
+        .def_readwrite("legacy", &ShWithSimpleStructMember::legacy);
 }
