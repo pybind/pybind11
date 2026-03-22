@@ -268,14 +268,13 @@ static_assert(std::is_same<decltype(RefQualifiedOverloadedLongCast{}(
                                &RefQualifiedOverloaded::method, py::const_)),
                            py::str (RefQualifiedOverloaded::*)(long) const & noexcept>::value,
               "");
-static_assert(std::is_same
-                  < decltype(RefQualifiedOverloadedDoubleCast{}(&RefQualifiedOverloaded::method)),
-              py::str (RefQualifiedOverloaded::*)(double) && noexcept > ::value,
-              "");
-static_assert(std::is_same
-                  < decltype(RefQualifiedOverloadedDoubleCast{}(&RefQualifiedOverloaded::method,
-                                                                py::const_)),
-              py::str (RefQualifiedOverloaded::*)(double) const && noexcept > ::value,
+static_assert(
+    std::is_same<decltype(RefQualifiedOverloadedDoubleCast{}(&RefQualifiedOverloaded::method)),
+                 py::str (RefQualifiedOverloaded::*)(double) && noexcept>::value,
+    "");
+static_assert(std::is_same<decltype(RefQualifiedOverloadedDoubleCast{}(
+                               &RefQualifiedOverloaded::method, py::const_)),
+                           py::str (RefQualifiedOverloaded::*)(double) const && noexcept>::value,
               "");
 #endif
 

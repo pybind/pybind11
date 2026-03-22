@@ -2039,8 +2039,7 @@ template <
     typename /*Derived*/,
     typename F,
     detail::enable_if_t<!std::is_member_function_pointer<detail::remove_reference_t<F>>::value,
-                        int>
-    = 0>
+                        int> = 0>
 constexpr auto method_adaptor(F &&f) -> decltype(std::forward<F>(f)) {
     return std::forward<F>(f);
 }
