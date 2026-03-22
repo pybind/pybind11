@@ -601,6 +601,15 @@ enum class return_value_policy : uint8_t {
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+// Py_IsFinalizing() is a public API since 3.13; before that use _Py_IsFinalizing().
+inline bool py_is_finalizing() {
+#if PY_VERSION_HEX >= 0x030D0000
+    return Py_IsFinalizing() != 0;
+#else
+    return _Py_IsFinalizing() != 0;
+#endif
+}
+
 static constexpr int log2(size_t n, int k = 0) { return (n <= 1) ? k : log2(n >> 1, k + 1); }
 
 // Returns the size as a multiple of sizeof(void *), rounded up.

@@ -847,13 +847,7 @@ protected:
                 }
             }
             // During finalization, default arg values may already be freed by GC.
-            // Py_IsFinalizing() is public API since 3.13; before that use the
-            // private _Py_IsFinalizing().
-#if PY_VERSION_HEX >= 0x030D0000
-            if (!Py_IsFinalizing()) {
-#else
-            if (!_Py_IsFinalizing()) {
-#endif
+            if (!detail::py_is_finalizing()) {
                 for (auto &arg : rec->args) {
                     arg.value.dec_ref();
                 }
@@ -1354,13 +1348,7 @@ inline void tp_dealloc_impl(PyObject *self) {
     // Skip dealloc during finalization — GC may have already freed objects
     // reachable from the function record (e.g. default arg values), causing
     // use-after-free in destruct().
-    // Py_IsFinalizing() is public API since 3.13; before that use the
-    // private _Py_IsFinalizing().
-#if PY_VERSION_HEX >= 0x030D0000
-    if (Py_IsFinalizing()) {
-#else
-    if (_Py_IsFinalizing()) {
-#endif
+    if (detail::py_is_finalizing()) {
         return;
     }
     // Save type before PyObject_Free invalidates self.
