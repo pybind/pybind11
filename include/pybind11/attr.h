@@ -378,7 +378,7 @@ struct type_record {
 #ifdef PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET
         dynamic_attr |= base_info->type->tp_dictoffset != 0;
 #else
-        dynamic_attr |= (base_info->type->tp_flags & Py_TPFLAGS_MANAGED_DICT) != 0;
+        dynamic_attr |= (PyType_GetFlags(base_info->type) & Py_TPFLAGS_MANAGED_DICT) != 0;
 #endif
 
         if (caster) {

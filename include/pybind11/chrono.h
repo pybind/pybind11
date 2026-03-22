@@ -64,8 +64,7 @@ public:
         return src;
     }
     static const std::chrono::duration<rep, period> &
-    get_duration(const std::chrono::duration<rep, period> &&)
-        = delete;
+    get_duration(const std::chrono::duration<rep, period> &&) = delete;
 
     // If this is a time_point get the time_since_epoch
     template <typename Clock>
