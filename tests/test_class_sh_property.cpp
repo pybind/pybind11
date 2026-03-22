@@ -125,7 +125,5 @@ TEST_SUBMODULE(class_sh_property, m) {
         .def(py::init<>())
         .def_readwrite("legacy", &ShWithSimpleStructMember::legacy);
 
-    m.def("getSimpleStructAsShared", []() {
-        return std::make_shared<SimpleStruct>();
-    });
+    m.def("getSimpleStructAsShared", []() { return std::make_shared<SimpleStruct>(); });
 }
