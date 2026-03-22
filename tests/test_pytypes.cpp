@@ -1086,8 +1086,7 @@ TEST_SUBMODULE(pytypes, m) {
     static_class.def(py::init());
     static_class.attr_with_type_hint<py::typing::ClassVar<float>>("x") = 1.0;
     static_class.attr_with_type_hint<py::typing::ClassVar<py::typing::Dict<py::str, int>>>(
-        "dict_str_int")
-        = py::dict();
+        "dict_str_int") = py::dict();
 
     struct Instance {};
     auto instance = py::class_<Instance>(m, "Instance", py::dynamic_attr());
