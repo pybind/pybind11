@@ -183,3 +183,9 @@ def test_non_smart_holder_member_type_with_smart_holder_owner():
         v = obj.legacy
         assert v.value == 7
         del v
+
+
+# See PR #6008, previously this was UB
+def test_shared_ptr_return_for_unique_ptr_holder():
+    with pytest.raises(RuntimeError, match="Unable to convert std::shared_ptr<T> to Python when the bound type does not use std::shared_ptr or py::smart_holder as its holder type"):
+        m.getSimpleStructAsShared()
