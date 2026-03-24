@@ -197,3 +197,10 @@ def test_shared_ptr_return_for_unique_ptr_holder():
         match="Unable to convert std::shared_ptr<T> to Python when the bound type does not use std::shared_ptr or py::smart_holder as its holder type",
     ):
         m.getSimpleStructAsShared()
+
+
+def test_non_smart_holder_member_type_with_smart_holder_owner_aliases_member():
+    obj = m.ShWithSimpleStructMember()
+    legacy = obj.legacy
+    legacy.value = 13
+    assert obj.legacy.value == 13
