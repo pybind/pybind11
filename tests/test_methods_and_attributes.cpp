@@ -11,6 +11,12 @@
 #include "constructor_stats.h"
 #include "pybind11_tests.h"
 
+#if !defined(PYPY_VERSION)
+// Flag set by the capsule destructor in test_dynamic_attr_dealloc_frees_dict_contents.
+// File scope so the captureless capsule destructor (void(*)(void*)) can access it.
+static bool s_dynamic_attr_capsule_freed = false;
+#endif
+
 #if !defined(PYBIND11_OVERLOAD_CAST)
 template <typename... Args>
 using overload_cast_ = pybind11::detail::overload_cast_impl<Args...>;
@@ -388,6 +394,24 @@ TEST_SUBMODULE(methods_and_attributes, m) {
 
     class CppDerivedDynamicClass : public DynamicClass {};
     py::class_<CppDerivedDynamicClass, DynamicClass>(m, "CppDerivedDynamicClass").def(py::init());
+
+    // test_dynamic_attr_dealloc_frees_dict_contents
+    // Regression test: pybind11_object_dealloc() must call PyObject_ClearManagedDict()
+    // before tp_free() so that objects stored in a py::dynamic_attr() instance __dict__
+    // have their refcounts decremented when the pybind11 object is freed. On Python 3.14+
+    // tp_free no longer implicitly clears the managed dict, causing permanent leaks.
+    m.def("make_dynamic_attr_with_capsule", []() -> py::object {
+        s_dynamic_attr_capsule_freed = false;
+        auto *dummy = new int(0);
+        py::capsule cap(dummy, [](void *ptr) {
+            delete static_cast<int *>(ptr);
+            s_dynamic_attr_capsule_freed = true;
+        });
+        py::object obj = py::cast(new DynamicClass(), py::return_value_policy::take_ownership);
+        obj.attr("data") = cap;
+        return obj;
+    });
+    m.def("is_dynamic_attr_capsule_freed", []() { return s_dynamic_attr_capsule_freed; });
 #endif
 
     // test_bad_arg_default

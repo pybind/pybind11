@@ -199,8 +199,7 @@ public:                                                                         
     template <typename T_,                                                                        \
               ::pybind11::detail::enable_if_t<                                                    \
                   std::is_same<type, ::pybind11::detail::remove_cv_t<T_>>::value,                 \
-                  int>                                                                            \
-              = 0>                                                                                \
+                  int> = 0>                                                                       \
     static ::pybind11::handle cast(                                                               \
         T_ *src, ::pybind11::return_value_policy policy, ::pybind11::handle parent) {             \
         if (!src)                                                                                 \
@@ -1674,8 +1673,7 @@ PYBIND11_NAMESPACE_END(detail)
 template <typename T,
           detail::enable_if_t<!detail::is_pyobject<T>::value
                                   && !detail::is_same_ignoring_cvref<T, PyObject *>::value,
-                              int>
-          = 0>
+                              int> = 0>
 T cast(const handle &handle) {
     using namespace detail;
     constexpr bool is_enum_cast = type_uses_type_caster_enum_type<intrinsic_t<T>>::value;
@@ -1710,8 +1708,7 @@ template <typename T,
           typename Handle,
           detail::enable_if_t<detail::is_same_ignoring_cvref<T, PyObject *>::value
                                   && detail::is_same_ignoring_cvref<Handle, handle>::value,
-                              int>
-          = 0>
+                              int> = 0>
 T cast(Handle &&handle) {
     return handle.inc_ref().ptr();
 }
@@ -1720,8 +1717,7 @@ template <typename T,
           typename Object,
           detail::enable_if_t<detail::is_same_ignoring_cvref<T, PyObject *>::value
                                   && detail::is_same_ignoring_cvref<Object, object>::value,
-                              int>
-          = 0>
+                              int> = 0>
 T cast(Object &&obj) {
     return obj.release().ptr();
 }
@@ -2255,8 +2251,13 @@ public:
         if (m_names) {
             nargs -= m_names.size();
         }
-        PyObject *result = _PyObject_Vectorcall(
-            ptr, m_args.data() + 1, nargs | PY_VECTORCALL_ARGUMENTS_OFFSET, m_names.ptr());
+        PyObject *result =
+#if PY_VERSION_HEX >= 0x03090000
+            PyObject_Vectorcall(
+#else
+            _PyObject_Vectorcall(
+#endif
+                ptr, m_args.data() + 1, nargs | PY_VECTORCALL_ARGUMENTS_OFFSET, m_names.ptr());
         if (!result) {
             throw error_already_set();
         }

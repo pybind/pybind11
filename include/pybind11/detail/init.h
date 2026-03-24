@@ -304,11 +304,10 @@ struct constructor {
             extra...);
     }
 
-    template <
-        typename Class,
-        typename... Extra,
-        enable_if_t<Class::has_alias && std::is_constructible<Cpp<Class>, Args...>::value, int>
-        = 0>
+    template <typename Class,
+              typename... Extra,
+              enable_if_t<Class::has_alias && std::is_constructible<Cpp<Class>, Args...>::value,
+                          int> = 0>
     static void execute(Class &cl, const Extra &...extra) {
         cl.def(
             "__init__",
@@ -325,11 +324,10 @@ struct constructor {
             extra...);
     }
 
-    template <
-        typename Class,
-        typename... Extra,
-        enable_if_t<Class::has_alias && !std::is_constructible<Cpp<Class>, Args...>::value, int>
-        = 0>
+    template <typename Class,
+              typename... Extra,
+              enable_if_t<Class::has_alias && !std::is_constructible<Cpp<Class>, Args...>::value,
+                          int> = 0>
     static void execute(Class &cl, const Extra &...extra) {
         cl.def(
             "__init__",
@@ -345,11 +343,10 @@ struct constructor {
 // Implementing class for py::init_alias<...>()
 template <typename... Args>
 struct alias_constructor {
-    template <
-        typename Class,
-        typename... Extra,
-        enable_if_t<Class::has_alias && std::is_constructible<Alias<Class>, Args...>::value, int>
-        = 0>
+    template <typename Class,
+              typename... Extra,
+              enable_if_t<Class::has_alias && std::is_constructible<Alias<Class>, Args...>::value,
+                          int> = 0>
     static void execute(Class &cl, const Extra &...extra) {
         cl.def(
             "__init__",
@@ -370,8 +367,15 @@ template <typename CFunc,
 struct factory;
 
 // Specialization for py::init(Func)
+// Note: The 4th template parameter `void_type()` is explicitly specified to resolve a
+// template ambiguity with the dual-factory specialization below when compiled with
+// nvcc + GCC (see #5565). Without it, both specializations match equally well for the
+// single-factory case, since the 4th parameter defaults to
+// `function_signature_t<void_type(*)()>` = `void_type()`, which the dual-factory
+// specialization can also decompose as `AReturn(AArgs...)` with `AReturn=void_type`
+// and `AArgs={}`.
 template <typename Func, typename Return, typename... Args>
-struct factory<Func, void_type (*)(), Return(Args...)> {
+struct factory<Func, void_type (*)(), Return(Args...), void_type()> {
     remove_reference_t<Func> class_factory;
 
     // NOLINTNEXTLINE(google-explicit-constructor)

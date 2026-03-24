@@ -846,8 +846,11 @@ protected:
                     std::free(const_cast<char *>(arg.descr));
                 }
             }
-            for (auto &arg : rec->args) {
-                arg.value.dec_ref();
+            // During finalization, default arg values may already be freed by GC.
+            if (!detail::py_is_finalizing()) {
+                for (auto &arg : rec->args) {
+                    arg.value.dec_ref();
+                }
             }
             if (rec->def) {
                 std::free(const_cast<char *>(rec->def->ml_doc));
@@ -1342,9 +1345,21 @@ PYBIND11_NAMESPACE_BEGIN(function_record_PyTypeObject_methods)
 
 // This implementation needs the definition of `class cpp_function`.
 inline void tp_dealloc_impl(PyObject *self) {
+    // Skip dealloc during finalization — GC may have already freed objects
+    // reachable from the function record (e.g. default arg values), causing
+    // use-after-free in destruct().
+    if (detail::py_is_finalizing()) {
+        return;
+    }
+    // Save type before PyObject_Free invalidates self.
+    auto *type = Py_TYPE(self);
     auto *py_func_rec = reinterpret_cast<function_record_PyObject *>(self);
     cpp_function::destruct(py_func_rec->cpp_func_rec);
     py_func_rec->cpp_func_rec = nullptr;
+    // PyObject_New increments the heap type refcount and allocates via
+    // PyObject_Malloc; balance both here
+    PyObject_Free(self);
+    Py_DECREF(type);
 }
 
 PYBIND11_NAMESPACE_END(function_record_PyTypeObject_methods)
