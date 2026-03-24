@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 import env  # noqa: F401
+import pybind11_tests
 from pybind11_tests import class_sh_property as m
 
 
@@ -186,6 +187,10 @@ def test_non_smart_holder_member_type_with_smart_holder_owner():
 
 
 # See PR #6008, previously this was UB
+@pytest.mark.skipif(
+    pybind11_tests.PYBIND11_TEST_SMART_HOLDER,
+    reason="PYBIND11_TEST_SMART_HOLDER changes the default holder",
+)
 def test_shared_ptr_return_for_unique_ptr_holder():
     with pytest.raises(
         RuntimeError,
