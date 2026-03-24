@@ -96,6 +96,12 @@ PYBIND11_MODULE(pybind11_tests, m, py::mod_gil_not_used()) {
 #else
         false;
 #endif
+    m.attr("PYBIND11_TEST_SMART_HOLDER") =
+#if defined(PYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE)
+        true;
+#else
+        false;
+#endif
 
     bind_ConstructorStats(m);
 
