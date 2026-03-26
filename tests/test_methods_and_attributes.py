@@ -5,7 +5,7 @@ import sys
 import pytest
 
 import env
-from pybind11_tests import ConstructorStats
+from pybind11_tests import ConstructorStats, defined___cpp_noexcept_function_type
 from pybind11_tests import methods_and_attributes as m
 
 NO_GETTER_MSG = (
@@ -532,6 +532,130 @@ def test_unregistered_base_implementations():
     assert a.rw_value_prop == 49
     a.increase_value()
     assert a.ro_value_prop == 1.75
+
+
+def test_noexcept_base():
+    """Test issue #2234: binding noexcept methods inherited from an unregistered base class.
+
+    In C++17 noexcept is part of the function type, so &Derived::noexcept_method resolves
+    to a Base member-function pointer with noexcept specifier.  pybind11 must use the Derived
+    type as `self`, not the Base type, otherwise the call raises TypeError at runtime.
+
+    Covers all four new cpp_function constructor specialisations:
+      - Return (Class::*)(Args...) noexcept          (set_value)
+      - Return (Class::*)(Args...) const noexcept    (value)
+      - Return (Class::*)(Args...) & noexcept        (increment)
+      - Return (Class::*)(Args...) const & noexcept  (capped_value)
+    """
+    obj = m.NoexceptDerived()
+    # const noexcept
+    assert obj.value() == 99
+    # noexcept (non-const)
+    obj.set_value(7)
+    assert obj.value() == 7
+    # & noexcept (non-const lvalue ref-qualified)
+    obj.increment()
+    assert obj.value() == 8
+    # const & noexcept (const lvalue ref-qualified)
+    assert obj.capped_value() == 8
+    obj.set_value(200)
+    assert obj.capped_value() == 100  # capped at 100
+
+
+def test_rvalue_ref_qualified_methods():
+    """Test that rvalue-ref-qualified (&&/const&&) methods from an unregistered base bind
+    correctly with `self` resolved to the derived type.
+
+    take() moves m_payload out on each call, so the second call returns "".
+    This confirms that the cpp_function lambda uses std::move(*c).*f rather than c->*f.
+
+    Covers:
+      - Return (Class::*)(Args...) &&              (take)
+      - Return (Class::*)(Args...) const &&        (peek)
+    """
+    obj = m.RValueRefDerived()
+    # && moves m_payload: first call gets the value, second gets empty string
+    assert obj.take() == "rref_payload"
+    assert obj.take() == ""
+    # const && doesn't move: peek() is stable across calls
+    assert obj.peek() == 77
+    assert obj.peek() == 77
+
+
+@pytest.mark.skipif(
+    not defined___cpp_noexcept_function_type,
+    reason="Requires __cpp_noexcept_function_type",
+)
+def test_noexcept_rvalue_ref_qualified_methods():
+    """Test noexcept rvalue-ref-qualified methods from an unregistered base.
+
+    Covers:
+      - Return (Class::*)(Args...) && noexcept       (take_noexcept)
+      - Return (Class::*)(Args...) const && noexcept (peek_noexcept)
+    """
+    obj = m.RValueRefDerived()
+    assert obj.take_noexcept() == "rref_payload"
+    assert obj.take_noexcept() == ""
+    assert obj.peek_noexcept() == 77
+    assert obj.peek_noexcept() == 77
+
+
+def test_noexcept_overload_cast():
+    """Test issue #2234: overload_cast must handle noexcept member and free function pointers.
+
+    In C++17 noexcept is part of the function type, so overload_cast_impl needs dedicated
+    operator() overloads for noexcept free functions and non-const/const member functions.
+    """
+    obj = m.NoexceptOverloaded()
+    # overload_cast_impl::operator()(Return (Class::*)(Args...) noexcept, false_type)
+    assert obj.method(1) == "(int)"
+    # overload_cast_impl::operator()(Return (Class::*)(Args...) const noexcept, true_type)
+    assert obj.method_const(2) == "(int) const"
+    # overload_cast_impl::operator()(Return (Class::*)(Args...) noexcept, false_type) float
+    assert obj.method_float(3.0) == "(float)"
+    # overload_cast_impl::operator()(Return (*)(Args...) noexcept)
+    assert m.noexcept_free_func(10) == 11
+    assert m.noexcept_free_func_float(10.0) == 12
+
+
+def test_ref_qualified_overload_cast():
+    """Test issue #2234 follow-up: overload_cast with ref-qualified member pointers.
+
+    Covers:
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) &, false_type)
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) const &, true_type)
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) &&, false_type)
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) const &&, true_type)
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) & noexcept, false_type)
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) const & noexcept, true_type)
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) && noexcept, false_type)
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) const && noexcept, true_type)
+    """
+    obj = m.RefQualifiedOverloaded()
+    assert obj.method_lref(1) == "(int) &"
+    assert obj.method_const_lref(1) == "(int) const &"
+    assert obj.method_rref(1.0) == "(float) &&"
+    assert obj.method_const_rref(1.0) == "(float) const &&"
+
+
+@pytest.mark.skipif(
+    not defined___cpp_noexcept_function_type,
+    reason="Requires __cpp_noexcept_function_type",
+)
+def test_noexcept_ref_qualified_overload_cast():
+    """Test issue #2234 follow-up: overload_cast with noexcept ref-qualified member pointers.
+
+    Covers:
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) & noexcept, false_type)
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) const & noexcept, true_type)
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) && noexcept, false_type)
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) const && noexcept, true_type)
+    """
+    obj = m.RefQualifiedOverloaded()
+    assert obj.method_lref_noexcept(1) == "(long) & noexcept"
+    assert obj.method_const_lref_noexcept(1) == "(long) const & noexcept"
+    assert obj.method_rref_noexcept(1.0) == "(double) && noexcept"
+    assert obj.method_const_rref_noexcept(1.0) == "(double) const && noexcept"
 
 
 def test_ref_qualified():

@@ -2327,4 +2327,86 @@ Helper vectorize(Return (Class::*f)(Args...) const) {
     return Helper(std::mem_fn(f));
 }
 
+// Intentionally no &&/const&& overloads: vectorized method calls operate on the bound Python
+// instance and should not consume/move-from self.
+// Vectorize a class method (non-const, lvalue ref-qualified):
+template <typename Return,
+          typename Class,
+          typename... Args,
+          typename Helper = detail::vectorize_helper<
+              decltype(std::mem_fn(std::declval<Return (Class::*)(Args...) &>())),
+              Return,
+              Class *,
+              Args...>>
+Helper vectorize(Return (Class::*f)(Args...) &) {
+    return Helper(std::mem_fn(f));
+}
+
+// Vectorize a class method (const, lvalue ref-qualified):
+template <typename Return,
+          typename Class,
+          typename... Args,
+          typename Helper = detail::vectorize_helper<
+              decltype(std::mem_fn(std::declval<Return (Class::*)(Args...) const &>())),
+              Return,
+              const Class *,
+              Args...>>
+Helper vectorize(Return (Class::*f)(Args...) const &) {
+    return Helper(std::mem_fn(f));
+}
+
+#ifdef __cpp_noexcept_function_type
+// Vectorize a class method (non-const, noexcept):
+template <typename Return,
+          typename Class,
+          typename... Args,
+          typename Helper = detail::vectorize_helper<
+              decltype(std::mem_fn(std::declval<Return (Class::*)(Args...) noexcept>())),
+              Return,
+              Class *,
+              Args...>>
+Helper vectorize(Return (Class::*f)(Args...) noexcept) {
+    return Helper(std::mem_fn(f));
+}
+
+// Vectorize a class method (const, noexcept):
+template <typename Return,
+          typename Class,
+          typename... Args,
+          typename Helper = detail::vectorize_helper<
+              decltype(std::mem_fn(std::declval<Return (Class::*)(Args...) const noexcept>())),
+              Return,
+              const Class *,
+              Args...>>
+Helper vectorize(Return (Class::*f)(Args...) const noexcept) {
+    return Helper(std::mem_fn(f));
+}
+
+// Vectorize a class method (non-const, lvalue ref-qualified, noexcept):
+template <typename Return,
+          typename Class,
+          typename... Args,
+          typename Helper = detail::vectorize_helper<
+              decltype(std::mem_fn(std::declval<Return (Class::*)(Args...) & noexcept>())),
+              Return,
+              Class *,
+              Args...>>
+Helper vectorize(Return (Class::*f)(Args...) & noexcept) {
+    return Helper(std::mem_fn(f));
+}
+
+// Vectorize a class method (const, lvalue ref-qualified, noexcept):
+template <typename Return,
+          typename Class,
+          typename... Args,
+          typename Helper = detail::vectorize_helper<
+              decltype(std::mem_fn(std::declval<Return (Class::*)(Args...) const & noexcept>())),
+              Return,
+              const Class *,
+              Args...>>
+Helper vectorize(Return (Class::*f)(Args...) const & noexcept) {
+    return Helper(std::mem_fn(f));
+}
+#endif
+
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
