@@ -247,6 +247,28 @@ struct SharedFromThisVBase : std::enable_shared_from_this<SharedFromThisVBase> {
 };
 struct SharedFromThisVirt : virtual SharedFromThisVBase {};
 
+// Issue #5989: static_pointer_cast where dynamic_pointer_cast is needed
+// (virtual inheritance with shared_ptr holder)
+struct SftVirtBase : std::enable_shared_from_this<SftVirtBase> {
+    SftVirtBase() = default;
+    virtual ~SftVirtBase() = default;
+    static std::shared_ptr<SftVirtBase> create() { return std::make_shared<SftVirtBase>(); }
+    virtual std::string name() { return "SftVirtBase"; }
+};
+struct SftVirtDerived : SftVirtBase {
+    using SftVirtBase::SftVirtBase;
+    static std::shared_ptr<SftVirtDerived> create() { return std::make_shared<SftVirtDerived>(); }
+    std::string name() override { return "SftVirtDerived"; }
+};
+struct SftVirtDerived2 : virtual SftVirtDerived {
+    using SftVirtDerived::SftVirtDerived;
+    static std::shared_ptr<SftVirtDerived2> create() {
+        return std::make_shared<SftVirtDerived2>();
+    }
+    std::string name() override { return "SftVirtDerived2"; }
+    std::string call_name(const std::shared_ptr<SftVirtDerived2> &d2) { return d2->name(); }
+};
+
 // test_move_only_holder
 struct C {
     C() { print_created(this); }
@@ -521,6 +543,17 @@ TEST_SUBMODULE(smart_ptr, m) {
     static std::shared_ptr<SharedFromThisVirt> sft(new SharedFromThisVirt());
     py::class_<SharedFromThisVirt, std::shared_ptr<SharedFromThisVirt>>(m, "SharedFromThisVirt")
         .def_static("get", []() { return sft.get(); });
+
+    // Issue #5989: static_pointer_cast where dynamic_pointer_cast is needed
+    py::class_<SftVirtBase, std::shared_ptr<SftVirtBase>>(m, "SftVirtBase")
+        .def(py::init<>(&SftVirtBase::create))
+        .def("name", &SftVirtBase::name);
+    py::class_<SftVirtDerived, SftVirtBase, std::shared_ptr<SftVirtDerived>>(m, "SftVirtDerived")
+        .def(py::init<>(&SftVirtDerived::create));
+    py::class_<SftVirtDerived2, SftVirtDerived, std::shared_ptr<SftVirtDerived2>>(
+        m, "SftVirtDerived2")
+        .def(py::init<>(&SftVirtDerived2::create))
+        .def("call_name", &SftVirtDerived2::call_name, py::arg("d2"));
 
     // test_move_only_holder
     py::class_<C, custom_unique_ptr<C>>(m, "TypeWithMoveOnlyHolder")
