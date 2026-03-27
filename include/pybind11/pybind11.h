@@ -2425,6 +2425,13 @@ public:
         rec.add_base(typeid(Base), [](void *src) -> void * {
             return static_cast<Base *>(reinterpret_cast<type *>(src));
         });
+        // Virtual inheritance means the base subobject is at a dynamic offset,
+        // so the reinterpret_cast shortcut in load_impl Case 2a is invalid.
+        // Force the MI path (implicit_casts) for correct pointer adjustment.
+        // Detection: static_cast<Derived*>(Base*) is ill-formed for virtual bases.
+        if PYBIND11_MAYBE_CONSTEXPR (!detail::is_static_downcastable<Base, type>::value) {
+            rec.multiple_inheritance = true;
+        }
     }
 
     template <typename Base, detail::enable_if_t<!is_base<Base>::value, int> = 0>
