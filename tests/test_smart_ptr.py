@@ -251,6 +251,19 @@ def test_shared_ptr_from_this_and_references():
     assert y is z
 
 
+def test_shared_from_this_virt_shared_ptr_arg():
+    """Issue #5989: static_pointer_cast fails with virtual inheritance."""
+    b = m.SftVirtBase()
+    assert b.name() == "SftVirtBase"
+
+    d = m.SftVirtDerived()
+    assert d.name() == "SftVirtDerived"
+
+    d2 = m.SftVirtDerived2()
+    assert d2.name() == "SftVirtDerived2"
+    assert d2.call_name(d2) == "SftVirtDerived2"
+
+
 @pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_move_only_holder():
     a = m.TypeWithMoveOnlyHolder.make()
