@@ -5,6 +5,8 @@
 // catch 2.0.1; this should be fixed in the next catch release after 2.0.1).
 PYBIND11_WARNING_DISABLE_MSVC(4996)
 
+#include "catch_skip.h"
+
 #include <catch.hpp>
 #include <cstdlib>
 #include <fstream>
@@ -356,9 +358,9 @@ TEST_CASE("Enum module survives restart") { // Added in PR #6015
     // calls process_attributes::init after initialize_generic's strdup loop,
     // leaving arg names as string literals. Without the fix, destruct() would
     // call free() on those literals during interpreter finalization.
-#if PY_VERSION_HEX >= 0x030C0000 && PY_VERSION_HEX < 0x030D0000
-    WARN("Skipping: pre-existing crash in enum cleanup during finalize on Python 3.12");
-#else
+    PYBIND11_CATCH2_SKIP_IF(PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION == 12,
+                            "Pre-existing crash in enum cleanup during finalize on Python 3.12");
+
     auto enum_mod = py::module_::import("enum_module");
     REQUIRE(enum_mod.attr("SomeEnum").attr("value1").attr("name").cast<std::string>() == "value1");
 
@@ -367,7 +369,6 @@ TEST_CASE("Enum module survives restart") { // Added in PR #6015
 
     enum_mod = py::module_::import("enum_module");
     REQUIRE(enum_mod.attr("SomeEnum").attr("value2").attr("name").cast<std::string>() == "value2");
-#endif
 }
 
 TEST_CASE("Execution frame") {
