@@ -457,19 +457,24 @@ PyModuleDef_Init should be treated like any other PyObject (so not shared across
     static int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject *);                                 \
     PYBIND11_PLUGIN_IMPL(name) {                                                                  \
         PYBIND11_CHECK_PYTHON_VERSION                                                             \
-        pybind11::detail::ensure_internals();                                                     \
-        static ::pybind11::detail::slots_array mod_def_slots = ::pybind11::detail::init_slots(    \
-            &PYBIND11_CONCAT(pybind11_exec_, name), ##__VA_ARGS__);                               \
-        static PyModuleDef def{/* m_base */ PyModuleDef_HEAD_INIT,                                \
-                               /* m_name */ PYBIND11_TOSTRING(name),                              \
-                               /* m_doc */ nullptr,                                               \
-                               /* m_size */ 0,                                                    \
-                               /* m_methods */ nullptr,                                           \
-                               /* m_slots */ mod_def_slots.data(),                                \
-                               /* m_traverse */ nullptr,                                          \
-                               /* m_clear */ nullptr,                                             \
-                               /* m_free */ nullptr};                                             \
-        return PyModuleDef_Init(&def);                                                            \
+        try {                                                                                     \
+            pybind11::detail::ensure_internals();                                                 \
+            static ::pybind11::detail::slots_array mod_def_slots                                  \
+                = ::pybind11::detail::init_slots(&PYBIND11_CONCAT(pybind11_exec_, name),          \
+                                                 ##__VA_ARGS__);                                  \
+            static PyModuleDef def{/* m_base */ PyModuleDef_HEAD_INIT,                            \
+                                   /* m_name */ PYBIND11_TOSTRING(name),                          \
+                                   /* m_doc */ nullptr,                                           \
+                                   /* m_size */ 0,                                                \
+                                   /* m_methods */ nullptr,                                       \
+                                   /* m_slots */ mod_def_slots.data(),                            \
+                                   /* m_traverse */ nullptr,                                      \
+                                   /* m_clear */ nullptr,                                         \
+                                   /* m_free */ nullptr};                                         \
+            return PyModuleDef_Init(&def);                                                        \
+        }                                                                                         \
+        PYBIND11_CATCH_INIT_EXCEPTIONS                                                            \
+        return nullptr;                                                                           \
     }
 
 #define PYBIND11_MODULE_EXEC(name, variable)                                                      \
