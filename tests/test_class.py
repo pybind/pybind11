@@ -142,6 +142,12 @@ def test_qualname(doc):
     assert m.NestBase.__qualname__ == "NestBase"
     assert m.NestBase.Nested.__qualname__ == "NestBase.Nested"
 
+    assert m.module_func.__qualname__ == "module_func"
+    assert m.NestBase.g.__qualname__ == "NestBase.g"
+    assert m.NestBase.static_func.__qualname__ == "NestBase.static_func"
+    assert m.NestBase.Nested.fn.__qualname__ == "NestBase.Nested.fn"
+    assert m.NestBase.Nested.static_func.__qualname__ == "NestBase.Nested.static_func"
+
     assert (
         doc(m.NestBase.__init__)
         == """
