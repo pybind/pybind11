@@ -84,7 +84,7 @@ PYBIND11_EMBEDDED_MODULE(trampoline_module, m) {
         .def("func", &test_override_cache_helper::func);
 }
 
-enum class SomeEnum { value1, value2 };
+enum class SomeEnum { value1, value2 }; // Added in PR #6015
 
 PYBIND11_EMBEDDED_MODULE(enum_module, m, py::multiple_interpreters::per_interpreter_gil()) {
     py::enum_<SomeEnum>(m, "SomeEnum")
@@ -351,7 +351,7 @@ TEST_CASE("Restart the interpreter") {
     REQUIRE(py_widget.attr("the_message").cast<std::string>() == "Hello after restart");
 }
 
-TEST_CASE("Enum module survives restart") {
+TEST_CASE("Enum module survives restart") { // Added in PR #6015
     // Regression test for gh-5976: py::enum_ uses def_property_static, which
     // calls process_attributes::init after initialize_generic's strdup loop,
     // leaving arg names as string literals. Without the fix, destruct() would

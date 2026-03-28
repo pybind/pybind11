@@ -6,7 +6,7 @@ import env
 
 
 def test_enum_import_exit_no_crash():
-    # Modeled after reproducer under issue #5976
+    # Added in PR #6015. Modeled after reproducer under issue #5976
     env.check_script_success_in_subprocess(
         f"""
         import sys
