@@ -553,10 +553,6 @@ TEST_SUBMODULE(smart_ptr, m) {
     py::class_<SftVirtDerived2, SftVirtDerived, std::shared_ptr<SftVirtDerived2>>(
         m, "SftVirtDerived2")
         .def(py::init<>(&SftVirtDerived2::create))
-        // TODO: Remove this once inherited methods work through virtual bases.
-        //       Without it, d2.name() segfaults because pybind11 uses an incorrect
-        //       pointer offset when dispatching through the virtual inheritance chain.
-        .def("name", &SftVirtDerived2::name)
         .def("call_name", &SftVirtDerived2::call_name, py::arg("d2"));
 
     // test_move_only_holder
