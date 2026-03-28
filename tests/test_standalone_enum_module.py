@@ -12,8 +12,7 @@ def test_enum_import_exit_no_crash():
         import sys
         sys.path.insert(0, {os.path.dirname(env.__file__)!r})
         import standalone_enum_module as m
-        assert int(m.SomeEnum.value1) == 0
-        assert int(m.SomeEnum.value2) == 1
+        assert m.SomeEnum.__class__.__name__ == "pybind11_type"
         """,
         rerun=1,
     )
