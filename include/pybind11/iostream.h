@@ -117,9 +117,13 @@ private:
     int sync() override { return _sync(); }
 
 public:
+    // Minimum buffer size must accommodate the largest incomplete UTF-8 sequence
+    // (3 bytes) plus one position reserved for overflow(), i.e. 4 bytes total.
+    static constexpr size_t minimum_buffer_size = 4;
+
     explicit pythonbuf(const object &pyostream, size_t buffer_size = 1024)
-        : buf_size(buffer_size), d_buffer(new char[buf_size]), pywrite(pyostream.attr("write")),
-          pyflush(pyostream.attr("flush")) {
+        : buf_size(std::max(buffer_size, minimum_buffer_size)), d_buffer(new char[buf_size]),
+          pywrite(pyostream.attr("write")), pyflush(pyostream.attr("flush")) {
         setp(d_buffer.get(), d_buffer.get() + buf_size - 1);
     }
 
