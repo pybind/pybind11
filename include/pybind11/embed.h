@@ -245,7 +245,6 @@ inline void finalize_interpreter() {
     if (detail::has_seen_non_main_interpreter()) {
         detail::get_internals_pp_manager().unref();
         detail::get_local_internals_pp_manager().unref();
-        detail::get_interop_internals_pp_manager().unref();
 
         // We know there can be no other interpreter alive now
         detail::has_seen_non_main_interpreter() = false;
@@ -257,7 +256,6 @@ inline void finalize_interpreter() {
     // and check it after Py_Finalize().
     detail::get_internals_pp_manager().get_pp();
     detail::get_local_internals_pp_manager().get_pp();
-    detail::get_interop_internals_pp_manager().get_pp();
 
     Py_Finalize();
 
@@ -266,7 +264,6 @@ inline void finalize_interpreter() {
     // interpreter
     detail::get_internals_pp_manager().destroy();
     detail::get_local_internals_pp_manager().destroy();
-    detail::get_interop_internals_pp_manager().destroy();
 
     // We know there is no interpreter alive now, so we can reset the multi-flag
     detail::has_seen_non_main_interpreter() = false;

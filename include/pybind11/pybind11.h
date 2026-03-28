@@ -1363,6 +1363,41 @@ private:
     level level_;
 };
 
+// Module initialization option controlling whether this module will share its
+// types for use by other binding frameworks (export) or will use other binding
+// frameworks' types (import).
+class foreign_interop {
+public:
+    using level = detail::foreign_interop_level;
+
+    // Fully disable the foreign interop mechanism. py::import_foreign() and
+    // py::export_to_foreign() will throw errors.
+    static foreign_interop disabled() { return foreign_interop(level::disabled); }
+
+    // Enable the mechanism but don't import or export anything by default.
+    static foreign_interop on_request() { return foreign_interop(level::on_request); }
+
+    // Enable the mechanism and automatically use foreign-bound types, but
+    // don't export any of our types for other frameworks to use unless
+    // individually requesdted using py::export_to_foreign().
+    static foreign_interop import_only() { return foreign_interop(level::import_only); }
+
+    // Enable the mechanism and automatically export our types for other
+    // frameworks to use, but don't use any foreign-bound types unless
+    // individually requesdted using py::import_foreign().
+    static foreign_interop export_only() { return foreign_interop(level::export_only); }
+
+    // Default behavior: automatically export our own types and use other
+    // frameworks' types.
+    static foreign_interop full() { return foreign_interop(level::full); }
+
+    explicit constexpr foreign_interop(level l) : level_(l) {}
+    level value() const { return level_; }
+
+private:
+    level level_;
+};
+
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 inline bool gil_not_used_option() { return false; }
@@ -1397,6 +1432,16 @@ inline void *multi_interp_slot(F &&, O &&...o) {
     return multi_interp_slot(o...);
 }
 #endif
+
+inline foreign_interop_level foreign_interop_option() { return foreign_interop_level::full; }
+template <typename... O>
+inline foreign_interop_level foreign_interop_option(foreign_interop f, O &&...) {
+    return f.value();
+}
+template <typename F, typename... O>
+inline foreign_interop_level foreign_interop_option(F &&, O &&...o) {
+    return foreign_interop_option(o...);
+}
 
 /*
 Return a borrowed reference to the named module if it has been successfully initialized within this
@@ -1727,9 +1772,9 @@ protected:
             internals.registered_types_py[reinterpret_cast<PyTypeObject *>(m_ptr)] = {tinfo};
             PYBIND11_WARNING_POP
 
-            auto &interop_internals = get_interop_internals();
-            if (interop_internals.export_all) {
-                interop_internals.export_for_interop(rec.type, (PyTypeObject *) m_ptr, tinfo);
+            if (local_internals.foreign_export_all) {
+                local_internals.foreign_internals->export_to_foreign(
+                    rec.type, (PyTypeObject *) m_ptr, tinfo);
             }
         });
 
@@ -2216,8 +2261,11 @@ public:
         generic_type::initialize(record);
 
         with_internals([&](internals &internals) {
-            get_interop_internals().copy_move_ctors.emplace(
-                *record.type, detail::type_caster_base<type_>::copy_and_move_ctors());
+            auto *foreign_internals = get_foreign_internals();
+            if (foreign_internals) {
+                foreign_internals->copy_move_ctors.emplace(
+                    *record.type, detail::type_caster_base<type_>::copy_and_move_ctors());
+            }
             if (has_alias) {
                 auto &local_internals = get_local_internals();
                 if (record.module_local) {

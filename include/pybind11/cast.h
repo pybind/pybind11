@@ -1320,8 +1320,8 @@ struct always_construct_holder_value {
     static constexpr bool value = Value;
 };
 
-template <typename T, bool Value = false>
-struct always_construct_holder : always_construct_holder_value<Value> {};
+template <typename T>
+struct always_construct_holder : always_construct_holder_value<> {};
 
 /// Create a specialization for custom holder types (silently ignores std::shared_ptr)
 #define PYBIND11_DECLARE_HOLDER_TYPE(type, holder_type, ...)                                      \

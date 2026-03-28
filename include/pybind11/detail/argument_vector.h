@@ -141,13 +141,15 @@ public:
         }
         return m_repr.hvector.vec.size();
     }
+    bool empty() const { return size() == 0; }
 
-    T const *data() const {
+    T *data() {
         if (is_inline()) {
             return m_repr.iarray.arr.data();
         }
         return m_repr.hvector.vec.data();
     }
+    T const *data() const { return const_cast<small_vector *>(this)->data(); }
 
     T &operator[](std::size_t idx) {
         assert(idx < size());
@@ -203,7 +205,7 @@ public:
                 std::move(it + 1, end, it);
                 if (is_inline()) {
                     --m_repr.iarray.size;
-                    end[-1]->~T();
+                    end[-1].~T();
                 } else {
                     m_repr.hvector.vec.pop_back();
                 }
@@ -278,6 +280,7 @@ public:
         }
         return m_repr.hvector.vec.size();
     }
+
 
     void reserve(std::size_t sz) {
         if (is_inline()) {

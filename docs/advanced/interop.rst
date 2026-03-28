@@ -56,10 +56,10 @@ to perform the conversion:
   that have been bound to Python types using statements like
   ``py::class_<T>(...)``. The Python types created by such binding statements
   are special in that their Python object layout has the capacity to
-  directly wrap an instance of the corresponding C++ type ``T`` (you can
+  directly wrap an instance of the corresponding C++ type ``T``. (You can
   contrast this with something like a Python ``str`` which does not refer
   directly or indirectly to anything that can be pointed at by a
-  ``std::string*``). The from-Python and to-Python conversions are therefore
+  ``std::string*``.) The from-Python and to-Python conversions are therefore
   straightforward: pull the C++ ``T*`` out of the Python object, or create
   a Python object wrapping a C++ ``T*``, respectively. Implicit conversions,
   custom holders, return value policies, and so forth add many more details
@@ -196,18 +196,25 @@ bindings for a given C++ type ``T`` in the following order:
 * the pybind11 binding for ``T`` that was declared with ``py::module_local()``
   in a different ABI-compatible extension module, only if we're doing a
   from-Python conversion whose source object was directly produced by that
-  binding; then
+  binding (i.e., with no implicit conversion step); then
 
 * each known foreign binding (including pybind11 bindings that were
   declared with ``py::module_local()`` in other extension modules)
-  that this pybind11 extension module was explicitly told about using
-  ``py::import_foreign()``, in order from most recent
+  that has been passed to ``py::import_foreign()`` in any ABI-compatible
+  pybind11 extension module, in order from most recent
   ``import_foreign()`` call to least recent; then
 
 * each known foreign binding (including pybind11 bindings that were declared
   with ``py::module_local()`` in other extension modules) that was implicitly
   discovered, in the order in which they were bound, without making any
   distinction between other versions of pybind11 and non-pybind11 frameworks.
+
+If a module disables automatic importation of foreign bindings, then
+the bindings described by the last two bullet points above are limited
+to those that that particular module has passed to
+``py::import_foreign()``, but the ordering between them is still based
+on the global ordering of ``py::import_foreign()`` calls in the domain
+of all ABI-compatible pybind11 modules.
 
 When performing C++-to-Python conversion of a type for which
 :ref:`automatic downcasting <inheritance>` is applicable,
@@ -219,36 +226,66 @@ not downcast them in the same way that pybind11 does; they might only be able to
 downcast from a primary base (with no this-pointer adjustment / no multiple
 inheritance), or not downcast at all.
 
+pybind11 can interoperate with bindings from frameworks that are not written
+in C++ (as long as you have a C++ type that matches the layout of the native
+type that the foreign binding is wrapping) but it can't automatically make such
+types available; you have to tell it how to map the foreign Python type to a
+C++ type by calling ``py::import_foreign()``, described below.
+
 Narrowing the use of foreign bindings
 -------------------------------------
 
 By default, all pybind11 bindings are shared with other frameworks, and all
 pybind11 functions can accept and return instances of types bound by other
 pymetabind-supporting frameworks' extension modules that are written in C++.
-To avoid this, you can call ``py::disable_foreign_export()`` and/or
-``py::disable_foreign_import()``. These have global effect at the individual
-extension module level, and cannot be re-enabled after being disabled.
-If you want to interoperate with an extension module that was not written in C++,
-you will need individual calls to ``py::import_foreign()`` as explained below.
+To avoid this, you can pass a ``py::foreign_interop`` option when
+initializing your extension module, in the ``PYBIND11_MODULE()`` declaration.
+There are five different options available:
 
-``py::disable_foreign_export()`` prevents types bound in this extension
+* ``py::foreign_interop::full()``, the default, requests full interoperability
+  with foreign frameworks: this module's bindings will be exported for their use,
+  and this module's functions may accept and return instances of their bindings.
+
+* ``py::foreign_interop::import_only()`` allows this module to use all bindings
+  defined in foreign frameworks, but does not export this module's bindings for
+  foreign frameworks to use, unless requested for an individual type via
+  ``py::export_to_foreign()``.
+
+* ``py::foreign_interop::export_only()`` exports all of this module's bindings
+  for foreign frameworks to use, but does not allow this module to use bindings
+  defined by foreign frameworks, unless requested for an individual type via
+  ``py::import_foreign()``.
+
+* ``py::foreign_interop::on_request()`` enables the foreign-framework
+  interoperability mechanism but does not either import or export any bindings
+  by default. You can do so for some individual bindings using
+  ``py::export_to_foreign()`` and/or ``py::import_foreign()``.
+
+* ``py::foreign_interop::disabled()`` disables the mechanism completely;
+  ``py::export_to_foreign()`` and ``py::import_foreign()`` will raise exceptions.
+
+The foreign interoperability mode has global effect at the individual
+extension module level and cannot be changed after the module has been
+loaded. Note that automatic import applies only to ABI-compatible C++
+types; if you want to interoperate with an extension module that was
+not written in C++, you will need individual calls to
+``py::import_foreign()`` as explained below.
+
+Disabling automatic export prevents types bound in this extension
 module from being used by other frameworks. It modestly reduces memory usage,
 and can ensure that locally bound types are kept entirely private in cases where
 you know that no other extension module will need to use them. It does not
 improve the performance of using the bindings (calling Python functions or
-creating instances), and only impacts bindings that are created *after* the
-call to ``py::disable_foreign_export()``. If you want to export only some types,
-you can call ``py::disable_foreign_export()`` and then use
+creating instances). If you want to export only some types, you can disable
+the default export using the ``py::foreign_interop::import_only()`` or
+``py::foreign_interop::on_request()`` module option, and then use
 ``py::export_to_foreign(pytype)`` for each individual Python type
 object you wish to make available to other frameworks. (Use ``py::type::of<T>()``
 to get the Python type object for a C++ type ``T``.) For example:
 
 .. code-block:: cpp
 
-   PYBIND11_MODULE(my_ext, m) {
-       // We only want specified types to be exported, not all of them
-       py::disable_foreign_export();
-
+   PYBIND11_MODULE(my_ext, m, py::foreign_interop::import_only()) {
        // Doghouse will not be exported
        auto house = py::class_<Doghouse>(m, "Doghouse")
            .def(py::init<std::vector<Pet>>());
@@ -264,29 +301,31 @@ to get the Python type object for a C++ type ``T``.) For example:
        py::export_to_foreign(py::type::of<Pet>());
    }
 
-``py::disable_foreign_import()`` prevents functions bound in this
+Disabling automatic import prevents functions bound in this
 extension module from calling into foreign frameworks for type
 conversions by defalt, while still allowing type bindings defined in
 this extension module to be used in functions bound by foreign
 frameworks.  You can use ``py::import_foreign()``, described below, to
 make individual foreign types available for interoperability even if
-you have disabled importation-by-default.
+you have disabled import-by-default.
 
 .. note::
    This "import" has nothing to do with the Python ``import`` statement;
    it refers to whether pybind11 will consult the pymetabind registry if
    it doesn't find a native match for a particular C++ type.
 
-Disabling automatic importation improves performance, and might
-improve correctness in rare scenarios where you rely on a given
+Disabling automatic import improves performance, and might
+improve correctness in rare scenarios (if you rely on a given
 overload *not* being executed when passed an instance of a
-foreign-bound Python type with matching C++ type. It has no effect
+foreign-bound Python type with matching C++ type). It has no effect
 unless an extension module from a different binding framework is
-actually loaded (either before or after the call to
-``py::disable_foreign_import()``). It affects all future calls to
-functions bound in this extension module (regardless of whether the
-functions were already bound or not) and all future calls to
-``py::cast()`` in this extension module.
+actually loaded, either before or after the extension module you're
+writing.
+
+Disabling the entire foreign-framework interoperability mechanism
+(``py::foreign_interop::disabled()``) is primarily a tool for ruling it out
+as a source of misbehavior, but it does come with some small additional
+memory savings as well.
 
 Importing specific foreign bindings
 -----------------------------------
@@ -307,21 +346,15 @@ this call, but the explicit import request is still useful in three scenarios:
 * when you want to prefer a particular binding for a C++ type that has multiple
   bindings, and the binding you prefer might not be the one that was bound first
 
-* when you have disabled automatic import of foreign bindings for a module by
-  using ``py::disable_foreign_import()``, but you still want to use a few
-  specified foreign bindings
+* when you have disabled automatic import of foreign bindings for a module,
+  but you still want to use a few specified foreign bindings
 
-In general, calling ``py::import_foreign()`` will make a foreign binding available
-for conversions performed by any pybind11 extension modules that are ABI-compatible
-with the one in which the call is made. However, in order to allow for isolation
-when it is desired, an extension module that has called
-``py::disable_foreign_import()`` will only consider foreign bindings named in a
-later call to ``py::import_foreign()`` in that specific module.
-The first call to ``py::disable_foreign_import()`` in a particular extension
-module effectively reverses the effects of any prior calls to
-``py::import_foreign()`` for that extension module, but *other* modules (that
-don't themselves call ``py::disable_foreign_import()``) are still able to use
-the formerly imported bindings.
+``py::import_foreign()`` has both a global and a local effect. The global effect
+is that it adds the imported type to a table shared by all ABI-compatible
+pybind11 modules, or increases its priority in that table if already present.
+The local effect, which is only applicable to modules that have opted out of
+automatic importation, is that it adds the imported type to a filter allowing
+it to be used by the module that called ``py::import_foreign()``.
 
 ``py::import_foreign()`` takes an optional template argument specifying which C++
 type to associate the Python type with. If the foreign type was bound using another
@@ -384,11 +417,13 @@ the one used by the foreign binding.
        return pet.name + " got a haircut";
    }
 
-   PYBIND11_MODULE(groomer, m) {
-       // This example works either with or without -DMANUAL_DEMO
+   // This example works either with or without -DMANUAL_DEMO
+   PYBIND11_MODULE(groomer, m
    #ifdef MANUAL_DEMO
-       pybind11::disable_foreign_import();
-
+                   , py::foreign_interop::on_request()
+   #endif
+                   ) {
+   #ifdef MANUAL_DEMO
        auto pet = pybind11::module_::import_("pets").attr("Pet");
 
        // This could go either before or after the function binding

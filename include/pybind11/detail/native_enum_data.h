@@ -221,10 +221,10 @@ inline void native_enum_data::finalize() {
     with_internals([&](internals &internals) {
         internals.native_enum_type_map[enum_type_index] = py_enum.ptr();
 
-        auto &interop_internals = get_interop_internals();
-        if (interop_internals.export_all) {
+        auto &local_internals = get_local_internals();
+        if (local_internals.foreign_export_all) {
             auto *record = enum_record.get_pointer<native_enum_record>();
-            interop_internals.export_for_interop(
+            local_internals.foreign_internals->export_to_foreign(
                 record->cpptype, (PyTypeObject *) py_enum.ptr(), nullptr);
         }
     });

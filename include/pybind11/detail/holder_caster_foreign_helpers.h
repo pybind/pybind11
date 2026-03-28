@@ -48,11 +48,18 @@ struct holder_caster_foreign_helpers {
         return false;
     }
 
+    // We only support loading a holder H<T> for foreign T in two cases:
+    // - If H = std::shared_ptr, then we can create a new shared_ptr control
+    //   block that owns a reference to the original Python object.
+    //   (Or if T inherits enable_shared_from_this, we can use that to
+    //   locate the original shared_ptr holder.)
+    // - If H is a custom holder with always_construct_holder set to true,
+    //   we can create a new holder without needing to locate the existing one.
+    // In general there is no way to locate the existing holder for a foreign
+    // instance, because pymetabind doesn't provide that capability.
+
     template <typename type>
     static bool set_foreign_holder(handle src, type *value, std::shared_ptr<type> *holder_out) {
-        // We only support using std::shared_ptr<T> for foreign T, and
-        // it's done by creating a new shared_ptr control block that
-        // owns a reference to the original Python object.
         if (value == nullptr) {
             *holder_out = {};
             return true;
@@ -75,10 +82,23 @@ struct holder_caster_foreign_helpers {
         return false;
     }
 
+    template <typename type, typename holder,
+              typename = enable_if_t<always_construct_holder<holder>::value>>
+    static bool set_foreign_holder(handle /*src*/, type *value, holder *holder_out) {
+        if (value == nullptr) {
+            *holder_out = {};
+            return true;
+        }
+        *holder_out = holder(value);
+        return true;
+    }
+
     template <typename type>
     static bool set_foreign_holder(handle, type *, ...) {
         throw cast_error("Unable to cast foreign type to held instance -- "
-                         "only std::shared_ptr<T> is supported in this case");
+                         "only std::shared_ptr<T> or a custom holder with the "
+                         "3rd argument of PYBIND11_DECLARE_HOLDER_TYPE() set "
+                         "to true are supported in this case");
     }
 };
 

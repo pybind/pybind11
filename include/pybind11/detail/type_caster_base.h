@@ -298,11 +298,11 @@ PYBIND11_NOINLINE handle get_type_handle(const std::type_info &tp,
     if (detail::type_info *type_info = get_type_info(tp)) {
         return handle(reinterpret_cast<PyObject *>(type_info->type));
     }
-    auto &interop_internals = detail::get_interop_internals();
-    if (interop_internals.imported_any) {
+    auto *foreign_internals = detail::get_foreign_internals();
+    if (foreign_internals && foreign_internals->imported_any) {
         handle ret = with_internals([&](internals &) {
-            auto it = interop_internals.bindings.find(tp);
-            if (it != interop_internals.bindings.end() && !it->second.empty()) {
+            auto it = foreign_internals->bindings.find(tp);
+            if (it != foreign_internals->bindings.end() && !it->second.empty()) {
                 pymb_binding *binding = *it->second.begin();
                 return handle(reinterpret_cast<PyObject *>(binding->pytype));
             }
@@ -552,8 +552,8 @@ PYBIND11_NOINLINE void instance::deallocate_layout() {
     }
 }
 
-PYBIND11_NOINLINE bool isinstance_generic(handle obj, const std::type_info &tp, bool foreign_ok) {
-    handle type = detail::get_type_handle(tp, false, foreign_ok);
+PYBIND11_NOINLINE bool isinstance_generic(handle obj, const std::type_info &tp) {
+    handle type = detail::get_type_handle(tp, false);
     if (!type) {
         return false;
     }
@@ -1085,7 +1085,8 @@ public:
         }
 
         auto attempt = [&, policy](pymb_binding *binding) -> void * {
-            void *ret = binding->framework->to_python(binding, src, policy, &feedback);
+            void *ret = binding->framework->to_python(
+                binding, const_cast<void *>(src), policy, &feedback);
             if (ret) {
                 srcs.used_foreign = binding->framework;
                 srcs.is_new = feedback.is_new;
@@ -1104,7 +1105,7 @@ public:
         }
 
         auto *result = (PyObject *) result_v;
-        if (result && policy == return_value_policy::reference_internal && srcs.is_new) {
+        if (result && policy_ == return_value_policy::reference_internal && srcs.is_new) {
             if ((srcs.used_foreign->keep_alive_types & (uint8_t) pymb_keep_alive_pyobject) == 0 ||
                 srcs.used_foreign->keep_alive(result, pymb_keep_alive_pyobject,
                                               parent.ptr(), nullptr) == 0) {
@@ -1123,7 +1124,9 @@ public:
         if (!srcs.result.tinfo) {
             // No pybind11 type info. See if we can use another framework's
             // type to complete this cast. Set srcs.used_foreign if so.
-            if (srcs.original.cpptype && get_interop_internals().imported_any) {
+            foreign_internals *foreign = nullptr;
+            if (srcs.original.cpptype && (foreign = get_foreign_internals()) &&
+                foreign->imported_any) {
                 if (handle ret = cast_foreign(srcs, policy, parent, existing_holder != nullptr)) {
                     return ret;
                 }
@@ -1290,8 +1293,8 @@ public:
     /// Try to load as a type exposed by a different binding framework (which
     /// might be an ABI-incompatible version of pybind11).
     bool try_load_other_framework(handle src, bool convert) {
-        auto &interop_internals = get_interop_internals();
-        if (!interop_internals.imported_any || !cpptype || src.is_none()) {
+        auto *foreign_internals = get_foreign_internals();
+        if (!foreign_internals || !foreign_internals->imported_any || !cpptype || src.is_none()) {
             return false;
         }
 
@@ -1328,14 +1331,16 @@ public:
         return false;
     }
 
-    /// Try to load with foreign typeinfo, if available. Used when there is no
+    /// Try whichever of try_load_other_module_local() or try_load_other_framework()
+    /// are applicable for the given object. Used when there is no
     /// native typeinfo, or when the native one wasn't able to produce a value.
     PYBIND11_NOINLINE bool try_load_foreign(handle src, bool convert, bool foreign_ok) {
         constexpr auto *local_key = PYBIND11_MODULE_LOCAL_ID;
         const auto pytype = type::handle_of(src);
-        if (hasattr(pytype, local_key)) {
-            return try_load_other_module_local(
-                src, reinterpret_borrow<capsule>(getattr(pytype, local_key)));
+        if (hasattr(pytype, local_key) &&
+            try_load_other_module_local(
+                    src, reinterpret_borrow<capsule>(getattr(pytype, local_key)))) {
+            return true;
         }
         return foreign_ok && try_load_other_framework(src, convert);
     }
@@ -1753,6 +1758,9 @@ cast_sources::cast_sources(const itype *ptr) : original{ptr, &typeid(itype)} {
     result = resolve();
 }
 
+// Forward declaration - defined in cast.h
+template <typename T> struct holder_helper;
+
 /// Generic type caster for objects stored on the heap
 template <typename type>
 class type_caster_base : public type_caster_generic {
@@ -1867,6 +1875,7 @@ public:
             after_shared_ptr_cast_to_foreign(
                 ret, std::shared_ptr<T>{std::move(*holder)}, srcs.used_foreign);
         }
+        return ret;
     }
 
     template <class H>
@@ -1878,7 +1887,7 @@ public:
             // Wrap the custom holder in a std::shared_ptr with custom deleter,
             // and then delegate to the logic for handling std::shared_ptr casts
             // to foreign.
-            auto *ptr = holder_helper<H>::get(holder);
+            auto *ptr = holder_helper<intrinsic_t<H>>::get(*holder);
             using V = std::decay_t<decltype(*ptr)>;
             after_shared_ptr_cast_to_foreign(
                 ret, std::shared_ptr<V>{ptr, [h = std::move(*holder)](V*) {}},
@@ -1938,7 +1947,7 @@ inline std::string quote_cpp_type_name(const std::string &cpp_type_name) {
 }
 
 PYBIND11_NOINLINE std::string type_info_description(const std::type_info &ti) {
-    if (handle th = get_type_handle(ti, false, true)) {
+    if (handle th = get_type_handle(ti, false)) {
         return th.attr("__module__").cast<std::string>() + '.'
                + th.attr("__qualname__").cast<std::string>();
     }

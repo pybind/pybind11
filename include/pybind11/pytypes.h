@@ -46,7 +46,7 @@ struct arg_v;
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 class args_proxy;
-bool isinstance_generic(handle obj, const std::type_info &tp, bool foreign_ok);
+bool isinstance_generic(handle obj, const std::type_info &tp);
 
 template <typename T>
 bool isinstance_native_enum(handle obj, const std::type_info &tp);
@@ -860,13 +860,13 @@ bool isinstance(handle obj) {
 }
 
 template <typename T, detail::enable_if_t<!std::is_base_of<object, T>::value, int> = 0>
-bool isinstance(handle obj, bool foreign_ok = false) {
+bool isinstance(handle obj) {
     return detail::isinstance_native_enum<T>(obj, typeid(T))
-           || detail::isinstance_generic(obj, typeid(T), foreign_ok);
+           || detail::isinstance_generic(obj, typeid(T));
 }
 
 template <>
-bool isinstance<handle>(handle, bool) = delete;
+bool isinstance<handle>(handle) = delete;
 template <>
 inline bool isinstance<object>(handle obj) {
     return obj.ptr() != nullptr;
@@ -1622,14 +1622,14 @@ public:
     /// standard types, like int, float. etc. yet.
     /// See https://github.com/pybind/pybind11/issues/2486
     template <typename T>
-    static handle handle_of(bool foreign_ok = false);
+    static handle handle_of();
 
     /// Convert C++ type to type if previously registered. Does not convert
     /// standard types, like int, float. etc. yet.
     /// See https://github.com/pybind/pybind11/issues/2486
     template <typename T>
-    static type of(bool foreign_ok = false) {
-        return type(type::handle_of<T>(foreign_ok), borrowed_t{});
+    static type of() {
+        return type(type::handle_of<T>(), borrowed_t{});
     }
 };
 

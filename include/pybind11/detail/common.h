@@ -377,12 +377,6 @@ inline bool is_uniquely_referenced(PyObject *obj) {
 #define PYBIND11_STRINGIFY(x) #x
 #define PYBIND11_TOSTRING(x) PYBIND11_STRINGIFY(x)
 #define PYBIND11_CONCAT(first, second) first##second
-#define PYBIND11_ENSURE_INTERNALS_READY                                                           \
-    {                                                                                             \
-        pybind11::detail::get_internals_pp_manager().unref();                                     \
-        pybind11::detail::get_internals();                                                        \
-        pybind11::detail::init_foreign_internals();                                               \
-    }
 
 #if !defined(GRAALVM_PYTHON)
 #    define PYBIND11_PYCFUNCTION_GET_DOC(func) ((func)->m_ml->ml_doc)
@@ -443,7 +437,7 @@ inline bool is_uniquely_referenced(PyObject *obj) {
     static PyObject *pybind11_init();                                                             \
     PYBIND11_PLUGIN_IMPL(name) {                                                                  \
         PYBIND11_CHECK_PYTHON_VERSION                                                             \
-        PYBIND11_ENSURE_INTERNALS_READY                                                           \
+        pybind11::detail::ensure_internals(pybind11::detail::foreign_interop_level::full);        \
         try {                                                                                     \
             return pybind11_init();                                                               \
         }                                                                                         \
@@ -467,7 +461,6 @@ PyModuleDef_Init should be treated like any other PyObject (so not shared across
     static int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject *);                                 \
     PYBIND11_PLUGIN_IMPL(name) {                                                                  \
         PYBIND11_CHECK_PYTHON_VERSION                                                             \
-        pybind11::detail::ensure_internals();                                                     \
         static ::pybind11::detail::slots_array mod_def_slots = ::pybind11::detail::init_slots(    \
             &PYBIND11_CONCAT(pybind11_exec_, name), ##__VA_ARGS__);                               \
         static PyModuleDef def{/* m_base */ PyModuleDef_HEAD_INIT,                                \
@@ -482,11 +475,12 @@ PyModuleDef_Init should be treated like any other PyObject (so not shared across
         return PyModuleDef_Init(&def);                                                            \
     }
 
-#define PYBIND11_MODULE_EXEC(name, variable)                                                      \
+#define PYBIND11_MODULE_EXEC(name, variable, ...)                                                 \
     static void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ &);                     \
     int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject * pm) {                                    \
         try {                                                                                     \
-            pybind11::detail::ensure_internals();                                                 \
+            auto foreign_level = pybind11::detail::foreign_interop_option(__VA_ARGS__);           \
+            pybind11::detail::ensure_internals(foreign_level);                                    \
             auto m = pybind11::reinterpret_borrow<::pybind11::module_>(pm);                       \
             if (!pybind11::detail::get_cached_module(m.attr("__spec__").attr("name"))) {          \
                 PYBIND11_CONCAT(pybind11_init_, name)(m);                                         \
@@ -522,12 +516,22 @@ PyModuleDef_Init should be treated like any other PyObject (so not shared across
         }
 
     The third and subsequent macro arguments are optional (available since 2.13.0), and
-    can be used to mark the extension module as supporting various Python features.
+    can be used to mark the extension module as supporting various Python and pybind11
+    features.
 
-    - ``mod_gil_not_used()``
-    - ``multiple_interpreters::per_interpreter_gil()``
-    - ``multiple_interpreters::shared_gil()``
-    - ``multiple_interpreters::not_supported()``
+    - Allow this module to be imported into a free-threaded Python interpreter
+      without forcing a fallback to GIL semantics: ``mod_gil_not_used()``
+    - Allow this module to be imported into a Python interpreter other than the
+      main one (i.e., a subinterpreter) with specified GIL granularity:
+      ``multiple_interpreters::per_interpreter_gil()`` or
+      ``multiple_interpreters::shared_gil()``
+      (or use ``multiple_interpreters::not_supported()`` to explicitly specify
+      the default)
+    - Limit the scope of the otherwise enabled-by-default support for
+      :ref:`interoperability with foreign binding frameworks <interop>`:
+      ``foreign_interop::disabled()``, ``foreign_interop::on_request()``,
+      ``foreign_interop::import_only()``, or ``foreign_interop::export_only()``
+      (or use ``foreign_import::full()`` to explicitly specify the default)
 
     .. code-block:: cpp
 
@@ -541,7 +545,7 @@ PyModuleDef_Init should be treated like any other PyObject (so not shared across
 \endrst */
 #define PYBIND11_MODULE(name, variable, ...)                                                      \
     PYBIND11_MODULE_PYINIT(name, ##__VA_ARGS__)                                                   \
-    PYBIND11_MODULE_EXEC(name, variable)
+    PYBIND11_MODULE_EXEC(name, variable, ##__VA_ARGS__)
 
 // pop gnu-zero-variadic-macro-arguments
 PYBIND11_WARNING_POP
@@ -1380,6 +1384,9 @@ constexpr
 #        define PYBIND11_BIG_ENDIAN (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
 #    endif
 #endif
+
+// Defined in cast.h
+template <typename T> struct always_construct_holder;
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
