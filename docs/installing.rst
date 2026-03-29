@@ -82,6 +82,44 @@ community contributors. If the version is out of date, please `create an issue
 or pull request <https://github.com/Microsoft/vcpkg/>`_ on the vcpkg
 repository.
 
+Include with CMake/Hunter
+==================
+If you are already using CMake you can include pybind11 using Hunter.
+If you are not already using Hunter, download
+`HunterGate <https://github.com/cpp-pm/gate/tree/master/cmake>`_ to a
+directory in your repo (generally *cmake/HunterGate.cmake*). Then include it
+in you CMakeLists file with:
+
+.. code-block:: cmake
+
+    include("cmake/HunterGate.cmake") #or whatever directory you put it in
+
+Select a `hunter release <https://github.com/cpp-pm/hunter/releases>`_, example
+
+.. code-block:: cmake
+
+    HunterGate(
+        URL "https://github.com/cpp-pm/hunter/archive/v0.24.2.tar.gz"
+        SHA1 "17fd3b9f0b8c271eac9b71e30a6aa1b9fecab299"
+    )
+
+Make sure to include the above before your **project({project name})** declaration.
+
+Now just add pybind11 with the following:
+
+.. code-block:: cmake
+
+    hunter_add_package(pybind11)
+    find_package(pybind11 CONFIG REQUIRED)
+
+    add_executable(main main.cpp) #or add_library(...)
+    target_link_libraries(main
+        {other libs}
+        pybind11::pybind11
+        pybind11::embed
+        pybind11::module
+    )
+
 Global install with brew
 ========================
 
