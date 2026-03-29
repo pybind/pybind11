@@ -3729,6 +3729,10 @@ PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
         }
     }
 
+    if (file.is_none()) {
+        return;
+    }
+
     auto write = file.attr("write");
     write(std::move(line));
     write(kwargs.contains("end") ? kwargs["end"] : str("\n"));
