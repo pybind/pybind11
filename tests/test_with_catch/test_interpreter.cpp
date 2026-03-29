@@ -5,6 +5,8 @@
 // catch 2.0.1; this should be fixed in the next catch release after 2.0.1).
 PYBIND11_WARNING_DISABLE_MSVC(4996)
 
+#include "catch_skip.h"
+
 #include <catch.hpp>
 #include <cstdlib>
 #include <fstream>
@@ -82,6 +84,14 @@ PYBIND11_EMBEDDED_MODULE(trampoline_module, m) {
                std::shared_ptr<test_override_cache_helper>>(m, "test_override_cache_helper")
         .def(py::init_alias<>())
         .def("func", &test_override_cache_helper::func);
+}
+
+enum class SomeEnum { value1, value2 }; // Added in PR #6015
+
+PYBIND11_EMBEDDED_MODULE(enum_module, m, py::multiple_interpreters::per_interpreter_gil()) {
+    py::enum_<SomeEnum>(m, "SomeEnum")
+        .value("value1", SomeEnum::value1)
+        .value("value2", SomeEnum::value2);
 }
 
 PYBIND11_EMBEDDED_MODULE(throw_exception, ) { throw std::runtime_error("C++ Error"); }
@@ -341,6 +351,24 @@ TEST_CASE("Restart the interpreter") {
     auto py_module = py::module_::import("test_interpreter");
     auto py_widget = py_module.attr("DerivedWidget")("Hello after restart");
     REQUIRE(py_widget.attr("the_message").cast<std::string>() == "Hello after restart");
+}
+
+TEST_CASE("Enum module survives restart") { // Added in PR #6015
+    // Regression test for gh-5976: py::enum_ uses def_property_static, which
+    // calls process_attributes::init after initialize_generic's strdup loop,
+    // leaving arg names as string literals. Without the fix, destruct() would
+    // call free() on those literals during interpreter finalization.
+    PYBIND11_CATCH2_SKIP_IF(PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION == 12,
+                            "Pre-existing crash in enum cleanup during finalize on Python 3.12");
+
+    auto enum_mod = py::module_::import("enum_module");
+    REQUIRE(enum_mod.attr("SomeEnum").attr("value1").attr("name").cast<std::string>() == "value1");
+
+    py::finalize_interpreter();
+    py::initialize_interpreter();
+
+    enum_mod = py::module_::import("enum_module");
+    REQUIRE(enum_mod.attr("SomeEnum").attr("value2").attr("name").cast<std::string>() == "value2");
 }
 
 TEST_CASE("Execution frame") {
