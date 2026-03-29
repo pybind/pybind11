@@ -11,9 +11,9 @@ import time
 import weakref
 
 import pytest
-import test_interop_1 as t1
-import test_interop_2 as t2
-import test_interop_3 as t3
+import test_foreign_1 as t1
+import test_foreign_2 as t2
+import test_foreign_3 as t3
 
 import env
 
@@ -62,7 +62,7 @@ def clean_after():
     if sys.implementation.name in ("pypy", "graalpy"):
         pytest.gc_collect()
     if sys.implementation.name != "graalpy":
-        t3.clear_interop_bindings()
+        t3.clear_foreign_bindings()
 
     if not types_are_immortal:
         delattr_and_ensure_destroyed(
@@ -98,7 +98,7 @@ def check_stats(mod, **entries):
     assert all(val == 0 for val in stats.values())
 
 
-def test01_interop_exceptions_without_registration():
+def test01_foreign_exceptions_without_registration():
     # t2 defines the exception translator for Shared. Since it hasn't
     # taken any interop actions yet, it hasn't registered with pymetabind
     # and t1 won't be able to use that translator.
@@ -194,34 +194,34 @@ def expect(from_mod, to_mod, pattern, **extra):
         check_stats(mod, **stats)
 
 
-def test02a_interop_return_foreign_smart_holder():
+def test02a_foreign_return_foreign_smart_holder():
     # Test a pybind11 domain returning a different pybind11 domain's type
     # because it didn't have its own.
     t2.bind_types()
-    t2.export_for_interop(t2.Shared)
-    t2.export_for_interop(t2.SharedEnum)
-    t1.import_for_interop(t2.Shared)
-    t1.import_for_interop(t2.SharedEnum)
+    t2.export_to_foreign(t2.Shared)
+    t2.export_to_foreign(t2.SharedEnum)
+    t1.import_foreign(t2.Shared)
+    t1.import_foreign(t2.SharedEnum)
     expect(t2, t1, "foreign")
     expect(t1, t2, "local")  # t2 is both source and dest
     assert type(t1.make(1)) is t2.Shared
     assert type(t2.make(2)) is t2.Shared
 
 
-def test02b_interop_return_foreign_shared_ptr():
+def test02b_foreign_return_foreign_shared_ptr():
     # Same thing but different holder type (t2 uses smart holder, t1 regular).
     t1.bind_types()
-    t1.export_for_interop(t1.Shared)
-    t1.export_for_interop(t1.SharedEnum)
-    t3.import_for_interop(t1.Shared)
-    t3.import_for_interop(t1.SharedEnum)
+    t1.export_to_foreign(t1.Shared)
+    t1.export_to_foreign(t1.SharedEnum)
+    t3.import_foreign(t1.Shared)
+    t3.import_foreign(t1.SharedEnum)
     expect(t1, t3, "foreign")
     expect(t3, t1, "local")  # t1 is both source and dest
     assert type(t1.make(1)) is t1.Shared
     assert type(t3.make(2)) is t1.Shared
 
 
-def test03_interop_unimported():
+def test03_foreign_unimported():
     # Bind the types but don't share them yet
     t1.bind_types()
     t2.bind_types()
@@ -242,11 +242,11 @@ def test03_interop_unimported():
     expect(t3, t2, "isolated", enum=None)
 
     # Just an export isn't enough; you need an import too
-    t2.export_for_interop(t2.Shared)
+    t2.export_to_foreign(t2.Shared)
     expect(t2, t3, "isolated")
 
 
-def test04_interop_import_export_errors():
+def test04_foreign_import_export_errors():
     t1.bind_types()
     t2.bind_types()
     t3.create_raw_binding()
@@ -254,59 +254,59 @@ def test04_interop_import_export_errors():
     with pytest.raises(
         RuntimeError, match="type does not define a __pymetabind_binding__"
     ):
-        t2.import_for_interop(t1.Convertible)
+        t2.import_foreign(t1.Convertible)
 
     with pytest.raises(RuntimeError, match="not a pybind11 class or enum"):
-        t3.export_for_interop(t2.Shared)
+        t3.export_to_foreign(t2.Shared)
 
     with pytest.raises(RuntimeError, match="not a pybind11 class or enum"):
-        t3.export_for_interop(t2.SharedEnum)
+        t3.export_to_foreign(t2.SharedEnum)
 
-    t2.export_for_interop(t2.Shared)
-    t2.export_for_interop(t2.SharedEnum)
-    t2.export_for_interop(t2.Shared)  # should be idempotent
-    t2.export_for_interop(t2.SharedEnum)
+    t2.export_to_foreign(t2.Shared)
+    t2.export_to_foreign(t2.SharedEnum)
+    t2.export_to_foreign(t2.Shared)  # should be idempotent
+    t2.export_to_foreign(t2.SharedEnum)
 
     with pytest.raises(RuntimeError, match="type is not foreign"):
-        t2.import_for_interop(t2.Shared)
+        t2.import_foreign(t2.Shared)
 
     with pytest.raises(RuntimeError, match=r"is not written in C\+\+"):
-        t2.import_for_interop(t3.RawShared)
+        t2.import_foreign(t3.RawShared)
 
-    t2.import_for_interop_explicit(t3.RawShared)
-    t2.import_for_interop_explicit(t3.RawShared)  # should be idempotent
+    t2.import_foreign_explicit(t3.RawShared)
+    t2.import_foreign_explicit(t3.RawShared)  # should be idempotent
 
     with pytest.raises(
         RuntimeError, match=r"was already imported as a different C\+\+ type"
     ):
-        t2.import_for_interop_wrong_type(t3.RawShared)
+        t2.import_foreign_wrong_type(t3.RawShared)
 
 
 @pytest.mark.skipif(
     (env.MACOS and env.PYPY) or env.ANDROID,
     reason="same issue as test_exceptions.py test_cross_module_exception_translator",
 )
-def test05_interop_exceptions():
+def test05_foreign_exceptions():
     # Once t1 and t2 have registered with pymetabind, which happens as soon as
     # they each import or export anything, t1 can translate t2's exceptions.
     t1.bind_types()
     t2.bind_types()
-    t1.export_for_interop(t1.Shared)
-    t2.export_for_interop(t2.Shared)
+    t1.export_to_foreign(t1.Shared)
+    t2.export_to_foreign(t2.Shared)
     with pytest.raises(ValueError, match="Shared.123"):
         t1.throw_shared(123)
 
 
-def test06_interop_with_cpp():
+def test06_foreign_interop_with_cpp():
     t1.bind_types()
     t2.bind_types()
     t3.create_raw_binding()
 
     # Export t1/t2's Shared to t3, but not the enum yet, and not from t3
-    t1.export_for_interop(t1.Shared)
-    t2.export_for_interop(t2.Shared)
-    t3.import_for_interop(t1.Shared)
-    t3.import_for_interop(t2.Shared)
+    t1.export_to_foreign(t1.Shared)
+    t2.export_to_foreign(t2.Shared)
+    t3.import_foreign(t1.Shared)
+    t3.import_foreign(t2.Shared)
     expect(t1, t3, "foreign", enum=False)
     expect(t2, t3, "foreign", enum=False)
     expect(t1, t2, "isolated")
@@ -316,24 +316,24 @@ def test06_interop_with_cpp():
     # Now export t2.SharedEnum too. Note that t3 doesn't have its own
     # definition of SharedEnum yet, so it will use the imported one and create
     # t2.SharedEnums.
-    t2.export_for_interop(t2.SharedEnum)
-    t3.import_for_interop(t2.SharedEnum)
+    t2.export_to_foreign(t2.SharedEnum)
+    t3.import_foreign(t2.SharedEnum)
     expect(t1, t3, "foreign", enum=False)
     expect(t2, t3, "foreign")
     expect(t3, t2, "isolated", enum=True)
 
-    t1.export_for_interop(t1.SharedEnum)
-    t3.import_for_interop(t1.SharedEnum)
+    t1.export_to_foreign(t1.SharedEnum)
+    t3.import_foreign(t1.SharedEnum)
     expect(t1, t3, "foreign")
     expect(t2, t1, "isolated")  # t1 hasn't imported anything
     expect(t2, t3, "foreign")
     expect(t3, t1, "isolated")  # t3 sends t2.SharedEnums which t1 can't read
 
-    t1.import_for_interop(t2.SharedEnum)
+    t1.import_foreign(t2.SharedEnum)
     expect(t2, t1, "isolated", enum=True)
     expect(t3, t1, "isolated", enum=True)
 
-    t1.import_for_interop(t2.Shared)
+    t1.import_foreign(t2.Shared)
     expect(t2, t1, "foreign")
 
     # No one has imported t3.RawShared, so t3->X doesn't work yet
@@ -346,21 +346,21 @@ def test06_interop_with_cpp():
     assert type(t3.make(3)) is t3.RawShared
 
 
-def test07_interop_with_c():
+def test07_foreign_interop_with_c():
     t1.bind_types()
     t3.create_raw_binding()
-    t1.export_for_interop(t1.SharedEnum)
-    t3.import_for_interop(t1.SharedEnum)
-    t1.import_for_interop_explicit(t3.RawShared)
+    t1.export_to_foreign(t1.SharedEnum)
+    t3.import_foreign(t1.SharedEnum)
+    t1.import_foreign_explicit(t3.RawShared)
 
     # Now that t3.RawShared is imported to t1, we can send in the t3->t1 direction.
     expect(t3, t1, "foreign")
 
 
 @pytest.mark.skipif(types_are_immortal, reason="can't GC type object on this platform")
-def test08_remove_binding():
+def test08_foreign_remove_binding():
     t3.create_raw_binding()
-    t2.import_for_interop_explicit(t3.RawShared)
+    t2.import_foreign_explicit(t3.RawShared)
 
     # Remove the binding for t3.RawShared. We expect the t2 domain will
     # notice the removal and automatically forget about the defunct binding.
@@ -368,10 +368,10 @@ def test08_remove_binding():
     t3.create_raw_binding()
 
     t2.bind_types()
-    t2.export_for_interop(t2.Shared)
-    t3.import_for_interop(t2.Shared)
-    t2.export_for_interop(t2.SharedEnum)
-    t3.import_for_interop(t2.SharedEnum)
+    t2.export_to_foreign(t2.Shared)
+    t3.import_foreign(t2.Shared)
+    t2.export_to_foreign(t2.SharedEnum)
+    t3.import_foreign(t2.SharedEnum)
 
     expect(t2, t3, "foreign")
     expect(t3, t2, "isolated", enum=True)
@@ -383,10 +383,10 @@ def test08_remove_binding():
     expect(t2, t3, "isolated")
     expect(t3, t2, "isolated", enum=None)
 
-    t2.export_for_interop(t2.Shared)
-    t3.import_for_interop(t2.Shared)
-    t2.export_for_interop(t2.SharedEnum)
-    t3.import_for_interop(t2.SharedEnum)
+    t2.export_to_foreign(t2.Shared)
+    t3.import_foreign(t2.Shared)
+    t2.export_to_foreign(t2.SharedEnum)
+    t3.import_foreign(t2.SharedEnum)
 
     expect(t2, t3, "foreign")
     expect(t3, t2, "isolated", enum=True)
@@ -400,16 +400,16 @@ def test08_remove_binding():
     expect(t2, t3, "isolated")
     expect(t3, t2, "isolated", enum=None)
 
-    t2.export_for_interop(t2.Shared)
-    t3.import_for_interop(t2.Shared)
-    t2.export_for_interop(t2.SharedEnum)
-    t3.import_for_interop(t2.SharedEnum)
+    t2.export_to_foreign(t2.Shared)
+    t3.import_foreign(t2.Shared)
+    t2.export_to_foreign(t2.SharedEnum)
+    t3.import_foreign(t2.SharedEnum)
 
     expect(t2, t3, "foreign")
     expect(t3, t2, "isolated", enum=True)
 
     # Re-import RawShared and now everything works again.
-    t2.import_for_interop_explicit(t3.RawShared)
+    t2.import_foreign_explicit(t3.RawShared)
     expect(t2, t3, "foreign")
     expect(t3, t2, "foreign")
 
@@ -423,14 +423,14 @@ def test08_remove_binding():
     # and re-added on the end; also remove and re-add t2.Shared so that
     # t3.make() continues to return a t3.RawShared
     del t2.Shared.__pymetabind_binding__
-    t2.export_for_interop(t2.Shared)
-    t3.import_for_interop(t2.Shared)
+    t2.export_to_foreign(t2.Shared)
+    t3.import_foreign(t2.Shared)
 
     expect(t2, t3, "foreign")
     expect(t3, t2, "isolated", enum=True)
 
     # Re-import RawShared and now everything works again.
-    t2.import_for_interop_explicit(t3.RawShared)
+    t2.import_foreign_explicit(t3.RawShared)
     expect(t2, t3, "foreign")
     expect(t3, t2, "foreign")
 
@@ -528,8 +528,8 @@ def test11_import_export_all():
     t2.export_all()
 
     t3.create_raw_binding()
-    t3.import_for_interop(t1.Shared)
-    t3.import_for_interop(t2.SharedEnum)
+    t3.import_foreign(t1.Shared)
+    t3.import_foreign(t2.SharedEnum)
 
     expect(t1, t2, "foreign")
     expect(t1, t3, "foreign", enum=False)  # t3 didn't import all or import t1's enum
@@ -554,7 +554,7 @@ def test12_implicit():
     t2.export_all()
     t3.export_all()
     t1.import_all()
-    t1.import_for_interop_explicit(t3.RawShared)
+    t1.import_foreign_explicit(t3.RawShared)
 
     assert type(s1) is t1.Shared
     assert type(s2) is t2.Shared

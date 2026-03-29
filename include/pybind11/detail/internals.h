@@ -1004,7 +1004,7 @@ export_to_foreign(const std::type_info *cpptype, PyTypeObject *pytype, type_info
 // py::foreign_interop::disabled() as a PYBIND11_MODULE() parameter.
 // If you did, it's safe to call it later, modulo the usual private API caveats.
 // It will effectively upgrade the 'disabled' level to 'on_request'.
-foreign_internals &ensure_foreign_internals() {
+inline foreign_internals &ensure_foreign_internals() {
     auto &local = get_local_internals();
     if (local.foreign_internals) {
         return *local.foreign_internals;
@@ -1027,7 +1027,7 @@ foreign_internals &ensure_foreign_internals() {
     return *local.foreign_internals;
 }
 
-foreign_internals *get_foreign_internals() {
+inline foreign_internals *get_foreign_internals() {
     auto &local = get_local_internals();
     return local.foreign_internals.get();
 }

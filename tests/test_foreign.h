@@ -78,24 +78,22 @@ struct Shared {
         m.def("uses", &uses);
         m.def("pull_stats", &pull_stats);
 
-        m.def("export_all", []() { pybind11::interoperate_by_default(true, false); });
-        m.def("import_all", []() { pybind11::interoperate_by_default(false, true); });
-        m.def("export_for_interop", &pybind11::export_for_interop);
-        m.def("import_for_interop", &pybind11::import_for_interop<>);
-        m.def("import_for_interop_explicit", &pybind11::import_for_interop<Shared>);
+        m.def("export_to_foreign", &pybind11::export_to_foreign);
+        m.def("import_foreign", &pybind11::import_foreign<>);
+        m.def("import_foreign_explicit", &pybind11::import_foreign<Shared>);
         struct Other {};
-        m.def("import_for_interop_wrong_type", &pybind11::import_for_interop<Other>);
+        m.def("import_foreign_wrong_type", &pybind11::import_foreign<Other>);
     }
 
     template <bool SmartHolder>
     static void bind_types(pybind11::handle scope) {
         if (pybind11::hasattr(scope, "Shared")) {
-            if (pybind11::detail::get_interop_internals().export_all) {
+            if (pybind11::detail::get_local_internals().foreign_export_all) {
                 // If bindings were removed but types weren't (because types
                 // are immortal in this environment) then manually re-export
                 // the bindings so that the effects of export_all are observable
-                pybind11::export_for_interop(scope.attr("Shared"));
-                pybind11::export_for_interop(scope.attr("SharedEnum"));
+                pybind11::export_to_foreign(scope.attr("Shared"));
+                pybind11::export_to_foreign(scope.attr("SharedEnum"));
             }
             return;
         }

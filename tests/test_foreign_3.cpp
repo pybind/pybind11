@@ -1,5 +1,5 @@
 /*
-    tests/test_interop_3.cpp -- cross-framework interoperability tests
+    tests/test_foreign_3.cpp -- cross-framework interoperability tests
 
     Copyright (c) 2025 Hudson River Trading LLC <opensource@hudson-trading.com>
 
@@ -7,13 +7,13 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-// Use an unrealistically large internals version to isolate the test_interop
+// Use an unrealistically large internals version to isolate the test_foreign
 // modules from each other and from the rest of the pybind11 tests
 #define PYBIND11_INTERNALS_VERSION 300
 
 #include <pybind11/pybind11.h>
 
-#include "test_interop.h"
+#include "test_foreign.h"
 
 #include <structmember.h>
 
@@ -124,7 +124,7 @@ static void hook_ignore_binding(pymb_binding *) noexcept {}
 static void hook_ignore_framework(pymb_framework *) noexcept {}
 static void hook_free_local_binding(pymb_binding *binding) noexcept { delete binding; }
 
-PYBIND11_MODULE(test_interop_3, m, py::mod_gil_not_used()) {
+PYBIND11_MODULE(test_foreign_3, m, py::mod_gil_not_used()) {
     static PyMemberDef Shared_members[] = {
         {"__weaklistoffset__",
          T_PYSSIZET,
@@ -141,7 +141,7 @@ PYBIND11_MODULE(test_interop_3, m, py::mod_gil_not_used()) {
         {0, nullptr},
     };
     static PyType_Spec Shared_spec = {
-        /* name */ "test_interop_3.RawShared",
+        /* name */ "test_foreign_3.RawShared",
         /* basicsize */ sizeof(struct raw_shared_instance),
         /* itemsize */ 0,
         /* flags */ Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
@@ -187,7 +187,7 @@ PYBIND11_MODULE(test_interop_3, m, py::mod_gil_not_used()) {
         binding->pytype = (PyTypeObject *) type.ptr();
         binding->source_name = "RawShared";
         pymb_add_binding(binding, /* tp_finalize_will_remove */ 0);
-        py::import_for_interop<Shared>(type);
+        py::import_foreign<Shared>(type);
     });
 
     m.def("create_raw_binding", [hm]() {
@@ -207,9 +207,7 @@ PYBIND11_MODULE(test_interop_3, m, py::mod_gil_not_used()) {
         hm.attr("export_raw_binding")();
     });
 
-    m.def("clear_interop_bindings", [hm]() {
-        // NB: this is not a general purpose solution; the bindings removed
-        // here won't be re-added if `import_all` is called
+    m.def("clear_foreign_bindings", [hm]() {
         py::list bound;
         pymb_lock_registry(registry);
         // NOLINTNEXTLINE(modernize-use-auto)
@@ -239,20 +237,22 @@ PYBIND11_MODULE(test_interop_3, m, py::mod_gil_not_used()) {
         // import/export all are called, in case we removed bindings
         // in between unit tests but couldn't destroy their types
         // (because types are immortal in this environment)
+#if NOCOMMIT
         for (auto key : py::detail::get_python_state_dict()) {
             if (key.attr("startswith")("__pybind11").cast<bool>()
-                && key.attr("endswith")("interop").cast<bool>()) {
+                && key.attr("endswith")("").cast<bool>()) {
                 py::capsule cap = py::detail::get_python_state_dict()[key];
                 py::detail::interop_internals **ii = cap;
                 (*ii)->import_all = (*ii)->export_all = false;
             }
         }
+#endif
 
         // Restore the ability for our own create_shared() etc to work
         // properly, since that's a foreign type relationship too
         if (py::hasattr(hm, "RawShared")) {
             hm.attr("export_raw_binding")();
-            py::import_for_interop<Shared>(hm.attr("RawShared"));
+            py::import_foreign<Shared>(hm.attr("RawShared"));
         }
     });
 }

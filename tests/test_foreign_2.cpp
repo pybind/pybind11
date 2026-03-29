@@ -1,5 +1,5 @@
 /*
-    tests/test_interop_2.cpp -- cross-framework interoperability tests
+    tests/test_foreign_2.cpp -- cross-framework interoperability tests
 
     Copyright (c) 2025 Hudson River Trading LLC <opensource@hudson-trading.com>
 
@@ -7,17 +7,17 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-// Use an unrealistically large internals version to isolate the test_interop
+// Use an unrealistically large internals version to isolate the test_foreign
 // modules from each other and from the rest of the pybind11 tests
 #define PYBIND11_INTERNALS_VERSION 200
 
 #include <pybind11/pybind11.h>
 
-#include "test_interop.h"
+#include "test_foreign.h"
 
 namespace py = pybind11;
 
-PYBIND11_MODULE(test_interop_2, m, py::mod_gil_not_used()) {
+PYBIND11_MODULE(test_foreign_2, m, py::mod_gil_not_used()) {
     py::handle hm = m;
     Shared::bind_funcs</*SmartHolder=*/true>(m);
     m.def("bind_types", [hm]() { Shared::bind_types</*SmartHolder=*/true>(hm); });

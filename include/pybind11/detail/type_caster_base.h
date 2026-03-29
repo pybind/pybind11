@@ -1878,8 +1878,8 @@ public:
         return ret;
     }
 
-    template <class H>
-    static handle cast_holder(const cast_sources &srcs, H *holder) {
+    template <class Holder>
+    static handle cast_holder(const cast_sources &srcs, Holder *holder) {
         auto policy = srcs.needs_foreign() ? return_value_policy::reference
                                            : return_value_policy::take_ownership;
         handle ret = type_caster_generic::cast(srcs, policy, {}, nullptr, nullptr, holder);
@@ -1887,17 +1887,16 @@ public:
             // Wrap the custom holder in a std::shared_ptr with custom deleter,
             // and then delegate to the logic for handling std::shared_ptr casts
             // to foreign.
-            auto *ptr = holder_helper<intrinsic_t<H>>::get(*holder);
-            using V = std::decay_t<decltype(*ptr)>;
             after_shared_ptr_cast_to_foreign(
-                ret, std::shared_ptr<V>{ptr, [h = std::move(*holder)](V*) {}},
+                ret, std::shared_ptr<const void>{srcs.original.cppobj,
+                                                 [h = std::move(*holder)](const void*) {}},
                 srcs.used_foreign);
         }
         return ret;
     }
 
     template <class Holder>
-    static handle cast_holder(const itype *src, const Holder *holder) {
+    static handle cast_holder(const itype *src, Holder *holder) {
         return cast_holder(cast_sources{src}, holder);
     }
 
