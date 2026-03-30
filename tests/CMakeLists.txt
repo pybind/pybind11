@@ -172,6 +172,7 @@ set(PYBIND11_TEST_FILES
     test_scoped_critical_section
     test_sequences_and_iterators
     test_smart_ptr
+    test_standalone_enum_module.py
     test_stl
     test_stl_binders
     test_tagbased_polymorphic
@@ -249,6 +250,7 @@ tests_extra_targets("test_exceptions.py" "cross_module_interleaved_error_already
 tests_extra_targets("test_gil_scoped.py" "cross_module_gil_utils")
 tests_extra_targets("test_cpp_conduit.py"
                     "exo_planet_pybind11;exo_planet_c_api;home_planet_very_lonely_traveler")
+tests_extra_targets("test_standalone_enum_module.py" "standalone_enum_module")
 
 set(PYBIND11_EIGEN_REPO
     "https://gitlab.com/libeigen/eigen.git"

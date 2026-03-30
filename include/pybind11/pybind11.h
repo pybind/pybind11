@@ -915,11 +915,8 @@ protected:
                     std::free(const_cast<char *>(arg.descr));
                 }
             }
-            // During finalization, default arg values may already be freed by GC.
-            if (!detail::py_is_finalizing()) {
-                for (auto &arg : rec->args) {
-                    arg.value.dec_ref();
-                }
+            for (auto &arg : rec->args) {
+                arg.value.dec_ref();
             }
             if (rec->def) {
                 std::free(const_cast<char *>(rec->def->ml_doc));
@@ -1414,12 +1411,6 @@ PYBIND11_NAMESPACE_BEGIN(function_record_PyTypeObject_methods)
 
 // This implementation needs the definition of `class cpp_function`.
 inline void tp_dealloc_impl(PyObject *self) {
-    // Skip dealloc during finalization — GC may have already freed objects
-    // reachable from the function record (e.g. default arg values), causing
-    // use-after-free in destruct().
-    if (detail::py_is_finalizing()) {
-        return;
-    }
     // Save type before PyObject_Free invalidates self.
     auto *type = Py_TYPE(self);
     auto *py_func_rec = reinterpret_cast<function_record_PyObject *>(self);
@@ -2666,18 +2657,40 @@ public:
         if (rec_fget) {
             char *doc_prev = rec_fget->doc; /* 'extra' field may include a property-specific
                                                documentation string */
+            auto args_before = rec_fget->args.size();
             detail::process_attributes<Extra...>::init(extra..., rec_fget);
             if (rec_fget->doc && rec_fget->doc != doc_prev) {
                 std::free(doc_prev);
                 rec_fget->doc = PYBIND11_COMPAT_STRDUP(rec_fget->doc);
             }
+            // Args added by process_attributes (e.g. "self" via is_method + pos_only/kw_only)
+            // need their strings strdup'd: initialize_generic's strdup loop already ran during
+            // cpp_function construction, so it won't process these late additions. Without this,
+            // destruct() would call free() on string literals. See gh-5976.
+            for (auto i = args_before; i < rec_fget->args.size(); ++i) {
+                if (rec_fget->args[i].name) {
+                    rec_fget->args[i].name = PYBIND11_COMPAT_STRDUP(rec_fget->args[i].name);
+                }
+                if (rec_fget->args[i].descr) {
+                    rec_fget->args[i].descr = PYBIND11_COMPAT_STRDUP(rec_fget->args[i].descr);
+                }
+            }
         }
         if (rec_fset) {
             char *doc_prev = rec_fset->doc;
+            auto args_before = rec_fset->args.size();
             detail::process_attributes<Extra...>::init(extra..., rec_fset);
             if (rec_fset->doc && rec_fset->doc != doc_prev) {
                 std::free(doc_prev);
                 rec_fset->doc = PYBIND11_COMPAT_STRDUP(rec_fset->doc);
+            }
+            for (auto i = args_before; i < rec_fset->args.size(); ++i) {
+                if (rec_fset->args[i].name) {
+                    rec_fset->args[i].name = PYBIND11_COMPAT_STRDUP(rec_fset->args[i].name);
+                }
+                if (rec_fset->args[i].descr) {
+                    rec_fset->args[i].descr = PYBIND11_COMPAT_STRDUP(rec_fset->args[i].descr);
+                }
             }
             if (!rec_active) {
                 rec_active = rec_fset;
