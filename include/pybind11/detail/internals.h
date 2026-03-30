@@ -431,9 +431,9 @@ struct foreign_internals {
     // This should be called immediately after construction. It can't be done in
     // the constructor because it requires get_foreign_internals() to return this
     // and requires the internals lock to not be held.
-    inline void register_with_pymetabind(bool autoimport);
+    void register_with_pymetabind(bool autoimport);
 
-    inline void enable_autoimport();
+    void enable_autoimport();
 };
 
 // The internals struct (above) is shared between all the modules. local_internals are only
@@ -470,7 +470,7 @@ struct local_internals {
     // part of `internals` but it is kept here to avoid needing an ABI bump
     // when adding the feature that makes ABI bumps less painful.
     // May be null if both foreign_export_all and foreign_import_all are false.
-    std::shared_ptr<foreign_internals> foreign_internals;
+    std::shared_ptr<foreign_internals> foreign;
 
     // Set of foreign bindings that have been explicitly imported by the current
     // extension module. This works around the fact that the `foreign_internals`
@@ -995,10 +995,8 @@ inline auto with_exception_translators(const F &cb)
 }
 
 // forward declaration; definitions in foreign.h
-PYBIND11_NOINLINE void
-import_foreign(const std::type_info *cpptype, PyTypeObject *pytype);
-PYBIND11_NOINLINE void
-export_to_foreign(const std::type_info *cpptype, PyTypeObject *pytype, type_info *ti);
+void import_foreign(const std::type_info *cpptype, PyTypeObject *pytype);
+void export_to_foreign(const std::type_info *cpptype, PyTypeObject *pytype, type_info *ti);
 
 // This is normally called at module init time, unless you passed
 // py::foreign_interop::disabled() as a PYBIND11_MODULE() parameter.
@@ -1006,35 +1004,35 @@ export_to_foreign(const std::type_info *cpptype, PyTypeObject *pytype, type_info
 // It will effectively upgrade the 'disabled' level to 'on_request'.
 inline foreign_internals &ensure_foreign_internals() {
     auto &local = get_local_internals();
-    if (local.foreign_internals) {
-        return *local.foreign_internals;
+    if (local.foreign) {
+        return *local.foreign;
     }
     with_internals([&](internals&) {
-        if (local.foreign_internals) {
+        if (local.foreign) {
             return;
         }
         auto &wp = *detail::atomic_get_or_create_in_state_dict<std::weak_ptr<foreign_internals>>(
             PYBIND11_INTERNALS_ID "foreign").first;
         if (auto sp = wp.lock()) {
-            local.foreign_internals = sp;
+            local.foreign = sp;
         } else {
-            wp = local.foreign_internals = std::make_shared<foreign_internals>();
+            wp = local.foreign = std::make_shared<foreign_internals>();
         }
-        local.foreign_internals->import_foreign = import_foreign;
-        local.foreign_internals->export_to_foreign = export_to_foreign;
+        local.foreign->import_foreign = import_foreign;
+        local.foreign->export_to_foreign = export_to_foreign;
     });
-    local.foreign_internals->register_with_pymetabind(local.foreign_import_all);
-    return *local.foreign_internals;
+    local.foreign->register_with_pymetabind(local.foreign_import_all);
+    return *local.foreign;
 }
 
 inline foreign_internals *get_foreign_internals() {
     auto &local = get_local_internals();
-    return local.foreign_internals.get();
+    return local.foreign.get();
 }
 
 enum class foreign_interop_level {
     disabled,               // Fully disable the foreign interop mechanism;
-                            // local_internals::foreign_internals is null
+                            // local_internals::foreign is null
     on_request,             // All foreign interop must be requested explicitly
     import_only,            // Import others' types by default, only export
                             // ours when requested

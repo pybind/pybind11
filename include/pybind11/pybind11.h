@@ -1773,7 +1773,7 @@ protected:
             PYBIND11_WARNING_POP
 
             if (local_internals.foreign_export_all) {
-                local_internals.foreign_internals->export_to_foreign(
+                local_internals.foreign->export_to_foreign(
                     rec.type, (PyTypeObject *) m_ptr, tinfo);
             }
         });

@@ -721,7 +721,7 @@ inline foreign_internals::~foreign_internals() {
 PYBIND11_NOINLINE void import_foreign(const std::type_info *cpptype,
                                       PyTypeObject *pytype) {
     auto &local_internals = get_local_internals();
-    auto &foreign_internals = *local_internals.foreign_internals;
+    auto &foreign_internals = *local_internals.foreign;
     pymb_binding *binding = pymb_get_binding(reinterpret_cast<PyObject *>(pytype));
     if (!binding) {
         pybind11_fail("pybind11::import_foreign(): type does not define "
@@ -828,7 +828,7 @@ PYBIND11_NOINLINE void *try_foreign_bindings(const std::type_info *type,
                                              const void *closure) {
     auto &internals = get_internals();
     auto &local_internals = get_local_internals();
-    auto &foreign_internals = *local_internals.foreign_internals;
+    auto &foreign_internals = *local_internals.foreign;
     uint32_t update_count = foreign_internals.bindings_update_count;
 
     do {
@@ -901,7 +901,7 @@ PYBIND11_NOINLINE void *try_foreign_bindings(const std::type_info *type,
 template <class Fn>
 inline void *try_foreign_bindings(const std::type_info *type, const Fn& attempt) {
     auto &local_internals = get_local_internals();
-    if (!local_internals.foreign_internals) {
+    if (!local_internals.foreign) {
         return nullptr;
     }
     return try_foreign_bindings(type,

@@ -224,7 +224,7 @@ inline void native_enum_data::finalize() {
         auto &local_internals = get_local_internals();
         if (local_internals.foreign_export_all) {
             auto *record = enum_record.get_pointer<native_enum_record>();
-            local_internals.foreign_internals->export_to_foreign(
+            local_internals.foreign->export_to_foreign(
                 record->cpptype, (PyTypeObject *) py_enum.ptr(), nullptr);
         }
     });
