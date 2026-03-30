@@ -480,8 +480,9 @@ struct local_internals {
     // request. This map is non-empty only if `foreign_import_all` is false, and
     // it serves as an additional filter on the `foreign_internals.bindings`.
     // It logically wants to be a set of pymb_binding*, but those pointers can be
-    // invalidated, so store things that can't be.
-    std::unordered_multimap<const std::type_info*, pymb_framework*> foreign_local_imports;
+    // invalidated, so store things that can't be. Uses type_index (not raw
+    // type_info*) for the key so that it works across DSO boundaries.
+    std::unordered_multimap<std::type_index, pymb_framework*> foreign_local_imports;
 
     ~local_internals() {
         // Normally this destructor runs during interpreter finalization and it may DECREF things.

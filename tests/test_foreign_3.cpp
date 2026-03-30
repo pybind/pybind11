@@ -233,21 +233,6 @@ PYBIND11_MODULE(test_foreign_3, m, py::mod_gil_not_used()) {
             throw std::runtime_error("Could not remove bindings");
         }
 
-        // Force trying to re-import/export everything the next time
-        // import/export all are called, in case we removed bindings
-        // in between unit tests but couldn't destroy their types
-        // (because types are immortal in this environment)
-#if NOCOMMIT
-        for (auto key : py::detail::get_python_state_dict()) {
-            if (key.attr("startswith")("__pybind11").cast<bool>()
-                && key.attr("endswith")("").cast<bool>()) {
-                py::capsule cap = py::detail::get_python_state_dict()[key];
-                py::detail::interop_internals **ii = cap;
-                (*ii)->import_all = (*ii)->export_all = false;
-            }
-        }
-#endif
-
         // Restore the ability for our own create_shared() etc to work
         // properly, since that's a foreign type relationship too
         if (py::hasattr(hm, "RawShared")) {

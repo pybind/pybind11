@@ -605,7 +605,14 @@ inline void foreign_cb_remove_foreign_framework(pymb_framework *framework) noexc
     // at this point (and might be already finalized, so we can't do any
     // Python API calls)
     if (framework->translate_exception) {
-        get_foreign_internals()->exc_frameworks.remove(framework);
+        // get_foreign_internals() might return null if this module's
+        // local_internals was already destroyed during interpreter
+        // shutdown (capsule destruction order in the state dict is
+        // non-deterministic).
+        auto *fi = get_foreign_internals();
+        if (fi) {
+            fi->exc_frameworks.remove(framework);
+        }
         // No need to bother removing the foreign_exception_translator if
         // this was the last of the exc_frameworks. In the unlikely event
         // that something needs an exception translated during finalization,
@@ -773,7 +780,8 @@ PYBIND11_NOINLINE void import_foreign(const std::type_info *cpptype,
         // Mark this binding as having been specifically requested by the
         // current extension module, so that it can bypass the don't-import
         // default
-        local_internals.foreign_local_imports.emplace(cpptype, binding->framework);
+        local_internals.foreign_local_imports.emplace(std::type_index(*cpptype),
+                                                      binding->framework);
     }
     import_foreign_binding(binding, cpptype, /*manual=*/true);
 }
@@ -853,7 +861,8 @@ PYBIND11_NOINLINE void *try_foreign_bindings(const std::type_info *type,
             if (!local_internals.foreign_import_all) {
                 // If this extension module disabled automatic import of foreign
                 // bindings, then don't consider any unless explicitly imported.
-                auto range = local_internals.foreign_local_imports.equal_range(type);
+                auto range = local_internals.foreign_local_imports.equal_range(
+                    std::type_index(*type));
                 bool found = false;
                 for (auto it = range.first; it != range.second; ++it) {
                     if (it->second == binding->framework) {
