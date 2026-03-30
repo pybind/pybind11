@@ -1039,6 +1039,17 @@ struct is_instantiation<Class, Class<Us...>> : std::true_type {};
 template <typename T>
 using is_shared_ptr = is_instantiation<std::shared_ptr, T>;
 
+/// Detects whether static_cast<Derived*>(Base*) is valid, i.e. the inheritance is non-virtual.
+/// Used to detect virtual bases: if this is false, pointer adjustments require the implicit_casts
+/// chain rather than reinterpret_cast.
+template <typename Base, typename Derived, typename = void>
+struct is_static_downcastable : std::false_type {};
+template <typename Base, typename Derived>
+struct is_static_downcastable<Base,
+                              Derived,
+                              void_t<decltype(static_cast<Derived *>(std::declval<Base *>()))>>
+    : std::true_type {};
+
 /// Check if T looks like an input iterator
 template <typename T, typename = void>
 struct is_input_iterator : std::false_type {};
