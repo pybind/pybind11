@@ -13,6 +13,78 @@ Changes will be added here periodically from the "Suggested changelog
 entry" block in pull request descriptions.
 
 
+## Version 3.1.0 (this is still a work in progress)
+
+New Features:
+
+- Changed strict-mode numeric conversions for PEP 484 compatibility: `float` now accepts `int`, and `complex` now accepts `int` and `float`.
+  [#5879](https://github.com/pybind/pybind11/pull/5879)
+
+Internal:
+
+- Improved `py::enum_` operator performance by restoring type-specific implementations.
+  [#5887](https://github.com/pybind/pybind11/pull/5887)
+
+- Optimized internal `std::unordered_map`/`std::unordered_set` hashing paths with `noexcept`.
+  [#5960](https://github.com/pybind/pybind11/pull/5960)
+
+
+## Version 3.0.3 (March 31, 2026)
+
+Bug fixes:
+
+- Fixed TSS key exhaustion in `implicitly_convertible()` when many implicit conversions are registered across large module sets.
+  [#6020](https://github.com/pybind/pybind11/pull/6020)
+
+- Fixed heap-buffer-overflow in `pythonbuf` with undersized buffers by enforcing a minimum buffer size.
+  [#6019](https://github.com/pybind/pybind11/pull/6019)
+
+- Fixed virtual-inheritance pointer offset crashes when dispatching inherited methods through virtual bases.
+  [#6017](https://github.com/pybind/pybind11/pull/6017)
+
+- Fixed `free(): invalid pointer` crashes during interpreter shutdown with `py::enum_<>` by duplicating late-added `def_property_static` argument strings.
+  [#6015](https://github.com/pybind/pybind11/pull/6015)
+
+- Fixed `function_record` heap-type deallocation to call `PyObject_Free()` and decref the type.
+  [#6010](https://github.com/pybind/pybind11/pull/6010)
+
+- Hardened `PYBIND11_MODULE_PYINIT` and `get_internals()` against module-initialization crashes.
+  [#6018](https://github.com/pybind/pybind11/pull/6018)
+
+- Fixed `static_pointer_cast` build failure with virtual inheritance in `holder_caster_foreign_helpers.h`.
+  [#6014](https://github.com/pybind/pybind11/pull/6014)
+
+- Fixed ambiguous `factory` template specialization that caused compilation failures with nvcc + GCC 14.
+  [#6011](https://github.com/pybind/pybind11/pull/6011)
+
+- Fixed crash in `def_readwrite` for non-smart-holder properties of smart-holder classes.
+  [#6008](https://github.com/pybind/pybind11/pull/6008)
+
+- Fixed memory leak for `py::dynamic_attr()` objects on Python 3.13+ by clearing managed `__dict__` contents during deallocation.
+  [#5999](https://github.com/pybind/pybind11/pull/5999)
+
+- Fixed binding of `noexcept` and ref-qualified (`&`, `&&`) methods inherited from unregistered base classes.
+  [#5992](https://github.com/pybind/pybind11/pull/5992)
+
+Internal:
+
+- Moved `tomlkit` dependency to the dev dependency group.
+  [#5990](https://github.com/pybind/pybind11/pull/5990)
+
+- Switched to newer public CPython APIs (`PyType_GetFlags` and public vectorcall APIs where available).
+  [#6005](https://github.com/pybind/pybind11/pull/6005)
+
+Tests:
+
+- Made an async callback test deterministic by replacing fixed sleep with bounded waiting.
+  [#5986](https://github.com/pybind/pybind11/pull/5986)
+
+CI:
+
+- Re-enabled Android tests in the cibuildwheel workflow.
+  [#6001](https://github.com/pybind/pybind11/pull/6001)
+
+
 ## Version 3.0.2 (February 16, 2026)
 
 New Features:
