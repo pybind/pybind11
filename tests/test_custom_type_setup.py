@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import gc
 import os
-import sys
 import weakref
 
 import pytest
@@ -52,10 +51,6 @@ def test_indirect_cycle(gc_tester):
     gc_tester(obj)
 
 
-@pytest.mark.skipif(
-    env.IOS or sys.platform.startswith("emscripten"),
-    reason="Requires subprocess support",
-)
 @pytest.mark.skipif("env.PYPY or env.GRAALPY")
 def test_py_cast_useable_on_shutdown():
     """Test that py::cast works during interpreter shutdown.

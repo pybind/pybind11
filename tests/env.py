@@ -4,6 +4,8 @@ import platform
 import sys
 import sysconfig
 
+import pytest
+
 ANDROID = sys.platform.startswith("android")
 IOS = sys.platform.startswith("ios")
 LINUX = sys.platform.startswith("linux")
@@ -49,6 +51,9 @@ def check_script_success_in_subprocess(code: str, *, rerun: int = 8) -> None:
     import subprocess
     import sys
     import textwrap
+
+    if ANDROID or IOS or sys.platform.startswith("emscripten"):
+        pytest.skip("Requires subprocess support")
 
     code = textwrap.dedent(code).strip()
     try:

@@ -59,15 +59,13 @@ using ExceptionTranslator = void (*)(std::exception_ptr);
 #    define PYBIND11_TLS_KEY_INIT(var)                                                            \
         _Pragma("clang diagnostic push")                                         /**/             \
             _Pragma("clang diagnostic ignored \"-Wmissing-field-initializers\"") /**/             \
-            Py_tss_t var                                                                          \
-            = Py_tss_NEEDS_INIT;                                                                  \
+            Py_tss_t var = Py_tss_NEEDS_INIT;                                                     \
         _Pragma("clang diagnostic pop")
 #elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
 #    define PYBIND11_TLS_KEY_INIT(var)                                                            \
         _Pragma("GCC diagnostic push")                                         /**/               \
             _Pragma("GCC diagnostic ignored \"-Wmissing-field-initializers\"") /**/               \
-            Py_tss_t var                                                                          \
-            = Py_tss_NEEDS_INIT;                                                                  \
+            Py_tss_t var = Py_tss_NEEDS_INIT;                                                     \
         _Pragma("GCC diagnostic pop")
 #else
 #    define PYBIND11_TLS_KEY_INIT(var) Py_tss_t var = Py_tss_NEEDS_INIT;
@@ -864,7 +862,11 @@ inline internals_pp_manager<internals> &get_internals_pp_manager() {
 /// Return a reference to the current `internals` data
 PYBIND11_NOINLINE internals &get_internals() {
     auto &ppmgr = get_internals_pp_manager();
-    auto &internals_ptr = *ppmgr.get_pp();
+    auto *pp = ppmgr.get_pp();
+    if (!pp) {
+        pybind11_fail("get_internals: get_pp() returned nullptr");
+    }
+    auto &internals_ptr = *pp;
     if (!internals_ptr) {
         // Slow path, something needs fetched from the state dict or created
         gil_scoped_acquire_simple gil;
@@ -872,6 +874,9 @@ PYBIND11_NOINLINE internals &get_internals() {
 
         ppmgr.create_pp_content_once(&internals_ptr);
 
+        if (!internals_ptr) {
+            pybind11_fail("get_internals: create_pp_content_once() produced nullptr");
+        }
         if (!internals_ptr->instance_base) {
             // This calls get_internals, so cannot be called from within the internals constructor
             // called above because internals_ptr must be set before get_internals is called again

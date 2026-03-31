@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 import env  # noqa: F401
+import pybind11_tests
 from pybind11_tests import class_sh_property as m
 
 
@@ -164,3 +165,42 @@ def test_readonly_char6_member():
 def test_readonly_const_char_ptr_member():
     obj = m.WithConstCharPtrMember()
     assert obj.const_char_ptr_member == "ConstChar*"
+
+
+# See PR #6008
+def test_enum_member_with_smart_holder_def_readwrite():
+    obj = m.ShWithEnumABMember()
+    assert obj.level == m.EnumAB.A
+    for _ in range(100):
+        v = obj.level
+        assert v == m.EnumAB.A
+        del v
+
+
+# See PR #6008
+def test_non_smart_holder_member_type_with_smart_holder_owner():
+    obj = m.ShWithSimpleStructMember()
+    for _ in range(1000):
+        v = obj.legacy
+        assert v.value == 7
+        del v
+
+
+# See PR #6008, previously this was UB
+@pytest.mark.skipif(
+    pybind11_tests.PYBIND11_TEST_SMART_HOLDER,
+    reason="PYBIND11_TEST_SMART_HOLDER changes the default holder",
+)
+def test_shared_ptr_return_for_unique_ptr_holder():
+    with pytest.raises(
+        RuntimeError,
+        match="Unable to convert std::shared_ptr<T> to Python when the bound type does not use std::shared_ptr or py::smart_holder as its holder type",
+    ):
+        m.getSimpleStructAsShared()
+
+
+def test_non_smart_holder_member_type_with_smart_holder_owner_aliases_member():
+    obj = m.ShWithSimpleStructMember()
+    legacy = obj.legacy
+    legacy.value = 13
+    assert obj.legacy.value == 13
