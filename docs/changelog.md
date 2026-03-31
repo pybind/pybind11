@@ -29,7 +29,7 @@ Internal:
   [#5960](https://github.com/pybind/pybind11/pull/5960)
 
 
-## Version 3.0.3 (release date TBD)
+## Version 3.0.3 (March 31, 2026)
 
 Bug fixes:
 
