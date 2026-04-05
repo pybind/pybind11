@@ -1004,6 +1004,18 @@ public:
         return cast(srcs, policy, parent, copy_constructor, move_constructor, existing_holder);
     }
 
+    static handle cast_non_owning(const cast_sources &srcs,
+                                  return_value_policy policy,
+                                  handle parent,
+                                  const void *existing_holder = nullptr) {
+        // Reference-like policies alias an existing C++ object instead of creating
+        // a new one, so copy/move constructor callbacks must remain null here.
+        assert(policy == return_value_policy::reference
+               || policy == return_value_policy::reference_internal
+               || policy == return_value_policy::automatic_reference);
+        return cast(srcs, policy, parent, nullptr, nullptr, existing_holder);
+    }
+
     PYBIND11_NOINLINE static handle cast(const cast_sources &srcs,
                                          return_value_policy policy,
                                          handle parent,
