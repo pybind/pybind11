@@ -279,6 +279,16 @@ def test_fs_path():
     assert m.parent_path(b"foo/bar") == Path("foo")
     assert m.parent_path(PseudoStrPath()) == Path("foo")
     assert m.parent_path(PseudoBytesPath()) == Path("foo")
+    # Single argument noconvert
+    assert m.parent_path_noconvert(Path("foo/bar")) == Path("foo")
+    with pytest.raises(TypeError):
+        m.parent_path_noconvert("foo/bar")
+    with pytest.raises(TypeError):
+        m.parent_path_noconvert(b"foo/bar")
+    with pytest.raises(TypeError):
+        m.parent_path_noconvert(PseudoStrPath())
+    with pytest.raises(TypeError):
+        m.parent_path_noconvert(PseudoBytesPath())
     # std::vector
     assert m.parent_paths(["foo/bar", "foo/baz"]) == [Path("foo"), Path("foo")]
     # py::typing::List
@@ -310,6 +320,11 @@ def test_path_typing(doc):
     assert (
         doc(m.parent_path)
         == "parent_path(arg0: os.PathLike | str | bytes) -> pathlib.Path"
+    )
+    # Single argument noconvert
+    assert (
+        doc(m.parent_path_noconvert)
+        == "parent_path_noconvert(arg0: pathlib.Path) -> pathlib.Path"
     )
     # std::vector
     assert (
