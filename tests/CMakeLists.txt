@@ -539,7 +539,6 @@ foreach(target ${test_targets})
       target_compile_options(${target} PRIVATE -fno-exceptions)
     endif()
   endif()
-
 endforeach()
 
 # Provide nice organisation in IDEs
