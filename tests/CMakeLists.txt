@@ -167,7 +167,7 @@ set(PYBIND11_TEST_FILES
     test_operator_overloading
     test_pickling
     test_potentially_slicing_weak_ptr
-    test_pytorch_downstream_regressions
+    test_pytorch_shared_ptr_cast_regression
     test_python_multiple_inheritance
     test_pytypes
     test_scoped_critical_section
