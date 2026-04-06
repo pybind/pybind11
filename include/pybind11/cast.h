@@ -1026,7 +1026,7 @@ public:
         }
 
         if (parent) {
-            return type_caster_base<type>::cast(
+            return type_caster_generic::cast_non_owning(
                 srcs, return_value_policy::reference_internal, parent);
         }
 
