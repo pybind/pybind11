@@ -4,8 +4,12 @@
 #include <string>
 
 #if defined(__clang__)
-#    pragma clang diagnostic error "-Wdeprecated-copy-with-user-provided-dtor"
-#    pragma clang diagnostic error "-Wdeprecated-copy-with-dtor"
+#    if __has_warning("-Wdeprecated-copy-with-user-provided-dtor")
+#        pragma clang diagnostic error "-Wdeprecated-copy-with-user-provided-dtor"
+#    endif
+#    if __has_warning("-Wdeprecated-copy-with-dtor")
+#        pragma clang diagnostic error "-Wdeprecated-copy-with-dtor"
+#    endif
 #endif
 
 namespace test_pytorch_regressions {
