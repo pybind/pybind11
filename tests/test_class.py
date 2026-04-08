@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import gc
 import sys
 from unittest import mock
 
@@ -43,6 +44,12 @@ def test_instance(msg):
     assert cstats.alive() == 1
     del instance
     assert cstats.alive() == 0
+
+
+def test_get_referrers():
+    instance = m.DynamicAttr()
+    instance.a = "test"
+    assert instance in gc.get_referrers(instance.__dict__)
 
 
 def test_instance_new():

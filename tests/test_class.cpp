@@ -104,6 +104,10 @@ TEST_SUBMODULE(class_, m) {
         ~NoConstructorNew() { print_destroyed(this); }
     };
 
+    struct DynamicAttr {
+        DynamicAttr() = default;
+    };
+
     py::class_<NoConstructor>(m, "NoConstructor")
         .def_static("new_instance", &NoConstructor::new_instance, "Return an instance");
 
@@ -111,6 +115,9 @@ TEST_SUBMODULE(class_, m) {
         .def(py::init([]() { return nullptr; })) // Need a NOOP __init__
         .def_static("__new__",
                     [](const py::object &) { return NoConstructorNew::new_instance(); });
+
+    py::class_<DynamicAttr>(m, "DynamicAttr", py::dynamic_attr())
+        .def(py::init<>());
 
     // test_pass_unique_ptr
     struct ToBeHeldByUniquePtr {};
