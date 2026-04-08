@@ -284,6 +284,13 @@ def test_redirect_both(capfd):
     assert stream2.getvalue() == msg2
 
 
+def test_move_redirect(capsys):
+    m.move_redirect_output("after")
+    stdout, stderr = capsys.readouterr()
+    assert stdout == "beforeafter"
+    assert not stderr
+
+
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
 def test_threading():
     with m.ostream_redirect(stdout=True, stderr=False):

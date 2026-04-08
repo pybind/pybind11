@@ -178,10 +178,18 @@ public:
         old = costream.rdbuf(&buffer);
     }
 
-    ~scoped_ostream_redirect() { costream.rdbuf(old); }
+    ~scoped_ostream_redirect() {
+        if (old) {
+            costream.rdbuf(old);
+        }
+    }
 
     scoped_ostream_redirect(const scoped_ostream_redirect &) = delete;
-    scoped_ostream_redirect(scoped_ostream_redirect &&other) = default;
+    scoped_ostream_redirect(scoped_ostream_redirect &&other)
+        : old(other.old), costream(other.costream), buffer(std::move(other.buffer)) {
+        other.old = nullptr;     // Disarm moved-from destructor
+        costream.rdbuf(&buffer); // Re-point stream to our buffer
+    }
     scoped_ostream_redirect &operator=(const scoped_ostream_redirect &) = delete;
     scoped_ostream_redirect &operator=(scoped_ostream_redirect &&) = delete;
 };

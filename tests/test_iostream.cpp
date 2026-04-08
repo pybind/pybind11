@@ -123,4 +123,11 @@ TEST_SUBMODULE(iostream, m) {
         .def("stop", &TestThread::stop)
         .def("join", &TestThread::join)
         .def("sleep", &TestThread::sleep);
+
+    m.def("move_redirect_output", [](const std::string &msg) {
+        py::scoped_ostream_redirect redir1(std::cout, py::module_::import("sys").attr("stdout"));
+        std::cout << "before" << std::flush;
+        py::scoped_ostream_redirect redir2(std::move(redir1));
+        std::cout << msg << std::flush;
+    });
 }
