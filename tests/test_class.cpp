@@ -116,8 +116,7 @@ TEST_SUBMODULE(class_, m) {
         .def_static("__new__",
                     [](const py::object &) { return NoConstructorNew::new_instance(); });
 
-    py::class_<DynamicAttr>(m, "DynamicAttr", py::dynamic_attr())
-        .def(py::init<>());
+    py::class_<DynamicAttr>(m, "DynamicAttr", py::dynamic_attr()).def(py::init<>());
 
     // test_pass_unique_ptr
     struct ToBeHeldByUniquePtr {};
