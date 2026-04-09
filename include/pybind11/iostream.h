@@ -185,7 +185,7 @@ public:
     }
 
     scoped_ostream_redirect(const scoped_ostream_redirect &) = delete;
-    scoped_ostream_redirect(scoped_ostream_redirect &&other)
+    scoped_ostream_redirect(scoped_ostream_redirect &&other) noexcept
         : old(other.old), costream(other.costream), buffer(std::move(other.buffer)) {
         other.old = nullptr;     // Disarm moved-from destructor
         costream.rdbuf(&buffer); // Re-point stream to our buffer
