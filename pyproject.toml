@@ -202,6 +202,10 @@ fo = "fo"
 quater = "quater"
 optin = "optin"
 othr = "othr"
+# NumPy uses "writeable" in public API names and flags.
+writeable = "writeable"
+Writeable = "Writeable"
+WRITEABLE = "WRITEABLE"
 
 #[tool.typos.type.cpp.extend-words]
 setp = "setp"
