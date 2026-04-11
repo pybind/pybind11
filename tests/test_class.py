@@ -19,6 +19,13 @@ def refcount_immortal(ob: object) -> int:
     return sys.getrefcount(ob)
 
 
+MANAGED_DICT_GET_REFERRERS_SUPPORTED = (
+    env.CPYTHON
+    and sys.version_info >= (3, 13, 13)
+    and (sys.version_info < (3, 14) or sys.version_info >= (3, 14, 4))
+)
+
+
 def test_obj_class_name():
     expected_name = "UserType" if env.PYPY else "pybind11_tests.UserType"
     assert m.obj_class_name(UserType(1)) == expected_name
@@ -46,6 +53,10 @@ def test_instance(msg):
     assert cstats.alive() == 0
 
 
+@pytest.mark.skipif(
+    not MANAGED_DICT_GET_REFERRERS_SUPPORTED,
+    reason="Requires CPython 3.13.13+ or 3.14.4+ managed dict traversal support",
+)
 def test_get_referrers():
     instance = m.DynamicAttr()
     instance.a = "test"
