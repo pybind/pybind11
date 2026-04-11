@@ -578,9 +578,9 @@ inline PyObject *make_object_base_type(PyTypeObject *metaclass) {
 /// dynamic_attr: Allow the garbage collector to traverse the internal instance `__dict__`.
 extern "C" inline int pybind11_traverse(PyObject *self, visitproc visit, void *arg) {
 #if PY_VERSION_HEX >= 0x030D0000
-    int vret = PyObject_VisitManagedDict(self, visit, arg);
-    if (vret) {
-        return vret;
+    int ret = PyObject_VisitManagedDict(self, visit, arg);
+    if (ret) {
+        return ret;
     }
 #else
     PyObject *&dict = *_PyObject_GetDictPtr(self);
