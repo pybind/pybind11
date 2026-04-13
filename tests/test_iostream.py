@@ -285,10 +285,21 @@ def test_redirect_both(capfd):
 
 
 def test_move_redirect(capsys):
-    m.move_redirect_output("after")
+    m.move_redirect_output("before_move", "after_move")
     stdout, stderr = capsys.readouterr()
-    assert stdout == "beforeafter"
+    assert stdout == "before_moveafter_move"
     assert not stderr
+
+
+def test_move_redirect_null_rdbuf(capsys):
+    m.move_redirect_null_rdbuf("hello")
+    stdout, stderr = capsys.readouterr()
+    assert stdout == "hellohello"
+    assert not stderr
+
+
+def test_null_rdbuf_restored():
+    assert m.get_null_rdbuf_restored("test")
 
 
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")

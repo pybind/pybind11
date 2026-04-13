@@ -124,10 +124,30 @@ TEST_SUBMODULE(iostream, m) {
         .def("join", &TestThread::join)
         .def("sleep", &TestThread::sleep);
 
-    m.def("move_redirect_output", [](const std::string &msg) {
+    m.def("move_redirect_output", [](const std::string &msg_before, const std::string &msg_after) {
         py::scoped_ostream_redirect redir1(std::cout, py::module_::import("sys").attr("stdout"));
-        std::cout << "before" << std::flush;
+        std::cout << msg_before << std::flush;
         py::scoped_ostream_redirect redir2(std::move(redir1));
-        std::cout << msg << std::flush;
+        std::cout << msg_after << std::flush;
+    });
+
+    // Redirect a stream whose original rdbuf is nullptr, then move the redirect.
+    // Verifies that nullptr is correctly restored (not confused with a moved-from sentinel).
+    m.def("move_redirect_null_rdbuf", [](const std::string &msg) {
+        std::ostream os(nullptr);
+        py::scoped_ostream_redirect redir1(os, py::module_::import("sys").attr("stdout"));
+        os << msg << std::flush;
+        py::scoped_ostream_redirect redir2(std::move(redir1));
+        os << msg << std::flush;
+        // After redir2 goes out of scope, os.rdbuf() should be restored to nullptr.
+    });
+
+    m.def("get_null_rdbuf_restored", [](const std::string &msg) -> bool {
+        std::ostream os(nullptr);
+        {
+            py::scoped_ostream_redirect redir(os, py::module_::import("sys").attr("stdout"));
+            os << msg << std::flush;
+        }
+        return os.rdbuf() == nullptr;
     });
 }
