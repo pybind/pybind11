@@ -299,11 +299,14 @@ if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
     set(EIGEN3_VERSION "${PYBIND11_EIGEN_VERSION_STRING}")
 
   else()
-    find_package(Eigen3 3.2.7 QUIET CONFIG)
+    find_package(Eigen3 3.2.7...5 QUIET CONFIG)
+    set(EIGEN3_FOUND ${Eigen3_FOUND})
+    set(EIGEN3_VERSION ${Eigen3_VERSION})
 
     if(NOT EIGEN3_FOUND)
       # Couldn't load via target, so fall back to allowing module mode finding, which will pick up
       # tools/FindEigen3.cmake
+      # XXX: MODULE mode does not work with Eigen 5
       find_package(Eigen3 3.2.7 QUIET)
     endif()
   endif()
