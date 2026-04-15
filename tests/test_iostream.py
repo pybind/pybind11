@@ -291,6 +291,13 @@ def test_move_redirect(capsys):
     assert not stderr
 
 
+def test_move_redirect_unflushed(capsys):
+    m.move_redirect_output_unflushed("before_move", "after_move")
+    stdout, stderr = capsys.readouterr()
+    assert stdout == "before_moveafter_move"
+    assert not stderr
+
+
 def test_move_redirect_null_rdbuf(capsys):
     m.move_redirect_null_rdbuf("hello")
     stdout, stderr = capsys.readouterr()
