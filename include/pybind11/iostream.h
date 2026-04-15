@@ -131,7 +131,22 @@ public:
         setp(d_buffer.get(), d_buffer.get() + buf_size - 1);
     }
 
-    pythonbuf(pythonbuf &&) = default;
+    pythonbuf(pythonbuf &&other) noexcept
+        : buf_size(other.buf_size), d_buffer(std::move(other.d_buffer)),
+          pywrite(std::move(other.pywrite)), pyflush(std::move(other.pyflush)) {
+        const auto pending = (other.pbase() != nullptr && other.pptr() != nullptr)
+                                 ? static_cast<int>(other.pptr() - other.pbase())
+                                 : 0;
+        if (d_buffer != nullptr) {
+            // Rebuild the put area from the transferred storage.
+            setp(d_buffer.get(), d_buffer.get() + buf_size - 1);
+            pbump(pending);
+        } else {
+            setp(nullptr, nullptr);
+        }
+        // Prevent the moved-from destructor from flushing through moved-out handles.
+        other.setp(nullptr, nullptr);
+    }
 
     /// Sync before destroy
     ~pythonbuf() override { _sync(); }
