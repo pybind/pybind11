@@ -186,10 +186,14 @@ public:
     }
 
     scoped_ostream_redirect(const scoped_ostream_redirect &) = delete;
-    scoped_ostream_redirect(scoped_ostream_redirect &&other) noexcept
-        : old(other.old), costream(other.costream), buffer(std::move(other.buffer)) {
-        other.active = false;    // Disarm moved-from destructor
-        costream.rdbuf(&buffer); // Re-point stream to our buffer
+    // NOLINTNEXTLINE(performance-noexcept-move-constructor)
+    scoped_ostream_redirect(scoped_ostream_redirect &&other)
+        : old(other.old), costream(other.costream), buffer(std::move(other.buffer)),
+          active(other.active) {
+        if (active) {
+            costream.rdbuf(&buffer); // Re-point stream to our buffer
+            other.active = false;
+        }
     }
     scoped_ostream_redirect &operator=(const scoped_ostream_redirect &) = delete;
     scoped_ostream_redirect &operator=(scoped_ostream_redirect &&) = delete;
