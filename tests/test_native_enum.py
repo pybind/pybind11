@@ -48,6 +48,11 @@ EXPORT_VALUES_MEMBERS = (
     ("exv1", 1),
 )
 
+EXPORT_VALUES2_MEMBERS = (
+    ("exv0", 0),
+    ("exv2", 1),
+)
+
 MEMBER_DOC_MEMBERS = (
     ("mem0", 0),
     ("mem1", 1),
@@ -62,6 +67,7 @@ ENUM_TYPES_AND_MEMBERS = (
     (m.flags_uchar, FLAGS_UCHAR_MEMBERS),
     (m.flags_uint, FLAGS_UINT_MEMBERS),
     (m.export_values, EXPORT_VALUES_MEMBERS),
+    (m.export_values2, EXPORT_VALUES2_MEMBERS),
     (m.member_doc, MEMBER_DOC_MEMBERS),
     (m.func_sig_rendering, FUNC_SIG_RENDERING_MEMBERS),
     (m.class_with_enum.in_class, CLASS_WITH_ENUM_IN_CLASS_MEMBERS),
@@ -101,8 +107,11 @@ def test_enum_flag(enum_type):
 
 
 def test_export_values():
-    assert m.exv0 is m.export_values.exv0
+    # Regression test for issue #6031.
     assert m.exv1 is m.export_values.exv1
+    assert m.exv2 is m.export_values2.exv2
+    assert m.export_values.exv0 is not m.export_values2.exv0
+    assert m.exv0 is m.export_values2.exv0
 
 
 def test_class_doc():

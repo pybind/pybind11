@@ -25,6 +25,8 @@ enum class flags_uint : unsigned int { bit0 = 0x1u, bit1 = 0x2u, bit2 = 0x4u };
 
 enum class export_values { exv0, exv1 };
 
+enum class export_values2 { exv0, exv2 };
+
 enum class member_doc { mem0, mem1, mem2 };
 
 struct class_with_enum {
@@ -117,6 +119,13 @@ TEST_SUBMODULE(native_enum, m) {
     py::native_enum<export_values>(m, "export_values", "enum.IntEnum")
         .value("exv0", export_values::exv0)
         .value("exv1", export_values::exv1)
+        .export_values()
+        .finalize();
+
+    // Shares "exv0" with export_values above (issue #6031).
+    py::native_enum<export_values2>(m, "export_values2", "enum.IntEnum")
+        .value("exv0", export_values2::exv0)
+        .value("exv2", export_values2::exv2)
         .export_values()
         .finalize();
 
