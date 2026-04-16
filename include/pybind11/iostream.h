@@ -131,7 +131,22 @@ public:
         setp(d_buffer.get(), d_buffer.get() + buf_size - 1);
     }
 
-    pythonbuf(pythonbuf &&) = default;
+    pythonbuf(pythonbuf &&other) noexcept
+        : buf_size(other.buf_size), d_buffer(std::move(other.d_buffer)),
+          pywrite(std::move(other.pywrite)), pyflush(std::move(other.pyflush)) {
+        const auto pending = (other.pbase() != nullptr && other.pptr() != nullptr)
+                                 ? static_cast<int>(other.pptr() - other.pbase())
+                                 : 0;
+        if (d_buffer != nullptr) {
+            // Rebuild the put area from the transferred storage.
+            setp(d_buffer.get(), d_buffer.get() + buf_size - 1);
+            pbump(pending);
+        } else {
+            setp(nullptr, nullptr);
+        }
+        // Prevent the moved-from destructor from flushing through moved-out handles.
+        other.setp(nullptr, nullptr);
+    }
 
     /// Sync before destroy
     ~pythonbuf() override { _sync(); }
@@ -169,6 +184,7 @@ protected:
     std::streambuf *old;
     std::ostream &costream;
     detail::pythonbuf buffer;
+    bool active = true;
 
 public:
     explicit scoped_ostream_redirect(std::ostream &costream = std::cout,
@@ -178,10 +194,22 @@ public:
         old = costream.rdbuf(&buffer);
     }
 
-    ~scoped_ostream_redirect() { costream.rdbuf(old); }
+    ~scoped_ostream_redirect() {
+        if (active) {
+            costream.rdbuf(old);
+        }
+    }
 
     scoped_ostream_redirect(const scoped_ostream_redirect &) = delete;
-    scoped_ostream_redirect(scoped_ostream_redirect &&other) = default;
+    // NOLINTNEXTLINE(performance-noexcept-move-constructor)
+    scoped_ostream_redirect(scoped_ostream_redirect &&other)
+        : old(other.old), costream(other.costream), buffer(std::move(other.buffer)),
+          active(other.active) {
+        if (active) {
+            costream.rdbuf(&buffer); // Re-point stream to our buffer
+            other.active = false;
+        }
+    }
     scoped_ostream_redirect &operator=(const scoped_ostream_redirect &) = delete;
     scoped_ostream_redirect &operator=(scoped_ostream_redirect &&) = delete;
 };
