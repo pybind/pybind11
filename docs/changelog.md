@@ -33,6 +33,9 @@ Internal:
 
 Bug fixes:
 
+- Fixed test builds with installed Eigen 5 by improving `Eigen3` CMake package detection.
+  [#6036](https://github.com/pybind/pybind11/pull/6036)
+
 - Fixed move semantics of `scoped_ostream_redirect` to preserve buffered output and avoid crashes when moved redirects restore stream buffers.
   [#6033](https://github.com/pybind/pybind11/pull/6033)
 
