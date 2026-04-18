@@ -309,7 +309,8 @@ if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
     if(NOT EIGEN3_FOUND)
       # Couldn't load via target, so fall back to allowing module mode finding, which will pick up
       # tools/FindEigen3.cmake
-      # XXX: MODULE mode does not work with Eigen 5
+      # This MODULE-mode fallback is for older Eigen 3 setups; Eigen 5 is expected to be found
+      # via the CONFIG-mode probes above.
       find_package(Eigen3 3.2.7 QUIET)
     endif()
   endif()
