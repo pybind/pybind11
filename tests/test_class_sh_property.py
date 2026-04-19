@@ -204,3 +204,15 @@ def test_non_smart_holder_member_type_with_smart_holder_owner_aliases_member():
     legacy = obj.legacy
     legacy.value = 13
     assert obj.legacy.value == 13
+
+
+def test_non_smart_holder_member_type_with_smart_holder_owner_aliases_member_multiple_reads():
+    obj = m.ShWithSimpleStructMember()
+
+    a = obj.legacy
+    b = obj.legacy
+
+    a.value = 13
+
+    assert b.value == 13
+    assert obj.legacy.value == 13

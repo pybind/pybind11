@@ -167,6 +167,7 @@ set(PYBIND11_TEST_FILES
     test_operator_overloading
     test_pickling
     test_potentially_slicing_weak_ptr
+    test_pytorch_shared_ptr_cast_regression
     test_python_multiple_inheritance
     test_pytypes
     test_scoped_critical_section
@@ -299,10 +300,17 @@ if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
 
   else()
     find_package(Eigen3 3.2.7 QUIET CONFIG)
+    if(NOT Eigen3_FOUND)
+      find_package(Eigen3 5 QUIET CONFIG)
+    endif()
+    set(EIGEN3_FOUND ${Eigen3_FOUND})
+    set(EIGEN3_VERSION ${Eigen3_VERSION})
 
     if(NOT EIGEN3_FOUND)
       # Couldn't load via target, so fall back to allowing module mode finding, which will pick up
       # tools/FindEigen3.cmake
+      # This MODULE-mode fallback is for older Eigen 3 setups; Eigen 5 is expected to be found
+      # via the CONFIG-mode probes above.
       find_package(Eigen3 3.2.7 QUIET)
     endif()
   endif()
