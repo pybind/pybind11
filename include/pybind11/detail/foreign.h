@@ -18,14 +18,23 @@
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+// NB: In pymetabind callbacks you can use foreign_internals_local_cache()
+// because the callbacks are always from the same DSO that created the
+// foreign_internals object. This is a bit faster and also has the advantage
+// of working correctly during interpreter finalization. In other functions,
+// which could be called in a different DSO, use get_foreign_internals() which
+// will access the pointer via our local_internals structure.
+
 // pybind11 exception translator that tries all known foreign ones;
 // this will be registered in the pybind11 list of exception translators,
 // in the 2nd position from the end (last position is for the fallback translator)
 PYBIND11_NOINLINE void foreign_exception_translator(std::exception_ptr p) {
-    auto &foreign_internals = *get_foreign_internals();
-    for (pymb_framework *fw : foreign_internals.exc_frameworks) {
-        if (fw->translate_exception(&p) != 0) {
-            return;
+    auto *foreign_internals = get_foreign_internals();
+    if (foreign_internals) { // might be null during interpreter finalization
+        for (pymb_framework *fw : foreign_internals->exc_frameworks) {
+            if (fw->translate_exception(&p) != 0) {
+                return;
+            }
         }
     }
     std::rethrow_exception(p);
@@ -318,7 +327,7 @@ inline PyObject *foreign_cb_to_python(pymb_binding *binding,
         // a version of pybind11 that didn't know about pymetabind) we'll
         // leave them as null and accept a failure of cast() below.
         with_internals([&](internals &) {
-            auto &foreign_internals = *get_foreign_internals();
+            auto &foreign_internals = *foreign_internals_local_cache();
             auto it = foreign_internals.copy_move_ctors.find(*ti->cpptype);
             if (it != foreign_internals.copy_move_ctors.end()) {
                 std::tie(copy_ctor, move_ctor) = it->second;
@@ -484,7 +493,7 @@ inline int foreign_cb_translate_exception(void *eptr) noexcept {
             //   frameworks' exceptions), it's the second-last one and should
             //   be skipped too. We don't want mutual recursion between
             //   different frameworks' translators.
-            if (!get_foreign_internals()->exc_frameworks.empty()) {
+            if (!foreign_internals_local_cache()->exc_frameworks.empty()) {
                 ++leader;
             }
 
@@ -521,7 +530,7 @@ inline int foreign_cb_translate_exception(void *eptr) noexcept {
 
 inline void foreign_cb_remove_local_binding(pymb_binding *binding) noexcept {
     with_internals([&](internals &) {
-        auto &foreign_internals = *get_foreign_internals();
+        auto &foreign_internals = *foreign_internals_local_cache();
         const auto *cpptype = (const std::type_info *) binding->native_type;
         auto it = foreign_internals.bindings.find(*cpptype);
         if (it != foreign_internals.bindings.end() && it->second.erase_one(binding)) {
@@ -540,7 +549,7 @@ inline void foreign_cb_free_local_binding(pymb_binding *binding) noexcept {
 
 inline void foreign_cb_add_foreign_binding(pymb_binding *binding) noexcept {
     with_internals([&](internals &) {
-        auto &foreign_internals = *get_foreign_internals();
+        auto &foreign_internals = *foreign_internals_local_cache();
         if (should_autoimport_foreign(foreign_internals, binding)) {
             import_foreign_binding(binding, (const std::type_info *) binding->native_type, false);
         }
@@ -549,7 +558,7 @@ inline void foreign_cb_add_foreign_binding(pymb_binding *binding) noexcept {
 
 inline void foreign_cb_remove_foreign_binding(pymb_binding *binding) noexcept {
     with_internals([&](internals &) {
-        auto &foreign_internals = *get_foreign_internals();
+        auto &foreign_internals = *foreign_internals_local_cache();
         auto remove_from_type = [&](const std::type_info *type) {
             auto it = foreign_internals.bindings.find(*type);
             if (it != foreign_internals.bindings.end() && it->second.erase_one(binding)) {
@@ -577,7 +586,7 @@ inline void foreign_cb_add_foreign_framework(pymb_framework *framework) noexcept
         with_exception_translators(
             [&](std::forward_list<ExceptionTranslator> &exception_translators,
                 std::forward_list<ExceptionTranslator> &) {
-                auto &foreign_internals = *get_foreign_internals();
+                auto &foreign_internals = *foreign_internals_local_cache();
                 if (foreign_internals.exc_frameworks.empty()) {
                     // First foreign framework with an exception translator.
                     // Add our `foreign_exception_translator` wrapper in the
@@ -605,14 +614,7 @@ inline void foreign_cb_remove_foreign_framework(pymb_framework *framework) noexc
     // at this point (and might be already finalized, so we can't do any
     // Python API calls)
     if (framework->translate_exception) {
-        // get_foreign_internals() might return null if this module's
-        // local_internals was already destroyed during interpreter
-        // shutdown (capsule destruction order in the state dict is
-        // non-deterministic).
-        auto *fi = get_foreign_internals();
-        if (fi) {
-            fi->exc_frameworks.remove(framework);
-        }
+        foreign_internals_local_cache()->exc_frameworks.remove(framework);
         // No need to bother removing the foreign_exception_translator if
         // this was the last of the exc_frameworks. In the unlikely event
         // that something needs an exception translated during finalization,
@@ -653,6 +655,7 @@ PYBIND11_NOINLINE void foreign_internals::register_with_pymetabind(bool autoimpo
         self->remove_foreign_binding = foreign_cb_remove_foreign_binding;
         self->add_foreign_framework = foreign_cb_add_foreign_framework;
         self->remove_foreign_framework = foreign_cb_remove_foreign_framework;
+        foreign_internals_local_cache() = this;
         return true;
     });
     if (inited_by_us) {
@@ -717,6 +720,10 @@ inline foreign_internals::~foreign_internals() {
         // Leak framework so the still-existing bindings can be used during
         // teardown of other frameworks
         self.release();
+    }
+    auto &cache = foreign_internals_local_cache();
+    if (cache == this) {
+        cache = nullptr;
     }
 }
 

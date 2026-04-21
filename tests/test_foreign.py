@@ -64,20 +64,15 @@ def clean_after():
     if sys.implementation.name != "graalpy":
         t3.clear_foreign_bindings()
 
-    # Try to remove types so each test starts fresh. On CPython, pybind11's
-    # internal type maps (registered_types_cpp, native_enum_type_map) keep
-    # strong references to the type objects, so they might not actually be
-    # destroyed. In that case, bind_types() will notice the existing types
-    # and re-export them if needed rather than trying to re-create them.
-    for mod in (t1, t2, t3, t4, t5):
-        for name in ("Shared", "SharedEnum", "RawShared"):
-            if hasattr(mod, name):
-                try:
-                    delattr(mod, name)
-                except AttributeError:
-                    pass
-    for _ in range(5):
-        gc.collect()
+    if not types_are_immortal:
+        delattr_and_ensure_destroyed(
+            *[
+                (mod, name)
+                for mod in (t1, t2, t3, t4, t5)
+                for name in ("Shared", "SharedEnum", "RawShared")
+                if hasattr(mod, name)
+            ]
+        )
 
     for mod in (t1, t2, t3, t4, t5):
         mod.pull_stats()
@@ -85,6 +80,9 @@ def clean_after():
 
 def check_stats(mod, **entries):
     if mod is None or sys.implementation.name == "graalpy":
+        # graalpy seems to not do a full collection when we gc_collect(); there
+        # will be too few destructions in one check_stats() and then correspondingly
+        # too many in the next one for the same module, so just skip the check
         return
     if sys.implementation.name == "pypy":
         pytest.gc_collect()
@@ -112,7 +110,7 @@ def expect(from_mod, to_mod, pattern, **extra):
       "none"     - can't even create the object (no binding)
     """
     outcomes = {}
-    extra_info = {}
+    extra_info = {}  # exists only to show up in enriched pytest tracebacks
     owner_mod = None
 
     for idx, suffix in enumerate(("", "_sp", "_up", "_enum")):
@@ -138,6 +136,9 @@ def expect(from_mod, to_mod, pattern, **extra):
             continue
         assert roundtripped == value, "instance appears corrupted"
         if thing == "sp":
+            # Include shared_ptr use count in the test. Foreign should create
+            # a new control block so we see use_count == 1. Local should reuse
+            # the same -> use_count == 0.
             outcomes[thing] = to_mod.uses(obj)
         else:
             outcomes[thing] = True
@@ -145,12 +146,7 @@ def expect(from_mod, to_mod, pattern, **extra):
     expected = {}
     if pattern == "local":
         # unique_ptr works locally only for smart_holder modules (t2, t3, t4, t5)
-        expected = {
-            "value": True,
-            "sp": 2,
-            "up": to_mod not in (t1,),
-            "enum": True,
-        }
+        expected = {"value": True, "sp": 2, "up": to_mod is not t1, "enum": True}
     elif pattern == "foreign":
         expected = {"value": True, "sp": 1, "up": False, "enum": True}
     elif pattern == "isolated":
@@ -160,7 +156,7 @@ def expect(from_mod, to_mod, pattern, **extra):
     else:
         pytest.fail("unknown pattern")
     expected.update(extra)
-    assert outcomes == expected, f"extra_info={extra_info}"
+    assert outcomes == expected
 
     obj = None
 
@@ -172,7 +168,10 @@ def expect(from_mod, to_mod, pattern, **extra):
     # occur in from_mod since shared_ptr's deleter is set at creation time.
     #
     # When returning unique_ptr, the construction occurs in from_mod and
-    # destruction (when the pyobject dies) occurs in owner_mod.
+    # destruction (when the pyobject dies) occurs in owner_mod. Note that
+    # the destruction would instead occur in to_mod if we supported
+    # ownership transfer to foreign frameworks, but we don't (because
+    # pymetabind doesn't)
     expect_stats = {mod: collections.Counter() for mod in (from_mod, to_mod, owner_mod)}
     expect_stats[from_mod].update(
         ["construct", "destroy", "construct", "destroy", "construct"]
@@ -181,6 +180,9 @@ def expect(from_mod, to_mod, pattern, **extra):
     expect_stats[owner_mod].update(["move", "destroy"])
     # unique_ptr destroy
     if owner_mod is None and from_mod is t1:
+        # Due to an existing pybind11 bug this may be skipped
+        # entirely (leaked) if we return a raw pointer with
+        # rvp take_ownership and the cast fails
         pass
     else:
         expect_stats[owner_mod or from_mod].update(["destroy"])
@@ -279,17 +281,21 @@ def test_on_request_mode():
     expect(t1, t4, "isolated")
     expect(t4, t1, "isolated")
 
-    # Explicitly export t4's type and import t1's type in t4
+    # Explicitly export t4's type
     t4.export_to_foreign(t4.Shared)
     t4.export_to_foreign(t4.SharedEnum)
+
+    # Now t1 can accept t4's types (t1 auto-imports, t4 just exported)
+    expect(t4, t1, "foreign")
+    # But t4 still can't accept t1's types
+    expect(t1, t4, "isolated")
+
+    # Explicitly import t1's type in t4
     t4.import_foreign(t1.Shared)
     t4.import_foreign(t1.SharedEnum)
 
     # Now t4 can accept t1's types
     expect(t1, t4, "foreign")
-
-    # And t1 can accept t4's types (t1 auto-imports, t4 just exported)
-    expect(t4, t1, "foreign")
 
 
 # =====================================================================

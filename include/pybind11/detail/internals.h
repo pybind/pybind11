@@ -436,6 +436,21 @@ struct foreign_internals {
     void enable_autoimport();
 };
 
+// Global pointer to the foreign_internals object, valid only in the DSO that
+// called register_with_pymetabind() (which is the same one that provides
+// the pymetabind callbacks). This is needed because the order in which
+// frameworks are unregistered during interpreter finalization is unspecified.
+// Since the foreign_internals are shared between DSOs but accessed via the
+// local_internals of each DSO, it's possible for a foreign framework to be
+// removed after our own local_internals have been destroyed but at a time
+// when some other DSO's local_internals are still alive. This pointer lets
+// us remove our references to the removed framework, so that that other DSO
+// won't see a dangling pointer.
+static foreign_internals *&foreign_internals_local_cache() {
+    static foreign_internals *cache;
+    return cache;
+}
+
 // The internals struct (above) is shared between all the modules. local_internals are only
 // for a single module. Any changes made to internals may require an update to
 // PYBIND11_INTERNALS_VERSION, breaking backwards compatibility. local_internals is, by design,
@@ -480,9 +495,11 @@ struct local_internals {
     // request. This map is non-empty only if `foreign_import_all` is false, and
     // it serves as an additional filter on the `foreign_internals.bindings`.
     // It logically wants to be a set of pymb_binding*, but those pointers can be
-    // invalidated, so store things that can't be. Uses type_index (not raw
-    // type_info*) for the key so that it works across DSO boundaries.
-    std::unordered_multimap<std::type_index, pymb_framework*> foreign_local_imports;
+    // invalidated, so store things that can't be. Note that despite being in
+    // local_internals, this must be a slow type_map because we do lookups in it
+    // using the type_info objects from foreign bindings, which could come from
+    // other DSOs.
+    std::unordered_multimap<std::type_index, pymb_framework*, type_hash, type_equal_to> foreign_local_imports;
 
     ~local_internals() {
         // Normally this destructor runs during interpreter finalization and it may DECREF things.
@@ -1027,8 +1044,12 @@ inline foreign_internals &ensure_foreign_internals() {
 }
 
 inline foreign_internals *get_foreign_internals() {
-    auto &local = get_local_internals();
-    return local.foreign.get();
+    // Get the local internals if present, but don't create them if they've
+    // already been destroyed (during finalization). A newly created
+    // local_internals will have null foreign_internals anyway.
+    auto &ppmgr = get_local_internals_pp_manager();
+    auto &internals_ptr = *ppmgr.get_pp();
+    return internals_ptr ? internals_ptr->foreign.get() : nullptr;
 }
 
 enum class foreign_interop_level {
