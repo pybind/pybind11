@@ -1271,15 +1271,23 @@ jobs:
           python -m pip install -r tests/requirements.txt
 
       - name: Configure CMake
-        run: >
-          cmake -G Ninja -S . -B .
-          -DPYBIND11_WERROR=OFF
-          -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF
-          -DDOWNLOAD_CATCH=ON
-          -DDOWNLOAD_EIGEN=ON
-          -DCMAKE_CXX_COMPILER=clang++
-          -DCMAKE_CXX_STANDARD=20
-          -DPython_ROOT_DIR="$env:Python_ROOT_DIR"
+        run: |
+          $pythonExecutable = Join-Path $env:pythonLocation "python.exe"
+          $pythonIncludeDir = Join-Path $env:pythonLocation "include"
+          $pythonVersion = (python -c "import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')").Trim()
+          # PR 6051: FindPython can still resolve the x64 python.org install on
+          # windows-11-arm, so pass the ARM64 interpreter, headers, and import lib.
+          $pythonLibrary = Join-Path (Join-Path $env:pythonLocation "libs") "python$pythonVersion.lib"
+          cmake -G Ninja -S . -B . `
+            -DPYBIND11_WERROR=OFF `
+            -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF `
+            -DDOWNLOAD_CATCH=ON `
+            -DDOWNLOAD_EIGEN=ON `
+            -DCMAKE_CXX_COMPILER=clang++ `
+            -DCMAKE_CXX_STANDARD=20 `
+            -DPython_EXECUTABLE="$pythonExecutable" `
+            -DPython_INCLUDE_DIR="$pythonIncludeDir" `
+            -DPython_LIBRARY="$pythonLibrary"
 
       - name: Build
         run: cmake --build . -j 2
