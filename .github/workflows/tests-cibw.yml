@@ -1,6 +1,9 @@
 name: CIBW
 
 on:
+  # Run on Wednesday and Friday at 06:47 UTC.
+  schedule:
+    - cron: "47 6 * * 3,5"
   workflow_dispatch:
   pull_request:
     branches:
