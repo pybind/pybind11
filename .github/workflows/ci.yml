@@ -118,7 +118,8 @@ jobs:
             python-version: 'pypy-3.10'
             cmake-args: -DCMAKE_CXX_STANDARD=17
           - runs-on: macos-latest
-            python-version: 'pypy-3.11'
+            # Temporarily pinned pending investigation in issue #6049.
+            python-version: 'pypy-3.11-v7.3.21'
           - runs-on: macos-latest
             python-version: 'graalpy-24.2'
 
@@ -151,7 +152,8 @@ jobs:
             python-version: 'pypy-3.10'
             cmake-args: -DCMAKE_CXX_STANDARD=17
           - runs-on: windows-latest
-            python-version: 'pypy3.11'
+            # Temporarily pinned pending investigation in issue #6049.
+            python-version: 'pypy3.11-v7.3.21'
             cmake-args: -DCMAKE_CXX_STANDARD=20
           # The setup-python action currently doesn't have graalpy for windows
           # See https://github.com/actions/setup-python/pull/880
