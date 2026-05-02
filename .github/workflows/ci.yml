@@ -1,6 +1,9 @@
 name: CI
 
 on:
+  # Run on Wednesday and Friday at 06:17 UTC.
+  schedule:
+    - cron: "17 6 * * 3,5"
   workflow_dispatch:
   pull_request:
     types:
