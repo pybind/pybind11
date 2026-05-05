@@ -976,14 +976,14 @@ def test_iterator_annotations(doc):
 def test_fn_annotations(doc):
     assert (
         doc(m.annotate_fn)
-        == "annotate_fn(arg0: collections.abc.Callable[[list[str], str], int]) -> None"
+        == "annotate_fn(arg0: collections.abc.Callable[[list[str], str], typing.SupportsInt | typing.SupportsIndex]) -> None"
     )
 
 
 def test_fn_return_only(doc):
     assert (
         doc(m.annotate_fn_only_return)
-        == "annotate_fn_only_return(arg0: collections.abc.Callable[..., int]) -> None"
+        == "annotate_fn_only_return(arg0: collections.abc.Callable[..., typing.SupportsInt | typing.SupportsIndex]) -> None"
     )
 
 
@@ -1085,7 +1085,7 @@ def test_literal(doc):
     )
     assert (
         doc(m.identity_literal_arrow_with_callable)
-        == 'identity_literal_arrow_with_callable(arg0: collections.abc.Callable[[typing.Literal["->"], float | int], float]) -> collections.abc.Callable[[typing.Literal["->"], float | int], float]'
+        == 'identity_literal_arrow_with_callable(arg0: collections.abc.Callable[[typing.Literal["->"], float], float | int]) -> collections.abc.Callable[[typing.Literal["->"], float | int], float]'
     )
     assert (
         doc(m.identity_literal_all_special_chars)
@@ -1325,27 +1325,27 @@ def test_arg_return_type_hints(doc, backport_typehints):
     # Callable<R(A)> identity
     assert (
         doc(m.identity_callable)
-        == "identity_callable(arg0: collections.abc.Callable[[float | int], float]) -> collections.abc.Callable[[float | int], float]"
+        == "identity_callable(arg0: collections.abc.Callable[[float], float | int]) -> collections.abc.Callable[[float | int], float]"
     )
     # Callable<R(...)> identity
     assert (
         doc(m.identity_callable_ellipsis)
-        == "identity_callable_ellipsis(arg0: collections.abc.Callable[..., float]) -> collections.abc.Callable[..., float]"
+        == "identity_callable_ellipsis(arg0: collections.abc.Callable[..., float | int]) -> collections.abc.Callable[..., float]"
     )
     # Nested Callable<R(A)> identity
     assert (
         doc(m.identity_nested_callable)
-        == "identity_nested_callable(arg0: collections.abc.Callable[[collections.abc.Callable[[float | int], float]], collections.abc.Callable[[float | int], float]]) -> collections.abc.Callable[[collections.abc.Callable[[float | int], float]], collections.abc.Callable[[float | int], float]]"
+        == "identity_nested_callable(arg0: collections.abc.Callable[[collections.abc.Callable[[float | int], float]], collections.abc.Callable[[float], float | int]]) -> collections.abc.Callable[[collections.abc.Callable[[float], float | int]], collections.abc.Callable[[float | int], float]]"
     )
     # Callable<R(A)>
     assert (
         doc(m.apply_callable)
-        == "apply_callable(arg0: float | int, arg1: collections.abc.Callable[[float | int], float]) -> float"
+        == "apply_callable(arg0: float | int, arg1: collections.abc.Callable[[float], float | int]) -> float"
     )
     # Callable<R(...)>
     assert (
         doc(m.apply_callable_ellipsis)
-        == "apply_callable_ellipsis(arg0: float | int, arg1: collections.abc.Callable[..., float]) -> float"
+        == "apply_callable_ellipsis(arg0: float | int, arg1: collections.abc.Callable[..., float | int]) -> float"
     )
     # Union<T1, T2>
     assert (

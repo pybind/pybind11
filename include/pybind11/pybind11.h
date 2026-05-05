@@ -185,7 +185,8 @@ inline std::string generate_function_signature(const char *type_caster_name_fiel
             signature += *++pc;
         } else if (c == '@') {
             // `@^ ... @!` and `@$ ... @!` are used to force arg/return value type (see
-            // typing::Callable/detail::arg_descr/detail::return_descr)
+            // typing::Callable/detail::arg_descr/detail::return_descr).
+            // `@~ ... @!` inverts the current context (see detail::inv_descr).
             if (*(pc + 1) == '^') {
                 is_return_value.emplace(false);
                 ++pc;
@@ -193,6 +194,11 @@ inline std::string generate_function_signature(const char *type_caster_name_fiel
             }
             if (*(pc + 1) == '$') {
                 is_return_value.emplace(true);
+                ++pc;
+                continue;
+            }
+            if (*(pc + 1) == '~') {
+                is_return_value.emplace(!is_return_value.top());
                 ++pc;
                 continue;
             }
