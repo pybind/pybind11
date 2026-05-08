@@ -1,12 +1,12 @@
-from __future__ import annotations
+from typing import Union
 
 
-def _to_int(s: str) -> int | str:
+def _to_int(s: str) -> Union[int, str]:
     try:
         return int(s)
     except ValueError:
         return s
 
 
-__version__ = "2.13.6"
+__version__ = "2.10.0"
 version_info = tuple(_to_int(s) for s in __version__.split("."))

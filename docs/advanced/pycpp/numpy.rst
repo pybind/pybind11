@@ -378,6 +378,8 @@ uses of ``py::array``:
 
 - ``.itemsize()`` returns the size of an item in bytes, i.e. ``sizeof(T)``.
 
+- ``.ndim()`` returns the number of dimensions.
+
 - ``.shape(n)`` returns the size of dimension ``n``
 
 - ``.size()`` returns the total number of elements (i.e. the product of the shapes).
@@ -431,7 +433,7 @@ following:
             { 2, 4 },                                  // shape (rows, cols)
             { sizeof(uint8_t) * 4, sizeof(uint8_t) }   // strides in bytes
         );
-    });
+    })
 
 This approach is meant for providing a ``memoryview`` for a C/C++ buffer not
 managed by Python. The user is responsible for managing the lifetime of the
@@ -447,7 +449,7 @@ We can also use ``memoryview::from_memory`` for a simple 1D contiguous buffer:
             buffer,               // buffer pointer
             sizeof(uint8_t) * 8   // buffer size
         );
-    });
+    })
 
 .. versionchanged:: 2.6
     ``memoryview::from_memory`` added.

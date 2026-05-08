@@ -28,13 +28,6 @@ class NonZeroIterator {
 
 public:
     explicit NonZeroIterator(const T *ptr) : ptr_(ptr) {}
-
-    // Make the iterator non-copyable and movable
-    NonZeroIterator(const NonZeroIterator &) = delete;
-    NonZeroIterator(NonZeroIterator &&) noexcept = default;
-    NonZeroIterator &operator=(const NonZeroIterator &) = delete;
-    NonZeroIterator &operator=(NonZeroIterator &&) noexcept = default;
-
     const T &operator*() const { return *ptr_; }
     NonZeroIterator &operator++() {
         ++ptr_;
@@ -85,9 +78,8 @@ private:
     int value_;
 };
 using NonCopyableIntPair = std::pair<NonCopyableInt, NonCopyableInt>;
-
-PYBIND11_MAKE_OPAQUE(std::vector<NonCopyableInt>)
-PYBIND11_MAKE_OPAQUE(std::vector<NonCopyableIntPair>)
+PYBIND11_MAKE_OPAQUE(std::vector<NonCopyableInt>);
+PYBIND11_MAKE_OPAQUE(std::vector<NonCopyableIntPair>);
 
 template <typename PythonType>
 py::list test_random_access_iterator(PythonType x) {
@@ -383,17 +375,6 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
     private:
         std::vector<std::pair<int, int>> data_;
     };
-
-    {
-        // #4383 : Make sure `py::make_*iterator` functions work with move-only iterators
-        using iterator_t = NonZeroIterator<std::pair<int, int>>;
-
-        static_assert(std::is_move_assignable<iterator_t>::value, "");
-        static_assert(std::is_move_constructible<iterator_t>::value, "");
-        static_assert(!std::is_copy_assignable<iterator_t>::value, "");
-        static_assert(!std::is_copy_constructible<iterator_t>::value, "");
-    }
-
     py::class_<IntPairs>(m, "IntPairs")
         .def(py::init<std::vector<std::pair<int, int>>>())
         .def(
@@ -578,23 +559,4 @@ TEST_SUBMODULE(sequences_and_iterators, m) {
           []() { return py::make_iterator<py::return_value_policy::copy>(list); });
     m.def("make_iterator_2",
           []() { return py::make_iterator<py::return_value_policy::automatic>(list); });
-
-    // test_iterator on c arrays
-    // #4100: ensure lvalue required as increment operand
-    class CArrayHolder {
-    public:
-        CArrayHolder(double x, double y, double z) {
-            values[0] = x;
-            values[1] = y;
-            values[2] = z;
-        };
-        double values[3];
-    };
-
-    py::class_<CArrayHolder>(m, "CArrayHolder")
-        .def(py::init<double, double, double>())
-        .def(
-            "__iter__",
-            [](const CArrayHolder &v) { return py::make_iterator(v.values, v.values + 3); },
-            py::keep_alive<0, 1>());
 }

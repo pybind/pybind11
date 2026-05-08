@@ -42,7 +42,7 @@ types:
 .. code-block:: cpp
 
     // `boost::optional` as an example -- can be any `std::optional`-like container
-    namespace PYBIND11_NAMESPACE { namespace detail {
+    namespace pybind11 { namespace detail {
         template <typename T>
         struct type_caster<boost::optional<T>> : optional_caster<boost::optional<T>> {};
     }}
@@ -54,7 +54,7 @@ for custom variant types:
 .. code-block:: cpp
 
     // `boost::variant` as an example -- can be any `std::variant`-like container
-    namespace PYBIND11_NAMESPACE { namespace detail {
+    namespace pybind11 { namespace detail {
         template <typename... Ts>
         struct type_caster<boost::variant<Ts...>> : variant_caster<boost::variant<Ts...>> {};
 
@@ -66,7 +66,7 @@ for custom variant types:
                 return boost::apply_visitor(args...);
             }
         };
-    }} // namespace PYBIND11_NAMESPACE::detail
+    }} // namespace pybind11::detail
 
 The ``visit_helper`` specialization is not required if your ``name::variant`` provides
 a ``name::visit()`` function. For any other function name, the specialization must be
@@ -162,7 +162,7 @@ the declaration
 
 .. code-block:: cpp
 
-    PYBIND11_MAKE_OPAQUE(std::vector<int>)
+    PYBIND11_MAKE_OPAQUE(std::vector<int>);
 
 before any binding code (e.g. invocations to ``class_::def()``, etc.). This
 macro must be specified at the top level (and outside of any namespaces), since
@@ -207,8 +207,8 @@ The following example showcases usage of :file:`pybind11/stl_bind.h`:
     // Don't forget this
     #include <pybind11/stl_bind.h>
 
-    PYBIND11_MAKE_OPAQUE(std::vector<int>)
-    PYBIND11_MAKE_OPAQUE(std::map<std::string, double>)
+    PYBIND11_MAKE_OPAQUE(std::vector<int>);
+    PYBIND11_MAKE_OPAQUE(std::map<std::string, double>);
 
     // ...
 

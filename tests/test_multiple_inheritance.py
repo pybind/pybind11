@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import pytest
 
 import env  # noqa: F401

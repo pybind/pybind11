@@ -23,7 +23,7 @@
 #if defined(PYBIND11_TEST_BOOST)
 #    include <boost/optional.hpp>
 
-namespace PYBIND11_NAMESPACE {
+namespace pybind11 {
 namespace detail {
 template <typename T>
 struct type_caster<boost::optional<T>> : optional_caster<boost::optional<T>> {};
@@ -31,7 +31,7 @@ struct type_caster<boost::optional<T>> : optional_caster<boost::optional<T>> {};
 template <>
 struct type_caster<boost::none_t> : void_caster<boost::none_t> {};
 } // namespace detail
-} // namespace PYBIND11_NAMESPACE
+} // namespace pybind11
 #endif
 
 // Test with `std::variant` in C++17 mode, or with `boost::variant` in C++11/14
@@ -43,7 +43,7 @@ using std::variant;
 #    define PYBIND11_TEST_VARIANT 1
 using boost::variant;
 
-namespace PYBIND11_NAMESPACE {
+namespace pybind11 {
 namespace detail {
 template <typename... Ts>
 struct type_caster<boost::variant<Ts...>> : variant_caster<boost::variant<Ts...>> {};
@@ -56,10 +56,10 @@ struct visit_helper<boost::variant> {
     }
 };
 } // namespace detail
-} // namespace PYBIND11_NAMESPACE
+} // namespace pybind11
 #endif
 
-PYBIND11_MAKE_OPAQUE(std::vector<std::string, std::allocator<std::string>>)
+PYBIND11_MAKE_OPAQUE(std::vector<std::string, std::allocator<std::string>>);
 
 /// Issue #528: templated constructor
 struct TplCtorClass {
@@ -78,7 +78,7 @@ struct hash<TplCtorClass> {
 template <template <typename> class OptionalImpl, typename T>
 struct OptionalHolder {
     // NOLINTNEXTLINE(modernize-use-equals-default): breaks GCC 4.8
-    OptionalHolder() {};
+    OptionalHolder(){};
     bool member_initialized() const { return member && member->initialized; }
     OptionalImpl<T> member = T{};
 };
@@ -159,13 +159,13 @@ private:
     std::vector<T> storage;
 };
 
-namespace PYBIND11_NAMESPACE {
+namespace pybind11 {
 namespace detail {
 template <typename T>
 struct type_caster<ReferenceSensitiveOptional<T>>
     : optional_caster<ReferenceSensitiveOptional<T>> {};
 } // namespace detail
-} // namespace PYBIND11_NAMESPACE
+} // namespace pybind11
 
 TEST_SUBMODULE(stl, m) {
     // test_vector
@@ -176,14 +176,9 @@ TEST_SUBMODULE(stl, m) {
     m.def("load_bool_vector",
           [](const std::vector<bool> &v) { return v.at(0) == true && v.at(1) == false; });
     // Unnumbered regression (caused by #936): pointers to stl containers aren't castable
+    static std::vector<RValueCaster> lvv{2};
     m.def(
-        "cast_ptr_vector",
-        []() {
-            // Using no-destructor idiom to side-step warnings from overzealous compilers.
-            static auto *v = new std::vector<RValueCaster>{2};
-            return v;
-        },
-        py::return_value_policy::reference);
+        "cast_ptr_vector", []() { return &lvv; }, py::return_value_policy::reference);
 
     // test_deque
     m.def("cast_deque", []() { return std::deque<int>{1}; });
@@ -217,8 +212,9 @@ TEST_SUBMODULE(stl, m) {
     // NB: map and set keys are `const`, so while we technically do move them (as `const Type &&`),
     // casters don't typically do anything with that, which means they fall to the `const Type &`
     // caster.
-    m.def("cast_rv_map",
-          []() { return std::unordered_map<std::string, RValueCaster>{{"a", RValueCaster{}}}; });
+    m.def("cast_rv_map", []() {
+        return std::unordered_map<std::string, RValueCaster>{{"a", RValueCaster{}}};
+    });
     m.def("cast_rv_nested", []() {
         std::vector<std::array<std::list<std::unordered_map<std::string, RValueCaster>>, 2>> v;
         v.emplace_back();           // add an array
@@ -241,7 +237,6 @@ TEST_SUBMODULE(stl, m) {
     lvn["b"].emplace_back();        // add a list
     lvn["b"].back().emplace_back(); // add an array
     lvn["b"].back().emplace_back(); // add another array
-    static std::vector<RValueCaster> lvv{2};
     m.def("cast_lv_vector", []() -> const decltype(lvv) & { return lvv; });
     m.def("cast_lv_array", []() -> const decltype(lva) & { return lva; });
     m.def("cast_lv_map", []() -> const decltype(lvm) & { return lvm; });
@@ -496,7 +491,8 @@ TEST_SUBMODULE(stl, m) {
     });
 
     // test_stl_pass_by_pointer
-    m.def("stl_pass_by_pointer", [](std::vector<int> *v) { return *v; }, "v"_a = nullptr);
+    m.def(
+        "stl_pass_by_pointer", [](std::vector<int> *v) { return *v; }, "v"_a = nullptr);
 
     // #1258: pybind11/stl.h converts string to vector<string>
     m.def("func_with_string_or_vector_string_arg_overload",

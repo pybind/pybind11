@@ -74,7 +74,6 @@ std::vector<std::unique_ptr<Animal>> create_zoo() {
     // simulate some new type of Dog that the Python bindings
     // haven't been updated for; it should still be considered
     // a Dog, not just an Animal.
-    // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
     ret.emplace_back(new Dog("Ginger", Dog::Kind(150)));
 
     ret.emplace_back(new Chihuahua("Hertzl"));
@@ -118,7 +117,7 @@ std::string Animal::name_of_kind(Kind kind) {
     return raw_name;
 }
 
-namespace PYBIND11_NAMESPACE {
+namespace pybind11 {
 template <typename itype>
 struct polymorphic_type_hook<itype, detail::enable_if_t<std::is_base_of<Animal, itype>::value>> {
     static const void *get(const itype *src, const std::type_info *&type) {
@@ -126,7 +125,7 @@ struct polymorphic_type_hook<itype, detail::enable_if_t<std::is_base_of<Animal, 
         return src;
     }
 };
-} // namespace PYBIND11_NAMESPACE
+} // namespace pybind11
 
 TEST_SUBMODULE(tagbased_polymorphic, m) {
     py::class_<Animal>(m, "Animal").def_readonly("name", &Animal::name);
@@ -145,4 +144,4 @@ TEST_SUBMODULE(tagbased_polymorphic, m) {
         .def(py::init<std::string>())
         .def("purr", &Panther::purr);
     m.def("create_zoo", &create_zoo);
-}
+};

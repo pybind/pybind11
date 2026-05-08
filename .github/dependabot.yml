@@ -4,12 +4,4 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
-    groups:
-      actions:
-        patterns:
-          - "*"
-    ignore:
-      - dependency-name: actions/checkout
-        versions:
-          - "<5"
+      interval: "daily"

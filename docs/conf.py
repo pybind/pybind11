@@ -11,7 +11,6 @@
 #
 # All configuration values have a default; values that are commented out
 # serve to show the default.
-from __future__ import annotations
 
 import os
 import re
@@ -82,7 +81,7 @@ version = loc["__version__"]
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = "en"
+language = None
 
 # There are two options for replacing |today|: either, you set today to some
 # non-false value, then it is used:
@@ -354,11 +353,12 @@ def prepare(app):
         f.write(contents)
 
 
-def clean_up(app, exception):  # noqa: ARG001
+def clean_up(app, exception):
     (DIR / "readme.rst").unlink()
 
 
 def setup(app):
+
     # Add hook for building doxygen xml when needed
     app.connect("builder-inited", generate_doxygen_xml)
 

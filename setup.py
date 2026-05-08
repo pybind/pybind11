@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 # Setup script for PyPI; use CMakeFile.txt to build extension modules
-from __future__ import annotations
 
 import contextlib
 import os
@@ -10,9 +9,9 @@ import shutil
 import string
 import subprocess
 import sys
-from collections.abc import Generator
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Dict, Iterator, List, Union
 
 import setuptools.command.sdist
 
@@ -24,7 +23,7 @@ VERSION_FILE = Path("pybind11/_version.py")
 COMMON_FILE = Path("include/pybind11/detail/common.h")
 
 
-def build_expected_version_hex(matches: dict[str, str]) -> str:
+def build_expected_version_hex(matches: Dict[str, str]) -> str:
     patch_level_serial = matches["PATCH"]
     serial = None
     major = int(matches["MAJOR"])
@@ -65,7 +64,7 @@ to_src = (
 
 
 # Read the listed version
-loc: dict[str, str] = {}
+loc: Dict[str, str] = {}
 code = compile(VERSION_FILE.read_text(encoding="utf-8"), "pybind11/_version.py", "exec")
 exec(code, loc)
 version = loc["__version__"]
@@ -85,7 +84,9 @@ if version_hex != exp_version_hex:
 
 
 # TODO: use literals & overload (typing extensions or Python 3.8)
-def get_and_replace(filename: Path, binary: bool = False, **opts: str) -> bytes | str:
+def get_and_replace(
+    filename: Path, binary: bool = False, **opts: str
+) -> Union[bytes, str]:
     if binary:
         contents = filename.read_bytes()
         return string.Template(contents.decode()).substitute(opts).encode()
@@ -95,8 +96,8 @@ def get_and_replace(filename: Path, binary: bool = False, **opts: str) -> bytes 
 
 # Use our input files instead when making the SDist (and anything that depends
 # on it, like a wheel)
-class SDist(setuptools.command.sdist.sdist):
-    def make_release_tree(self, base_dir: str, files: list[str]) -> None:
+class SDist(setuptools.command.sdist.sdist):  # type: ignore[misc]
+    def make_release_tree(self, base_dir: str, files: List[str]) -> None:
         super().make_release_tree(base_dir, files)
 
         for to, src in to_src:
@@ -111,7 +112,7 @@ class SDist(setuptools.command.sdist.sdist):
 
 # Remove the CMake install directory when done
 @contextlib.contextmanager
-def remove_output(*sources: str) -> Generator[None, None, None]:
+def remove_output(*sources: str) -> Iterator[None]:
     try:
         yield
     finally:
@@ -126,7 +127,6 @@ with remove_output("pybind11/include", "pybind11/share"):
             "-DCMAKE_INSTALL_PREFIX=pybind11",
             "-DBUILD_TESTING=OFF",
             "-DPYBIND11_NOPYTHON=ON",
-            "-Dprefix_for_pc_file=${pcfiledir}/../../",
         ]
         if "CMAKE_ARGS" in os.environ:
             fcommand = [

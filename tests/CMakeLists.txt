@@ -5,16 +5,19 @@
 # All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.4)
 
-# The `cmake_minimum_required(VERSION 3.5...3.29)` syntax does not work with
+# The `cmake_minimum_required(VERSION 3.4...3.18)` syntax does not work with
 # some versions of VS that have a patched CMake 3.11. This forces us to emulate
 # the behavior using the following workaround:
-if(${CMAKE_VERSION} VERSION_LESS 3.29)
+if(${CMAKE_VERSION} VERSION_LESS 3.21)
   cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
 else()
-  cmake_policy(VERSION 3.29)
+  cmake_policy(VERSION 3.21)
 endif()
+
+# Only needed for CMake < 3.5 support
+include(CMakeParseArguments)
 
 # Filter out items; print an optional message if any items filtered. This ignores extensions.
 #
@@ -88,12 +91,7 @@ set(PYBIND11_TEST_FILTER
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
   # We're being loaded directly, i.e. not via add_subdirectory, so make this
   # work as its own project and load the pybind11Config to get the tools we need
-
-  if(SKBUILD)
-    add_subdirectory(.. pybind11_src)
-  else()
-    find_package(pybind11 REQUIRED CONFIG)
-  endif()
+  find_package(pybind11 REQUIRED CONFIG)
 endif()
 
 if(NOT CMAKE_BUILD_TYPE AND NOT DEFINED CMAKE_CONFIGURATION_TYPES)
@@ -127,12 +125,10 @@ set(PYBIND11_TEST_FILES
     test_const_name
     test_constants_and_functions
     test_copy_move
-    test_cpp_conduit
     test_custom_type_casters
     test_custom_type_setup
     test_docstring_options
-    test_eigen_matrix
-    test_eigen_tensor
+    test_eigen
     test_enum
     test_eval
     test_exceptions
@@ -150,7 +146,6 @@ set(PYBIND11_TEST_FILES
     test_opaque_types
     test_operator_overloading
     test_pickling
-    test_python_multiple_inheritance
     test_pytypes
     test_sequences_and_iterators
     test_smart_ptr
@@ -158,12 +153,7 @@ set(PYBIND11_TEST_FILES
     test_stl_binders
     test_tagbased_polymorphic
     test_thread
-    test_type_caster_pyobject_ptr
-    test_type_caster_std_function_specializations
     test_union
-    test_unnamed_namespace_a
-    test_unnamed_namespace_b
-    test_vector_unique_ptr_member
     test_virtual_functions)
 
 # Invoking cmake with something like:
@@ -178,7 +168,7 @@ if(PYBIND11_TEST_OVERRIDE)
   # This allows the override to be done with extensions, preserving backwards compatibility.
   foreach(test_name ${TEST_FILES_NO_EXT})
     if(NOT ${test_name} IN_LIST TEST_OVERRIDE_NO_EXT
-    )# If not in the allowlist, add to be filtered out.
+    )# If not in the whitelist, add to be filtered out.
       list(APPEND PYBIND11_TEST_FILTER ${test_name})
     endif()
   endforeach()
@@ -227,8 +217,6 @@ tests_extra_targets("test_exceptions.py;test_local_bindings.py;test_stl.py;test_
 # And add additional targets for other tests.
 tests_extra_targets("test_exceptions.py" "cross_module_interleaved_error_already_set")
 tests_extra_targets("test_gil_scoped.py" "cross_module_gil_utils")
-tests_extra_targets("test_cpp_conduit.py"
-                    "exo_planet_pybind11;exo_planet_c_api;home_planet_very_lonely_traveler")
 
 set(PYBIND11_EIGEN_REPO
     "https://gitlab.com/libeigen/eigen.git"
@@ -245,10 +233,7 @@ list(GET PYBIND11_EIGEN_VERSION_AND_HASH 1 PYBIND11_EIGEN_VERSION_HASH)
 # Check if Eigen is available; if not, remove from PYBIND11_TEST_FILES (but
 # keep it in PYBIND11_PYTEST_FILES, so that we get the "eigen is not installed"
 # skip message).
-list(FIND PYBIND11_TEST_FILES test_eigen_matrix.cpp PYBIND11_TEST_FILES_EIGEN_I)
-if(PYBIND11_TEST_FILES_EIGEN_I EQUAL -1)
-  list(FIND PYBIND11_TEST_FILES test_eigen_tensor.cpp PYBIND11_TEST_FILES_EIGEN_I)
-endif()
+list(FIND PYBIND11_TEST_FILES test_eigen.cpp PYBIND11_TEST_FILES_EIGEN_I)
 if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
   # Try loading via newer Eigen's Eigen3Config first (bypassing tools/FindEigen3.cmake).
   # Eigen 3.3.1+ exports a cmake 3.0+ target for handling dependency requirements, but also
@@ -303,31 +288,10 @@ if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
       set(EIGEN3_VERSION ${EIGEN3_VERSION_STRING})
     endif()
     message(STATUS "Building tests with Eigen v${EIGEN3_VERSION}")
-
-    if(NOT (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.0))
-      tests_extra_targets("test_eigen_tensor.py" "eigen_tensor_avoid_stl_array")
-    endif()
-
   else()
-    list(FIND PYBIND11_TEST_FILES test_eigen_matrix.cpp PYBIND11_TEST_FILES_EIGEN_I)
-    if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
-      list(REMOVE_AT PYBIND11_TEST_FILES ${PYBIND11_TEST_FILES_EIGEN_I})
-    endif()
-
-    list(FIND PYBIND11_TEST_FILES test_eigen_tensor.cpp PYBIND11_TEST_FILES_EIGEN_I)
-    if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
-      list(REMOVE_AT PYBIND11_TEST_FILES ${PYBIND11_TEST_FILES_EIGEN_I})
-    endif()
+    list(REMOVE_AT PYBIND11_TEST_FILES ${PYBIND11_TEST_FILES_EIGEN_I})
     message(
       STATUS "Building tests WITHOUT Eigen, use -DDOWNLOAD_EIGEN=ON on CMake 3.11+ to download")
-  endif()
-endif()
-
-# Some code doesn't support gcc 4
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.0)
-  list(FIND PYBIND11_TEST_FILES test_eigen_tensor.cpp PYBIND11_TEST_FILES_EIGEN_I)
-  if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
-    list(REMOVE_AT PYBIND11_TEST_FILES ${PYBIND11_TEST_FILES_EIGEN_I})
   endif()
 endif()
 
@@ -339,7 +303,7 @@ if(Boost_FOUND)
     add_library(Boost::headers IMPORTED INTERFACE)
     if(TARGET Boost::boost)
       # Classic FindBoost
-      set_property(TARGET Boost::headers PROPERTY INTERFACE_LINK_LIBRARIES Boost::boost)
+      set_property(TARGET Boost::boost PROPERTY INTERFACE_LINK_LIBRARIES Boost::boost)
     else()
       # Very old FindBoost, or newer Boost than CMake in older CMakes
       set_property(TARGET Boost::headers PROPERTY INTERFACE_INCLUDE_DIRECTORIES
@@ -399,9 +363,6 @@ function(pybind11_enable_warnings target_name)
               -Wdeprecated
               -Wundef
               -Wnon-virtual-dtor)
-    if(DEFINED CMAKE_CXX_STANDARD AND NOT CMAKE_CXX_STANDARD VERSION_LESS 20)
-      target_compile_options(${target_name} PRIVATE -Wpedantic)
-    endif()
   endif()
 
   if(PYBIND11_WERROR)
@@ -501,9 +462,6 @@ foreach(target ${test_targets})
       endforeach()
     endif()
   endif()
-  if(SKBUILD)
-    install(TARGETS ${target} LIBRARY DESTINATION .)
-  endif()
 endforeach()
 
 # Provide nice organisation in IDEs
@@ -535,15 +493,11 @@ set(PYBIND11_TEST_PREFIX_COMMAND
     ""
     CACHE STRING "Put this before pytest, use for checkers and such")
 
-set(PYBIND11_PYTEST_ARGS
-    ""
-    CACHE STRING "Extra arguments for pytest")
-
 # A single command to compile and run the tests
 add_custom_target(
   pytest
   COMMAND ${PYBIND11_TEST_PREFIX_COMMAND} ${PYTHON_EXECUTABLE} -m pytest
-          ${PYBIND11_ABS_PYTEST_FILES} ${PYBIND11_PYTEST_ARGS}
+          ${PYBIND11_ABS_PYTEST_FILES}
   DEPENDS ${test_targets}
   WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
   USES_TERMINAL)

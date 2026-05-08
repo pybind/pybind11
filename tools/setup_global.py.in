@@ -27,11 +27,9 @@ class InstallHeadersNested(install_headers):
 
 main_headers = glob.glob("pybind11/include/pybind11/*.h")
 detail_headers = glob.glob("pybind11/include/pybind11/detail/*.h")
-eigen_headers = glob.glob("pybind11/include/pybind11/eigen/*.h")
 stl_headers = glob.glob("pybind11/include/pybind11/stl/*.h")
 cmake_files = glob.glob("pybind11/share/cmake/pybind11/*.cmake")
-pkgconfig_files = glob.glob("pybind11/share/pkgconfig/*.pc")
-headers = main_headers + detail_headers + stl_headers + eigen_headers
+headers = main_headers + detail_headers + stl_headers
 
 cmdclass = {"install_headers": InstallHeadersNested}
 $extra_cmd
@@ -53,10 +51,8 @@ setup(
     headers=headers,
     data_files=[
         (base + "share/cmake/pybind11", cmake_files),
-        (base + "share/pkgconfig", pkgconfig_files),
         (base + "include/pybind11", main_headers),
         (base + "include/pybind11/detail", detail_headers),
-        (base + "include/pybind11/eigen", eigen_headers),
         (base + "include/pybind11/stl", stl_headers),
     ],
     cmdclass=cmdclass,

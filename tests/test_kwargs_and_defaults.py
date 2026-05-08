@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import pytest
 
 from pybind11_tests import kwargs_and_defaults as m
@@ -10,7 +8,7 @@ def test_function_signatures(doc):
     assert doc(m.kw_func1) == "kw_func1(x: int, y: int) -> str"
     assert doc(m.kw_func2) == "kw_func2(x: int = 100, y: int = 200) -> str"
     assert doc(m.kw_func3) == "kw_func3(data: str = 'Hello world!') -> None"
-    assert doc(m.kw_func4) == "kw_func4(myList: list[int] = [13, 17]) -> str"
+    assert doc(m.kw_func4) == "kw_func4(myList: List[int] = [13, 17]) -> str"
     assert doc(m.kw_func_udl) == "kw_func_udl(x: int, y: int = 300) -> str"
     assert doc(m.kw_func_udl_z) == "kw_func_udl_z(x: int, y: int = 0) -> str"
     assert doc(m.args_function) == "args_function(*args) -> tuple"
@@ -25,45 +23,9 @@ def test_function_signatures(doc):
         doc(m.KWClass.foo1)
         == "foo1(self: m.kwargs_and_defaults.KWClass, x: int, y: float) -> None"
     )
-    assert (
-        doc(m.kw_lb_func0)
-        == "kw_lb_func0(custom: m.kwargs_and_defaults.CustomRepr = array([[A, B], [C, D]])) -> None"
-    )
-    assert (
-        doc(m.kw_lb_func1)
-        == "kw_lb_func1(custom: m.kwargs_and_defaults.CustomRepr = array([[A, B], [C, D]])) -> None"
-    )
-    assert (
-        doc(m.kw_lb_func2)
-        == "kw_lb_func2(custom: m.kwargs_and_defaults.CustomRepr = array([[A, B], [C, D]])) -> None"
-    )
-    assert (
-        doc(m.kw_lb_func3)
-        == "kw_lb_func3(custom: m.kwargs_and_defaults.CustomRepr = array([[A, B], [C, D]])) -> None"
-    )
-    assert (
-        doc(m.kw_lb_func4)
-        == "kw_lb_func4(custom: m.kwargs_and_defaults.CustomRepr = array([[A, B], [C, D]])) -> None"
-    )
-    assert (
-        doc(m.kw_lb_func5)
-        == "kw_lb_func5(custom: m.kwargs_and_defaults.CustomRepr = array([[A, B], [C, D]])) -> None"
-    )
-    assert (
-        doc(m.kw_lb_func6)
-        == "kw_lb_func6(custom: m.kwargs_and_defaults.CustomRepr = ) -> None"
-    )
-    assert (
-        doc(m.kw_lb_func7)
-        == "kw_lb_func7(str_arg: str = 'First line.\\n  Second line.') -> None"
-    )
-    assert (
-        doc(m.kw_lb_func8)
-        == "kw_lb_func8(custom: m.kwargs_and_defaults.CustomRepr = ) -> None"
-    )
 
 
-def test_named_arguments():
+def test_named_arguments(msg):
     assert m.kw_func0(5, 10) == "x=5, y=10"
 
     assert m.kw_func1(5, 10) == "x=5, y=10"
@@ -81,7 +43,8 @@ def test_named_arguments():
         # noinspection PyArgumentList
         m.kw_func2(x=5, y=10, z=12)
     assert excinfo.match(
-        r"(?s)^kw_func2\(\): incompatible.*Invoked with: kwargs: ((x=5|y=10|z=12)(, |$)){3}$"
+        r"(?s)^kw_func2\(\): incompatible.*Invoked with: kwargs: ((x=5|y=10|z=12)(, |$))"
+        + "{3}$"
     )
 
     assert m.kw_func4() == "{13 17}"
@@ -96,7 +59,7 @@ def test_arg_and_kwargs():
     assert m.args_function(*args) == args
 
     args = "a1", "a2"
-    kwargs = {"arg3": "a3", "arg4": 4}
+    kwargs = dict(arg3="a3", arg4=4)
     assert m.args_kwargs_function(*args, **kwargs) == (args, kwargs)
 
 
@@ -214,7 +177,7 @@ def test_mixed_args_and_kwargs(msg):
 
     assert (
         m.args_kwonly_kwargs_defaults.__doc__
-        == "args_kwonly_kwargs_defaults(i: int = 1, j: float = 3.14159, *args, z: int = 42, **kwargs) -> tuple\n"
+        == "args_kwonly_kwargs_defaults(i: int = 1, j: float = 3.14159, *args, z: int = 42, **kwargs) -> tuple\n"  # noqa: E501 line too long
     )
     assert m.args_kwonly_kwargs_defaults() == (1, 3.14159, (), 42, {})
     assert m.args_kwonly_kwargs_defaults(2) == (2, 3.14159, (), 42, {})
@@ -270,15 +233,15 @@ def test_keyword_only_args(msg):
     x.method(i=1, j=2)
     assert (
         m.first_arg_kw_only.__init__.__doc__
-        == "__init__(self: pybind11_tests.kwargs_and_defaults.first_arg_kw_only, *, i: int = 0) -> None\n"
+        == "__init__(self: pybind11_tests.kwargs_and_defaults.first_arg_kw_only, *, i: int = 0) -> None\n"  # noqa: E501 line too long
     )
     assert (
         m.first_arg_kw_only.method.__doc__
-        == "method(self: pybind11_tests.kwargs_and_defaults.first_arg_kw_only, *, i: int = 1, j: int = 2) -> None\n"
+        == "method(self: pybind11_tests.kwargs_and_defaults.first_arg_kw_only, *, i: int = 1, j: int = 2) -> None\n"  # noqa: E501 line too long
     )
 
 
-def test_positional_only_args():
+def test_positional_only_args(msg):
     assert m.pos_only_all(1, 2) == (1, 2)
     assert m.pos_only_all(2, 1) == (2, 1)
 
@@ -320,7 +283,7 @@ def test_positional_only_args():
     # Mix it with args and kwargs:
     assert (
         m.args_kwonly_full_monty.__doc__
-        == "args_kwonly_full_monty(arg0: int = 1, arg1: int = 2, /, j: float = 3.14159, *args, z: int = 42, **kwargs) -> tuple\n"
+        == "args_kwonly_full_monty(arg0: int = 1, arg1: int = 2, /, j: float = 3.14159, *args, z: int = 42, **kwargs) -> tuple\n"  # noqa: E501 line too long
     )
     assert m.args_kwonly_full_monty() == (1, 2, 3.14159, (), 42, {})
     assert m.args_kwonly_full_monty(8) == (8, 2, 3.14159, (), 42, {})
@@ -363,18 +326,18 @@ def test_positional_only_args():
     # https://github.com/pybind/pybind11/pull/3402#issuecomment-963341987
     assert (
         m.first_arg_kw_only.pos_only.__doc__
-        == "pos_only(self: pybind11_tests.kwargs_and_defaults.first_arg_kw_only, /, i: int, j: int) -> None\n"
+        == "pos_only(self: pybind11_tests.kwargs_and_defaults.first_arg_kw_only, /, i: int, j: int) -> None\n"  # noqa: E501 line too long
     )
 
 
 def test_signatures():
-    assert m.kw_only_all.__doc__ == "kw_only_all(*, i: int, j: int) -> tuple\n"
-    assert m.kw_only_mixed.__doc__ == "kw_only_mixed(i: int, *, j: int) -> tuple\n"
-    assert m.pos_only_all.__doc__ == "pos_only_all(i: int, j: int, /) -> tuple\n"
-    assert m.pos_only_mix.__doc__ == "pos_only_mix(i: int, /, j: int) -> tuple\n"
+    assert "kw_only_all(*, i: int, j: int) -> tuple\n" == m.kw_only_all.__doc__
+    assert "kw_only_mixed(i: int, *, j: int) -> tuple\n" == m.kw_only_mixed.__doc__
+    assert "pos_only_all(i: int, j: int, /) -> tuple\n" == m.pos_only_all.__doc__
+    assert "pos_only_mix(i: int, /, j: int) -> tuple\n" == m.pos_only_mix.__doc__
     assert (
-        m.pos_kw_only_mix.__doc__
-        == "pos_kw_only_mix(i: int, /, j: int, *, k: int) -> tuple\n"
+        "pos_kw_only_mix(i: int, /, j: int, *, k: int) -> tuple\n"
+        == m.pos_kw_only_mix.__doc__
     )
 
 
@@ -383,7 +346,7 @@ def test_args_refcount():
     arguments"""
     refcount = m.arg_refcount_h
 
-    myval = object()
+    myval = 54321
     expected = refcount(myval)
     assert m.arg_refcount_h(myval) == expected
     assert m.arg_refcount_o(myval) == expected + 1
@@ -422,7 +385,6 @@ def test_args_refcount():
     # for the `py::args`; in the previous case, we could simply inc_ref and pass on Python's input
     # tuple without having to inc_ref the individual elements, but here we can't, hence the extra
     # refs.
-    exp3_3 = exp3 + 3
-    assert m.mixed_args_refcount(myval, myval, myval) == (exp3_3, exp3_3, exp3_3)
+    assert m.mixed_args_refcount(myval, myval, myval) == (exp3 + 3, exp3 + 3, exp3 + 3)
 
     assert m.class_default_argument() == "<class 'decimal.Decimal'>"

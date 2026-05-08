@@ -115,7 +115,7 @@ public:
 #if defined(PYPY_VERSION)
         PyObject *globals = PyEval_GetGlobals();
         PyObject *result = PyRun_String("import gc\n"
-                                        "for i in range(2):\n"
+                                        "for i in range(2):"
                                         "    gc.collect()\n",
                                         Py_file_input,
                                         globals,
@@ -190,7 +190,7 @@ public:
                     t1 = &p.first;
                 }
             }
-        } catch (const std::out_of_range &) { // NOLINT(bugprone-empty-catch)
+        } catch (const std::out_of_range &) {
         }
         if (!t1) {
             throw std::runtime_error("Unknown class passed to ConstructorStats::get()");

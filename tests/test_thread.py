@@ -1,9 +1,4 @@
-from __future__ import annotations
-
-import sys
 import threading
-
-import pytest
 
 from pybind11_tests import thread as m
 
@@ -27,7 +22,6 @@ class Thread(threading.Thread):
             raise self.e
 
 
-@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
 def test_implicit_conversion():
     a = Thread(m.test)
     b = Thread(m.test)
@@ -38,7 +32,6 @@ def test_implicit_conversion():
         x.join()
 
 
-@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
 def test_implicit_conversion_no_gil():
     a = Thread(m.test_no_gil)
     b = Thread(m.test_no_gil)

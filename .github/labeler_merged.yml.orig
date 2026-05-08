@@ -1,0 +1,14 @@
+<<<<<<< HEAD
+# Add 'needs changelog` label to any change to code files as long as the `CHANGELOG` hasn't changed
+# Skip dependabot and pre-commit-ci PRs
+needs changelog:
+  - all:
+      - changed-files:
+          - all-globs-to-all-files: "!docs/changelog.rst"
+      - base-branch: "^(?!dependabot).*"
+      - base-branch: "^(?!pre-commit-ci).*"
+=======
+needs changelog:
+- all:
+  - '!docs/changelog.rst'
+>>>>>>> f4335b41 (Add missing NULL terminator to PyObject_CallFunctionObjArgs again as it seems to have vanished)

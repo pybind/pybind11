@@ -1,0 +1,23 @@
+docs:
+<<<<<<< HEAD
+  all:
+    - changed-files:
+      - all-globs-to-all-files:
+        - '!docs/changelog.rst'
+        - '!docs/upgrade.rst'
+    - base-branch: "^(?!dependabot).*"
+    - base-branch: "^(?!pre-commit-ci).*"
+
+ci:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '.github/workflows/*.yml'
+=======
+- any:
+  - 'docs/**/*.rst'
+  - '!docs/changelog.rst'
+  - '!docs/upgrade.rst'
+
+ci:
+- '.github/workflows/*.yml'
+>>>>>>> f4335b41 (Add missing NULL terminator to PyObject_CallFunctionObjArgs again as it seems to have vanished)

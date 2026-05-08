@@ -45,35 +45,21 @@ using forwarded_type = conditional_t<std::is_lvalue_reference<T>::value,
 /// Forwards a value U as rvalue or lvalue according to whether T is rvalue or lvalue; typically
 /// used for forwarding a container's elements.
 template <typename T, typename U>
-constexpr forwarded_type<T, U> forward_like(U &&u) {
+forwarded_type<T, U> forward_like(U &&u) {
     return std::forward<detail::forwarded_type<T, U>>(std::forward<U>(u));
 }
-
-// Checks if a container has a STL style reserve method.
-// This will only return true for a `reserve()` with a `void` return.
-template <typename C>
-using has_reserve_method = std::is_same<decltype(std::declval<C>().reserve(0)), void>;
 
 template <typename Type, typename Key>
 struct set_caster {
     using type = Type;
     using key_conv = make_caster<Key>;
 
-private:
-    template <typename T = Type, enable_if_t<has_reserve_method<T>::value, int> = 0>
-    void reserve_maybe(const anyset &s, Type *) {
-        value.reserve(s.size());
-    }
-    void reserve_maybe(const anyset &, void *) {}
-
-public:
     bool load(handle src, bool convert) {
         if (!isinstance<anyset>(src)) {
             return false;
         }
         auto s = reinterpret_borrow<anyset>(src);
         value.clear();
-        reserve_maybe(s, &value);
         for (auto entry : s) {
             key_conv conv;
             if (!conv.load(entry, convert)) {
@@ -92,7 +78,7 @@ public:
         pybind11::set s;
         for (auto &&value : src) {
             auto value_ = reinterpret_steal<object>(
-                key_conv::cast(detail::forward_like<T>(value), policy, parent));
+                key_conv::cast(forward_like<T>(value), policy, parent));
             if (!value_ || !s.add(std::move(value_))) {
                 return handle();
             }
@@ -100,7 +86,7 @@ public:
         return s.release();
     }
 
-    PYBIND11_TYPE_CASTER(type, const_name("set[") + key_conv::name + const_name("]"));
+    PYBIND11_TYPE_CASTER(type, const_name("Set[") + key_conv::name + const_name("]"));
 };
 
 template <typename Type, typename Key, typename Value>
@@ -108,21 +94,12 @@ struct map_caster {
     using key_conv = make_caster<Key>;
     using value_conv = make_caster<Value>;
 
-private:
-    template <typename T = Type, enable_if_t<has_reserve_method<T>::value, int> = 0>
-    void reserve_maybe(const dict &d, Type *) {
-        value.reserve(d.size());
-    }
-    void reserve_maybe(const dict &, void *) {}
-
-public:
     bool load(handle src, bool convert) {
         if (!isinstance<dict>(src)) {
             return false;
         }
         auto d = reinterpret_borrow<dict>(src);
         value.clear();
-        reserve_maybe(d, &value);
         for (auto it : d) {
             key_conv kconv;
             value_conv vconv;
@@ -145,9 +122,9 @@ public:
         }
         for (auto &&kv : src) {
             auto key = reinterpret_steal<object>(
-                key_conv::cast(detail::forward_like<T>(kv.first), policy_key, parent));
+                key_conv::cast(forward_like<T>(kv.first), policy_key, parent));
             auto value = reinterpret_steal<object>(
-                value_conv::cast(detail::forward_like<T>(kv.second), policy_value, parent));
+                value_conv::cast(forward_like<T>(kv.second), policy_value, parent));
             if (!key || !value) {
                 return handle();
             }
@@ -157,7 +134,7 @@ public:
     }
 
     PYBIND11_TYPE_CASTER(Type,
-                         const_name("dict[") + key_conv::name + const_name(", ") + value_conv::name
+                         const_name("Dict[") + key_conv::name + const_name(", ") + value_conv::name
                              + const_name("]"));
 };
 
@@ -172,7 +149,7 @@ struct list_caster {
         auto s = reinterpret_borrow<sequence>(src);
         value.clear();
         reserve_maybe(s, &value);
-        for (const auto &it : s) {
+        for (auto it : s) {
             value_conv conv;
             if (!conv.load(it, convert)) {
                 return false;
@@ -183,7 +160,9 @@ struct list_caster {
     }
 
 private:
-    template <typename T = Type, enable_if_t<has_reserve_method<T>::value, int> = 0>
+    template <
+        typename T = Type,
+        enable_if_t<std::is_same<decltype(std::declval<T>().reserve(0)), void>::value, int> = 0>
     void reserve_maybe(const sequence &s, Type *) {
         value.reserve(s.size());
     }
@@ -199,7 +178,7 @@ public:
         ssize_t index = 0;
         for (auto &&value : src) {
             auto value_ = reinterpret_steal<object>(
-                value_conv::cast(detail::forward_like<T>(value), policy, parent));
+                value_conv::cast(forward_like<T>(value), policy, parent));
             if (!value_) {
                 return handle();
             }
@@ -208,7 +187,7 @@ public:
         return l.release();
     }
 
-    PYBIND11_TYPE_CASTER(Type, const_name("list[") + value_conv::name + const_name("]"));
+    PYBIND11_TYPE_CASTER(Type, const_name("List[") + value_conv::name + const_name("]"));
 };
 
 template <typename Type, typename Alloc>
@@ -247,7 +226,7 @@ public:
             return false;
         }
         size_t ctr = 0;
-        for (const auto &it : l) {
+        for (auto it : l) {
             value_conv conv;
             if (!conv.load(it, convert)) {
                 return false;
@@ -263,7 +242,7 @@ public:
         ssize_t index = 0;
         for (auto &&value : src) {
             auto value_ = reinterpret_steal<object>(
-                value_conv::cast(detail::forward_like<T>(value), policy, parent));
+                value_conv::cast(forward_like<T>(value), policy, parent));
             if (!value_) {
                 return handle();
             }
@@ -273,11 +252,11 @@ public:
     }
 
     PYBIND11_TYPE_CASTER(ArrayType,
-                         const_name<Resizable>(const_name(""), const_name("Annotated["))
-                             + const_name("list[") + value_conv::name + const_name("]")
+                         const_name("List[") + value_conv::name
                              + const_name<Resizable>(const_name(""),
-                                                     const_name(", FixedSize(")
-                                                         + const_name<Size>() + const_name(")]")));
+                                                     const_name("[") + const_name<Size>()
+                                                         + const_name("]"))
+                             + const_name("]"));
 };
 
 template <typename Type, size_t Size>
@@ -311,12 +290,11 @@ struct optional_caster {
     template <typename T>
     static handle cast(T &&src, return_value_policy policy, handle parent) {
         if (!src) {
-            return none().release();
+            return none().inc_ref();
         }
         if (!std::is_lvalue_reference<T>::value) {
             policy = return_value_policy_override<Value>::policy(policy);
         }
-        // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
         return value_conv::cast(*std::forward<T>(src), policy, parent);
     }
 
@@ -421,8 +399,7 @@ struct variant_caster<V<Ts...>> {
 
     using Type = V<Ts...>;
     PYBIND11_TYPE_CASTER(Type,
-                         const_name("Union[")
-                             + ::pybind11::detail::concat(make_caster<Ts>::name...)
+                         const_name("Union[") + detail::concat(make_caster<Ts>::name...)
                              + const_name("]"));
 };
 

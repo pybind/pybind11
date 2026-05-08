@@ -1,3 +1,6 @@
+# Built-in in CMake 3.5+
+include(CMakeParseArguments)
+
 add_custom_target(test_cmake_build)
 
 function(pybind11_add_build_test name)
@@ -5,8 +8,9 @@ function(pybind11_add_build_test name)
 
   set(build_options "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}")
 
-  list(APPEND build_options "-DPYBIND11_FINDPYTHON=${PYBIND11_FINDPYTHON}")
   if(PYBIND11_FINDPYTHON)
+    list(APPEND build_options "-DPYBIND11_FINDPYTHON=${PYBIND11_FINDPYTHON}")
+
     if(DEFINED Python_ROOT_DIR)
       list(APPEND build_options "-DPython_ROOT_DIR=${Python_ROOT_DIR}")
     endif()

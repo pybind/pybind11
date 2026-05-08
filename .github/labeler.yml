@@ -1,13 +1,8 @@
 docs:
-  all:
-    - changed-files:
-      - all-globs-to-all-files:
-        - '!docs/changelog.rst'
-        - '!docs/upgrade.rst'
-    - base-branch: "^(?!dependabot).*"
-    - base-branch: "^(?!pre-commit-ci).*"
+- any:
+  - 'docs/**/*.rst'
+  - '!docs/changelog.rst'
+  - '!docs/upgrade.rst'
 
 ci:
-  - changed-files:
-    - any-glob-to-any-file:
-      - '.github/workflows/*.yml'
+- '.github/workflows/*.yml'

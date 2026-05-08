@@ -1,0 +1,19 @@
+version: 2
+updates:
+  # Maintain dependencies for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+<<<<<<< HEAD
+      interval: "weekly"
+    groups:
+      actions:
+        patterns:
+          - "*"
+    ignore:
+      - dependency-name: actions/checkout
+        versions:
+          - "<5"
+=======
+      interval: "daily"
+>>>>>>> f4335b41 (Add missing NULL terminator to PyObject_CallFunctionObjArgs again as it seems to have vanished)

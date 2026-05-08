@@ -1,18 +1,8 @@
-from __future__ import annotations
-
-from unittest import mock
-
 import pytest
 
-import env
-from pybind11_tests import PYBIND11_REFCNT_IMMORTAL, ConstructorStats, UserType
+import env  # noqa: F401
+from pybind11_tests import ConstructorStats, UserType
 from pybind11_tests import class_ as m
-
-
-def test_obj_class_name():
-    expected_name = "UserType" if env.PYPY else "pybind11_tests.UserType"
-    assert m.obj_class_name(UserType(1)) == expected_name
-    assert m.obj_class_name(UserType) == expected_name
 
 
 def test_repr():
@@ -33,7 +23,7 @@ def test_instance(msg):
     assert cstats.alive() == 0
 
 
-def test_instance_new():
+def test_instance_new(msg):
     instance = m.NoConstructorNew()  # .__new__(m.NoConstructor.__class__)
     cstats = ConstructorStats.get(m.NoConstructorNew)
     assert cstats.alive() == 1
@@ -186,6 +176,7 @@ def test_inheritance(msg):
 
 
 def test_inheritance_init(msg):
+
     # Single base
     class Python(m.Pet):
         def __init__(self):
@@ -207,18 +198,6 @@ def test_inheritance_init(msg):
     assert msg(exc_info.value) == expected
 
 
-@pytest.mark.parametrize(
-    "mock_return_value", [None, (1, 2, 3), m.Pet("Polly", "parrot"), m.Dog("Molly")]
-)
-def test_mock_new(mock_return_value):
-    with mock.patch.object(
-        m.Pet, "__new__", return_value=mock_return_value
-    ) as mock_new:
-        obj = m.Pet("Noname", "Nospecies")
-    assert obj is mock_return_value
-    mock_new.assert_called_once_with(m.Pet, "Noname", "Nospecies")
-
-
 def test_automatic_upcasting():
     assert type(m.return_class_1()).__name__ == "DerivedClass1"
     assert type(m.return_class_2()).__name__ == "DerivedClass2"
@@ -234,7 +213,7 @@ def test_automatic_upcasting():
 
 
 def test_isinstance():
-    objects = [(), {}, m.Pet("Polly", "parrot")] + [m.Dog("Molly")] * 4
+    objects = [tuple(), dict(), m.Pet("Polly", "parrot")] + [m.Dog("Molly")] * 4
     expected = (True, True, True, True, True, False, False)
     assert m.check_instances(objects) == expected
 
@@ -334,8 +313,6 @@ def test_bind_protected_functions():
 
     b = m.ProtectedB()
     assert b.foo() == 42
-    assert m.read_foo(b.void_foo()) == 42
-    assert m.pointers_equal(b.get_self(), b)
 
     class C(m.ProtectedB):
         def __init__(self):
@@ -379,9 +356,7 @@ def test_class_refcount():
         refcount_3 = getrefcount(cls)
 
         assert refcount_1 == refcount_3
-        assert (refcount_2 > refcount_1) or (
-            refcount_2 == refcount_1 == PYBIND11_REFCNT_IMMORTAL
-        )
+        assert refcount_2 > refcount_1
 
 
 def test_reentrant_implicit_conversion_failure(msg):
@@ -442,7 +417,7 @@ def test_exception_rvalue_abort():
 
 
 # https://github.com/pybind/pybind11/issues/1568
-def test_multiple_instances_with_same_pointer():
+def test_multiple_instances_with_same_pointer(capture):
     n = 100
     instances = [m.SamePointer() for _ in range(n)]
     for i in range(n):
@@ -494,10 +469,3 @@ def test_register_duplicate_class():
         m.register_duplicate_nested_class_type(ClassScope)
     expected = 'generic_type: type "YetAnotherDuplicateNested" is already registered!'
     assert str(exc_info.value) == expected
-
-
-def test_pr4220_tripped_over_this():
-    assert (
-        m.Empty0().get_msg()
-        == "This is really only meant to exercise successful compilation."
-    )

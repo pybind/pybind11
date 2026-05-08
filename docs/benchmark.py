@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import datetime as dt
 import os
 import random
@@ -72,7 +70,7 @@ def generate_dummy_code_boost(nclasses=10):
 
 for codegen in [generate_dummy_code_pybind11, generate_dummy_code_boost]:
     print("{")
-    for i in range(10):
+    for i in range(0, 10):
         nclasses = 2**i
         with open("test.cpp", "w") as f:
             f.write(codegen(nclasses))

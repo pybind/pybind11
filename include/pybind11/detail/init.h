@@ -12,9 +12,6 @@
 #include "class.h"
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
-
-PYBIND11_WARNING_DISABLE_MSVC(4127)
-
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 template <>
@@ -65,7 +62,7 @@ constexpr bool is_alias(void *) {
 }
 
 // Constructs and returns a new object; if the given arguments don't map to a constructor, we fall
-// back to brace aggregate initialization so that for aggregate initialization can be used with
+// back to brace aggregate initiailization so that for aggregate initialization can be used with
 // py::init, e.g.  `py::init<int, int>` to initialize a `struct T { int a; int b; }`.  For
 // non-aggregate types, we need to use an ordinary T(...) constructor (invoking as `T{...}` usually
 // works, but will not do the expected thing when `T` has an `initializer_list<T>` constructor).
@@ -118,7 +115,7 @@ template <typename Class>
 void construct(value_and_holder &v_h, Cpp<Class> *ptr, bool need_alias) {
     PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(need_alias);
     no_nullptr(ptr);
-    if (Class::has_alias && need_alias && !is_alias<Class>(ptr)) {
+    if (PYBIND11_SILENCE_MSVC_C4127(Class::has_alias) && need_alias && !is_alias<Class>(ptr)) {
         // We're going to try to construct an alias by moving the cpp type.  Whether or not
         // that succeeds, we still need to destroy the original cpp pointer (either the
         // moved away leftover, if the alias construction works, or the value itself if we
@@ -128,13 +125,11 @@ void construct(value_and_holder &v_h, Cpp<Class> *ptr, bool need_alias) {
         // the holder and destruction happens when we leave the C++ scope, and the holder
         // class gets to handle the destruction however it likes.
         v_h.value_ptr() = ptr;
-        v_h.set_instance_registered(true); // Trick to prevent init_instance from registering it
-        // DANGER ZONE BEGIN: exceptions will leave v_h in an invalid state.
-        v_h.type->init_instance(v_h.inst, nullptr);                        // Set up the holder
+        v_h.set_instance_registered(true);          // To prevent init_instance from registering it
+        v_h.type->init_instance(v_h.inst, nullptr); // Set up the holder
         Holder<Class> temp_holder(std::move(v_h.holder<Holder<Class>>())); // Steal the holder
         v_h.type->dealloc(v_h); // Destroys the moved-out holder remains, resets value ptr to null
         v_h.set_instance_registered(false);
-        // DANGER ZONE END.
 
         construct_alias_from_cpp<Class>(is_alias_constructible<Class>{}, v_h, std::move(*ptr));
     } else {
@@ -161,7 +156,7 @@ void construct(value_and_holder &v_h, Holder<Class> holder, bool need_alias) {
     auto *ptr = holder_helper<Holder<Class>>::get(holder);
     no_nullptr(ptr);
     // If we need an alias, check that the held pointer is actually an alias instance
-    if (Class::has_alias && need_alias && !is_alias<Class>(ptr)) {
+    if (PYBIND11_SILENCE_MSVC_C4127(Class::has_alias) && need_alias && !is_alias<Class>(ptr)) {
         throw type_error("pybind11::init(): construction failed: returned holder-wrapped instance "
                          "is not an alias instance");
     }
@@ -177,9 +172,9 @@ void construct(value_and_holder &v_h, Holder<Class> holder, bool need_alias) {
 template <typename Class>
 void construct(value_and_holder &v_h, Cpp<Class> &&result, bool need_alias) {
     PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(need_alias);
-    static_assert(is_move_constructible<Cpp<Class>>::value,
+    static_assert(std::is_move_constructible<Cpp<Class>>::value,
                   "pybind11::init() return-by-value factory function requires a movable class");
-    if (Class::has_alias && need_alias) {
+    if (PYBIND11_SILENCE_MSVC_C4127(Class::has_alias) && need_alias) {
         construct_alias_from_cpp<Class>(is_alias_constructible<Class>{}, v_h, std::move(result));
     } else {
         v_h.value_ptr() = new Cpp<Class>(std::move(result));
@@ -192,7 +187,7 @@ void construct(value_and_holder &v_h, Cpp<Class> &&result, bool need_alias) {
 template <typename Class>
 void construct(value_and_holder &v_h, Alias<Class> &&result, bool) {
     static_assert(
-        is_move_constructible<Alias<Class>>::value,
+        std::is_move_constructible<Alias<Class>>::value,
         "pybind11::init() return-by-alias-value factory function requires a movable alias class");
     v_h.value_ptr() = new Alias<Class>(std::move(result));
 }
@@ -211,11 +206,10 @@ struct constructor {
             extra...);
     }
 
-    template <
-        typename Class,
-        typename... Extra,
-        enable_if_t<Class::has_alias && std::is_constructible<Cpp<Class>, Args...>::value, int>
-        = 0>
+    template <typename Class,
+              typename... Extra,
+              enable_if_t<Class::has_alias && std::is_constructible<Cpp<Class>, Args...>::value,
+                          int> = 0>
     static void execute(Class &cl, const Extra &...extra) {
         cl.def(
             "__init__",
@@ -232,11 +226,10 @@ struct constructor {
             extra...);
     }
 
-    template <
-        typename Class,
-        typename... Extra,
-        enable_if_t<Class::has_alias && !std::is_constructible<Cpp<Class>, Args...>::value, int>
-        = 0>
+    template <typename Class,
+              typename... Extra,
+              enable_if_t<Class::has_alias && !std::is_constructible<Cpp<Class>, Args...>::value,
+                          int> = 0>
     static void execute(Class &cl, const Extra &...extra) {
         cl.def(
             "__init__",
@@ -252,11 +245,10 @@ struct constructor {
 // Implementing class for py::init_alias<...>()
 template <typename... Args>
 struct alias_constructor {
-    template <
-        typename Class,
-        typename... Extra,
-        enable_if_t<Class::has_alias && std::is_constructible<Alias<Class>, Args...>::value, int>
-        = 0>
+    template <typename Class,
+              typename... Extra,
+              enable_if_t<Class::has_alias && std::is_constructible<Alias<Class>, Args...>::value,
+                          int> = 0>
     static void execute(Class &cl, const Extra &...extra) {
         cl.def(
             "__init__",

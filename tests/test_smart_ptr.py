@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import pytest
 
 m = pytest.importorskip("pybind11_tests.smart_ptr")

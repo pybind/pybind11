@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from pybind11_tests import union_ as m
 
 

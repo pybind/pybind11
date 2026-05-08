@@ -15,19 +15,15 @@ setup(
         "pybind11",
         "pybind11.include.pybind11",
         "pybind11.include.pybind11.detail",
-        "pybind11.include.pybind11.eigen",
         "pybind11.include.pybind11.stl",
         "pybind11.share.cmake.pybind11",
-        "pybind11.share.pkgconfig",
     ],
     package_data={
         "pybind11": ["py.typed"],
         "pybind11.include.pybind11": ["*.h"],
         "pybind11.include.pybind11.detail": ["*.h"],
-        "pybind11.include.pybind11.eigen": ["*.h"],
         "pybind11.include.pybind11.stl": ["*.h"],
         "pybind11.share.cmake.pybind11": ["*.cmake"],
-        "pybind11.share.pkgconfig": ["*.pc"],
     },
     extras_require={
         "global": ["pybind11_global==$version"]

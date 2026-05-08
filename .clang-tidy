@@ -57,16 +57,12 @@ Checks: |
   readability-string-compare,
   readability-suspicious-call-argument,
   readability-uniqueptr-delete-release,
-  -bugprone-chained-comparison,
   -bugprone-easily-swappable-parameters,
   -bugprone-exception-escape,
   -bugprone-reserved-identifier,
   -bugprone-unused-raii,
-  -performance-enum-size,
 
 CheckOptions:
-- key:             modernize-use-equals-default.IgnoreMacros
-  value:           false
 - key:             performance-for-range-copy.WarnOnAllAutoCopies
   value:           true
 - key:             performance-inefficient-string-concatenation.StrictMode
