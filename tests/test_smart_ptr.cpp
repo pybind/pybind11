@@ -100,7 +100,7 @@ public:
 
     T *get() const { return ptr_.get(); }
 
-    operator std::shared_ptr<T>() const { return ptr_; }
+    explicit operator std::shared_ptr<T>() const { return ptr_; }
 };
 
 // Custom object with builtin reference counting (see 'object.h' for the implementation)
