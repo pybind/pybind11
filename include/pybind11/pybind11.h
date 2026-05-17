@@ -2786,8 +2786,7 @@ private:
     }
 
     template <typename H = holder_type,
-              detail::enable_if_t<std::is_constructible<H, std::shared_ptr<type>>::value, int>
-              = 0>
+              detail::enable_if_t<std::is_constructible<H, std::shared_ptr<type>>::value, int> = 0>
     static void init_instance_from_shared_ptr(detail::instance *inst,
                                               const std::shared_ptr<void> *shared_ptr_void_ptr) {
         auto v_h = inst->get_value_and_holder(detail::get_type_info(typeid(type)));
@@ -2801,8 +2800,7 @@ private:
     }
 
     template <typename H = holder_type,
-              detail::enable_if_t<std::is_constructible<H, std::shared_ptr<type>>::value, int>
-              = 0>
+              detail::enable_if_t<std::is_constructible<H, std::shared_ptr<type>>::value, int> = 0>
     static constexpr auto get_init_instance_from_shared_ptr()
         -> void (*)(detail::instance *, const std::shared_ptr<void> *) {
         return &init_instance_from_shared_ptr<>;
