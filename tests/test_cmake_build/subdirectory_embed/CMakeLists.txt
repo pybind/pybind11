@@ -3,7 +3,10 @@ cmake_minimum_required(VERSION 3.15...4.2)
 project(test_subdirectory_embed CXX)
 
 if(PYBIND11_FINDPYTHON)
-  find_package(Python COMPONENTS Interpreter REQUIRED)
+  find_package(
+    Python
+    COMPONENTS Interpreter
+    REQUIRED)
 endif()
 
 set(PYBIND11_INSTALL
