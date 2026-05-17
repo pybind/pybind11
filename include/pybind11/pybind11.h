@@ -2768,6 +2768,26 @@ private:
             holder_type(std::move(*const_cast<holder_type *>(holder_ptr)));
     }
 
+    template <typename H = holder_type,
+              detail::enable_if_t<std::is_constructible<H, std::shared_ptr<type>>::value, int>
+              = 0>
+    static bool init_holder_from_shared_ptr(
+        const detail::value_and_holder &v_h,
+        const detail::init_instance_with_shared_ptr &shared_ptr_payload) {
+        auto shared_ptr = std::shared_ptr<type>(shared_ptr_payload.aliasing_owner,
+                                                v_h.value_ptr<type>());
+        new (std::addressof(v_h.holder<holder_type>())) holder_type(std::move(shared_ptr));
+        return true;
+    }
+
+    template <typename H = holder_type,
+              detail::enable_if_t<!std::is_constructible<H, std::shared_ptr<type>>::value, int>
+              = 0>
+    static bool init_holder_from_shared_ptr(const detail::value_and_holder &,
+                                            const detail::init_instance_with_shared_ptr &) {
+        return false;
+    }
+
     /// Initialize holder object, variant 2: try to construct from existing holder object, if
     /// possible
     static void init_holder(detail::instance *inst,
@@ -2794,6 +2814,16 @@ private:
         if (!v_h.instance_registered()) {
             register_instance(inst, v_h.value_ptr(), v_h.type);
             v_h.set_instance_registered();
+        }
+        if (auto *shared_ptr_payload
+            = detail::init_instance_with_shared_ptr_guard::lookup(holder_ptr)) {
+            if (init_holder_from_shared_ptr(v_h, *shared_ptr_payload)) {
+                v_h.set_holder_constructed();
+                return;
+            }
+            throw cast_error("Unable to convert std::shared_ptr<T> to Python when the bound type "
+                             "does not use std::shared_ptr or py::smart_holder as its holder "
+                             "type");
         }
         init_holder(inst, v_h, (const holder_type *) holder_ptr, v_h.value_ptr<type>());
     }
