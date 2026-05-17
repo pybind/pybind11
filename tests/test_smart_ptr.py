@@ -368,3 +368,13 @@ def test_move_only_holder_caster_shared_ptr_with_smart_holder_support_enabled():
 def test_const_only_holder():
     o = m.MyObject6("my_data")
     assert o.value == "my_data"
+
+
+def test_shared_ptr_cast_for_custom_holder_with_private_dtor():
+    holder_obj = m.PrivateDtorWithCustomHolder.get_singleton_holder()
+    shared_ptr_obj = m.get_private_dtor_with_custom_holder_shared_ptr()
+
+    holder_obj.value = 23
+
+    assert shared_ptr_obj.value == 23
+    assert m.get_private_dtor_with_custom_holder_shared_ptr().value == 23

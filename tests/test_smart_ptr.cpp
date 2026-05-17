@@ -83,6 +83,26 @@ private:
     // for demonstration purpose only, this imitates smart pointer with a const-only pointer
 };
 
+template <typename T>
+class shared_ptr_as_custom_holder {
+    std::shared_ptr<T> ptr_;
+
+public:
+    using element_type = T;
+
+    shared_ptr_as_custom_holder() = default;
+
+    explicit shared_ptr_as_custom_holder(T *) {
+        throw std::runtime_error("invalid shared_ptr_as_custom_holder constructor call");
+    }
+
+    explicit shared_ptr_as_custom_holder(std::shared_ptr<T> ptr) : ptr_(std::move(ptr)) {}
+
+    T *get() const { return ptr_.get(); }
+
+    operator std::shared_ptr<T>() const { return ptr_; }
+};
+
 // Custom object with builtin reference counting (see 'object.h' for the implementation)
 class MyObject1 : public Object {
 public:
@@ -239,6 +259,25 @@ struct SharedFromThisRef {
     std::shared_ptr<B> shared = std::make_shared<B>();
 };
 
+class PrivateDtorWithCustomHolder {
+public:
+    static std::shared_ptr<PrivateDtorWithCustomHolder> create(int value) {
+        return {new PrivateDtorWithCustomHolder(value),
+                [](PrivateDtorWithCustomHolder *ptr) { delete ptr; }};
+    }
+
+    int value = 0;
+
+private:
+    explicit PrivateDtorWithCustomHolder(int value_) : value(value_) {}
+    ~PrivateDtorWithCustomHolder() = default;
+};
+
+std::shared_ptr<PrivateDtorWithCustomHolder> &private_dtor_with_custom_holder_singleton() {
+    static auto singleton = PrivateDtorWithCustomHolder::create(17);
+    return singleton;
+}
+
 // Issue #865: shared_from_this doesn't work with virtual inheritance
 struct SharedFromThisVBase : std::enable_shared_from_this<SharedFromThisVBase> {
     SharedFromThisVBase() = default;
@@ -341,6 +380,7 @@ struct holder_helper<ref<T>> {
 // Make pybind aware of the ref-counted wrapper type (s):
 PYBIND11_DECLARE_HOLDER_TYPE(T, ref<T>, true)
 PYBIND11_DECLARE_HOLDER_TYPE(T, const_only_shared_ptr<T>, true)
+PYBIND11_DECLARE_HOLDER_TYPE(T, shared_ptr_as_custom_holder<T>)
 // The following is not required anymore for std::shared_ptr, but it should compile without error:
 PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>)
 PYBIND11_DECLARE_HOLDER_TYPE(T, huge_unique_ptr<T>)
@@ -500,6 +540,18 @@ TEST_SUBMODULE(smart_ptr, m) {
     py::class_<MyObject6, const_only_shared_ptr<MyObject6>>(m, "MyObject6")
         .def(py::init([](const std::string &value) { return MyObject6::createObject(value); }))
         .def_property_readonly("value", &MyObject6::value);
+
+    py::class_<PrivateDtorWithCustomHolder, shared_ptr_as_custom_holder<PrivateDtorWithCustomHolder>>(
+        m, "PrivateDtorWithCustomHolder")
+        .def_property("value",
+                      [](const PrivateDtorWithCustomHolder &self) { return self.value; },
+                      [](PrivateDtorWithCustomHolder &self, int value) { self.value = value; })
+        .def_static("get_singleton_holder", []() {
+            return shared_ptr_as_custom_holder<PrivateDtorWithCustomHolder>(
+                private_dtor_with_custom_holder_singleton());
+        });
+    m.def("get_private_dtor_with_custom_holder_shared_ptr",
+          []() { return private_dtor_with_custom_holder_singleton(); });
 
     // test_shared_ptr_and_references
     using A = SharedPtrRef::A;
