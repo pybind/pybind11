@@ -2,8 +2,15 @@ cmake_minimum_required(VERSION 3.15...4.2)
 
 project(test_installed_embed CXX)
 
+find_package(Python COMPONENTS Interpreter REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
 message(STATUS "Found pybind11 v${pybind11_VERSION}: ${pybind11_INCLUDE_DIRS}")
+
+find_package(Python REQUIRED COMPONENTS Development.Module OPTIONAL_COMPONENTS Development.Embed)
+get_target_property(_pybind11_embed_links pybind11::embed INTERFACE_LINK_LIBRARIES)
+if(TARGET Python::Python AND NOT "Python::Python" IN_LIST _pybind11_embed_links)
+  message(FATAL_ERROR "pybind11::embed must link to Python::Python when Python::Python is available")
+endif()
 
 add_executable(test_installed_embed ../embed.cpp)
 target_link_libraries(test_installed_embed PRIVATE pybind11::embed)

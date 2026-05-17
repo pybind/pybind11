@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.15...4.2)
 
 project(test_subdirectory_embed CXX)
 
+find_package(Python COMPONENTS Interpreter REQUIRED)
+
 set(PYBIND11_INSTALL
     ON
     CACHE BOOL "")
@@ -14,6 +16,12 @@ if(DEFINED PYTHON_EXECUTABLE AND NOT DEFINED Python_EXECUTABLE)
 endif()
 
 add_subdirectory("${pybind11_SOURCE_DIR}" pybind11)
+
+find_package(Python REQUIRED COMPONENTS Development.Module OPTIONAL_COMPONENTS Development.Embed)
+get_target_property(_pybind11_embed_links pybind11::embed INTERFACE_LINK_LIBRARIES)
+if(TARGET Python::Python AND NOT "Python::Python" IN_LIST _pybind11_embed_links)
+  message(FATAL_ERROR "pybind11::embed must link to Python::Python when Python::Python is available")
+endif()
 
 # Test basic target functionality
 add_executable(test_subdirectory_embed ../embed.cpp)
