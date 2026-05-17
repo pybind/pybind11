@@ -3,7 +3,10 @@ cmake_minimum_required(VERSION 3.15...4.2)
 project(test_installed_embed CXX)
 
 if(PYBIND11_FINDPYTHON)
-  find_package(Python COMPONENTS Interpreter REQUIRED)
+  find_package(
+    Python
+    COMPONENTS Interpreter
+    REQUIRED)
 endif()
 find_package(pybind11 CONFIG REQUIRED)
 message(STATUS "Found pybind11 v${pybind11_VERSION}: ${pybind11_INCLUDE_DIRS}")
