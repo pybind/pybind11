@@ -1025,6 +1025,10 @@ public:
         if (tinfo != nullptr && tinfo->holder_enum_v == holder_enum_t::std_shared_ptr) {
             return type_caster_base<type>::cast_holder(srcs, &src);
         }
+        if (tinfo != nullptr && tinfo->init_instance_from_shared_ptr != nullptr) {
+            return smart_holder_type_caster_support::custom_holder_from_shared_ptr(
+                src, policy, parent, srcs.result);
+        }
 
         if (parent) {
             return type_caster_generic::cast_non_owning(

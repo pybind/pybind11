@@ -803,6 +803,63 @@ handle smart_holder_from_shared_ptr(const std::shared_ptr<T const> &src,
                                         cs);
 }
 
+template <typename T>
+handle custom_holder_from_shared_ptr(const std::shared_ptr<T> &src,
+                                     return_value_policy policy,
+                                     handle parent,
+                                     const cast_sources::resolved_source &cs) {
+    switch (policy) {
+        case return_value_policy::automatic:
+        case return_value_policy::automatic_reference:
+            break;
+        case return_value_policy::take_ownership:
+            throw cast_error("Invalid return_value_policy for shared_ptr (take_ownership).");
+        case return_value_policy::copy:
+        case return_value_policy::move:
+            break;
+        case return_value_policy::reference:
+            throw cast_error("Invalid return_value_policy for shared_ptr (reference).");
+        case return_value_policy::reference_internal:
+            break;
+    }
+    if (!src) {
+        return none().release();
+    }
+
+    void *src_raw_void_ptr = const_cast<void *>(cs.cppobj);
+    assert(cs.tinfo != nullptr);
+    const detail::type_info *tinfo = cs.tinfo;
+    if (handle existing_inst = find_registered_python_instance(src_raw_void_ptr, tinfo)) {
+        return existing_inst;
+    }
+
+    auto inst = reinterpret_steal<object>(make_new_instance(tinfo->type));
+    auto *inst_raw_ptr = reinterpret_cast<instance *>(inst.ptr());
+    inst_raw_ptr->owned = true;
+    void *&valueptr = values_and_holders(inst_raw_ptr).begin()->value_ptr();
+    valueptr = src_raw_void_ptr;
+
+    auto erased_shared_ptr = std::shared_ptr<void>(src, src_raw_void_ptr);
+    tinfo->init_instance_from_shared_ptr(inst_raw_ptr, &erased_shared_ptr);
+
+    if (policy == return_value_policy::reference_internal) {
+        keep_alive_impl(inst, parent);
+    }
+
+    return inst.release();
+}
+
+template <typename T>
+handle custom_holder_from_shared_ptr(const std::shared_ptr<T const> &src,
+                                     return_value_policy policy,
+                                     handle parent,
+                                     const cast_sources::resolved_source &cs) {
+    return custom_holder_from_shared_ptr(std::const_pointer_cast<T>(src), // Const2Mutbl
+                                         policy,
+                                         parent,
+                                         cs);
+}
+
 struct shared_ptr_parent_life_support {
     PyObject *parent;
     explicit shared_ptr_parent_life_support(PyObject *parent) : parent{parent} {

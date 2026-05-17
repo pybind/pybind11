@@ -403,6 +403,7 @@ struct type_info {
     void *(*operator_new)(size_t);
     void (*init_instance)(instance *, const void *);
     void (*dealloc)(value_and_holder &v_h);
+    void (*init_instance_from_shared_ptr)(instance *, const std::shared_ptr<void> *) = nullptr;
 
     // Cross-DSO-safe function pointers, to sidestep cross-DSO RTTI issues
     // on platforms like macOS (see PR #5728 for details):
