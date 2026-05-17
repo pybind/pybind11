@@ -541,11 +541,13 @@ TEST_SUBMODULE(smart_ptr, m) {
         .def(py::init([](const std::string &value) { return MyObject6::createObject(value); }))
         .def_property_readonly("value", &MyObject6::value);
 
-    py::class_<PrivateDtorWithCustomHolder, shared_ptr_as_custom_holder<PrivateDtorWithCustomHolder>>(
+    py::class_<PrivateDtorWithCustomHolder,
+               shared_ptr_as_custom_holder<PrivateDtorWithCustomHolder>>(
         m, "PrivateDtorWithCustomHolder")
-        .def_property("value",
-                      [](const PrivateDtorWithCustomHolder &self) { return self.value; },
-                      [](PrivateDtorWithCustomHolder &self, int value) { self.value = value; })
+        .def_property(
+            "value",
+            [](const PrivateDtorWithCustomHolder &self) { return self.value; },
+            [](PrivateDtorWithCustomHolder &self, int value) { self.value = value; })
         .def_static("get_singleton_holder", []() {
             return shared_ptr_as_custom_holder<PrivateDtorWithCustomHolder>(
                 private_dtor_with_custom_holder_singleton());

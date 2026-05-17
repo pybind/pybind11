@@ -135,7 +135,8 @@ public:
     }
 
     static const init_instance_with_shared_ptr *lookup(const void *holder_ptr) {
-        for (auto *current = tls_current_payload(); current != nullptr; current = current->previous) {
+        for (auto *current = tls_current_payload(); current != nullptr;
+             current = current->previous) {
             if (current == holder_ptr) {
                 return current;
             }

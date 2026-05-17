@@ -1027,7 +1027,8 @@ public:
         }
 
         if (tinfo != nullptr && tinfo->holder_enum_v == holder_enum_t::custom_holder) {
-            auto aliasing_owner = std::shared_ptr<void>(src, const_cast<void *>(srcs.result.cppobj));
+            auto aliasing_owner
+                = std::shared_ptr<void>(src, const_cast<void *>(srcs.result.cppobj));
             detail::init_instance_with_shared_ptr shared_ptr_payload(std::move(aliasing_owner));
             detail::init_instance_with_shared_ptr_guard shared_ptr_payload_guard(
                 &shared_ptr_payload);

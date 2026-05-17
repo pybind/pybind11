@@ -2769,13 +2769,12 @@ private:
     }
 
     template <typename H = holder_type,
-              detail::enable_if_t<std::is_constructible<H, std::shared_ptr<type>>::value, int>
-              = 0>
-    static bool init_holder_from_shared_ptr(
-        const detail::value_and_holder &v_h,
-        const detail::init_instance_with_shared_ptr &shared_ptr_payload) {
-        auto shared_ptr = std::shared_ptr<type>(shared_ptr_payload.aliasing_owner,
-                                                v_h.value_ptr<type>());
+              detail::enable_if_t<std::is_constructible<H, std::shared_ptr<type>>::value, int> = 0>
+    static bool
+    init_holder_from_shared_ptr(const detail::value_and_holder &v_h,
+                                const detail::init_instance_with_shared_ptr &shared_ptr_payload) {
+        auto shared_ptr
+            = std::shared_ptr<type>(shared_ptr_payload.aliasing_owner, v_h.value_ptr<type>());
         new (std::addressof(v_h.holder<holder_type>())) holder_type(std::move(shared_ptr));
         return true;
     }
