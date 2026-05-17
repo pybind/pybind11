@@ -101,6 +101,50 @@ public:
     }
 };
 
+struct init_instance_with_shared_ptr {
+    std::shared_ptr<void> aliasing_owner;
+    mutable const init_instance_with_shared_ptr *previous = nullptr;
+
+    explicit init_instance_with_shared_ptr(std::shared_ptr<void> aliasing_owner_)
+        : aliasing_owner(std::move(aliasing_owner_)) {}
+};
+
+class init_instance_with_shared_ptr_guard {
+private:
+    static const init_instance_with_shared_ptr *&tls_current_payload() {
+        static thread_local const init_instance_with_shared_ptr *payload_ptr = nullptr;
+        return payload_ptr;
+    }
+
+    const init_instance_with_shared_ptr *payload;
+
+public:
+    explicit init_instance_with_shared_ptr_guard(const init_instance_with_shared_ptr *payload_)
+        : payload(payload_) {
+        auto &current = tls_current_payload();
+        payload->previous = current;
+        current = payload;
+    }
+
+    ~init_instance_with_shared_ptr_guard() {
+        auto &current = tls_current_payload();
+        if (current != payload) {
+            pybind11_fail("init_instance_with_shared_ptr_guard: internal error");
+        }
+        current = payload->previous;
+    }
+
+    static const init_instance_with_shared_ptr *lookup(const void *holder_ptr) {
+        for (auto *current = tls_current_payload(); current != nullptr;
+             current = current->previous) {
+            if (current == holder_ptr) {
+                return current;
+            }
+        }
+        return nullptr;
+    }
+};
+
 // Gets the cache entry for the given type, creating it if necessary.  The return value is the pair
 // returned by emplace, i.e. an iterator for the entry and a bool set to `true` if the entry was
 // just created.
