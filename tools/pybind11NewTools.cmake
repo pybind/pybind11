@@ -78,8 +78,7 @@ if(_pybind11_findpython_required)
 
   # Callers need to be able to access Python_EXECUTABLE
   set(_pybind11_global_keyword "")
-  set(_pybind11_artifacts_interactive
-      ${_pybind11_findpython_package}_ARTIFACTS_INTERACTIVE)
+  set(_pybind11_artifacts_interactive ${_pybind11_findpython_package}_ARTIFACTS_INTERACTIVE)
   if(NOT is_config AND NOT DEFINED ${_pybind11_artifacts_interactive})
     set(${_pybind11_artifacts_interactive} TRUE)
     if(NOT CMAKE_VERSION VERSION_LESS 3.24)
@@ -88,10 +87,9 @@ if(_pybind11_findpython_required)
   endif()
 
   find_package(
-    ${_pybind11_findpython_package} 3.8 REQUIRED COMPONENTS ${_pybind11_interp_component}
-                                                            ${_pybind11_dev_component}
-                                                            ${_pybind11_quiet}
-                                                            ${_pybind11_global_keyword})
+    ${_pybind11_findpython_package} 3.8 REQUIRED
+    COMPONENTS ${_pybind11_interp_component} ${_pybind11_dev_component} ${_pybind11_quiet}
+               ${_pybind11_global_keyword})
 
   # If we are in submodule mode, export the Python targets to global targets.
   # If this behavior is not desired, FindPython _before_ pybind11.
@@ -102,7 +100,8 @@ if(_pybind11_findpython_required)
       set_property(TARGET ${_pybind11_findpython_package}::Python PROPERTY IMPORTED_GLOBAL TRUE)
     endif()
     if(TARGET ${_pybind11_findpython_package}::Interpreter)
-      set_property(TARGET ${_pybind11_findpython_package}::Interpreter PROPERTY IMPORTED_GLOBAL TRUE)
+      set_property(TARGET ${_pybind11_findpython_package}::Interpreter PROPERTY IMPORTED_GLOBAL
+                                                                                TRUE)
     endif()
     if(TARGET ${_pybind11_findpython_package}::Module)
       set_property(TARGET ${_pybind11_findpython_package}::Module PROPERTY IMPORTED_GLOBAL TRUE)
