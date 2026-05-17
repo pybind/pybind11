@@ -742,11 +742,29 @@ handle smart_holder_from_unique_ptr(std::unique_ptr<T const, D> &&src,
         cs);
 }
 
+struct shared_ptr_cast_data {
+    handle result;
+    object inst;
+    instance *inst_raw_ptr;
+    void *src_raw_void_ptr;
+    const detail::type_info *tinfo;
+
+    explicit shared_ptr_cast_data(handle result_)
+        : result(result_), inst(), inst_raw_ptr(nullptr), src_raw_void_ptr(nullptr),
+          tinfo(nullptr) {}
+
+    shared_ptr_cast_data(object &&inst_,
+                         instance *inst_raw_ptr_,
+                         void *src_raw_void_ptr_,
+                         const detail::type_info *tinfo_)
+        : result(), inst(std::move(inst_)), inst_raw_ptr(inst_raw_ptr_),
+          src_raw_void_ptr(src_raw_void_ptr_), tinfo(tinfo_) {}
+};
+
 template <typename T>
-handle smart_holder_from_shared_ptr(const std::shared_ptr<T> &src,
-                                    return_value_policy policy,
-                                    handle parent,
-                                    const cast_sources::resolved_source &cs) {
+shared_ptr_cast_data prepare_shared_ptr_cast(const std::shared_ptr<T> &src,
+                                             return_value_policy policy,
+                                             const cast_sources::resolved_source &cs) {
     switch (policy) {
         case return_value_policy::automatic:
         case return_value_policy::automatic_reference:
@@ -762,7 +780,7 @@ handle smart_holder_from_shared_ptr(const std::shared_ptr<T> &src,
             break;
     }
     if (!src) {
-        return none().release();
+        return shared_ptr_cast_data(none().release());
     }
 
     // cs.cppobj is the subobject pointer appropriate for tinfo (may differ from src.get()
@@ -771,9 +789,9 @@ handle smart_holder_from_shared_ptr(const std::shared_ptr<T> &src,
     assert(cs.tinfo != nullptr);
     const detail::type_info *tinfo = cs.tinfo;
     if (handle existing_inst = find_registered_python_instance(src_raw_void_ptr, tinfo)) {
-        // PYBIND11:REMINDER: MISSING: Enforcement of consistency with existing smart_holder.
+        // PYBIND11:REMINDER: MISSING: Enforcement of consistency with existing holder.
         // PYBIND11:REMINDER: MISSING: keep_alive.
-        return existing_inst;
+        return shared_ptr_cast_data(existing_inst);
     }
 
     auto inst = reinterpret_steal<object>(make_new_instance(tinfo->type));
@@ -781,15 +799,31 @@ handle smart_holder_from_shared_ptr(const std::shared_ptr<T> &src,
     inst_raw_ptr->owned = true;
     void *&valueptr = values_and_holders(inst_raw_ptr).begin()->value_ptr();
     valueptr = src_raw_void_ptr;
+    return shared_ptr_cast_data(std::move(inst), inst_raw_ptr, src_raw_void_ptr, tinfo);
+}
 
-    auto smhldr = smart_holder::from_shared_ptr(std::shared_ptr<void>(src, src_raw_void_ptr));
-    tinfo->init_instance(inst_raw_ptr, static_cast<const void *>(&smhldr));
-
+inline handle finish_shared_ptr_cast(object &&inst, return_value_policy policy, handle parent) {
     if (policy == return_value_policy::reference_internal) {
         keep_alive_impl(inst, parent);
     }
-
     return inst.release();
+}
+
+template <typename T>
+handle smart_holder_from_shared_ptr(const std::shared_ptr<T> &src,
+                                    return_value_policy policy,
+                                    handle parent,
+                                    const cast_sources::resolved_source &cs) {
+    auto cast_data = prepare_shared_ptr_cast(src, policy, cs);
+    if (cast_data.result) {
+        return cast_data.result;
+    }
+
+    auto smhldr
+        = smart_holder::from_shared_ptr(std::shared_ptr<void>(src, cast_data.src_raw_void_ptr));
+    cast_data.tinfo->init_instance(cast_data.inst_raw_ptr, static_cast<const void *>(&smhldr));
+
+    return finish_shared_ptr_cast(std::move(cast_data.inst), policy, parent);
 }
 
 template <typename T>
@@ -808,45 +842,15 @@ handle custom_holder_from_shared_ptr(const std::shared_ptr<T> &src,
                                      return_value_policy policy,
                                      handle parent,
                                      const cast_sources::resolved_source &cs) {
-    switch (policy) {
-        case return_value_policy::automatic:
-        case return_value_policy::automatic_reference:
-            break;
-        case return_value_policy::take_ownership:
-            throw cast_error("Invalid return_value_policy for shared_ptr (take_ownership).");
-        case return_value_policy::copy:
-        case return_value_policy::move:
-            break;
-        case return_value_policy::reference:
-            throw cast_error("Invalid return_value_policy for shared_ptr (reference).");
-        case return_value_policy::reference_internal:
-            break;
-    }
-    if (!src) {
-        return none().release();
+    auto cast_data = prepare_shared_ptr_cast(src, policy, cs);
+    if (cast_data.result) {
+        return cast_data.result;
     }
 
-    void *src_raw_void_ptr = const_cast<void *>(cs.cppobj);
-    assert(cs.tinfo != nullptr);
-    const detail::type_info *tinfo = cs.tinfo;
-    if (handle existing_inst = find_registered_python_instance(src_raw_void_ptr, tinfo)) {
-        return existing_inst;
-    }
+    auto erased_shared_ptr = std::shared_ptr<void>(src, cast_data.src_raw_void_ptr);
+    cast_data.tinfo->init_instance_from_shared_ptr(cast_data.inst_raw_ptr, &erased_shared_ptr);
 
-    auto inst = reinterpret_steal<object>(make_new_instance(tinfo->type));
-    auto *inst_raw_ptr = reinterpret_cast<instance *>(inst.ptr());
-    inst_raw_ptr->owned = true;
-    void *&valueptr = values_and_holders(inst_raw_ptr).begin()->value_ptr();
-    valueptr = src_raw_void_ptr;
-
-    auto erased_shared_ptr = std::shared_ptr<void>(src, src_raw_void_ptr);
-    tinfo->init_instance_from_shared_ptr(inst_raw_ptr, &erased_shared_ptr);
-
-    if (policy == return_value_policy::reference_internal) {
-        keep_alive_impl(inst, parent);
-    }
-
-    return inst.release();
+    return finish_shared_ptr_cast(std::move(cast_data.inst), policy, parent);
 }
 
 template <typename T>
