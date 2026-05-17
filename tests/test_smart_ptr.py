@@ -378,3 +378,14 @@ def test_shared_ptr_cast_for_custom_holder_with_private_dtor():
 
     assert shared_ptr_obj.value == 23
     assert m.get_private_dtor_with_custom_holder_shared_ptr().value == 23
+
+
+def test_shared_ptr_cast_for_incompatible_custom_holder_throws():
+    with pytest.raises(
+        RuntimeError,
+        match=(
+            "Unable to convert std::shared_ptr<T> to Python when the bound type does not use"
+            " std::shared_ptr or py::smart_holder as its holder type"
+        ),
+    ):
+        m.get_type_with_move_only_holder_shared_ptr()

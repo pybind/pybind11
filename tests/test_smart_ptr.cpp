@@ -613,6 +613,7 @@ TEST_SUBMODULE(smart_ptr, m) {
     py::class_<C, custom_unique_ptr<C>>(m, "TypeWithMoveOnlyHolder")
         .def_static("make", []() { return custom_unique_ptr<C>(new C); })
         .def_static("make_as_object", []() { return py::cast(custom_unique_ptr<C>(new C)); });
+    m.def("get_type_with_move_only_holder_shared_ptr", []() { return std::make_shared<C>(); });
 
     // test_holder_with_addressof_operator
     using HolderWithAddressOf = shared_ptr_with_addressof_operator<TypeForHolderWithAddressOf>;
