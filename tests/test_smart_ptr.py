@@ -371,6 +371,14 @@ def test_const_only_holder():
 
 
 def test_shared_ptr_cast_for_custom_holder_with_private_dtor():
+    fresh_shared_ptr_obj = m.make_private_dtor_with_custom_holder_shared_ptr()
+    fresh_const_shared_ptr_obj = (
+        m.make_private_dtor_with_custom_holder_const_shared_ptr()
+    )
+
+    assert fresh_shared_ptr_obj.value == 41
+    assert fresh_const_shared_ptr_obj.value == 43
+
     holder_obj = m.PrivateDtorWithCustomHolder.get_singleton_holder()
     shared_ptr_obj = m.get_private_dtor_with_custom_holder_shared_ptr()
     const_shared_ptr_obj = m.get_private_dtor_with_custom_holder_const_shared_ptr()
