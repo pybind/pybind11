@@ -554,6 +554,10 @@ TEST_SUBMODULE(smart_ptr, m) {
         });
     m.def("get_private_dtor_with_custom_holder_shared_ptr",
           []() { return private_dtor_with_custom_holder_singleton(); });
+    m.def("get_private_dtor_with_custom_holder_const_shared_ptr", []() {
+        return std::shared_ptr<const PrivateDtorWithCustomHolder>(
+            private_dtor_with_custom_holder_singleton());
+    });
 
     // test_shared_ptr_and_references
     using A = SharedPtrRef::A;
