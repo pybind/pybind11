@@ -48,7 +48,8 @@ jobs:
             python-version: '3.14t'
             cmake-args: -DCMAKE_CXX_STANDARD=17 -DPYBIND11_TEST_SMART_HOLDER=ON
           - runs-on: ubuntu-latest
-            python-version: 'pypy3.11'
+            # Temporarily pinned pending investigation in issue #6049.
+            python-version: 'pypy-3.11-v7.3.21'
             cmake-args: -DCMAKE_CXX_STANDARD=17
           - runs-on: ubuntu-latest
             python-version: 'graalpy-24.2'
