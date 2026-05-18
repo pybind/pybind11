@@ -368,3 +368,27 @@ def test_move_only_holder_caster_shared_ptr_with_smart_holder_support_enabled():
 def test_const_only_holder():
     o = m.MyObject6("my_data")
     assert o.value == "my_data"
+
+
+@pytest.mark.parametrize(
+    "cast_shared_ptr",
+    [
+        pytest.param(
+            m.get_type_with_move_only_holder_shared_ptr,
+            id="incompatible-custom-holder",
+        ),
+        pytest.param(
+            m.get_issue6064_unsafe_path_shared_ptr,
+            id="issue6064-unsafe-path",
+        ),
+    ],
+)
+def test_shared_ptr_cast_for_custom_holder_throws(cast_shared_ptr):
+    with pytest.raises(
+        RuntimeError,
+        match=(
+            "Unable to convert std::shared_ptr<T> to Python when the bound type does not use"
+            " std::shared_ptr or py::smart_holder as its holder type"
+        ),
+    ):
+        cast_shared_ptr()
