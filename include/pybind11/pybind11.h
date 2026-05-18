@@ -1825,6 +1825,7 @@ protected:
         tinfo->holder_size_in_ptrs = size_in_ptrs(rec.holder_size);
         tinfo->init_instance = rec.init_instance;
         tinfo->dealloc = rec.dealloc;
+        tinfo->init_instance_from_shared_ptr = rec.init_instance_from_shared_ptr;
         tinfo->get_trampoline_self_life_support = rec.get_trampoline_self_life_support;
         tinfo->simple_type = true;
         tinfo->simple_ancestors = true;
@@ -2361,6 +2362,7 @@ public:
         record.type_align = alignof(conditional_t<has_alias, type_alias, type> &);
         record.holder_size = sizeof(holder_type);
         record.init_instance = init_instance;
+        record.init_instance_from_shared_ptr = get_init_instance_from_shared_ptr();
 
         if (detail::is_instantiation<std::unique_ptr, holder_type>::value) {
             record.holder_enum_v = detail::holder_enum_t::std_unique_ptr;
@@ -2781,6 +2783,35 @@ private:
             new (std::addressof(v_h.holder<holder_type>())) holder_type(v_h.value_ptr<type>());
             v_h.set_holder_constructed();
         }
+    }
+
+    template <typename H = holder_type,
+              detail::enable_if_t<std::is_constructible<H, std::shared_ptr<type>>::value, int> = 0>
+    static void init_instance_from_shared_ptr(detail::instance *inst,
+                                              const std::shared_ptr<void> *shared_ptr_void_ptr) {
+        auto v_h = inst->get_value_and_holder(detail::get_type_info(typeid(type)));
+        if (!v_h.instance_registered()) {
+            register_instance(inst, v_h.value_ptr(), v_h.type);
+            v_h.set_instance_registered();
+        }
+        auto shared_ptr = std::shared_ptr<type>(*shared_ptr_void_ptr, v_h.value_ptr<type>());
+        new (std::addressof(v_h.holder<holder_type>())) holder_type(std::move(shared_ptr));
+        v_h.set_holder_constructed();
+    }
+
+    template <typename H = holder_type,
+              detail::enable_if_t<std::is_constructible<H, std::shared_ptr<type>>::value, int> = 0>
+    static constexpr auto get_init_instance_from_shared_ptr()
+        -> void (*)(detail::instance *, const std::shared_ptr<void> *) {
+        return &init_instance_from_shared_ptr<>;
+    }
+
+    template <typename H = holder_type,
+              detail::enable_if_t<!std::is_constructible<H, std::shared_ptr<type>>::value, int>
+              = 0>
+    static constexpr auto get_init_instance_from_shared_ptr()
+        -> void (*)(detail::instance *, const std::shared_ptr<void> *) {
+        return nullptr;
     }
 
     /// Performs instance initialization including constructing a holder and registering the known

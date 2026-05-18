@@ -742,11 +742,12 @@ handle smart_holder_from_unique_ptr(std::unique_ptr<T const, D> &&src,
         cs);
 }
 
-template <typename T>
-handle smart_holder_from_shared_ptr(const std::shared_ptr<T> &src,
-                                    return_value_policy policy,
-                                    handle parent,
-                                    const cast_sources::resolved_source &cs) {
+template <typename T, typename InitHolder>
+handle cast_shared_ptr_with_holder(const std::shared_ptr<T> &src,
+                                   return_value_policy policy,
+                                   handle parent,
+                                   const cast_sources::resolved_source &cs,
+                                   InitHolder &&init_holder) {
     switch (policy) {
         case return_value_policy::automatic:
         case return_value_policy::automatic_reference:
@@ -771,7 +772,7 @@ handle smart_holder_from_shared_ptr(const std::shared_ptr<T> &src,
     assert(cs.tinfo != nullptr);
     const detail::type_info *tinfo = cs.tinfo;
     if (handle existing_inst = find_registered_python_instance(src_raw_void_ptr, tinfo)) {
-        // PYBIND11:REMINDER: MISSING: Enforcement of consistency with existing smart_holder.
+        // PYBIND11:REMINDER: MISSING: Enforcement of consistency with existing holder.
         // PYBIND11:REMINDER: MISSING: keep_alive.
         return existing_inst;
     }
@@ -782,14 +783,32 @@ handle smart_holder_from_shared_ptr(const std::shared_ptr<T> &src,
     void *&valueptr = values_and_holders(inst_raw_ptr).begin()->value_ptr();
     valueptr = src_raw_void_ptr;
 
-    auto smhldr = smart_holder::from_shared_ptr(std::shared_ptr<void>(src, src_raw_void_ptr));
-    tinfo->init_instance(inst_raw_ptr, static_cast<const void *>(&smhldr));
+    init_holder(tinfo, inst_raw_ptr, src, src_raw_void_ptr);
 
     if (policy == return_value_policy::reference_internal) {
         keep_alive_impl(inst, parent);
     }
-
     return inst.release();
+}
+
+template <typename T>
+handle smart_holder_from_shared_ptr(const std::shared_ptr<T> &src,
+                                    return_value_policy policy,
+                                    handle parent,
+                                    const cast_sources::resolved_source &cs) {
+    return cast_shared_ptr_with_holder(
+        src,
+        policy,
+        parent,
+        cs,
+        [](const detail::type_info *tinfo,
+           instance *inst_raw_ptr,
+           const std::shared_ptr<T> &shared_ptr,
+           void *src_raw_void_ptr) {
+            auto smhldr = smart_holder::from_shared_ptr(
+                std::shared_ptr<void>(shared_ptr, src_raw_void_ptr));
+            tinfo->init_instance(inst_raw_ptr, static_cast<const void *>(&smhldr));
+        });
 }
 
 template <typename T>
@@ -801,6 +820,36 @@ handle smart_holder_from_shared_ptr(const std::shared_ptr<T const> &src,
                                         policy,
                                         parent,
                                         cs);
+}
+
+template <typename T>
+handle custom_holder_from_shared_ptr(const std::shared_ptr<T> &src,
+                                     return_value_policy policy,
+                                     handle parent,
+                                     const cast_sources::resolved_source &cs) {
+    return cast_shared_ptr_with_holder(
+        src,
+        policy,
+        parent,
+        cs,
+        [](const detail::type_info *tinfo,
+           instance *inst_raw_ptr,
+           const std::shared_ptr<T> &shared_ptr,
+           void *src_raw_void_ptr) {
+            auto erased_shared_ptr = std::shared_ptr<void>(shared_ptr, src_raw_void_ptr);
+            tinfo->init_instance_from_shared_ptr(inst_raw_ptr, &erased_shared_ptr);
+        });
+}
+
+template <typename T>
+handle custom_holder_from_shared_ptr(const std::shared_ptr<T const> &src,
+                                     return_value_policy policy,
+                                     handle parent,
+                                     const cast_sources::resolved_source &cs) {
+    return custom_holder_from_shared_ptr(std::const_pointer_cast<T>(src), // Const2Mutbl
+                                         policy,
+                                         parent,
+                                         cs);
 }
 
 struct shared_ptr_parent_life_support {
