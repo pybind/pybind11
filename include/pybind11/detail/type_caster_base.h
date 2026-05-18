@@ -743,14 +743,15 @@ handle smart_holder_from_unique_ptr(std::unique_ptr<T const, D> &&src,
 }
 
 struct shared_ptr_cast_data {
-    handle result;
+    object result;
     object inst;
     instance *inst_raw_ptr;
     void *src_raw_void_ptr;
     const detail::type_info *tinfo;
 
-    explicit shared_ptr_cast_data(handle result_)
-        : result(result_), inst_raw_ptr(nullptr), src_raw_void_ptr(nullptr), tinfo(nullptr) {}
+    explicit shared_ptr_cast_data(object &&result_)
+        : result(std::move(result_)), inst_raw_ptr(nullptr), src_raw_void_ptr(nullptr),
+          tinfo(nullptr) {}
 
     shared_ptr_cast_data(object &&inst_,
                          instance *inst_raw_ptr_,
@@ -779,7 +780,7 @@ shared_ptr_cast_data prepare_shared_ptr_cast(const std::shared_ptr<T> &src,
             break;
     }
     if (!src) {
-        return shared_ptr_cast_data(none().release());
+        return shared_ptr_cast_data(reinterpret_steal<object>(none().release()));
     }
 
     // cs.cppobj is the subobject pointer appropriate for tinfo (may differ from src.get()
@@ -790,7 +791,7 @@ shared_ptr_cast_data prepare_shared_ptr_cast(const std::shared_ptr<T> &src,
     if (handle existing_inst = find_registered_python_instance(src_raw_void_ptr, tinfo)) {
         // PYBIND11:REMINDER: MISSING: Enforcement of consistency with existing holder.
         // PYBIND11:REMINDER: MISSING: keep_alive.
-        return shared_ptr_cast_data(existing_inst);
+        return shared_ptr_cast_data(reinterpret_steal<object>(existing_inst));
     }
 
     auto inst = reinterpret_steal<object>(make_new_instance(tinfo->type));
@@ -815,7 +816,7 @@ handle smart_holder_from_shared_ptr(const std::shared_ptr<T> &src,
                                     const cast_sources::resolved_source &cs) {
     auto cast_data = prepare_shared_ptr_cast(src, policy, cs);
     if (cast_data.result) {
-        return cast_data.result;
+        return cast_data.result.release();
     }
 
     auto smhldr
@@ -843,7 +844,7 @@ handle custom_holder_from_shared_ptr(const std::shared_ptr<T> &src,
                                      const cast_sources::resolved_source &cs) {
     auto cast_data = prepare_shared_ptr_cast(src, policy, cs);
     if (cast_data.result) {
-        return cast_data.result;
+        return cast_data.result.release();
     }
 
     auto erased_shared_ptr = std::shared_ptr<void>(src, cast_data.src_raw_void_ptr);
