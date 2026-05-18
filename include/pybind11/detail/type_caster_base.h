@@ -750,15 +750,14 @@ struct shared_ptr_cast_data {
     const detail::type_info *tinfo;
 
     explicit shared_ptr_cast_data(handle result_)
-        : result(result_), inst(), inst_raw_ptr(nullptr), src_raw_void_ptr(nullptr),
-          tinfo(nullptr) {}
+        : result(result_), inst_raw_ptr(nullptr), src_raw_void_ptr(nullptr), tinfo(nullptr) {}
 
     shared_ptr_cast_data(object &&inst_,
                          instance *inst_raw_ptr_,
                          void *src_raw_void_ptr_,
                          const detail::type_info *tinfo_)
-        : result(), inst(std::move(inst_)), inst_raw_ptr(inst_raw_ptr_),
-          src_raw_void_ptr(src_raw_void_ptr_), tinfo(tinfo_) {}
+        : inst(std::move(inst_)), inst_raw_ptr(inst_raw_ptr_), src_raw_void_ptr(src_raw_void_ptr_),
+          tinfo(tinfo_) {}
 };
 
 template <typename T>
