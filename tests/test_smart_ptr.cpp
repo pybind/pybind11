@@ -84,7 +84,7 @@ private:
 };
 
 template <typename T>
-class shared_ptr_as_custom_holder {
+class shared_ptr_as_custom_holder { // Issue #6064
     std::shared_ptr<T> ptr_;
 
 public:
@@ -259,7 +259,7 @@ struct SharedFromThisRef {
     std::shared_ptr<B> shared = std::make_shared<B>();
 };
 
-class PrivateDtorWithCustomHolder {
+class PrivateDtorWithCustomHolder { // Issue #6064
 public:
     static std::shared_ptr<PrivateDtorWithCustomHolder> create(int value) {
         return {new PrivateDtorWithCustomHolder(value),
