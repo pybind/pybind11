@@ -310,11 +310,11 @@ struct type_record {
     /// Function pointer to class_<..>::init_instance
     void (*init_instance)(instance *, const void *) = nullptr;
 
-    /// Function pointer to class_<..>::dealloc
-    void (*dealloc)(detail::value_and_holder &) = nullptr;
-
     /// Function pointer to construct a bound holder from an erased std::shared_ptr.
     void (*init_instance_from_shared_ptr)(instance *, const std::shared_ptr<void> *) = nullptr;
+
+    /// Function pointer to class_<..>::dealloc
+    void (*dealloc)(detail::value_and_holder &) = nullptr;
 
     /// Function pointer for casting alias class (aka trampoline) pointer to
     /// trampoline_self_life_support pointer. Sidesteps cross-DSO RTTI issues
