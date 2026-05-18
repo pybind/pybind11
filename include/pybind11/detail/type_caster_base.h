@@ -797,10 +797,14 @@ handle smart_holder_from_shared_ptr(const std::shared_ptr<T> &src,
                                     handle parent,
                                     const cast_sources::resolved_source &cs) {
     return cast_shared_ptr_with_holder(
-        src, policy, parent, cs, [](const detail::type_info *tinfo,
-                                    instance *inst_raw_ptr,
-                                    const std::shared_ptr<T> &shared_ptr,
-                                    void *src_raw_void_ptr) {
+        src,
+        policy,
+        parent,
+        cs,
+        [](const detail::type_info *tinfo,
+           instance *inst_raw_ptr,
+           const std::shared_ptr<T> &shared_ptr,
+           void *src_raw_void_ptr) {
             auto smhldr = smart_holder::from_shared_ptr(
                 std::shared_ptr<void>(shared_ptr, src_raw_void_ptr));
             tinfo->init_instance(inst_raw_ptr, static_cast<const void *>(&smhldr));
@@ -824,10 +828,14 @@ handle custom_holder_from_shared_ptr(const std::shared_ptr<T> &src,
                                      handle parent,
                                      const cast_sources::resolved_source &cs) {
     return cast_shared_ptr_with_holder(
-        src, policy, parent, cs, [](const detail::type_info *tinfo,
-                                    instance *inst_raw_ptr,
-                                    const std::shared_ptr<T> &shared_ptr,
-                                    void *src_raw_void_ptr) {
+        src,
+        policy,
+        parent,
+        cs,
+        [](const detail::type_info *tinfo,
+           instance *inst_raw_ptr,
+           const std::shared_ptr<T> &shared_ptr,
+           void *src_raw_void_ptr) {
             auto erased_shared_ptr = std::shared_ptr<void>(shared_ptr, src_raw_void_ptr);
             tinfo->init_instance_from_shared_ptr(inst_raw_ptr, &erased_shared_ptr);
         });
