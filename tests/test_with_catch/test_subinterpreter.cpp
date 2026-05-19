@@ -188,8 +188,7 @@ TEST_CASE("Cached Subinterpreter thread state") {
         py::gil_scoped_release nogil;
         std::thread([&]() {
             {
-                py::subinterpreter_scoped_activate a(sub,
-                                                     py::subinterpreter_thread_state::cached);
+                py::subinterpreter_scoped_activate a(sub, py::subinterpreter_thread_state::cached);
                 worker_ts = PyThreadState_Get();
             }
             // The owning thread releases its own cached state before exiting.

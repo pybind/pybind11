@@ -65,9 +65,9 @@ class subinterpreter;
 /// associated GIL are restored to their state as they were before the scope was entered.
 class subinterpreter_scoped_activate {
 public:
-    explicit subinterpreter_scoped_activate(
-        subinterpreter const &si,
-        subinterpreter_thread_state ts_policy = subinterpreter_thread_state::transient);
+    explicit subinterpreter_scoped_activate(subinterpreter const &si,
+                                            subinterpreter_thread_state ts_policy
+                                            = subinterpreter_thread_state::transient);
     ~subinterpreter_scoped_activate();
 
     subinterpreter_scoped_activate(subinterpreter_scoped_activate &&) = delete;
