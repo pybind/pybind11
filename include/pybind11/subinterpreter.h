@@ -14,12 +14,49 @@
 #include "gil.h"
 
 #include <stdexcept>
+#include <unordered_map>
 
 #ifndef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
 #    error "This platform does not support subinterpreters, do not include this file."
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+
+PYBIND11_NAMESPACE_BEGIN(detail)
+
+/// OS-thread-local cache mapping a target interpreter to the PyThreadState that was created for
+/// it *on the current OS thread*.  Used by subinterpreter_scoped_activate when
+/// subinterpreter_thread_state::cached is requested, so that repeatedly entering the same
+/// interpreter from the same OS thread reuses one PyThreadState (swapped in/out) instead of
+/// allocating and destroying a fresh one each time.
+///
+/// The values are raw, non-owning pointers.  At thread exit the map's destructor only frees its
+/// own nodes; it deliberately does NOT touch the Python C API (which may be unusable at that
+/// point), so a cached PyThreadState is leaked unless the owning thread first calls
+/// subinterpreter::release_cached_thread_state() or
+/// subinterpreter::release_all_cached_thread_states().
+inline std::unordered_map<PyInterpreterState *, PyThreadState *> &
+subinterpreter_thread_state_cache() {
+    thread_local std::unordered_map<PyInterpreterState *, PyThreadState *> cache;
+    return cache;
+}
+
+PYBIND11_NAMESPACE_END(detail)
+
+/// Selects how subinterpreter_scoped_activate obtains a PyThreadState when the calling OS thread
+/// is not already running the target interpreter.
+enum class subinterpreter_thread_state {
+    /// Default / legacy behavior: a fresh PyThreadState is created on activation and destroyed
+    /// when the scope exits.
+    transient,
+    /// Reuse (or, on first use, create-and-cache) a PyThreadState held in OS-thread-local
+    /// storage, keyed by the target interpreter.  The scope only swaps it in and out and never
+    /// destroys it.  The owning thread is responsible for eventually destroying it via
+    /// subinterpreter::release_cached_thread_state() /
+    /// subinterpreter::release_all_cached_thread_states(); see those functions for the
+    /// preconditions.
+    cached
+};
 
 class subinterpreter;
 
@@ -28,7 +65,9 @@ class subinterpreter;
 /// associated GIL are restored to their state as they were before the scope was entered.
 class subinterpreter_scoped_activate {
 public:
-    explicit subinterpreter_scoped_activate(subinterpreter const &si);
+    explicit subinterpreter_scoped_activate(
+        subinterpreter const &si,
+        subinterpreter_thread_state ts_policy = subinterpreter_thread_state::transient);
     ~subinterpreter_scoped_activate();
 
     subinterpreter_scoped_activate(subinterpreter_scoped_activate &&) = delete;
@@ -41,6 +80,9 @@ private:
     PyThreadState *tstate_ = nullptr;
     PyGILState_STATE gil_state_;
     bool simple_gil_ = false;
+    // When true, tstate_ is owned by the OS-thread-local cache and must NOT be destroyed when
+    // this scope exits (only swapped out).
+    bool cached_ = false;
 };
 
 /// Holds a Python subinterpreter instance
@@ -216,6 +258,26 @@ public:
     /// Get the interpreter's state dict.  This interpreter's GIL must be held before calling!
     dict state_dict() { return reinterpret_borrow<dict>(PyInterpreterState_GetDict(istate_)); }
 
+    /// Destroy the PyThreadState (if any) that subinterpreter_thread_state::cached created for
+    /// THIS interpreter on the CURRENT OS thread, and drop it from that thread's cache.
+    ///
+    /// Call this on the same OS thread that activated the interpreter, while this subinterpreter
+    /// is still alive, and while no subinterpreter_scoped_activate scope for it is active on this
+    /// thread.  It is a no-op if this thread has no cached state for this interpreter.  The caller
+    /// need not hold any GIL: the cached state is briefly swapped in (acquiring this interpreter's
+    /// GIL) to be cleared and deleted, then whatever was active before is restored.
+    void release_cached_thread_state() const;
+
+    /// Destroy every cached PyThreadState that was created on the CURRENT OS thread (for any
+    /// interpreter) and clear this thread's cache.  Intended as an end-of-thread cleanup hook for
+    /// embedder worker threads.
+    ///
+    /// Every interpreter that still has a cached state on this thread MUST still be alive when
+    /// this is called (deleting a PyThreadState whose interpreter was already finalized is
+    /// undefined behavior).  Must be called on the OS thread that owns the cache, with no
+    /// subinterpreter_scoped_activate scope using a cached state active on this thread.
+    static void release_all_cached_thread_states();
+
     /// abandon cleanup of this subinterpreter (leak it). this might be needed during
     /// finalization...
     void disarm() { creation_tstate_ = nullptr; }
@@ -244,7 +306,8 @@ private:
     subinterpreter_scoped_activate scope_;
 };
 
-inline subinterpreter_scoped_activate::subinterpreter_scoped_activate(subinterpreter const &si) {
+inline subinterpreter_scoped_activate::subinterpreter_scoped_activate(
+    subinterpreter const &si, subinterpreter_thread_state ts_policy) {
     if (!si.istate_) {
         pybind11_fail("null subinterpreter");
     }
@@ -256,9 +319,25 @@ inline subinterpreter_scoped_activate::subinterpreter_scoped_activate(subinterpr
         return;
     }
 
-    // we can't really interact with the interpreter at all until we switch to it
-    // not even to, for example, look in its state dict or touch its internals
-    tstate_ = PyThreadState_New(si.istate_);
+    if (ts_policy == subinterpreter_thread_state::cached) {
+        // Reuse a PyThreadState held in this OS thread's cache, or create one and cache it.
+        // This preserves PyThreadState identity (and its per-thread interpreter state) across
+        // repeated activations of the same interpreter from the same OS thread, instead of
+        // creating and destroying a fresh state every time.
+        auto &cache = detail::subinterpreter_thread_state_cache();
+        auto it = cache.find(si.istate_);
+        if (it != cache.end()) {
+            tstate_ = it->second;
+        } else {
+            tstate_ = PyThreadState_New(si.istate_);
+            cache.emplace(si.istate_, tstate_);
+        }
+        cached_ = true;
+    } else {
+        // we can't really interact with the interpreter at all until we switch to it
+        // not even to, for example, look in its state dict or touch its internals
+        tstate_ = PyThreadState_New(si.istate_);
+    }
 
     // make the interpreter active and acquire the GIL
     old_tstate_ = PyThreadState_Swap(tstate_);
@@ -279,13 +358,51 @@ inline subinterpreter_scoped_activate::~subinterpreter_scoped_activate() {
             }
 #endif
             detail::get_internals().tstate.reset();
-            PyThreadState_Clear(tstate_);
-            PyThreadState_DeleteCurrent();
+            if (!cached_) {
+                PyThreadState_Clear(tstate_);
+                PyThreadState_DeleteCurrent();
+            }
+            // When cached_, tstate_ stays alive in the OS-thread-local cache for reuse; the
+            // PyThreadState_Swap below merely detaches it from this thread.
         }
 
         // Go back the previous interpreter (if any) and acquire THAT gil
         PyThreadState_Swap(old_tstate_);
     }
+}
+
+inline void subinterpreter::release_cached_thread_state() const {
+    if (istate_ == nullptr) {
+        return;
+    }
+    auto &cache = detail::subinterpreter_thread_state_cache();
+    auto it = cache.find(istate_);
+    if (it == cache.end()) {
+        return;
+    }
+    PyThreadState *cached = it->second;
+    cache.erase(it);
+
+    // Make the cached state current (acquiring this interpreter's GIL) so it can be cleared and
+    // destroyed on the OS thread that created it, then restore whatever was active before.
+    PyThreadState *prev = PyThreadState_Swap(cached);
+    PyThreadState_Clear(cached);
+    PyThreadState_DeleteCurrent();
+    PyThreadState_Swap(prev);
+}
+
+inline void subinterpreter::release_all_cached_thread_states() {
+    auto &cache = detail::subinterpreter_thread_state_cache();
+    for (auto const &entry : cache) {
+        PyThreadState *cached = entry.second;
+        // prev is the state active before this swap; it is restored after each deletion, so it is
+        // never one of the cached states being destroyed here.
+        PyThreadState *prev = PyThreadState_Swap(cached);
+        PyThreadState_Clear(cached);
+        PyThreadState_DeleteCurrent();
+        PyThreadState_Swap(prev);
+    }
+    cache.clear();
 }
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

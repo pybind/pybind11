@@ -345,6 +345,66 @@ Example:
     }
 
 
+Reusing a thread state (cached activation)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+By default, when a thread activates a sub-interpreter it is not already running,
+:class:`subinterpreter_scoped_activate` creates a fresh ``PyThreadState`` and
+destroys it when the scope ends. A thread that repeatedly enters the same
+sub-interpreter therefore allocates and frees a thread state every time, and
+does **not** preserve any per-thread interpreter state between activations.
+
+For workloads that repeatedly re-enter the same sub-interpreter from the same OS
+thread, you can opt into a cached mode by passing
+:enum:`subinterpreter_thread_state::cached`:
+
+.. code-block:: cpp
+
+    {
+        // First activation on this OS thread creates a PyThreadState and caches it
+        // in thread-local storage, keyed by the target interpreter.
+        py::subinterpreter_scoped_activate guard(
+            sub, py::subinterpreter_thread_state::cached);
+        // ... use the sub-interpreter ...
+    }
+    // The PyThreadState is swapped out but NOT destroyed.
+
+    {
+        // Subsequent activations on the same OS thread reuse the cached
+        // PyThreadState (only a swap, no allocation) and preserve its
+        // per-thread interpreter state.
+        py::subinterpreter_scoped_activate guard(
+            sub, py::subinterpreter_thread_state::cached);
+    }
+
+The default behavior is unchanged: the parameter defaults to
+:enum:`subinterpreter_thread_state::transient`, and the cache is only consulted
+when ``cached`` is explicitly requested. ``transient`` and ``cached``
+activations never share a thread state, even for the same interpreter on the
+same thread.
+
+Because pybind11 does not control thread creation or destruction, a cached
+``PyThreadState`` is **not** destroyed automatically. The owning OS thread must
+explicitly release it before the sub-interpreter is destroyed (and before that
+thread exits, to avoid a leak):
+
+- :func:`subinterpreter::release_cached_thread_state` destroys the cached
+  thread state that the **calling** OS thread created for **that one**
+  sub-interpreter.
+- :func:`subinterpreter::release_all_cached_thread_states` destroys every
+  cached thread state the **calling** OS thread created (for any
+  sub-interpreter); it is a convenient end-of-thread cleanup hook.
+
+.. warning::
+
+    Call the release functions on the same OS thread that activated the
+    sub-interpreter, while that sub-interpreter is still alive, and while no
+    :class:`subinterpreter_scoped_activate` scope using the cached state is
+    active on that thread. Destroying a cached ``PyThreadState`` whose
+    interpreter has already been finalized is undefined behavior. The cache is
+    per OS thread: a thread cannot release another thread's cached states, so
+    each worker thread is responsible for its own cleanup before it exits.
+
 GIL API for sub-interpreters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

@@ -153,6 +153,61 @@ TEST_CASE("Move Subinterpreter") {
 }
 #    endif
 
+TEST_CASE("Cached Subinterpreter thread state") {
+    py::subinterpreter sub = py::subinterpreter::create();
+
+    PyThreadState *main_a = nullptr;
+    PyThreadState *main_b = nullptr;
+    PyThreadState *transient_ts = nullptr;
+    PyThreadState *worker_ts = nullptr;
+
+    {
+        py::subinterpreter_scoped_activate a(sub, py::subinterpreter_thread_state::cached);
+        main_a = PyThreadState_Get();
+        py::list(py::module_::import("sys").attr("path")).append(py::str("."));
+    }
+    {
+        py::subinterpreter_scoped_activate a(sub, py::subinterpreter_thread_state::cached);
+        main_b = PyThreadState_Get();
+    }
+
+    // Same OS thread + same interpreter + cached policy => the PyThreadState is reused.
+    REQUIRE(main_a != nullptr);
+    REQUIRE(main_a == main_b);
+
+    // The default (transient) policy must not reuse the cached state: while the cached state is
+    // still alive, a transient activation gets a distinct PyThreadState.
+    {
+        py::subinterpreter_scoped_activate a(sub);
+        transient_ts = PyThreadState_Get();
+    }
+    REQUIRE(transient_ts != main_a);
+
+    // A different OS thread gets its own cached state (both alive => distinct pointers).
+    {
+        py::gil_scoped_release nogil;
+        std::thread([&]() {
+            {
+                py::subinterpreter_scoped_activate a(sub,
+                                                     py::subinterpreter_thread_state::cached);
+                worker_ts = PyThreadState_Get();
+            }
+            // The owning thread releases its own cached state before exiting.
+            sub.release_cached_thread_state();
+        }).join();
+    }
+    REQUIRE(worker_ts != nullptr);
+    REQUIRE(worker_ts != main_a);
+
+    // Release this thread's cached state; a second release is a safe no-op, and release_all on a
+    // now-empty cache must not crash.
+    sub.release_cached_thread_state();
+    sub.release_cached_thread_state();
+    py::subinterpreter::release_all_cached_thread_states();
+
+    unsafe_reset_internals_for_single_interpreter();
+}
+
 TEST_CASE("GIL Subinterpreter") {
 
     PyInterpreterState *main_interp = PyInterpreterState_Get();
