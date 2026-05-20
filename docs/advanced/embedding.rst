@@ -345,65 +345,71 @@ Example:
     }
 
 
-Reusing a thread state (cached activation)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Reusing a thread state across activations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-By default, when a thread activates a sub-interpreter it is not already running,
-:class:`subinterpreter_scoped_activate` creates a fresh ``PyThreadState`` and
-destroys it when the scope ends. A thread that repeatedly enters the same
-sub-interpreter therefore allocates and frees a thread state every time, and
-does **not** preserve any per-thread interpreter state between activations.
+By default, :class:`subinterpreter_scoped_activate` creates a fresh
+``PyThreadState`` on entry and destroys it on exit. A thread that repeatedly
+re-enters the same sub-interpreter therefore allocates and frees a thread state
+every time, and does **not** preserve any per-thread interpreter state between
+activations.
 
-For workloads that repeatedly re-enter the same sub-interpreter from the same OS
-thread, you can opt into a cached mode by passing
-:enum:`subinterpreter_thread_state::cached`:
+For workloads where a single OS thread re-enters one or more sub-interpreters
+many times, pybind11 provides :class:`subinterpreter_thread_state` — an RAII
+object that owns a ``PyThreadState`` and lets you swap it in for the duration
+of each :class:`subinterpreter_scoped_activate` scope without destroying it
+between activations:
 
 .. code-block:: cpp
 
+    // Create the PyThreadState once. It is created in a "released" state:
+    // not current, no GIL acquired.
+    thread_local py::subinterpreter_thread_state ts(sub);
+
     {
-        // First activation on this OS thread creates a PyThreadState and caches it
-        // in thread-local storage, keyed by the target interpreter.
-        py::subinterpreter_scoped_activate guard(
-            sub, py::subinterpreter_thread_state::cached);
+        // Swap it in; the subinterpreter's GIL is acquired.
+        py::subinterpreter_scoped_activate guard(ts);
         // ... use the sub-interpreter ...
     }
-    // The PyThreadState is swapped out but NOT destroyed.
+    // Swap-out only; the PyThreadState is kept alive in `ts`.
 
     {
-        // Subsequent activations on the same OS thread reuse the cached
-        // PyThreadState (only a swap, no allocation) and preserve its
-        // per-thread interpreter state.
-        py::subinterpreter_scoped_activate guard(
-            sub, py::subinterpreter_thread_state::cached);
+        py::subinterpreter_scoped_activate guard(ts);
+        // The same PyThreadState is re-used; its per-thread interpreter state
+        // is preserved across activations.
     }
 
-The default behavior is unchanged: the parameter defaults to
-:enum:`subinterpreter_thread_state::transient`, and the cache is only consulted
-when ``cached`` is explicitly requested. ``transient`` and ``cached``
-activations never share a thread state, even for the same interpreter on the
-same thread.
+This composes naturally with multiple sub-interpreters on the same OS thread:
+hold one :class:`subinterpreter_thread_state` per sub-interpreter and alternate
+between them. Each ``PyThreadState`` is independent and is preserved across
+activations.
 
-Because pybind11 does not control thread creation or destruction, a cached
-``PyThreadState`` is **not** destroyed automatically. The owning OS thread must
-explicitly release it before the sub-interpreter is destroyed (and before that
-thread exits, to avoid a leak):
+.. code-block:: cpp
 
-- :func:`subinterpreter::release_cached_thread_state` destroys the cached
-  thread state that the **calling** OS thread created for **that one**
-  sub-interpreter.
-- :func:`subinterpreter::release_all_cached_thread_states` destroys every
-  cached thread state the **calling** OS thread created (for any
-  sub-interpreter); it is a convenient end-of-thread cleanup hook.
+    thread_local py::subinterpreter_thread_state ts_a(sub_a);
+    thread_local py::subinterpreter_thread_state ts_b(sub_b);
+
+    { py::subinterpreter_scoped_activate guard(ts_a); /* in sub_a */ }
+    { py::subinterpreter_scoped_activate guard(ts_b); /* in sub_b */ }
+    { py::subinterpreter_scoped_activate guard(ts_a); /* same PyThreadState as before */ }
+
+The default behavior is unchanged: the
+:class:`subinterpreter_scoped_activate(subinterpreter const&)` overload still
+creates and destroys a transient ``PyThreadState`` per scope, and it never
+shares a thread state with any :class:`subinterpreter_thread_state` that may
+also exist for the same sub-interpreter on the same thread.
 
 .. warning::
 
-    Call the release functions on the same OS thread that activated the
-    sub-interpreter, while that sub-interpreter is still alive, and while no
-    :class:`subinterpreter_scoped_activate` scope using the cached state is
-    active on that thread. Destroying a cached ``PyThreadState`` whose
-    interpreter has already been finalized is undefined behavior. The cache is
-    per OS thread: a thread cannot release another thread's cached states, so
-    each worker thread is responsible for its own cleanup before it exits.
+    Lifetime and threading requirements for :class:`subinterpreter_thread_state`:
+
+    - It must be constructed and destroyed on the **same OS thread**. A
+      ``PyThreadState`` is bound to its creating thread; deleting it on another
+      thread is undefined behavior. Holding the object as a ``thread_local``
+      satisfies this automatically.
+    - It must be destroyed while its sub-interpreter is still alive.
+    - It must **not** be destroyed while a :class:`subinterpreter_scoped_activate`
+      referring to it is alive — the activator holds a reference into it.
 
 GIL API for sub-interpreters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
