@@ -114,7 +114,8 @@ add_library(pybind11::python_link_helper IMPORTED INTERFACE ${optional_global})
 set_property(
   TARGET pybind11::python_link_helper
   APPEND
-  PROPERTY INTERFACE_LINK_OPTIONS "$<$<PLATFORM_ID:Darwin,iOS,tvOS,watchOS,visionOS>:LINKER:-undefined,dynamic_lookup>")
+  PROPERTY INTERFACE_LINK_OPTIONS
+           "$<$<PLATFORM_ID:Darwin,iOS,tvOS,watchOS,visionOS>:LINKER:-undefined,dynamic_lookup>")
 
 # ------------------------ Windows extras -------------------------
 
