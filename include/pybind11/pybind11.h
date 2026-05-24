@@ -3171,7 +3171,6 @@ class enum_ : public class_<Type> {
 public:
     using Base = class_<Type>;
     using Base::attr;
-    using Base::def;
     using Base::def_property_readonly;
     using Base::def_property_readonly_static;
     using Underlying = typename std::underlying_type<Type>::type;
@@ -3282,6 +3281,18 @@ public:
         } else {
             Base::def(name_, std::forward<Func>(f), extra...);
         }
+        return *this;
+    }
+
+    // Avoid using Base::def here: GCC 15/MinGW sees the duplicate dependent-base
+    // def(const char *, ...) template as ambiguous with enum_::def(const char *, ...).
+    template <typename T,
+              typename... Extra,
+              detail::enable_if_t<
+                  !std::is_convertible<typename std::decay<T>::type, const char *>::value,
+                  int> = 0>
+    enum_ &def(T &&op, const Extra &...extra) {
+        Base::def(std::forward<T>(op), extra...);
         return *this;
     }
 
