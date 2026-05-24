@@ -277,6 +277,12 @@ def test_str_signature():
         assert enum_type.__str__.__doc__.startswith("__str__")
 
 
+def test_enum_custom_str_keeps_name_property():
+    assert str(m.CustomStrEnum.A) == "custom str"
+    assert m.CustomStrEnum.A.name == "A"
+    assert m.CustomStrEnum.A.value == 1
+
+
 def test_generated_dunder_methods_pos_only():
     for enum_type in [m.ScopedEnum, m.UnscopedEnum]:
         for binary_op in [

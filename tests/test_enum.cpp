@@ -24,6 +24,13 @@ TEST_SUBMODULE(enums, m) {
         .value("Two", ScopedEnum::Two)
         .value("Three", ScopedEnum::Three);
 
+    // test_enum_custom_str
+    enum class CustomStrEnum { A = 1, B = 2 };
+    py::enum_<CustomStrEnum>(m, "CustomStrEnum")
+        .value("A", CustomStrEnum::A)
+        .value("B", CustomStrEnum::B)
+        .def("__str__", [](CustomStrEnum) { return "custom str"; });
+
     m.def("test_scoped_enum", [](ScopedEnum z) {
         return "ScopedEnum::" + std::string(z == ScopedEnum::Two ? "Two" : "Three");
     });
