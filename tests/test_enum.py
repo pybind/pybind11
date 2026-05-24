@@ -278,9 +278,12 @@ def test_str_signature():
 
 
 def test_enum_custom_str_keeps_name_property():
-    assert str(m.CustomStrEnum.A) == "custom str"
+    assert str(m.CustomStrEnum.A) == "CustomStrEnum value 1"
+    assert str(m.CustomStrEnum.B) == "CustomStrEnum value 2"
     assert m.CustomStrEnum.A.name == "A"
     assert m.CustomStrEnum.A.value == 1
+    assert m.CustomStrEnum.B.name == "B"
+    assert m.CustomStrEnum.B.value == 2
 
 
 def test_generated_dunder_methods_pos_only():
