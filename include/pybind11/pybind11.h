@@ -2436,16 +2436,6 @@ public:
 
     template <typename Func, typename... Extra>
     PYBIND11_ALWAYS_INLINE class_ &def(const char *name_, Func &&f, const Extra &...extra) {
-        if (std::strcmp(name_, "__str__") == 0 && hasattr(*this, "__entries")) {
-            cpp_function cf(method_adaptor<type>(std::forward<Func>(f)),
-                            name(name_),
-                            is_method(*this),
-                            sibling(getattr(*this, name_, none())),
-                            prepend{},
-                            extra...);
-            add_class_method(*this, name_, cf);
-            return *this;
-        }
         cpp_function cf(method_adaptor<type>(std::forward<Func>(f)),
                         name(name_),
                         is_method(*this),
@@ -3283,6 +3273,16 @@ public:
             is_method(*this),
             arg("state"),
             pos_only());
+    }
+
+    template <typename Func, typename... Extra>
+    enum_ &def(const char *name_, Func &&f, const Extra &...extra) {
+        if (std::strcmp(name_, "__str__") == 0) {
+            Base::def(name_, std::forward<Func>(f), prepend{}, extra...);
+        } else {
+            Base::def(name_, std::forward<Func>(f), extra...);
+        }
+        return *this;
     }
 
     /// Export enumeration entries into the parent scope
