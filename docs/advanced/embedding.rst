@@ -375,7 +375,7 @@ between activations:
 
     {
         py::subinterpreter_scoped_activate guard(ts);
-        // The same PyThreadState is re-used; its per-thread interpreter state
+        // The same PyThreadState is reused; its per-thread interpreter state
         // is preserved across activations.
     }
 
