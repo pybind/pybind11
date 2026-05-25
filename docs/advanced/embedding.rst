@@ -407,6 +407,9 @@ also exist for the same sub-interpreter on the same thread.
       ``PyThreadState`` is bound to its creating thread; deleting it on another
       thread is undefined behavior. Holding the object as a ``thread_local``
       satisfies this automatically.
+    - It must only be activated (with :class:`subinterpreter_scoped_activate`)
+      on the **same OS thread** that constructed it. Activating it on a
+      different thread is illegal.
     - It must be destroyed while its sub-interpreter is still alive.
     - It must **not** be destroyed while a :class:`subinterpreter_scoped_activate`
       referring to it is alive — the activator holds a reference into it.

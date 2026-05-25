@@ -364,6 +364,20 @@ inline subinterpreter_scoped_activate::subinterpreter_scoped_activate(
         return;
     }
 
+#if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
+    {
+        // A PyThreadState is bound to its creating OS thread; it may only be activated there.
+        bool same_thread = true;
+#    ifdef PY_HAVE_THREAD_NATIVE_ID
+        same_thread = PyThread_get_thread_native_id() == ts.tstate_->native_thread_id;
+#    endif
+        if (!same_thread) {
+            pybind11_fail("subinterpreter_scoped_activate: a subinterpreter_thread_state must be "
+                          "activated on the same OS thread that constructed it!");
+        }
+    }
+#endif
+
     tstate_ = ts.tstate_;
     borrowed_ = true;
 
@@ -417,6 +431,19 @@ inline subinterpreter_thread_state::~subinterpreter_thread_state() {
     if (tstate_ == nullptr) {
         return;
     }
+#if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
+    {
+        // A PyThreadState must be cleared and deleted on the OS thread that created it.
+        bool same_thread = true;
+#    ifdef PY_HAVE_THREAD_NATIVE_ID
+        same_thread = PyThread_get_thread_native_id() == tstate_->native_thread_id;
+#    endif
+        if (!same_thread) {
+            pybind11_fail("~subinterpreter_thread_state: must be destroyed on the same OS thread "
+                          "that constructed it!");
+        }
+    }
+#endif
     // The PyThreadState must be made current to be cleared and deleted on the owning OS thread.
     // Swap it in (which acquires the subinterpreter's GIL), clear+delete, then restore whatever
     // was active before.

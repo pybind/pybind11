@@ -154,55 +154,61 @@ TEST_CASE("Move Subinterpreter") {
 #    endif
 
 TEST_CASE("Reused Subinterpreter thread state (single interpreter)") {
-    py::subinterpreter sub = py::subinterpreter::create();
-
     PyThreadState *first = nullptr;
     PyThreadState *second = nullptr;
     PyThreadState *transient_ts = nullptr;
     PyThreadState *worker_ts = nullptr;
 
+    // The subinterpreter is kept in this enclosing scope so that every
+    // subinterpreter_thread_state is destroyed first, then the subinterpreter, and only then
+    // unsafe_reset_internals_for_single_interpreter() runs (after the scope closes).
     {
-        py::subinterpreter_thread_state ts(sub);
+        py::subinterpreter sub = py::subinterpreter::create();
 
         {
-            py::subinterpreter_scoped_activate guard(ts);
-            first = PyThreadState_Get();
-            py::list(py::module_::import("sys").attr("path")).append(py::str("."));
-        }
-        {
-            py::subinterpreter_scoped_activate guard(ts);
-            second = PyThreadState_Get();
-        }
+            py::subinterpreter_thread_state ts(sub);
 
-        // Same OS thread + same subinterpreter_thread_state => the PyThreadState is reused.
-        REQUIRE(first != nullptr);
-        REQUIRE(first == second);
+            {
+                py::subinterpreter_scoped_activate guard(ts);
+                first = PyThreadState_Get();
+                py::list(py::module_::import("sys").attr("path")).append(py::str("."));
+            }
+            {
+                py::subinterpreter_scoped_activate guard(ts);
+                second = PyThreadState_Get();
+            }
 
-        // The (subinterpreter const&) ctor does not share with the reusable tstate: while `ts`
-        // is still alive, a transient activation gets a distinct PyThreadState.
-        {
-            py::subinterpreter_scoped_activate guard(sub);
-            transient_ts = PyThreadState_Get();
+            // Same OS thread + same subinterpreter_thread_state => the PyThreadState is reused.
+            REQUIRE(first != nullptr);
+            REQUIRE(first == second);
+
+            // The (subinterpreter const&) ctor does not share with the reusable tstate: while
+            // `ts` is still alive, a transient activation gets a distinct PyThreadState.
+            {
+                py::subinterpreter_scoped_activate guard(sub);
+                transient_ts = PyThreadState_Get();
+            }
+            REQUIRE(transient_ts != first);
+
+            // A different OS thread holds its own subinterpreter_thread_state (both alive
+            // concurrently => distinct PyThreadState pointers).
+            {
+                py::gil_scoped_release nogil;
+                std::thread([&]() {
+                    py::subinterpreter_thread_state worker_ts_owner(sub);
+                    py::subinterpreter_scoped_activate guard(worker_ts_owner);
+                    worker_ts = PyThreadState_Get();
+                    // worker_ts_owner is destroyed at scope exit, on the same OS thread that
+                    // constructed it.
+                }).join();
+            }
+            REQUIRE(worker_ts != nullptr);
+            REQUIRE(worker_ts != first);
+
+            // ts is destructed at the end of this block on this same OS thread (deleting its
+            // PyThreadState), while `sub` is still alive.
         }
-        REQUIRE(transient_ts != first);
-
-        // A different OS thread holds its own subinterpreter_thread_state (both alive
-        // concurrently => distinct PyThreadState pointers).
-        {
-            py::gil_scoped_release nogil;
-            std::thread([&]() {
-                py::subinterpreter_thread_state worker_ts_owner(sub);
-                py::subinterpreter_scoped_activate guard(worker_ts_owner);
-                worker_ts = PyThreadState_Get();
-                // worker_ts_owner is destroyed at scope exit, on the same OS thread that
-                // constructed it.
-            }).join();
-        }
-        REQUIRE(worker_ts != nullptr);
-        REQUIRE(worker_ts != first);
-
-        // ts is still alive here; it will be destructed at the end of this block on this same
-        // OS thread, deleting its PyThreadState.
+        // sub is destructed at the end of this block.
     }
 
     unsafe_reset_internals_for_single_interpreter();
@@ -211,41 +217,47 @@ TEST_CASE("Reused Subinterpreter thread state (single interpreter)") {
 TEST_CASE("Reused Subinterpreter thread state (multiple interpreters)") {
     // The core multi-subinterpreter use case: one OS thread alternates between two
     // subinterpreters and each PyThreadState is preserved across activations.
-    py::subinterpreter sub_a = py::subinterpreter::create();
-    py::subinterpreter sub_b = py::subinterpreter::create();
-
-    py::subinterpreter_thread_state ts_a(sub_a);
-    py::subinterpreter_thread_state ts_b(sub_b);
-
     PyThreadState *a1 = nullptr;
     PyThreadState *a2 = nullptr;
     PyThreadState *b1 = nullptr;
     PyThreadState *b2 = nullptr;
 
+    // Everything is kept in this enclosing scope. Destruction order at the closing brace is
+    // ts_b, ts_a, sub_b, sub_a -- i.e. each subinterpreter_thread_state is destroyed before its
+    // subinterpreter -- and unsafe_reset_internals_for_single_interpreter() only runs afterwards.
     {
-        py::subinterpreter_scoped_activate guard(ts_a);
-        a1 = PyThreadState_Get();
-    }
-    {
-        py::subinterpreter_scoped_activate guard(ts_b);
-        b1 = PyThreadState_Get();
-    }
-    {
-        py::subinterpreter_scoped_activate guard(ts_a);
-        a2 = PyThreadState_Get();
-    }
-    {
-        py::subinterpreter_scoped_activate guard(ts_b);
-        b2 = PyThreadState_Get();
-    }
+        py::subinterpreter sub_a = py::subinterpreter::create();
+        py::subinterpreter sub_b = py::subinterpreter::create();
 
-    REQUIRE(a1 != nullptr);
-    REQUIRE(b1 != nullptr);
-    // Identity is preserved across activations for each interpreter independently.
-    REQUIRE(a1 == a2);
-    REQUIRE(b1 == b2);
-    // And the two interpreters have distinct thread states (both alive => reliable comparison).
-    REQUIRE(a1 != b1);
+        py::subinterpreter_thread_state ts_a(sub_a);
+        py::subinterpreter_thread_state ts_b(sub_b);
+
+        {
+            py::subinterpreter_scoped_activate guard(ts_a);
+            a1 = PyThreadState_Get();
+        }
+        {
+            py::subinterpreter_scoped_activate guard(ts_b);
+            b1 = PyThreadState_Get();
+        }
+        {
+            py::subinterpreter_scoped_activate guard(ts_a);
+            a2 = PyThreadState_Get();
+        }
+        {
+            py::subinterpreter_scoped_activate guard(ts_b);
+            b2 = PyThreadState_Get();
+        }
+
+        REQUIRE(a1 != nullptr);
+        REQUIRE(b1 != nullptr);
+        // Identity is preserved across activations for each interpreter independently.
+        REQUIRE(a1 == a2);
+        REQUIRE(b1 == b2);
+        // And the two interpreters have distinct thread states (both alive => reliable
+        // comparison).
+        REQUIRE(a1 != b1);
+    }
 
     unsafe_reset_internals_for_single_interpreter();
 }
