@@ -27,6 +27,7 @@ if LINUX:
 
 CPYTHON = platform.python_implementation() == "CPython"
 PYPY = platform.python_implementation() == "PyPy"
+PYPY_PRE_7_3_23 = PYPY and sys.pypy_version_info < (7, 3, 23)
 GRAALPY = sys.implementation.name == "graalpy"
 _graalpy_version = (
     sys.modules["__graalpython__"].get_graalvm_version() if GRAALPY else "0.0.0"

@@ -145,7 +145,7 @@ class MI8b(B3, MI6):
         MI6.__init__(self, i)
 
 
-@pytest.mark.xfail("env.PYPY", strict=False)
+@pytest.mark.xfail("env.PYPY_PRE_7_3_23")
 def test_multiple_inheritance_python():
     # Based on test_multiple_inheritance.py:test_multiple_inheritance_python.
     # Exercises values_and_holders with 2 value_and_holder instances.
