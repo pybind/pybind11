@@ -74,6 +74,11 @@ def test_cross_module_exceptions(msg):
     assert str(excinfo.value) == "'just local'"
 
 
+@pytest.mark.xfail(
+    "(env.MACOS and env.PYPY_PRE_7_3_23) or env.ANDROID or env.FREEBSD",
+    raises=RuntimeError,
+    reason="See Issue #2847, PR #2999, PR #4324, PR #5925",
+)
 def test_cross_module_exception_translator():
     with pytest.raises(KeyError):
         # translator registered in cross_module_tests
