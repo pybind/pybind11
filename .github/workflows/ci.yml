@@ -48,7 +48,7 @@ jobs:
             python-version: '3.14t'
             cmake-args: -DCMAKE_CXX_STANDARD=17 -DPYBIND11_TEST_SMART_HOLDER=ON
           - runs-on: ubuntu-latest
-            python-version: 'pypy-3.11'
+            python-version: 'pypy-3.11-v7.3.23'
             cmake-args: -DCMAKE_CXX_STANDARD=17
           - runs-on: ubuntu-latest
             python-version: 'graalpy-24.2'
@@ -93,7 +93,7 @@ jobs:
             python-version: '3.14'
             cmake-args: -DCMAKE_CXX_STANDARD=14
           - runs-on: ubuntu-latest
-            python-version: 'pypy-3.11'
+            python-version: 'pypy-3.11-v7.3.23'
             cmake-args: -DCMAKE_CXX_STANDARD=14
           - runs-on: ubuntu-latest
             python-version: 'graalpy-24.1'
@@ -115,7 +115,7 @@ jobs:
             python-version: '3.14t'
             cmake-args: -DCMAKE_CXX_STANDARD=20
           - runs-on: macos-latest
-            python-version: 'pypy-3.11'
+            python-version: 'pypy-3.11-v7.3.23'
           - runs-on: macos-latest
             python-version: 'graalpy-24.2'
 
