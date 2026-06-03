@@ -44,7 +44,7 @@ def tests(session: nox.Session) -> None:
         f"-B{tmpdir}",
         "-DPYBIND11_WERROR=ON",
         "-DPYBIND11_CATCH_TESTS=ON",
-        "-DDOWNLOAD_EIGEN=ON",
+        "-DPYBIND11_EIGEN_TESTS=ON",
         *session.posargs,
     )
     session.run("cmake", "--build", tmpdir)

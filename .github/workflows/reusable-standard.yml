@@ -77,7 +77,7 @@ jobs:
           -DPYBIND11_WERROR=ON
           -DPYBIND11_PYTEST_ARGS=-v
           -DPYBIND11_CATCH_TESTS=ON
-          -DDOWNLOAD_EIGEN=ON
+          -DPYBIND11_EIGEN_TESTS=ON
           -DPYTHON_EXECUTABLE=${{ steps.python.outputs.python-path }}
           ${{ inputs.cmake-args }}
 

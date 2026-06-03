@@ -55,7 +55,7 @@ jobs:
         cmake -S . -B build11
         -DPYBIND11_WERROR=ON
         -DPYBIND11_CATCH_TESTS=ON
-        -DDOWNLOAD_EIGEN=ON
+        -DPYBIND11_EIGEN_TESTS=ON
         -DCMAKE_CXX_STANDARD=11
         -DCMAKE_BUILD_TYPE=Debug
 
@@ -78,7 +78,7 @@ jobs:
         cmake -S . -B build17
         -DPYBIND11_WERROR=ON
         -DPYBIND11_CATCH_TESTS=ON
-        -DDOWNLOAD_EIGEN=ON
+        -DPYBIND11_EIGEN_TESTS=ON
         -DCMAKE_CXX_STANDARD=17
 
     - name: Build C++17
@@ -97,7 +97,7 @@ jobs:
         cmake -S . -B build17max
         -DPYBIND11_WERROR=ON
         -DPYBIND11_CATCH_TESTS=ON
-        -DDOWNLOAD_EIGEN=ON
+        -DPYBIND11_EIGEN_TESTS=ON
         -DCMAKE_CXX_STANDARD=17
         -DPYBIND11_INTERNALS_VERSION=10000000
 
