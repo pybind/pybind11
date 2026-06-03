@@ -14,7 +14,7 @@
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_EXPORT_COMPILE_COMMANDS": true,
         "PYBIND11_CATCH_TESTS": true,
-        "DOWNLOAD_EIGEN": true,
+        "PYBIND11_EIGEN_TESTS": true,
         "PYBIND11_FINDPYTHON": "NEW",
         "PYBIND11_WERROR": true,
         "CMAKE_COLOR_DIAGNOSTICS": true

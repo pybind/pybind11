@@ -73,7 +73,7 @@ jobs:
           -DPYBIND11_WERROR=ON
           -DPYBIND11_PYTEST_ARGS=-v
           -DPYBIND11_CATCH_TESTS=ON
-          -DDOWNLOAD_EIGEN=ON
+          -DPYBIND11_EIGEN_TESTS=ON
           ${{ inputs.cmake-args }}
 
       - name: Build

@@ -87,7 +87,7 @@ system with CMake 3.15+:
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r tests/requirements.txt
-cmake -S . -B build -DPYBIND11_CATCH_TESTS=ON -DDOWNLOAD_EIGEN=ON
+cmake -S . -B build -DPYBIND11_CATCH_TESTS=ON -DPYBIND11_EIGEN_TESTS=ON
 cmake --build build -j4
 ```
 
@@ -151,7 +151,8 @@ The valid options are:
 * `-DBUILD_TESTING=ON`: Enable the tests
 * `-DPYBIND11_CATCH_TESTS=ON`: Enable tests using catch
   (Fetched automatically if missing)
-* `-DDOWNLOAD_EIGEN=ON`: Download Eigen for the NumPy tests
+* `-DPYBIND11_EIGEN_TESTS=ON`: Enable testing of Eigen for the NumPy tests
+  (Fetched automatically if missing)
 * `-DPYBIND11_INSTALL=ON/OFF`: Enable the install target (on by default for the
   master project)
 * `-DUSE_PYTHON_INSTALL_DIR=ON`: Try to install into the python dir
@@ -296,7 +297,7 @@ recent CMake and Python):
 python3 -m venv venv
 . venv/bin/activate
 pip install pytest
-cmake -S . -B build-intel -DCMAKE_CXX_COMPILER=$(which icpc) -DPYBIND11_CATCH_TESTS=ON -DDOWNLOAD_EIGEN=ON -DPYBIND11_WERROR=ON
+cmake -S . -B build-intel -DCMAKE_CXX_COMPILER=$(which icpc) -DPYBIND11_CATCH_TESTS=ON -DPYBIND11_EIGEN_TESTS=ON -DPYBIND11_WERROR=ON
 ```
 
 This will test the PGI compilers:

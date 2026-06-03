@@ -206,7 +206,7 @@ jobs:
         -DPYBIND11_SIMPLE_GIL_MANAGEMENT=ON
         -DPYBIND11_PYTEST_ARGS=-v
         -DPYBIND11_CATCH_TESTS=ON
-        -DDOWNLOAD_EIGEN=ON
+        -DPYBIND11_EIGEN_TESTS=ON
         -DCMAKE_CXX_STANDARD=14
         -DPYBIND11_INTERNALS_VERSION=10000000
 
@@ -311,6 +311,8 @@ jobs:
         -DPYBIND11_CATCH_TESTS=ON
         -DCMAKE_CXX_STANDARD=${{ matrix.std }}
         -DCMAKE_CXX_FLAGS="${{ matrix.cxx_flags }}"
+        -DPYBIND11_EIGEN_TESTS=ON
+        -DCMAKE_REQUIRE_FIND_PACKAGE_Eigen3=ON
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
     - name: Build
@@ -496,6 +498,8 @@ jobs:
         -DPYBIND11_CATCH_TESTS=ON
         -DCMAKE_CXX_STANDARD=${{ matrix.std }}
         -DCMAKE_CXX_FLAGS="${{ matrix.cxx_flags }}"
+        -DPYBIND11_EIGEN_TESTS=ON
+        -DCMAKE_REQUIRE_FIND_PACKAGE_Eigen3=ON
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
     - name: Build
@@ -571,7 +575,7 @@ jobs:
         cmake -S . -B build-11     \
         -DPYBIND11_WERROR=ON    \
         -DPYBIND11_CATCH_TESTS=ON     \
-        -DDOWNLOAD_EIGEN=OFF    \
+        -DPYBIND11_EIGEN_TESTS=OFF  \
         -DCMAKE_CXX_STANDARD=11             \
         -DCMAKE_CXX_COMPILER=$(which icpc)  \
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
@@ -609,7 +613,7 @@ jobs:
         cmake -S . -B build-17     \
         -DPYBIND11_WERROR=ON    \
         -DPYBIND11_CATCH_TESTS=ON     \
-        -DDOWNLOAD_EIGEN=OFF    \
+        -DPYBIND11_EIGEN_TESTS=OFF  \
         -DCMAKE_CXX_STANDARD=17             \
         -DCMAKE_CXX_COMPILER=$(which icpc)  \
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
@@ -687,7 +691,7 @@ jobs:
         -DCMAKE_BUILD_TYPE=MinSizeRel
         -DPYBIND11_WERROR=ON
         -DPYBIND11_CATCH_TESTS=ON
-        -DDOWNLOAD_EIGEN=ON
+        -DPYBIND11_EIGEN_TESTS=ON
         -DCMAKE_CXX_STANDARD=11
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
@@ -746,6 +750,8 @@ jobs:
         cmake ../pybind11-tests
         -DPYBIND11_CATCH_TESTS=ON
         -DPYBIND11_WERROR=ON
+        -DPYBIND11_EIGEN_TESTS=ON
+        -DCMAKE_REQUIRE_FIND_PACKAGE_Eigen3=ON
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
       working-directory: /build-tests
 
@@ -839,7 +845,7 @@ jobs:
         -G "Visual Studio 17 2022" -A Win32
         -DPYBIND11_WERROR=ON
         -DPYBIND11_CATCH_TESTS=ON
-        -DDOWNLOAD_EIGEN=ON
+        -DPYBIND11_EIGEN_TESTS=ON
         ${{ matrix.args }}
     - name: Build C++11
       run: cmake --build build -j 2
@@ -890,7 +896,7 @@ jobs:
         -DCMAKE_BUILD_TYPE=Debug
         -DPYBIND11_WERROR=ON
         -DPYBIND11_CATCH_TESTS=ON
-        -DDOWNLOAD_EIGEN=ON
+        -DPYBIND11_EIGEN_TESTS=ON
         ${{ matrix.args }}
     - name: Build C++11
       run: cmake --build build --config Debug -j 2
@@ -930,7 +936,7 @@ jobs:
         cmake -S . -B build
         -DPYBIND11_WERROR=ON
         -DPYBIND11_CATCH_TESTS=ON
-        -DDOWNLOAD_EIGEN=ON
+        -DPYBIND11_EIGEN_TESTS=ON
         -DCMAKE_CXX_STANDARD=20
 
     - name: Build C++20
@@ -954,7 +960,7 @@ jobs:
         cmake -S . -B build_partial
         -DPYBIND11_WERROR=ON
         -DPYBIND11_CATCH_TESTS=ON
-        -DDOWNLOAD_EIGEN=ON
+        -DPYBIND11_EIGEN_TESTS=ON
         -DCMAKE_CXX_STANDARD=20
         "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
 
@@ -1125,7 +1131,7 @@ jobs:
           -DPYBIND11_WERROR=OFF
           -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF
           -DPYBIND11_CATCH_TESTS=ON
-          -DDOWNLOAD_EIGEN=ON
+          -DPYBIND11_EIGEN_TESTS=ON
           -DCMAKE_CXX_COMPILER=clang++
           -DCMAKE_CXX_STANDARD=17
 
@@ -1193,7 +1199,7 @@ jobs:
             -DPYBIND11_WERROR=OFF `
             -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF `
             -DPYBIND11_CATCH_TESTS=ON `
-            -DDOWNLOAD_EIGEN=ON `
+            -DPYBIND11_EIGEN_TESTS=ON `
             -DCMAKE_CXX_COMPILER=clang++ `
             -DCMAKE_CXX_STANDARD=20 `
             -DPython_EXECUTABLE="$pythonExecutable" `
@@ -1268,7 +1274,7 @@ jobs:
         cmake -S . -B build
         -DPYBIND11_WERROR=OFF
         -DPYBIND11_CATCH_TESTS=ON
-        -DDOWNLOAD_EIGEN=ON
+        -DPYBIND11_EIGEN_TESTS=ON
         -DCMAKE_CXX_COMPILER=clang++
         -DCMAKE_CXX_STANDARD=20
         -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")
