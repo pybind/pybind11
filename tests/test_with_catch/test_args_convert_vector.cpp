@@ -1,5 +1,6 @@
 #include "pybind11/pybind11.h"
-#include "catch.hpp"
+
+#include <catch2/catch.hpp>
 
 namespace py = pybind11;
 
