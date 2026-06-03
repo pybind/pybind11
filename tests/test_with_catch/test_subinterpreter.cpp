@@ -9,12 +9,13 @@ PYBIND11_WARNING_DISABLE_MSVC(4996)
 
 #    include "catch_skip.h"
 
-#    include <catch.hpp>
 #    include <cstdlib>
 #    include <fstream>
 #    include <functional>
 #    include <thread>
 #    include <utility>
+
+#    include <catch2/catch.hpp>
 
 namespace py = pybind11;
 using namespace py::literals;

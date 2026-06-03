@@ -12,7 +12,7 @@
 #endif
 
 #define CATCH_CONFIG_MAIN
-#include "catch.hpp"
+#include <catch2/catch.hpp>
 
 using pybind11::memory::guarded_delete;
 using pybind11::memory::smart_holder;
