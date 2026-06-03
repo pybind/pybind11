@@ -384,6 +384,12 @@ if(PYBIND11_CATCH_TESTS)
     if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.24)
       list(APPEND _opts FIND_PACKAGE_ARGS CONFIG)
     endif()
+
+    # Set the build options when doing FetchContent
+    # TODO: Not needed in more recent Catch versions
+    option(CATCH_BUILD_TESTING "Overridden by pybind11" OFF)
+    option(CATCH_ENABLE_WERROR "Overridden by pybind11" OFF)
+
     include(FetchContent)
     FetchContent_Declare(
       Catch2
