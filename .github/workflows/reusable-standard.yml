@@ -76,7 +76,7 @@ jobs:
           cmake -S. -Bbuild -Werror=dev
           -DPYBIND11_WERROR=ON
           -DPYBIND11_PYTEST_ARGS=-v
-          -DDOWNLOAD_CATCH=ON
+          -DPYBIND11_CATCH_TESTS=ON
           -DDOWNLOAD_EIGEN=ON
           -DPYTHON_EXECUTABLE=${{ steps.python.outputs.python-path }}
           ${{ inputs.cmake-args }}
