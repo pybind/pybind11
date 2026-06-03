@@ -205,7 +205,7 @@ jobs:
         -DPYBIND11_WERROR=ON
         -DPYBIND11_SIMPLE_GIL_MANAGEMENT=ON
         -DPYBIND11_PYTEST_ARGS=-v
-        -DDOWNLOAD_CATCH=ON
+        -DPYBIND11_CATCH_TESTS=ON
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=14
         -DPYBIND11_INTERNALS_VERSION=10000000
@@ -308,7 +308,7 @@ jobs:
       run: >
         cmake -S . -B build
         -DPYBIND11_WERROR=ON
-        -DDOWNLOAD_CATCH=ON
+        -DPYBIND11_CATCH_TESTS=ON
         -DCMAKE_CXX_STANDARD=${{ matrix.std }}
         -DCMAKE_CXX_FLAGS="${{ matrix.cxx_flags }}"
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
@@ -344,7 +344,7 @@ jobs:
       run: apt-get update && DEBIAN_FRONTEND="noninteractive" apt-get install -y cmake git python3-dev python3-pytest python3-numpy
 
     - name: Configure
-      run: cmake -S . -B build -DPYBIND11_CUDA_TESTS=ON -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON
+      run: cmake -S . -B build -DPYBIND11_CUDA_TESTS=ON -DPYBIND11_WERROR=ON -DPYBIND11_CATCH_TESTS=ON
 
     - name: Build
       run: cmake --build build -j2 --verbose
@@ -382,7 +382,7 @@ jobs:
 #      run: |
 #        source /etc/profile.d/modules.sh
 #        module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/20.11
-#        cmake -S . -B build -DDOWNLOAD_CATCH=ON -DCMAKE_CXX_STANDARD=14 -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
+#        cmake -S . -B build -DPYBIND11_CATCH_TESTS=ON -DCMAKE_CXX_STANDARD=14 -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 #
 #    - name: Build
 #      run: cmake --build build -j 2 --verbose
@@ -437,7 +437,7 @@ jobs:
       run: |
         source /etc/profile.d/modules.sh
         module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/25.11
-        cmake -S . -B build -DDOWNLOAD_CATCH=ON \
+        cmake -S . -B build -DPYBIND11_CATCH_TESTS=ON \
                             -DCMAKE_CXX_STANDARD=17 \
                             -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)") \
                             -DCMAKE_CXX_FLAGS="-Wc,--pending_instantiations=0" \
@@ -493,7 +493,7 @@ jobs:
       run: >
         cmake -S . -B build
         -DPYBIND11_WERROR=ON
-        -DDOWNLOAD_CATCH=ON
+        -DPYBIND11_CATCH_TESTS=ON
         -DCMAKE_CXX_STANDARD=${{ matrix.std }}
         -DCMAKE_CXX_FLAGS="${{ matrix.cxx_flags }}"
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
@@ -520,7 +520,7 @@ jobs:
       run: >
         cmake -S . -B build_partial
         -DPYBIND11_WERROR=ON
-        -DDOWNLOAD_CATCH=ON
+        -DPYBIND11_CATCH_TESTS=ON
         -DCMAKE_CXX_STANDARD=${{ matrix.std }}
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
         "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
@@ -570,7 +570,7 @@ jobs:
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
         cmake -S . -B build-11     \
         -DPYBIND11_WERROR=ON    \
-        -DDOWNLOAD_CATCH=ON     \
+        -DPYBIND11_CATCH_TESTS=ON     \
         -DDOWNLOAD_EIGEN=OFF    \
         -DCMAKE_CXX_STANDARD=11             \
         -DCMAKE_CXX_COMPILER=$(which icpc)  \
@@ -608,7 +608,7 @@ jobs:
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
         cmake -S . -B build-17     \
         -DPYBIND11_WERROR=ON    \
-        -DDOWNLOAD_CATCH=ON     \
+        -DPYBIND11_CATCH_TESTS=ON     \
         -DDOWNLOAD_EIGEN=OFF    \
         -DCMAKE_CXX_STANDARD=17             \
         -DCMAKE_CXX_COMPILER=$(which icpc)  \
@@ -686,7 +686,7 @@ jobs:
         cmake -S . -B build
         -DCMAKE_BUILD_TYPE=MinSizeRel
         -DPYBIND11_WERROR=ON
-        -DDOWNLOAD_CATCH=ON
+        -DPYBIND11_CATCH_TESTS=ON
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=11
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
@@ -744,7 +744,7 @@ jobs:
     - name: Configure tests
       run: >
         cmake ../pybind11-tests
-        -DDOWNLOAD_CATCH=ON
+        -DPYBIND11_CATCH_TESTS=ON
         -DPYBIND11_WERROR=ON
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
       working-directory: /build-tests
@@ -838,7 +838,7 @@ jobs:
         cmake -S . -B build
         -G "Visual Studio 17 2022" -A Win32
         -DPYBIND11_WERROR=ON
-        -DDOWNLOAD_CATCH=ON
+        -DPYBIND11_CATCH_TESTS=ON
         -DDOWNLOAD_EIGEN=ON
         ${{ matrix.args }}
     - name: Build C++11
@@ -889,7 +889,7 @@ jobs:
         -G "Visual Studio 17 2022" -A Win32
         -DCMAKE_BUILD_TYPE=Debug
         -DPYBIND11_WERROR=ON
-        -DDOWNLOAD_CATCH=ON
+        -DPYBIND11_CATCH_TESTS=ON
         -DDOWNLOAD_EIGEN=ON
         ${{ matrix.args }}
     - name: Build C++11
@@ -929,7 +929,7 @@ jobs:
       run: >
         cmake -S . -B build
         -DPYBIND11_WERROR=ON
-        -DDOWNLOAD_CATCH=ON
+        -DPYBIND11_CATCH_TESTS=ON
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=20
 
@@ -953,7 +953,7 @@ jobs:
       run: >
         cmake -S . -B build_partial
         -DPYBIND11_WERROR=ON
-        -DDOWNLOAD_CATCH=ON
+        -DPYBIND11_CATCH_TESTS=ON
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_STANDARD=20
         "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
@@ -1006,7 +1006,7 @@ jobs:
       # LTO leads to many undefined reference like
       # `pybind11::detail::function_call::function_call(pybind11::detail::function_call&&)
       run: >-
-        cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=11 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON
+        cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=11 -DPYBIND11_WERROR=ON -DPYBIND11_CATCH_TESTS=ON
         -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")
         -S . -B build
 
@@ -1031,7 +1031,7 @@ jobs:
 
     - name: Configure C++14
       run: >-
-        cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=14 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON
+        cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=14 -DPYBIND11_WERROR=ON -DPYBIND11_CATCH_TESTS=ON
         -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")
         -S . -B build2
 
@@ -1056,7 +1056,7 @@ jobs:
 
     - name: Configure C++17
       run: >-
-        cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=17 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON
+        cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=17 -DPYBIND11_WERROR=ON -DPYBIND11_CATCH_TESTS=ON
         -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")
         -S . -B build3
 
@@ -1124,7 +1124,7 @@ jobs:
           cmake -G Ninja -S . -B .
           -DPYBIND11_WERROR=OFF
           -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF
-          -DDOWNLOAD_CATCH=ON
+          -DPYBIND11_CATCH_TESTS=ON
           -DDOWNLOAD_EIGEN=ON
           -DCMAKE_CXX_COMPILER=clang++
           -DCMAKE_CXX_STANDARD=17
@@ -1192,7 +1192,7 @@ jobs:
           cmake -G Ninja -S . -B . `
             -DPYBIND11_WERROR=OFF `
             -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF `
-            -DDOWNLOAD_CATCH=ON `
+            -DPYBIND11_CATCH_TESTS=ON `
             -DDOWNLOAD_EIGEN=ON `
             -DCMAKE_CXX_COMPILER=clang++ `
             -DCMAKE_CXX_STANDARD=20 `
@@ -1267,7 +1267,7 @@ jobs:
       run: >-
         cmake -S . -B build
         -DPYBIND11_WERROR=OFF
-        -DDOWNLOAD_CATCH=ON
+        -DPYBIND11_CATCH_TESTS=ON
         -DDOWNLOAD_EIGEN=ON
         -DCMAKE_CXX_COMPILER=clang++
         -DCMAKE_CXX_STANDARD=20

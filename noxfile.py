@@ -43,7 +43,7 @@ def tests(session: nox.Session) -> None:
         "-S.",
         f"-B{tmpdir}",
         "-DPYBIND11_WERROR=ON",
-        "-DDOWNLOAD_CATCH=ON",
+        "-DPYBIND11_CATCH_TESTS=ON",
         "-DDOWNLOAD_EIGEN=ON",
         *session.posargs,
     )
