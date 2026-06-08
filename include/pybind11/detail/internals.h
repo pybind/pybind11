@@ -98,7 +98,7 @@ public:
         // Neither of those have anything to do with CPython internals. PyMem_RawFree *requires*
         // that the `key` be allocated with the CPython allocator (as it is by
         // PyThread_tss_create).
-        // However, in GraalPy (as of v24.2 or older), TSS is implemented by Java and this call
+        // However, in GraalPy (as of v25.0 or older), TSS is implemented by Java and this call
         // requires a living Python interpreter.
 #ifdef GRAALVM_PYTHON
         if (Py_IsInitialized() == 0 || _Py_IsFinalizing() != 0) {
