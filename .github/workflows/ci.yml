@@ -96,7 +96,7 @@ jobs:
             python-version: 'pypy-3.11-v7.3.23'
             cmake-args: -DCMAKE_CXX_STANDARD=14
           - runs-on: ubuntu-latest
-            python-version: 'graalpy-24.2'
+            python-version: 'graalpy-25.0'
 
           # No SciPy for macOS ARM
           - runs-on: macos-15-intel
