@@ -2,8 +2,9 @@
 #include <pybind11/embed.h>
 #include <pybind11/pybind11.h>
 
-#include <catch.hpp>
 #include <lib.h>
+
+#include <catch2/catch.hpp>
 
 static constexpr auto script = R"(
 import test_cross_module_rtti_bindings
