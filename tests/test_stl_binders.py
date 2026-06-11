@@ -67,6 +67,29 @@ def test_vector_int():
     assert len(v_int2) == 0
 
 
+def test_vector_delitem_slice():
+    slice_cases = [
+        slice(1, 4),
+        slice(None, None, 2),
+        slice(1, None, 2),
+        slice(None, None, -1),
+        slice(None, None, -2),
+        slice(3, 1, -1),
+        slice(2, 2),
+        slice(None),
+        slice(5, 0, -2),
+        slice(-3, -1),
+        slice(None, None, -3),
+    ]
+    for n in range(8):
+        for s in slice_cases:
+            ref = list(range(n))
+            got = m.VectorInt(range(n))
+            del ref[s]
+            del got[s]
+            assert list(got) == ref, f"n={n} slice={s}"
+
+
 # Older PyPy's failed here, related to the PyPy's buffer protocol.
 def test_vector_buffer():
     b = bytearray([1, 2, 3, 4])
