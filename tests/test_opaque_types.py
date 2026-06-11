@@ -62,3 +62,31 @@ def test_unions():
     assert int_float_union.i == 42
     int_float_union.f = 3.0
     assert int_float_union.f == 3.0
+
+
+def test_issue_5988_opaque_std_array():
+    """Regression test for GitHub issue #5988: crash when binding with opaque std::array types."""
+    # Test basic Array3d (opaque std::array<double, 3>) functionality
+    a = m.Array3d()
+    a[0] = 1.0
+    a[1] = 2.5
+    a[2] = 3.0
+    assert a[0] == 1.0
+    assert a[1] == 2.5
+    assert a[2] == 3.0
+    assert len(a) == 3
+
+    with pytest.raises(IndexError):
+        _ = a[3]
+
+    # Test VecArray3d (opaque std::vector<std::array<double, 3>>) functionality
+    v = m.VecArray3d()
+    assert len(v) == 0
+    v.push_back(a)
+    assert len(v) == 1
+    assert v[0][0] == 1.0
+    assert v[0][1] == 2.5
+    assert v[0][2] == 3.0
+
+    with pytest.raises(IndexError):
+        _ = v[1]
