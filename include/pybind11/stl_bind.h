@@ -288,7 +288,8 @@ void vector_modifiers(
         [](Vector &v, const slice &slice) {
             ssize_t start = 0, stop = 0, step = 0, slicelength = 0;
 
-            if (!slice.compute((ssize_t) v.size(), &start, &stop, &step, &slicelength)) {
+            if (!slice.compute(
+                    static_cast<ssize_t>(v.size()), &start, &stop, &step, &slicelength)) {
                 throw error_already_set();
             }
 

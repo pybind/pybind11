@@ -67,8 +67,9 @@ def test_vector_int():
     assert len(v_int2) == 0
 
 
-def test_vector_delitem_slice():
-    slice_cases = [
+@pytest.mark.parametrize(
+    "s",
+    [
         slice(1, 4),
         slice(None, None, 2),
         slice(1, None, 2),
@@ -80,14 +81,15 @@ def test_vector_delitem_slice():
         slice(5, 0, -2),
         slice(-3, -1),
         slice(None, None, -3),
-    ]
+    ],
+)
+def test_vector_delitem_slice(s):
     for n in range(8):
-        for s in slice_cases:
-            ref = list(range(n))
-            got = m.VectorInt(range(n))
-            del ref[s]
-            del got[s]
-            assert list(got) == ref, f"n={n} slice={s}"
+        ref = list(range(n))
+        got = m.VectorInt(range(n))
+        del ref[s]
+        del got[s]
+        assert list(got) == ref, f"n={n}"
 
 
 # Older PyPy's failed here, related to the PyPy's buffer protocol.
