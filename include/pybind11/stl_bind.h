@@ -286,18 +286,25 @@ void vector_modifiers(
     cl.def(
         "__delitem__",
         [](Vector &v, const slice &slice) {
-            size_t start = 0, stop = 0, step = 0, slicelength = 0;
+            ssize_t start = 0, stop = 0, step = 0, slicelength = 0;
 
-            if (!slice.compute(v.size(), &start, &stop, &step, &slicelength)) {
+            if (!slice.compute(
+                    static_cast<ssize_t>(v.size()), &start, &stop, &step, &slicelength)) {
                 throw error_already_set();
             }
 
-            if (step == 1 && false) {
+            if (step == 1) {
                 v.erase(v.begin() + (DiffType) start, v.begin() + DiffType(start + slicelength));
             } else {
-                for (size_t i = 0; i < slicelength; ++i) {
+                // For a positive step, erasing an element shifts the remaining
+                // (later) elements down by one, so the next index to erase is
+                // ``start + step - 1``. For a negative step the visited indices
+                // are strictly decreasing, so erasing never shifts them and the
+                // next index is simply ``start + step``.
+                ssize_t offset = step > 0 ? step - 1 : step;
+                for (ssize_t i = 0; i < slicelength; ++i) {
                     v.erase(v.begin() + DiffType(start));
-                    start += step - 1;
+                    start += offset;
                 }
             }
         },
