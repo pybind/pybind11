@@ -978,7 +978,6 @@ jobs:
         include:
           - sys: mingw32
             env: i686
-            # Boost is no longer packaged for 32-bit i686 in the MSYS2 repos.
             extra_install: ""
           - sys: mingw64
             env: x86_64
