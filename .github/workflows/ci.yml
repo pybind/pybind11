@@ -978,10 +978,12 @@ jobs:
         include:
           - sys: mingw32
             env: i686
+            # Boost is no longer packaged for 32-bit i686 in the MSYS2 repos.
             extra_install: ""
           - sys: mingw64
             env: x86_64
             extra_install: |
+              mingw-w64-x86_64-boost
               mingw-w64-x86_64-python-numpy
               mingw-w64-x86_64-python-scipy
               mingw-w64-x86_64-eigen3
@@ -996,7 +998,6 @@ jobs:
           mingw-w64-${{matrix.env}}-cmake
           mingw-w64-${{matrix.env}}-make
           mingw-w64-${{matrix.env}}-python-pytest
-          mingw-w64-${{matrix.env}}-boost
           mingw-w64-${{matrix.env}}-catch
           ${{ matrix.extra_install }}
 
