@@ -620,7 +620,7 @@ private:
             }
             value = StringType(bytearray, (size_t) PyByteArray_Size(src.ptr()));
             if (IsView) {
-                loader_life_support::add_patient(utfNbytes);
+                loader_life_support::add_patient(src);
             }
             return true;
         }
