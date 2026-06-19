@@ -583,14 +583,13 @@ TEST_SUBMODULE(stl, m) {
     m.def("func_with_string_or_vector_string_arg_overload", [](const std::string &) { return 3; });
 
 #ifdef PYBIND11_HAS_STRING_VIEW
-    m.def("func_with_string_views",
-          [](const std::vector<std::string_view> &svs) {
-            py::list l;
-            for (std::string_view sv : svs) {
-                l.append(sv);
-            }
-            return l;
-          });
+    m.def("func_with_string_views", [](const std::vector<std::string_view> &svs) {
+        py::list l;
+        for (std::string_view sv : svs) {
+            l.append(sv);
+        }
+        return l;
+    });
 #endif
 
     class Placeholder {

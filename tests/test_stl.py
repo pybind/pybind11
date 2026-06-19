@@ -29,12 +29,17 @@ def test_vector(doc):
     assert m.cast_ptr_vector() == ["lvalue", "lvalue"]
 
     if hasattr(m, "func_with_string_views"):
+
         def gen():
-            return ('a' + str(x) for x in range(10000, 10010))
+            return ("a" + str(x) for x in range(10000, 10010))
+
         expected = list(gen())
         assert m.func_with_string_views(gen()) == expected
-        assert m.func_with_string_views((x.encode() for x in gen())) == expected
-        assert m.func_with_string_views((bytearray(x.encode()) for x in gen())) == expected
+        assert m.func_with_string_views(x.encode() for x in gen()) == expected
+        assert (
+            m.func_with_string_views(bytearray(x.encode()) for x in gen()) == expected
+        )
+
 
 def test_deque():
     """std::deque <-> list"""
