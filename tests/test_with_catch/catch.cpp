@@ -27,7 +27,7 @@ PYBIND11_WARNING_DISABLE_MSVC(4996)
 #define CATCH_CONFIG_DEFAULT_REPORTER "progress"
 #include "catch_skip.h"
 
-#include <catch.hpp>
+#include <catch2/catch.hpp>
 
 namespace py = pybind11;
 

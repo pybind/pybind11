@@ -6,7 +6,7 @@
 
 #include <pybind11/detail/pybind11_namespace_macros.h>
 
-#include <catch.hpp>
+#include <catch2/catch.hpp>
 
 #define PYBIND11_CATCH2_SKIP_IF(condition, reason)                                                \
     do {                                                                                          \
