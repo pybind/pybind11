@@ -1,10 +1,8 @@
-# CLAUDE.md
-
-This file provides guidance to agentic harnesses when working with code in this repository.
+# Agent instructions
 
 ## What this is
 
-pybind11 is a header-only C++ library (this is v3) that exposes C++ types to Python and vice versa. The "library" is entirely the headers under `include/pybind11/`; there is nothing to compile or link for a consumer. Everything else in the repo — the Python package, CMake tooling, and tests — exists to package, distribute, and verify those headers.
+pybind11 v3 is a header-only C++ library that exposes C++ types to Python and vice versa. The "library" is entirely the headers under `include/pybind11/`; there is nothing to compile or link for a consumer. Everything else in the repo — the Python package, CMake tooling, and tests — exists to package, distribute, and verify those headers.
 
 The version of record lives in `include/pybind11/detail/common.h` (as `PYBIND11_VERSION_*` macros); `pybind11/_version.py` parses it from there.
 
@@ -55,13 +53,13 @@ Pass pytest flags via `PYTEST_ADDOPTS`, e.g. `env PYTEST_ADDOPTS="-s -x" cmake -
 
 ### nox shortcuts (minimal setup, slower)
 
-`nox -s lint`, `nox -s tests-3.9`, `nox -s docs -- serve`, `nox -s build`. With `pipx run nox` you don't even need nox installed.
+`nox -s lint`, `nox -s tests-3.9`, `nox -s docs -- serve`, `nox -s build`. With `uvx nox` you don't even need nox installed.
 
 ## Linting
 
-Use `prek -a --quiet` (the user's preferred wrapper over `pre-commit run -a`). Pre-commit handles all formatting and most lint. `gawk` is required for some hooks.
+Use `prek -a --quiet` (Rust version of `pre-commit run -a`) before committing. Pre-commit handles all formatting and most linting.
 
-C++ formatting (`.clang-format`) is NOT auto-applied — run `clang-format -style=file -i some.cpp` manually on new/changed C++. clang-tidy support is built into CMake (`cmake --preset tidy`), normally run in CI/Docker, not locally.
+clang-tidy support is built into CMake (`cmake --preset tidy`), normally run in CI/Docker, not locally.
 
 ## Architecture of the headers
 
@@ -97,3 +95,4 @@ Packaging produces two distributions: the normal `pybind11` (headers live inside
 - Any new functionality needs a test (add to or create the paired `.cpp`/`.py` in `tests/`, and register the test in `tests/CMakeLists.txt`).
 - Try to add to an existing test file if possible (more files slow down tests)
 - Default C++ standard follows the consumer's toolchain; CI exercises a wide matrix (CPython 3.8+, PyPy, GraalPy; multiple compilers and C++ standards). Keep changes portable across that matrix.
+- PR descriptions follow a template, the key part is under "Suggested changelog entry", which is how we generate our changelog (with `nox -s make_changelog`)
