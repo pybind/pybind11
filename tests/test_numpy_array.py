@@ -1,11 +1,21 @@
 from __future__ import annotations
 
+import sys
+
 import pytest
 
 import env  # noqa: F401
 from pybind11_tests import numpy_array as m
 
 np = pytest.importorskip("numpy")
+
+# numpy < 2.4 has a resize(refcheck=True) regression on Python 3.14: it fails to
+# notice the reference held by the bound function, so a resize that should raise
+# instead succeeds. Only the iOS test environment is still pinned to such a numpy
+# (no newer iOS wheels exist yet).
+NUMPY_RESIZE_REFCHECK_BROKEN = sys.version_info >= (3, 14) and tuple(
+    int(x) for x in np.__version__.split(".")[:2]
+) < (2, 4)
 
 
 def test_dtypes():
@@ -485,6 +495,10 @@ def test_initializer_list():
     assert m.array_initializer_list4().shape == (1, 2, 3, 4)
 
 
+@pytest.mark.xfail(
+    NUMPY_RESIZE_REFCHECK_BROKEN,
+    reason="numpy<2.4 resize(refcheck) regression on Python 3.14",
+)
 def test_array_resize():
     a = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9], dtype="float64")
     m.array_reshape2(a)
