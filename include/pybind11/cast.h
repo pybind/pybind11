@@ -507,12 +507,11 @@ struct string_caster {
     static constexpr size_t UTF_N = 8 * sizeof(CharT);
 
     bool load(handle src, bool) {
-        handle load_src = src;
         if (!src) {
             return false;
         }
-        if (!PyUnicode_Check(load_src.ptr())) {
-            return load_raw(load_src);
+        if (!PyUnicode_Check(src.ptr())) {
+            return load_raw(src);
         }
 
         // For UTF-8 we avoid the need for a temporary `bytes` object by using
@@ -520,7 +519,7 @@ struct string_caster {
         if (UTF_N == 8) {
             Py_ssize_t size = -1;
             const auto *buffer
-                = reinterpret_cast<const CharT *>(PyUnicode_AsUTF8AndSize(load_src.ptr(), &size));
+                = reinterpret_cast<const CharT *>(PyUnicode_AsUTF8AndSize(src.ptr(), &size));
             if (!buffer) {
                 PyErr_Clear();
                 return false;
@@ -533,7 +532,7 @@ struct string_caster {
         }
 
         auto utfNbytes
-            = reinterpret_steal<object>(PyUnicode_AsEncodedString(load_src.ptr(),
+            = reinterpret_steal<object>(PyUnicode_AsEncodedString(src.ptr(),
                                                                   UTF_N == 8    ? "utf-8"
                                                                   : UTF_N == 16 ? "utf-16"
                                                                                 : "utf-32",
