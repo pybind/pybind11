@@ -18,14 +18,48 @@ else()
   set(_pybind11_quiet "")
 endif()
 
-if(NOT Python_FOUND AND NOT Python3_FOUND)
-  if(NOT DEFINED Python_FIND_IMPLEMENTATIONS)
-    set(Python_FIND_IMPLEMENTATIONS CPython PyPy)
+if(Python_FOUND)
+  set(_pybind11_findpython_package Python)
+elseif(Python3_FOUND)
+  set(_pybind11_findpython_package Python3)
+else()
+  set(_pybind11_findpython_package Python)
+endif()
+
+set(_pybind11_findpython_required FALSE)
+if(DEFINED ${_pybind11_findpython_package}_FOUND)
+  if(${_pybind11_findpython_package}_FOUND)
+    if(NOT _PYBIND11_CROSSCOMPILING AND NOT DEFINED ${_pybind11_findpython_package}_EXECUTABLE)
+      set(_pybind11_findpython_required TRUE)
+    endif()
+
+    if(CMAKE_VERSION VERSION_LESS 3.18) # Development.Module is not available yet
+      if(NOT DEFINED ${_pybind11_findpython_package}_INCLUDE_DIRS
+         OR NOT TARGET ${_pybind11_findpython_package}::Python)
+        set(_pybind11_findpython_required TRUE)
+      endif()
+    else()
+      if(NOT DEFINED ${_pybind11_findpython_package}_INCLUDE_DIRS
+         OR NOT TARGET ${_pybind11_findpython_package}::Module
+         OR NOT TARGET ${_pybind11_findpython_package}::Python)
+        set(_pybind11_findpython_required TRUE)
+      endif()
+    endif()
+  else()
+    set(_pybind11_findpython_required TRUE)
+  endif()
+else()
+  set(_pybind11_findpython_required TRUE)
+endif()
+
+if(_pybind11_findpython_required)
+  if(NOT DEFINED ${_pybind11_findpython_package}_FIND_IMPLEMENTATIONS)
+    set(${_pybind11_findpython_package}_FIND_IMPLEMENTATIONS CPython PyPy)
   endif()
 
   # GitHub Actions like activation
-  if(NOT DEFINED Python_ROOT_DIR AND DEFINED ENV{pythonLocation})
-    set(Python_ROOT_DIR "$ENV{pythonLocation}")
+  if(NOT DEFINED ${_pybind11_findpython_package}_ROOT_DIR AND DEFINED ENV{pythonLocation})
+    set(${_pybind11_findpython_package}_ROOT_DIR "$ENV{pythonLocation}")
   endif()
 
   # Interpreter should not be found when cross-compiling
@@ -44,46 +78,56 @@ if(NOT Python_FOUND AND NOT Python3_FOUND)
 
   # Callers need to be able to access Python_EXECUTABLE
   set(_pybind11_global_keyword "")
-  if(NOT is_config AND NOT DEFINED Python_ARTIFACTS_INTERACTIVE)
-    set(Python_ARTIFACTS_INTERACTIVE TRUE)
+  set(_pybind11_artifacts_interactive ${_pybind11_findpython_package}_ARTIFACTS_INTERACTIVE)
+  if(NOT is_config AND NOT DEFINED ${_pybind11_artifacts_interactive})
+    set(${_pybind11_artifacts_interactive} TRUE)
     if(NOT CMAKE_VERSION VERSION_LESS 3.24)
       set(_pybind11_global_keyword "GLOBAL")
     endif()
   endif()
 
+  # Record which Python targets already exist (e.g. from a find_package call
+  # before pybind11). Targets created in an outer scope cannot be promoted to
+  # IMPORTED_GLOBAL from here on CMake < 3.24, so we only promote our own.
+  set(_pybind11_preexisting_targets "")
+  foreach(_pybind11_py_target Python Interpreter Module)
+    if(TARGET ${_pybind11_findpython_package}::${_pybind11_py_target})
+      list(APPEND _pybind11_preexisting_targets ${_pybind11_py_target})
+    endif()
+  endforeach()
+
   find_package(
-    Python 3.8 REQUIRED COMPONENTS ${_pybind11_interp_component} ${_pybind11_dev_component}
-                                   ${_pybind11_quiet} ${_pybind11_global_keyword})
+    ${_pybind11_findpython_package} 3.8 REQUIRED
+    COMPONENTS ${_pybind11_interp_component} ${_pybind11_dev_component} ${_pybind11_quiet}
+               ${_pybind11_global_keyword})
 
   # If we are in submodule mode, export the Python targets to global targets.
   # If this behavior is not desired, FindPython _before_ pybind11.
   if(NOT is_config
-     AND Python_ARTIFACTS_INTERACTIVE
+     AND ${_pybind11_artifacts_interactive}
      AND _pybind11_global_keyword STREQUAL "")
-    if(TARGET Python::Python)
-      set_property(TARGET Python::Python PROPERTY IMPORTED_GLOBAL TRUE)
-    endif()
-    if(TARGET Python::Interpreter)
-      set_property(TARGET Python::Interpreter PROPERTY IMPORTED_GLOBAL TRUE)
-    endif()
-    if(TARGET Python::Module)
-      set_property(TARGET Python::Module PROPERTY IMPORTED_GLOBAL TRUE)
-    endif()
+    foreach(_pybind11_py_target Python Interpreter Module)
+      if(TARGET ${_pybind11_findpython_package}::${_pybind11_py_target}
+         AND NOT "${_pybind11_py_target}" IN_LIST _pybind11_preexisting_targets)
+        set_property(TARGET ${_pybind11_findpython_package}::${_pybind11_py_target}
+                     PROPERTY IMPORTED_GLOBAL TRUE)
+      endif()
+    endforeach()
   endif()
 
   # Explicitly export version for callers (including our own functions)
-  if(NOT is_config AND Python_ARTIFACTS_INTERACTIVE)
-    set(Python_VERSION
-        "${Python_VERSION}"
+  if(NOT is_config AND ${_pybind11_artifacts_interactive})
+    set(${_pybind11_findpython_package}_VERSION
+        "${${_pybind11_findpython_package}_VERSION}"
         CACHE INTERNAL "")
-    set(Python_VERSION_MAJOR
-        "${Python_VERSION_MAJOR}"
+    set(${_pybind11_findpython_package}_VERSION_MAJOR
+        "${${_pybind11_findpython_package}_VERSION_MAJOR}"
         CACHE INTERNAL "")
-    set(Python_VERSION_MINOR
-        "${Python_VERSION_MINOR}"
+    set(${_pybind11_findpython_package}_VERSION_MINOR
+        "${${_pybind11_findpython_package}_VERSION_MINOR}"
         CACHE INTERNAL "")
-    set(Python_VERSION_PATCH
-        "${Python_VERSION_PATCH}"
+    set(${_pybind11_findpython_package}_VERSION_PATCH
+        "${${_pybind11_findpython_package}_VERSION_PATCH}"
         CACHE INTERNAL "")
   endif()
 endif()
