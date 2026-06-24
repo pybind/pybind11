@@ -86,6 +86,16 @@ if(_pybind11_findpython_required)
     endif()
   endif()
 
+  # Record which Python targets already exist (e.g. from a find_package call
+  # before pybind11). Targets created in an outer scope cannot be promoted to
+  # IMPORTED_GLOBAL from here on CMake < 3.24, so we only promote our own.
+  set(_pybind11_preexisting_targets "")
+  foreach(_pybind11_py_target Python Interpreter Module)
+    if(TARGET ${_pybind11_findpython_package}::${_pybind11_py_target})
+      list(APPEND _pybind11_preexisting_targets ${_pybind11_py_target})
+    endif()
+  endforeach()
+
   find_package(
     ${_pybind11_findpython_package} 3.8 REQUIRED
     COMPONENTS ${_pybind11_interp_component} ${_pybind11_dev_component} ${_pybind11_quiet}
@@ -96,16 +106,13 @@ if(_pybind11_findpython_required)
   if(NOT is_config
      AND ${_pybind11_artifacts_interactive}
      AND _pybind11_global_keyword STREQUAL "")
-    if(TARGET ${_pybind11_findpython_package}::Python)
-      set_property(TARGET ${_pybind11_findpython_package}::Python PROPERTY IMPORTED_GLOBAL TRUE)
-    endif()
-    if(TARGET ${_pybind11_findpython_package}::Interpreter)
-      set_property(TARGET ${_pybind11_findpython_package}::Interpreter PROPERTY IMPORTED_GLOBAL
-                                                                                TRUE)
-    endif()
-    if(TARGET ${_pybind11_findpython_package}::Module)
-      set_property(TARGET ${_pybind11_findpython_package}::Module PROPERTY IMPORTED_GLOBAL TRUE)
-    endif()
+    foreach(_pybind11_py_target Python Interpreter Module)
+      if(TARGET ${_pybind11_findpython_package}::${_pybind11_py_target}
+         AND NOT "${_pybind11_py_target}" IN_LIST _pybind11_preexisting_targets)
+        set_property(TARGET ${_pybind11_findpython_package}::${_pybind11_py_target}
+                     PROPERTY IMPORTED_GLOBAL TRUE)
+      endif()
+    endforeach()
   endif()
 
   # Explicitly export version for callers (including our own functions)
