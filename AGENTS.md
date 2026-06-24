@@ -68,7 +68,7 @@ clang-tidy support is built into CMake (`cmake --preset tidy`), normally run in 
 - **`detail/`** — internal implementation, not part of the public API. This is where the hard parts live:
   - `type_caster_base.h`, `cast.h` (`include/pybind11/cast.h`) — the type conversion system that maps C++ ↔ Python values. Most binding behavior ultimately routes through type casters.
   - `internals.h` — the per-interpreter global state (registered types, instances, etc.), shared across modules via a capsule. ABI compatibility is gated by an ID; changing internals layout is an ABI break.
-  - `struct_smart_holder.h` / `using_smart_holder.h` — the **smart_holder** that became the default holder in v3, enabling safe passing of objects between `shared_ptr`/`unique_ptr` and Python ownership.
+  - `struct_smart_holder.h` / `using_smart_holder.h` — **smart_holder** was added in v3, enabling safe passing of objects between `shared_ptr`/`unique_ptr` and Python ownership. It is the recommended holder for most situations, but for backward compatibility it is not the default holder, and there are no plans to make it the default holder in the future.
   - `class.h`, `init.h` — class registration and constructor (`py::init`) machinery.
 - **`pytypes.h`** — C++ wrappers for Python objects (`py::object`, `py::dict`, `py::str`, …) with reference counting.
 - **Feature headers** — opt-in includes: `stl.h` / `stl/` / `stl_bind.h` (STL conversions), `numpy.h` + `eigen/` (array/matrix interop), `functional.h` (std::function), `chrono.h`, `complex.h`, `eval.h`, `embed.h` (embedding the interpreter), `iostream.h`, `gil.h` / `gil_safe_call_once.h`, `subinterpreter.h`, `native_enum.h`, `typing.h`, `warnings.h`.
@@ -93,6 +93,7 @@ Packaging produces two distributions: the normal `pybind11` (headers live inside
 
 - Small, self-contained PRs; this project deliberately favors minimal-code general solutions.
 - Any new functionality needs a test (add to or create the paired `.cpp`/`.py` in `tests/`, and register the test in `tests/CMakeLists.txt`).
+- Bug fixes should be paired with new tests that fail without the fix.
 - Try to add to an existing test file if possible (more files slow down tests)
 - Default C++ standard follows the consumer's toolchain; CI exercises a wide matrix (CPython 3.8+, PyPy, GraalPy; multiple compilers and C++ standards). Keep changes portable across that matrix.
 - PR descriptions follow a template, the key part is under "Suggested changelog entry", which is how we generate our changelog (with `nox -s make_changelog`)
