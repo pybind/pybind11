@@ -52,3 +52,7 @@ CMakeUserPresents.json
 .ruby-version
 .*cache*/
 *.lock
+
+# Symlink to AGENTS.md
+CLAUDE.md
+.claude/
