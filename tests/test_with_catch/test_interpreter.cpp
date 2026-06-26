@@ -1,5 +1,6 @@
 #include <pybind11/critical_section.h>
 #include <pybind11/embed.h>
+#include <pybind11/stl.h>
 
 // Silence MSVC C++17 deprecation warning from Catch regarding std::uncaught_exceptions (up to
 // catch 2.0.1; this should be fixed in the next catch release after 2.0.1).
@@ -11,8 +12,10 @@ PYBIND11_WARNING_DISABLE_MSVC(4996)
 #include <cstdlib>
 #include <fstream>
 #include <functional>
+#include <string_view>
 #include <thread>
 #include <utility>
+#include <vector>
 
 namespace py = pybind11;
 using namespace py::literals;
@@ -511,10 +514,10 @@ TEST_CASE("make_iterator can be called before then after finalizing an interpret
 }
 
 #ifdef PYBIND11_HAS_STRING_VIEW
-TEST_CASE("Casting to a string_view outside a bound function") {
-    // Regression for PR #6092: view casters add the source to loader_life_support, but
-    // outside a bound function there is no frame. The caller owns the source's lifetime
-    // here, so the cast must succeed rather than throw.
+TEST_CASE("Casting to a string_view from a durable source outside a bound function") {
+    // Outside a bound function there is no loader_life_support frame. When the source is a
+    // durable, caller-owned object the view does not need life support, so the cast must
+    // succeed rather than throw (regression from PR #6092).
     py::str unicode("hello");
     py::bytes bytes_obj("world", 5);
     auto bytearray_obj
@@ -523,5 +526,22 @@ TEST_CASE("Casting to a string_view outside a bound function") {
     REQUIRE(py::cast<std::string_view>(unicode) == "hello");
     REQUIRE(py::cast<std::string_view>(bytes_obj) == "world");
     REQUIRE(py::cast<std::string_view>(bytearray_obj) == "bytes");
+
+    // A list is durable too: the views point into elements the list keeps alive.
+    py::list durable;
+    durable.append("a");
+    durable.append("b");
+    auto from_list = py::cast<std::vector<std::string_view>>(durable);
+    REQUIRE(from_list.size() == 2);
+    REQUIRE(from_list[0] == "a");
+    REQUIRE(from_list[1] == "b");
+}
+
+TEST_CASE("Casting to a string_view from a transient source outside a bound function") {
+    // A generator is a transient source: the materialized temporary backing the views is
+    // released when the cast returns, and there is no frame to keep it alive. This cannot
+    // be made safe, so it must throw rather than produce dangling views.
+    auto gen = py::eval("('transient_' + str(x) for x in range(5))");
+    REQUIRE_THROWS_AS(py::cast<std::vector<std::string_view>>(gen), py::cast_error);
 }
 #endif
