@@ -509,3 +509,19 @@ TEST_CASE("make_iterator can be called before then after finalizing an interpret
 
     py::initialize_interpreter();
 }
+
+#ifdef PYBIND11_HAS_STRING_VIEW
+TEST_CASE("Casting to a string_view outside a bound function") {
+    // Regression for PR #6092: view casters add the source to loader_life_support, but
+    // outside a bound function there is no frame. The caller owns the source's lifetime
+    // here, so the cast must succeed rather than throw.
+    py::str unicode("hello");
+    py::bytes bytes_obj("world", 5);
+    auto bytearray_obj
+        = py::reinterpret_steal<py::object>(PyByteArray_FromStringAndSize("bytes", 5));
+
+    REQUIRE(py::cast<std::string_view>(unicode) == "hello");
+    REQUIRE(py::cast<std::string_view>(bytes_obj) == "world");
+    REQUIRE(py::cast<std::string_view>(bytearray_obj) == "bytes");
+}
+#endif

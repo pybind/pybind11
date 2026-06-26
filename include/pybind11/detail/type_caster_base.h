@@ -81,11 +81,26 @@ public:
         }
     }
 
+    /// Keep `h` alive until the current patient frame is destroyed, if there is one.
+    /// Returns false when called outside a bound function (no frame). Use this, rather
+    /// than `add_patient`, when failing to register is acceptable because the caller
+    /// owns the source's lifetime outside the call framework (e.g. a view that points
+    /// into an existing Python object, as opposed to a freshly created temporary).
+    PYBIND11_NOINLINE static bool try_add_patient(handle h) {
+        loader_life_support *frame = tls_current_frame();
+        if (!frame) {
+            return false;
+        }
+        if (frame->keep_alive.insert(h.ptr()).second) {
+            Py_INCREF(h.ptr());
+        }
+        return true;
+    }
+
     /// This can only be used inside a pybind11-bound function, either by `argument_loader`
     /// at argument preparation time or by `py::cast()` at execution time.
     PYBIND11_NOINLINE static void add_patient(handle h) {
-        loader_life_support *frame = tls_current_frame();
-        if (!frame) {
+        if (!try_add_patient(h)) {
             // NOTE: It would be nice to include the stack frames here, as this indicates
             // use of pybind11::cast<> outside the normal call framework, finding such
             // a location is challenging. Developers could consider printing out
@@ -93,10 +108,6 @@ public:
             throw cast_error("When called outside a bound function, py::cast() cannot "
                              "do Python -> C++ conversions which require the creation "
                              "of temporary values");
-        }
-
-        if (frame->keep_alive.insert(h.ptr()).second) {
-            Py_INCREF(h.ptr());
         }
     }
 };

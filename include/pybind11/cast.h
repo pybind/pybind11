@@ -526,7 +526,9 @@ struct string_caster {
             }
             value = StringType(buffer, static_cast<size_t>(size));
             if (IsView) {
-                loader_life_support::add_patient(src);
+                // `src` owns the buffer; keep it alive if inside a bound function,
+                // otherwise the caller is responsible for its lifetime.
+                loader_life_support::try_add_patient(src);
             }
             return true;
         }
@@ -606,7 +608,7 @@ private:
             }
             value = StringType(bytes, (size_t) PYBIND11_BYTES_SIZE(src.ptr()));
             if (IsView) {
-                loader_life_support::add_patient(src);
+                loader_life_support::try_add_patient(src);
             }
             return true;
         }
@@ -619,7 +621,7 @@ private:
             }
             value = StringType(bytearray, (size_t) PyByteArray_Size(src.ptr()));
             if (IsView) {
-                loader_life_support::add_patient(src);
+                loader_life_support::try_add_patient(src);
             }
             return true;
         }
