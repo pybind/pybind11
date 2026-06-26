@@ -525,10 +525,10 @@ struct string_caster {
                 return false;
             }
             value = StringType(buffer, static_cast<size_t>(size));
-            if (IsView) {
-                // `src` owns the buffer; keep it alive if inside a bound function,
-                // otherwise the caller is responsible for its lifetime.
-                loader_life_support::try_add_patient(src);
+            if (IsView && loading_from_transient_source()) {
+                // The view points into `src`, which is owned by a transient source that
+                // will be released before the view is used, so keep `src` alive.
+                loader_life_support::add_patient(src);
             }
             return true;
         }
@@ -607,8 +607,8 @@ private:
                 pybind11_fail("Unexpected PYBIND11_BYTES_AS_STRING() failure.");
             }
             value = StringType(bytes, (size_t) PYBIND11_BYTES_SIZE(src.ptr()));
-            if (IsView) {
-                loader_life_support::try_add_patient(src);
+            if (IsView && loading_from_transient_source()) {
+                loader_life_support::add_patient(src);
             }
             return true;
         }
@@ -620,8 +620,8 @@ private:
                 pybind11_fail("Unexpected PyByteArray_AsString() failure.");
             }
             value = StringType(bytearray, (size_t) PyByteArray_Size(src.ptr()));
-            if (IsView) {
-                loader_life_support::try_add_patient(src);
+            if (IsView && loading_from_transient_source()) {
+                loader_life_support::add_patient(src);
             }
             return true;
         }

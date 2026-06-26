@@ -81,26 +81,11 @@ public:
         }
     }
 
-    /// Keep `h` alive until the current patient frame is destroyed, if there is one.
-    /// Returns false when called outside a bound function (no frame). Use this, rather
-    /// than `add_patient`, when failing to register is acceptable because the caller
-    /// owns the source's lifetime outside the call framework (e.g. a view that points
-    /// into an existing Python object, as opposed to a freshly created temporary).
-    PYBIND11_NOINLINE static bool try_add_patient(handle h) {
-        loader_life_support *frame = tls_current_frame();
-        if (!frame) {
-            return false;
-        }
-        if (frame->keep_alive.insert(h.ptr()).second) {
-            Py_INCREF(h.ptr());
-        }
-        return true;
-    }
-
     /// This can only be used inside a pybind11-bound function, either by `argument_loader`
     /// at argument preparation time or by `py::cast()` at execution time.
     PYBIND11_NOINLINE static void add_patient(handle h) {
-        if (!try_add_patient(h)) {
+        loader_life_support *frame = tls_current_frame();
+        if (!frame) {
             // NOTE: It would be nice to include the stack frames here, as this indicates
             // use of pybind11::cast<> outside the normal call framework, finding such
             // a location is challenging. Developers could consider printing out
@@ -109,7 +94,39 @@ public:
                              "do Python -> C++ conversions which require the creation "
                              "of temporary values");
         }
+
+        if (frame->keep_alive.insert(h.ptr()).second) {
+            Py_INCREF(h.ptr());
+        }
     }
+};
+
+// While set, a type caster is converting elements borrowed from a *transient* source --
+// a generator/iterator, or a temporary container materialized from one -- whose items are
+// released before the converted C++ value is used. A view caster (e.g. for std::string_view)
+// consults this to decide whether the viewed Python object needs life support: a view into a
+// durable, caller-owned object does not, whereas a view into a transient source does. Outside
+// a bound function (no life support frame) the latter cannot be made safe, so `add_patient`
+// rightly throws rather than producing a dangling view.
+inline bool &loading_from_transient_source() {
+    static thread_local bool flag = false;
+    return flag;
+}
+
+// RAII guard marking the dynamic scope in which elements are loaded from a transient source.
+// Restores (rather than clears) the previous value so that nesting is transitive: a durable
+// container nested inside a transient one is itself transient.
+class transient_source_guard {
+public:
+    transient_source_guard() : prev(loading_from_transient_source()) {
+        loading_from_transient_source() = true;
+    }
+    ~transient_source_guard() { loading_from_transient_source() = prev; }
+    transient_source_guard(const transient_source_guard &) = delete;
+    transient_source_guard &operator=(const transient_source_guard &) = delete;
+
+private:
+    bool prev;
 };
 
 // Gets the cache entry for the given type, creating it if necessary.  The return value is the pair
