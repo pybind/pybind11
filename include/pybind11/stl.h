@@ -198,6 +198,9 @@ public:
         }
         assert(isinstance<iterable>(src));
         value.clear();
+        // Elements are borrowed from the iterator and released as it advances, so views
+        // into them need life support.
+        transient_source_guard guard;
         return convert_iterable(reinterpret_borrow<iterable>(src), convert);
     }
 
@@ -264,6 +267,9 @@ public:
             throw error_already_set();
         }
         assert(isinstance<iterable>(items));
+        // The materialized dict is transient (released when load() returns), so views into
+        // its keys/values need life support.
+        transient_source_guard guard;
         return convert_elements(dict(reinterpret_borrow<iterable>(items)), convert);
     }
 
@@ -314,6 +320,9 @@ struct list_caster {
         // the generator is not left in an unpredictable (to the caller) partially-consumed
         // state.
         assert(isinstance<iterable>(src));
+        // The materialized tuple is transient (released when load() returns), so views into
+        // its elements need life support.
+        transient_source_guard guard;
         return convert_elements(tuple(reinterpret_borrow<iterable>(src)), convert);
     }
 
@@ -449,6 +458,9 @@ public:
         // the generator is not left in an unpredictable (to the caller) partially-consumed
         // state.
         assert(isinstance<iterable>(src));
+        // The materialized tuple is transient (released when load() returns), so views into
+        // its elements need life support.
+        transient_source_guard guard;
         return convert_elements(tuple(reinterpret_borrow<iterable>(src)), convert);
     }
 
