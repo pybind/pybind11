@@ -101,6 +101,34 @@ public:
     }
 };
 
+// While set, a type caster is converting elements borrowed from a *transient* source --
+// a generator/iterator, or a temporary container materialized from one -- whose items are
+// released before the converted C++ value is used. A view caster (e.g. for std::string_view)
+// consults this to decide whether the viewed Python object needs life support: a view into a
+// durable, caller-owned object does not, whereas a view into a transient source does. Outside
+// a bound function (no life support frame) the latter cannot be made safe, so `add_patient`
+// rightly throws rather than producing a dangling view.
+inline bool &loading_from_transient_source() {
+    static thread_local bool flag = false;
+    return flag;
+}
+
+// RAII guard marking the dynamic scope in which elements are loaded from a transient source.
+// Restores (rather than clears) the previous value so that nesting is transitive: a durable
+// container nested inside a transient one is itself transient.
+class transient_source_guard {
+public:
+    transient_source_guard() : prev(loading_from_transient_source()) {
+        loading_from_transient_source() = true;
+    }
+    ~transient_source_guard() { loading_from_transient_source() = prev; }
+    transient_source_guard(const transient_source_guard &) = delete;
+    transient_source_guard &operator=(const transient_source_guard &) = delete;
+
+private:
+    bool prev;
+};
+
 // Gets the cache entry for the given type, creating it if necessary.  The return value is the pair
 // returned by emplace, i.e. an iterator for the entry and a bool set to `true` if the entry was
 // just created.
