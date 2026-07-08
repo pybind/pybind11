@@ -9,10 +9,8 @@ from pybind11_tests import numpy_array as m
 
 np = pytest.importorskip("numpy")
 
-# numpy < 2.4 has a resize(refcheck=True) regression on Python 3.14: it fails to
-# notice the reference held by the bound function, so a resize that should raise
-# instead succeeds. Only the iOS test environment is still pinned to such a numpy
-# (no newer iOS wheels exist yet).
+# numpy < 2.4 fails to detect aliasing in ndarray.resize on Python 3.14, so a
+# resize that should raise instead succeeds: numpy/numpy#30265 (fixed in 2.4.0).
 NUMPY_RESIZE_REFCHECK_BROKEN = sys.version_info >= (3, 14) and tuple(
     int(x) for x in np.__version__.split(".")[:2]
 ) < (2, 4)
