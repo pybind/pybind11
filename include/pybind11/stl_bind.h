@@ -570,6 +570,82 @@ class_<Vector, holder_type> bind_vector(handle scope, std::string const &name, A
 }
 
 //
+// std::set
+//
+template <typename Set, typename holder_type = std::unique_ptr<Set>, typename... Args>
+class_<Set, holder_type> bind_set(handle scope, std::string const &name, Args &&...args) {
+    using Class_ = class_<Set, holder_type>;
+    using T = typename Set::value_type;
+    using ItType = typename Set::iterator;
+
+    auto vtype_info = detail::get_type_info(typeid(T));
+    bool local = !vtype_info || vtype_info->module_local;
+
+    Class_ cl(scope, name.c_str(), pybind11::module_local(local), std::forward<Args>(args)...);
+    cl.def(init<>());
+    cl.def(init<const Set &>(), "Copy constructor");
+    cl.def(init([](iterable it) {
+        auto s = std::unique_ptr<Set>(new Set());
+        for (handle h : it)
+            s->insert(h.cast<T>());
+        return s.release();
+    }));
+    cl.def(self == self);
+    cl.def(self != self);
+    cl.def(
+        "remove",
+        [](Set &s, const T &x) {
+            auto p = s.find(x);
+            if (p != s.end())
+                s.erase(p);
+            else
+                throw value_error();
+        },
+        arg("x"),
+        "Remove the item from the set whose value is x. "
+        "It is an error if there is no such item.");
+    cl.def(
+        "__contains__",
+        [](const Set &s, const T &x) { return s.find(x) != s.end(); },
+        arg("x"),
+        "Return true if the container contains ``x``.");
+    cl.def(
+        "add",
+        [](Set &s, const T &value) { s.insert(value); },
+        arg("x"),
+        "Add an item to the set.");
+    cl.def("clear", [](Set &s) { s.clear(); }, "Clear the contents.");
+    cl.def(
+        "__iter__",
+        [](Set &s) {
+            return make_iterator<return_value_policy::copy, ItType, ItType, T>(s.begin(), s.end());
+        },
+        keep_alive<0, 1>() /* Essential: keep set alive while iterator exists */
+    );
+    cl.def(
+        "__repr__",
+        [name](Set &s) {
+            std::ostringstream os;
+            os << name << '{';
+            for (auto it = s.begin(); it != s.end(); ++it) {
+                if (it != s.begin())
+                    os << ", ";
+                os << *it;
+            }
+            os << '}';
+            return os.str();
+        },
+        "Return the canonical string representation of this set.");
+    cl.def(
+        "__bool__",
+        [](const Set &s) -> bool { return !s.empty(); },
+        "Check whether the set is nonempty");
+    cl.def("__len__", &Set::size);
+
+    return cl;
+}
+
+//
 // std::map, std::unordered_map
 //
 
