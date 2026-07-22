@@ -665,6 +665,21 @@ building the module:
 
     $ c++ -O3 -Wall -shared -std=c++11 -undefined dynamic_lookup $(python3 -m pybind11 --includes) example.cpp -o example$(python3-config --extension-suffix)
 
+For quick tests, the command line tool can also produce the full set of flags
+for you, based on ``python-config``:
+
+.. code-block:: bash
+
+    $ c++ $(python3 -m pybind11 --cflags) example.cpp $(python3 -m pybind11 --ldflags) -o example$(python3 -m pybind11 --extension-suffix)
+
+Or, shorter still, ``--file`` prints everything after the compiler for a given
+source file, including the output name (add ``--embed`` for a program that
+embeds the interpreter instead of an extension):
+
+.. code-block:: bash
+
+    $ c++ $(python3 -m pybind11 --file=example.cpp)
+
 In general, it is advisable to include several additional build parameters
 that can considerably reduce the size of the created binary. Refer to section
 :ref:`cmake` for a detailed example of a suitable cross-platform CMake-based
