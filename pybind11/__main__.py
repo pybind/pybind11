@@ -6,9 +6,16 @@ import functools
 import re
 import sys
 import sysconfig
+from pathlib import Path
 
 from ._version import __version__
-from .commands import get_cmake_dir, get_include, get_pkgconfig_dir
+from .commands import (
+    get_cflags,
+    get_cmake_dir,
+    get_include_dirs,
+    get_ldflags,
+    get_pkgconfig_dir,
+)
 
 # This is the conditional used for os.path being posixpath
 if "posix" in sys.builtin_module_names:
@@ -34,19 +41,7 @@ else:
 
 
 def print_includes() -> None:
-    dirs = [
-        sysconfig.get_path("include"),
-        sysconfig.get_path("platinclude"),
-        get_include(),
-    ]
-
-    # Make unique but preserve order
-    unique_dirs = []
-    for d in dirs:
-        if d and d not in unique_dirs:
-            unique_dirs.append(d)
-
-    print(" ".join(quote(f"-I{d}") for d in unique_dirs))
+    print(" ".join(quote(f"-I{d}") for d in get_include_dirs()))
 
 
 def main() -> None:
@@ -80,11 +75,40 @@ def main() -> None:
         action="store_true",
         help="Print the extension for a Python module",
     )
+    parser.add_argument(
+        "--cflags",
+        action="store_true",
+        help="Print the compile flags for a simple extension.",
+    )
+    parser.add_argument(
+        "--ldflags",
+        action="store_true",
+        help="Print the link flags for a simple extension.",
+    )
+    parser.add_argument(
+        "--embed",
+        action="store_true",
+        help="Build for embedding instead of an extension; affects --ldflags and --file.",
+    )
+    parser.add_argument(
+        "--file",
+        type=Path,
+        help="Print a full command-line suffix for compiling the given file.",
+    )
     args = parser.parse_args()
     if not sys.argv[1:]:
         parser.print_help()
-    if args.includes:
+    if args.cflags or args.file:
+        print(get_cflags(), end=" " if args.file else "\n")
+    elif args.includes:
         print_includes()
+    if args.file:
+        print(quote(str(args.file)), end=" ")
+    if args.ldflags or args.file:
+        print(get_ldflags(embed=args.embed), end=" " if args.file else "\n")
+    if args.file:
+        suffix = "" if args.embed else sysconfig.get_config_var("EXT_SUFFIX") or ""
+        print("-o", quote(str(args.file.with_suffix(suffix))))
     if args.cmakedir:
         print(quote(get_cmake_dir()))
     if args.pkgconfigdir:
