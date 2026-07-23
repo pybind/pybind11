@@ -112,6 +112,7 @@ if(NOT _PYBIND11_CROSSCOMPILING AND DEFINED ${_Python}_EXECUTABLE)
     # Detect changes to the Python version/binary in subsequent CMake runs, and refresh config if needed
     unset(PYTHON_IS_DEBUG CACHE)
     unset(PYTHON_MODULE_EXTENSION CACHE)
+    unset(PYTHON_MODULE_DEBUG_POSTFIX CACHE)
   endif()
 
   set(PYBIND11_PYTHON_EXECUTABLE_LAST
