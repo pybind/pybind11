@@ -67,8 +67,19 @@ project(pybind11_tests CXX)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/../tools")
 
 option(PYBIND11_WERROR "Report all warnings as errors" OFF)
-option(DOWNLOAD_CATCH "Download catch2 if not found" OFF)
-option(DOWNLOAD_EIGEN "Download EIGEN" OFF)
+option(PYBIND11_CATCH_TESTS "Enable catch tests" OFF)
+option(PYBIND11_EIGEN_TESTS "Enable eigen tests" OFF)
+if(CMAKE_VERSION VERSION_LESS 3.24)
+  option(DOWNLOAD_CATCH "Download catch2 if not found" OFF)
+  option(DOWNLOAD_EIGEN "Download EIGEN" OFF)
+else()
+  if(DEFINED DOWNLOAD_CATCH OR DEFINED DOWNLOAD_EIGEN)
+    message(
+      WARNING "DOWNLOAD_* options have no effect for CMake >= 3.24.\n"
+              "Use instead the PYBIND11_*_TESTS and FETCHCONTENT_TRY_FIND_PACKAGE_MODE and co "
+              "to control if and how to pick up these dependencies.")
+  endif()
+endif()
 option(PYBIND11_CUDA_TESTS "Enable building CUDA tests" OFF)
 option(PYBIND11_TEST_SMART_HOLDER "Change the default to smart holder" OFF)
 set(PYBIND11_TEST_OVERRIDE
@@ -256,14 +267,22 @@ tests_extra_targets("test_standalone_enum_module.py" "standalone_enum_module")
 set(PYBIND11_EIGEN_REPO
     "https://gitlab.com/libeigen/eigen.git"
     CACHE STRING "Eigen repository to use for tests")
+set(PYBIND11_CATCH_REPO
+    "https://github.com/catchorg/Catch2.git"
+    CACHE STRING "Catch repository to use for tests")
 # Always use a hash for reconfigure speed and security reasons
 # Include the version number for pretty printing (keep in sync)
 set(PYBIND11_EIGEN_VERSION_AND_HASH
     "3.4.0;929bc0e191d0927b1735b9a1ddc0e8b77e3a25ec"
     CACHE STRING "Eigen version to use for tests, format: VERSION;HASH")
+set(PYBIND11_CATCH_VERSION_AND_HASH
+    "v2.13.10;182c910b4b63ff587a3440e08f84f70497e49a81"
+    CACHE STRING "Catch version to use for tests, format: VERSION;HASH")
 
 list(GET PYBIND11_EIGEN_VERSION_AND_HASH 0 PYBIND11_EIGEN_VERSION_STRING)
 list(GET PYBIND11_EIGEN_VERSION_AND_HASH 1 PYBIND11_EIGEN_VERSION_HASH)
+list(GET PYBIND11_CATCH_VERSION_AND_HASH 0 PYBIND11_CATCH_VERSION_STRING)
+list(GET PYBIND11_CATCH_VERSION_AND_HASH 1 PYBIND11_CATCH_VERSION_HASH)
 
 # Check if Eigen is available; if not, remove from PYBIND11_TEST_FILES (but
 # keep it in PYBIND11_PYTEST_FILES, so that we get the "eigen is not installed"
@@ -272,22 +291,25 @@ list(FIND PYBIND11_TEST_FILES test_eigen_matrix.cpp PYBIND11_TEST_FILES_EIGEN_I)
 if(PYBIND11_TEST_FILES_EIGEN_I EQUAL -1)
   list(FIND PYBIND11_TEST_FILES test_eigen_tensor.cpp PYBIND11_TEST_FILES_EIGEN_I)
 endif()
-if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
+if(PYBIND11_EIGEN_TESTS AND PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
   # Try loading via newer Eigen's Eigen3Config first (bypassing tools/FindEigen3.cmake).
   # Eigen 3.3.1+ exports a cmake 3.0+ target for handling dependency requirements, but also
-  if(DOWNLOAD_EIGEN)
+  if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.24 OR DOWNLOAD_EIGEN)
     if(CMAKE_VERSION VERSION_LESS 3.18)
       set(_opts)
     else()
       set(_opts SOURCE_SUBDIR no-cmake-build)
     endif()
+    if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.24)
+      list(APPEND _opts FIND_PACKAGE_ARGS CONFIG)
+    endif()
     include(FetchContent)
     FetchContent_Declare(
-      eigen
+      Eigen3
       GIT_REPOSITORY "${PYBIND11_EIGEN_REPO}"
       GIT_TAG "${PYBIND11_EIGEN_VERSION_HASH}"
       ${_opts})
-    FetchContent_MakeAvailable(eigen)
+    FetchContent_MakeAvailable(Eigen3)
     if(NOT CMAKE_VERSION VERSION_LESS 3.18)
       set(EIGEN3_INCLUDE_DIR "${eigen_SOURCE_DIR}")
     endif()
@@ -344,7 +366,6 @@ if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
     if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
       list(REMOVE_AT PYBIND11_TEST_FILES ${PYBIND11_TEST_FILES_EIGEN_I})
     endif()
-    message(STATUS "Building tests WITHOUT Eigen, use -DDOWNLOAD_EIGEN=ON to download")
   endif()
 endif()
 
@@ -354,6 +375,36 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_L
   if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
     list(REMOVE_AT PYBIND11_TEST_FILES ${PYBIND11_TEST_FILES_EIGEN_I})
   endif()
+endif()
+
+if(PYBIND11_CATCH_TESTS)
+  if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.24 OR DOWNLOAD_CATCH)
+    set(_opts)
+    if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.24)
+      list(APPEND _opts FIND_PACKAGE_ARGS CONFIG)
+    endif()
+
+    # Set the build options when doing FetchContent
+    # TODO: Not needed in more recent Catch versions
+    option(CATCH_BUILD_TESTING "Overridden by pybind11" OFF)
+    option(CATCH_ENABLE_WERROR "Overridden by pybind11" OFF)
+
+    include(FetchContent)
+    FetchContent_Declare(
+      Catch2
+      GIT_REPOSITORY "${PYBIND11_CATCH_REPO}"
+      GIT_TAG "${PYBIND11_CATCH_VERSION_HASH}"
+      ${_opts})
+    FetchContent_MakeAvailable(Catch2)
+    # Fetchcontent-ed branch does not set CATCH_VERSION
+    if(NOT Catch2_VERSION)
+      set(Catch2_VERSION ${PYBIND11_CATCH_VERSION_STRING})
+    endif()
+  else()
+    find_package(Catch2 2.13.10 REQUIRED)
+  endif()
+
+  message(STATUS "Building interpreter tests using Catch v${CATCH_VERSION}")
 endif()
 
 # Optional dependency for some tests (boost::variant is only supported with version >= 1.56)
@@ -680,15 +731,17 @@ add_custom_command(
     ${CMAKE_CURRENT_BINARY_DIR}/sosize-$<TARGET_FILE_NAME:pybind11_tests>.txt)
 
 if(NOT PYBIND11_CUDA_TESTS)
-  # Test pure C++ code (not depending on Python). Provides the `test_pure_cpp` target.
-  add_subdirectory(pure_cpp)
+  if(PYBIND11_CATCH_TESTS)
+    # Test pure C++ code (not depending on Python). Provides the `test_pure_cpp` target.
+    add_subdirectory(pure_cpp)
 
-  # Test C++ code that depends on Python, such as embedding the interpreter. Provides the `cpptest` target.
-  add_subdirectory(test_with_catch)
+    # Test C++ code that depends on Python, such as embedding the interpreter. Provides the `cpptest` target.
+    add_subdirectory(test_with_catch)
+
+    # Test visibility of common symbols across shared libraries
+    add_subdirectory(test_cross_module_rtti)
+  endif()
 
   # Test CMake build using functions and targets from subdirectory or installed location
   add_subdirectory(test_cmake_build)
-
-  # Test visibility of common symbols across shared libraries
-  add_subdirectory(test_cross_module_rtti)
 endif()

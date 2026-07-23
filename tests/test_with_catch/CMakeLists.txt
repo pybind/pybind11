@@ -5,26 +5,16 @@ if("${PYTHON_MODULE_EXTENSION}" MATCHES "pypy"
    OR "${PYTHON_MODULE_EXTENSION}" MATCHES "graalpy")
   message(STATUS "Skipping embed test on PyPy or GraalPy")
   add_custom_target(cpptest) # Dummy target on PyPy or GraalPy. Embedding is not supported.
-  set(_suppress_unused_variable_warning "${DOWNLOAD_CATCH}")
   return()
 endif()
 
 if(TARGET Python::Module AND NOT TARGET Python::Python)
   message(STATUS "Skipping embed test since no embed libs found")
   add_custom_target(cpptest) # Dummy target since embedding is not supported.
-  set(_suppress_unused_variable_warning "${DOWNLOAD_CATCH}")
   return()
 endif()
 
-find_package(Catch 2.13.10)
-
-if(CATCH_FOUND)
-  message(STATUS "Building interpreter tests using Catch v${CATCH_VERSION}")
-else()
-  message(STATUS "Catch not detected. Interpreter tests will be skipped. Install Catch headers"
-                 " manually or use `cmake -DDOWNLOAD_CATCH=ON` to fetch them automatically.")
-  return()
-endif()
+message(STATUS "Building interpreter tests using Catch ${CATCH_VERSION}")
 
 find_package(Threads REQUIRED)
 
