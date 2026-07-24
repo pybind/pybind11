@@ -68,8 +68,9 @@ jobs:
         if: runner.os != 'Windows'
         run: echo "CMAKE_GENERATOR=Ninja" >> "$GITHUB_ENV"
 
-      # FindPython's version scan can pick a different interpreter (e.g.
-      # Homebrew's 3.14 instead of setup-python's 3.14t), so pin it.
+      # Pass setup-python's resolved interpreter path to CMake so FindPython
+      # does not select a different interpreter (e.g. Homebrew's 3.14 instead
+      # of setup-python's 3.14t).
       - name: Configure
         run: >
           cmake -S. -Bbuild -Werror=dev
