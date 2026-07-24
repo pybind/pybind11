@@ -124,8 +124,8 @@ def test_python_alreadyset_in_destructor(monkeypatch, capsys):
     assert triggered is True
 
     _, captured_stderr = capsys.readouterr()
-    # Python 3.15 colorizes this traceback when FORCE_COLOR is set.
-    captured_stderr = re.sub(r"\x1b\[[0-9;]*m", "", captured_stderr)
+    # Strip ANSI codes that Python 3.15+ adds to this traceback under FORCE_COLOR.
+    captured_stderr = re.sub(r"\x1b\[[0-?]*[ -/]*m", "", captured_stderr)
     assert captured_stderr.startswith("Exception ignored in: 'already_set demo'")
     assert captured_stderr.rstrip().endswith("KeyError: 'bar'")
 
