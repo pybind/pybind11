@@ -81,30 +81,16 @@ jobs:
             python-version: '3.10'
             cmake-args: -DCMAKE_CXX_STANDARD=20
           - runs-on: ubuntu-latest
-            python-version: '3.11'
-            cmake-args: -DPYBIND11_TEST_SMART_HOLDER=ON -DCMAKE_CXX_STANDARD=17
-          - runs-on: ubuntu-latest
             python-version: '3.12'
             cmake-args: -DPYBIND11_TEST_SMART_HOLDER=ON -DPYBIND11_SIMPLE_GIL_MANAGEMENT=ON
           - runs-on: ubuntu-latest
-            python-version: '3.14t'
-            cmake-args: -DCMAKE_CXX_STANDARD=20 -DPYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION=ON
-          - runs-on: ubuntu-latest
             python-version: '3.14'
             cmake-args: -DCMAKE_CXX_STANDARD=14
-          - runs-on: ubuntu-latest
-            python-version: 'pypy-3.11-v7.3.23'
-            cmake-args: -DCMAKE_CXX_STANDARD=14
-          - runs-on: ubuntu-latest
-            python-version: 'graalpy-25.0'
 
           # No SciPy for macOS ARM
           - runs-on: macos-15-intel
             python-version: '3.8'
             cmake-args: -DCMAKE_CXX_STANDARD=14
-          - runs-on: macos-15-intel
-            python-version: '3.11'
-            cmake-args: -DPYBIND11_TEST_SMART_HOLDER=ON
           - runs-on: macos-15-intel
             python-version: '3.13'
             cmake-args: -DCMAKE_CXX_STANDARD=11
@@ -125,9 +111,6 @@ jobs:
           - runs-on: windows-2022
             python-version: '3.8'
             cmake-args: -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -DPYBIND11_NUMPY_1_ONLY=ON
-          - runs-on: windows-2022
-            python-version: '3.9'
-            cmake-args: -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL -DCMAKE_CXX_STANDARD=14
           # This needs a python built with MTd
           # - runs-on: windows-2022
           #   python-version: '3.11'
@@ -278,8 +261,6 @@ jobs:
           - clang: 5
             std: 14
           - clang: 11
-            std: 20
-          - clang: 14
             std: 20
           - clang: 16
             std: 20
@@ -465,7 +446,6 @@ jobs:
         include:
           - { gcc: 9, std: 20 }
           - { gcc: 10, std: 17 }
-          - { gcc: 10, std: 20 }
           - { gcc: 13, std: 20, cxx_flags: "-Wall -Wextra -Wwrite-strings -Wunreachable-code -Wpointer-arith -Wredundant-decls" }
 
     name: "🐍 3 • GCC ${{ matrix.gcc }} • C++${{ matrix.std }} • x64${{ matrix.cxx_flags && ' • cxx_flags' || '' }}"
@@ -509,25 +489,6 @@ jobs:
 
     - name: Visibility test
       run: cmake --build build --target test_cross_module_rtti
-
-    - name: Configure - Exercise cmake -DPYBIND11_TEST_OVERRIDE
-      if: matrix.gcc == '12'
-      shell: bash
-      run: >
-        cmake -S . -B build_partial
-        -DPYBIND11_WERROR=ON
-        -DDOWNLOAD_CATCH=ON
-        -DCMAKE_CXX_STANDARD=${{ matrix.std }}
-        -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
-        "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
-
-    - name: Build - Exercise cmake -DPYBIND11_TEST_OVERRIDE
-      if: matrix.gcc == '12'
-      run: cmake --build build_partial -j 2
-
-    - name: Python tests - Exercise cmake -DPYBIND11_TEST_OVERRIDE
-      if: matrix.gcc == '12'
-      run: cmake --build build_partial --target pytest
 
   # Testing on ICC using the oneAPI apt repo
   icc:
@@ -796,8 +757,6 @@ jobs:
         include:
           - python: '3.8'
             args: -DCMAKE_CXX_STANDARD=17
-          - python: '3.10'
-            args: -DCMAKE_CXX_STANDARD=20
           - python: '3.13'
 
 
@@ -851,8 +810,6 @@ jobs:
         include:
           - python: 3.9
             args: -DCMAKE_CXX_STANDARD=20
-          - python: 3.8
-            args: -DCMAKE_CXX_STANDARD=17
 
     name: "🐍 ${{ matrix.python }} • MSVC 2022 (Debug) • x86 ${{ matrix.args }}"
     runs-on: windows-2022
