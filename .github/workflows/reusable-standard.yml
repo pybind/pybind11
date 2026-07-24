@@ -34,6 +34,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Setup Python ${{ inputs.python-version }}
+        id: python
         uses: actions/setup-python@v6
         with:
           python-version: ${{ inputs.python-version }}
@@ -67,6 +68,8 @@ jobs:
         if: runner.os != 'Windows'
         run: echo "CMAKE_GENERATOR=Ninja" >> "$GITHUB_ENV"
 
+      # FindPython's version scan can pick a different interpreter (e.g.
+      # Homebrew's 3.14 instead of setup-python's 3.14t), so pin it.
       - name: Configure
         run: >
           cmake -S. -Bbuild -Werror=dev
@@ -74,6 +77,7 @@ jobs:
           -DPYBIND11_PYTEST_ARGS=-v
           -DDOWNLOAD_CATCH=ON
           -DDOWNLOAD_EIGEN=ON
+          -DPYTHON_EXECUTABLE=${{ steps.python.outputs.python-path }}
           ${{ inputs.cmake-args }}
 
       - name: Build
