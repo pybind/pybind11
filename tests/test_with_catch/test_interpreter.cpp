@@ -523,5 +523,18 @@ TEST_CASE("Casting to a string_view outside a bound function") {
     REQUIRE(py::cast<std::string_view>(unicode) == "hello");
     REQUIRE(py::cast<std::string_view>(bytes_obj) == "world");
     REQUIRE(py::cast<std::string_view>(bytearray_obj) == "bytes");
+
+    // Wide string views require an encoded temporary. With no loader life-support
+    // frame, returning a view into that temporary must fail.
+    REQUIRE_THROWS_AS(py::cast<std::u16string_view>(unicode), py::cast_error);
+    REQUIRE_THROWS_AS(py::cast<std::u32string_view>(unicode), py::cast_error);
+
+    // Bound-function dispatch provides a frame that keeps both temporaries alive.
+    auto accepts_wide_views
+        = py::cpp_function([](std::u16string_view value16, std::u32string_view value32) {
+              return value16 == std::u16string_view(u"hello")
+                     && value32 == std::u32string_view(U"hello");
+          });
+    REQUIRE(accepts_wide_views(unicode, unicode).cast<bool>());
 }
 #endif
