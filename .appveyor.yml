@@ -32,8 +32,13 @@ install:
 build_script:
 # FindPython looks at the registry before PATH, so it picks the newest Python on
 # the image. Point it at the one that has the test packages.
+#
+# The image also has python39_d.lib, which FindPython uses for a Debug build.
+# pybind11 undefines _DEBUG around Python.h, so pyconfig.h asks for python39.lib
+# and the link fails. Take the release library in Debug too.
 - cmake -G "%CMAKE_GENERATOR%" -A "%CMAKE_ARCH%"
     -DPython_ROOT_DIR="%PYTHON_ROOT%"
+    -DCMAKE_MAP_IMPORTED_CONFIG_DEBUG=Release
     -DCMAKE_CXX_STANDARD=14
     -DPYBIND11_WERROR=ON
     -DDOWNLOAD_CATCH=ON
