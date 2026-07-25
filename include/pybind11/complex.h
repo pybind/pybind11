@@ -88,7 +88,7 @@ public:
 
     PYBIND11_TYPE_CASTER(
         std::complex<T>,
-        io_name("typing.SupportsComplex | typing.SupportsFloat | typing.SupportsIndex",
+        io_name("complex | typing.SupportsComplex | typing.SupportsFloat | typing.SupportsIndex",
                 "complex"));
 };
 PYBIND11_NAMESPACE_END(detail)

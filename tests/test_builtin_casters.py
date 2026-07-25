@@ -565,7 +565,7 @@ def test_complex_cast(doc):
 
     assert (
         doc(convert)
-        == "complex_convert(arg0: typing.SupportsComplex | typing.SupportsFloat | typing.SupportsIndex) -> complex"
+        == "complex_convert(arg0: complex | typing.SupportsComplex | typing.SupportsFloat | typing.SupportsIndex) -> complex"
     )
     assert doc(noconvert) == "complex_noconvert(arg0: complex) -> complex"
 
