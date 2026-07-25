@@ -14,6 +14,7 @@ environment:
 install:
 - ps: |
     $env:CMAKE_GENERATOR = "Visual Studio 16 2019"
+    $env:PYTHON_LIB_NAME = "python$env:PYTHON.lib"
     # The 2019 generator defaults to x64, so name the architecture explicitly.
     if ($env:PLATFORM -eq "x64") {
       $env:PYTHON = "$env:PYTHON-x64"
@@ -22,11 +23,8 @@ install:
       $env:CMAKE_ARCH = "Win32"
     }
     $env:PYTHON_ROOT = "C:\Python$env:PYTHON"
+    $env:PYTHON_LIB = "$env:PYTHON_ROOT\libs\$env:PYTHON_LIB_NAME"
     $env:PATH = "$env:PYTHON_ROOT\;$env:PYTHON_ROOT\Scripts\;$env:PATH"
-    # pyconfig.h names python39.lib in a #pragma comment(lib), so the linker must
-    # know the directory. FindPython does not add it here.
-    $env:LIB = "$env:PYTHON_ROOT\libs;$env:LIB"
-    Get-ChildItem "$env:PYTHON_ROOT\libs"
     python -W ignore -m pip install --upgrade pip wheel
     python -W ignore -m pip install pytest numpy --no-warn-script-location pytest-timeout
 - ps: |
@@ -36,8 +34,12 @@ install:
 build_script:
 # FindPython looks at the registry before PATH, so it picks the newest Python on
 # the image. Point it at the one that has the test packages.
+#
+# The image also has python39_d.lib, which FindPython selects for a Debug build.
+# pybind11 undefines _DEBUG around Python.h, so it needs the release library.
 - cmake -G "%CMAKE_GENERATOR%" -A "%CMAKE_ARCH%"
     -DPython_ROOT_DIR="%PYTHON_ROOT%"
+    -DPython_LIBRARY_DEBUG="%PYTHON_LIB%"
     -DCMAKE_CXX_STANDARD=14
     -DPYBIND11_WERROR=ON
     -DDOWNLOAD_CATCH=ON
