@@ -28,6 +28,9 @@ MD_ENTRY = re.compile(
     """,
     re.DOTALL | re.VERBOSE | re.MULTILINE,
 )
+# Conventional commit prefix, such as "fix(cmake)!:"
+TITLE_CAT = re.compile(r"(?P<cat>\w+)(?:\((?P<sub>[^)]+)\))?!?:")
+
 print()
 
 
@@ -67,20 +70,15 @@ missing = []
 old = []
 cats_descr = {
     "feat": "New Features",
-    "feat(types)": "",
-    "feat(cmake)": "",
     "fix": "Bug fixes",
-    "fix(types)": "",
-    "fix(cmake)": "",
-    "fix(free-threading)": "",
     "docs": "Documentation",
     "tests": "Tests",
     "ci": "CI",
     "chore": "Other",
-    "chore(cmake)": "",
     "unknown": "Uncategorised",
 }
-cats: dict[str, list[str]] = {c: [] for c in cats_descr}
+# Each main category maps its subcategories ("" if there is none) to entries
+cats: dict[str, dict[str, list[str]]] = {c: {} for c in cats_descr}
 
 for issue in issues:
     if "```rst" in issue.body:
@@ -107,22 +105,26 @@ for issue in issues:
         continue
 
     msg += f"\n  [#{issue.number}]({issue.html_url})"
-    for cat, cat_list in cats.items():
-        if issue.title.lower().startswith(f"{cat}:"):
-            cat_list.append(msg)
-            break
-    else:
-        cats["unknown"].append(msg)
+    title = TITLE_CAT.match(issue.title)
+    cat = title.group("cat").lower() if title else "unknown"
+    sub = (title.group("sub") or "").lower() if title else ""
+    if cat not in cats:
+        cat, sub = "unknown", ""
+    cats[cat].setdefault(sub, []).append(msg)
 
-for cat, msgs in cats.items():
-    if msgs:
-        desc = cats_descr[cat]
-        print(f"[bold]{desc}:" if desc else f"<!-- {cat} -->")
+for cat, subs in cats.items():
+    if subs:
+        print(f"[bold]{cats_descr[cat]}:")
         print()
-        for msg in msgs:
-            print(Syntax(msg, "md", theme="ansi_light", word_wrap=True))
+        # An empty subcategory sorts first, so plain entries lead the section
+        for sub in sorted(subs):
+            if sub:
+                print(f"<!-- {cat}({sub}) -->")
+                print()
+            for msg in subs[sub]:
+                print(Syntax(msg, "md", theme="ansi_light", word_wrap=True))
+                print()
             print()
-        print()
 
 if missing:
     print()
