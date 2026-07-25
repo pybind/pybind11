@@ -1,12 +1,14 @@
 #!/usr/bin/env -S uv run
 
 # /// script
-# dependencies = ["ghapi", "rich"]
+# dependencies = ["ghapi>=2", "rich"]
 # ///
 
 from __future__ import annotations
 
+import os
 import re
+import subprocess
 
 import ghapi.all
 from rich import print
@@ -14,7 +16,7 @@ from rich.syntax import Syntax
 
 MD_ENTRY = re.compile(
     r"""
-    \#\#\ Suggested\ changelog\ entry:     # Match the heading exactly
+    ^\#+\ Suggested\ changelog\ entry:?\s*$ # Match the heading, colon optional
     (?:\s*<!--.*?-->)?                     # Optionally match one comment
     (?P<content>.*?)                       # Lazily capture content until...
     (?=                                    # Lookahead for one of the following:
@@ -29,12 +31,38 @@ MD_ENTRY = re.compile(
 print()
 
 
-api = ghapi.all.GhApi(owner="pybind", repo="pybind11")
+def get_token() -> str | None:
+    """
+    Unauthenticated requests get a shared CDN cache ("Cache-Control: public"),
+    which returns stale bodies and labels. A token makes the cache private.
+    """
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    if token:
+        return token
+    try:
+        result = subprocess.run(
+            ["gh", "auth", "token"], capture_output=True, text=True, check=True
+        )
+    except (OSError, subprocess.CalledProcessError):
+        print("[yellow]No GitHub token found; results may be stale (cached).")
+        return None
+    return result.stdout.strip()
 
-issues_pages = ghapi.page.paged(
-    api.issues.list_for_repo, labels="needs changelog", state="closed"
+
+LABEL = "needs changelog"
+
+api = ghapi.all.GhApi(owner="pybind", repo="pybind11", token=get_token(), sync=True)
+
+issues_pages = ghapi.page.sync_paged(
+    api.issues.list_for_repo, labels=LABEL, state="closed"
 )
-issues = (issue for page in issues_pages for issue in page)
+# The server-side label filter lags behind label removals, so re-check each issue
+issues = (
+    issue
+    for page in issues_pages
+    for issue in page
+    if any(label.name == LABEL for label in issue.labels)
+)
 missing = []
 old = []
 cats_descr = {
