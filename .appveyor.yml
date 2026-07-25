@@ -44,11 +44,6 @@ build_script:
     -DDOWNLOAD_CATCH=ON
     -DCMAKE_SUPPRESS_REGENERATION=1
     .
-# Temporary, to find why the linker gets python39.lib without a directory.
-- ps: |
-    cmake -N -LA . | Select-String -Pattern "^Python"
-    Get-ChildItem "$env:PYTHON_ROOT\libs"
-    Select-String -Path "tests\pybind11_tests.vcxproj" -Pattern "AdditionalDependencies|AdditionalLibraryDirectories"
 - set MSBuildLogger="C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
 - cmake --build . --config %CONFIG% --target pytest -- /m /v:m /logger:%MSBuildLogger%
 - cmake --build . --config %CONFIG% --target cpptest -- /m /v:m /logger:%MSBuildLogger%
