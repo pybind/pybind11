@@ -79,8 +79,9 @@ def main() -> None:
     args = parser.parse_args()
     if not sys.argv[1:]:
         parser.print_help()
+    ext_suffix = sysconfig.get_config_var("EXT_SUFFIX") or ""
     if args.file:
-        suffix = "" if args.embed else sysconfig.get_config_var("EXT_SUFFIX") or ""
+        suffix = "" if args.embed else ext_suffix
         print(
             get_cflags(),
             quote(str(args.file)),
@@ -101,7 +102,7 @@ def main() -> None:
     if args.pkgconfigdir:
         print(quote(get_pkgconfig_dir()))
     if args.extension_suffix:
-        print(sysconfig.get_config_var("EXT_SUFFIX"))
+        print(ext_suffix)
 
 
 if __name__ == "__main__":

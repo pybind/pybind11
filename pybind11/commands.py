@@ -3,15 +3,17 @@ from __future__ import annotations
 import os
 import re
 import sys
-import sysconfig
 
 DIR = os.path.abspath(os.path.dirname(__file__))
 
+# shlex/sysconfig are imported lazily below to keep `import pybind11` light
+
 # This is the conditional used for os.path being posixpath
 if "posix" in sys.builtin_module_names:
-    import shlex
 
     def _quote(s: str) -> str:
+        import shlex
+
         return shlex.quote(s)
 elif "nt" in sys.builtin_module_names:
     # See https://github.com/mesonbuild/meson/blob/db22551ed9d2dd7889abea01cc1c7bba02bf1c75/mesonbuild/utils/universal.py#L1092-L1121
@@ -33,12 +35,11 @@ else:
         return s
 
 
-def _get_config_var(name: str, fmt: str = "{}", quote: bool = False) -> list[str]:
-    var = sysconfig.get_config_var(name)
-    if not var:
-        return []
-    flag = fmt.format(str(var).strip())
-    return [_quote(flag) if quote else flag]
+def _config(name: str) -> str:
+    """A stripped sysconfig variable, or "" if unset."""
+    import sysconfig
+
+    return str(sysconfig.get_config_var(name) or "").strip()
 
 
 def get_include(user: bool = False) -> str:  # noqa: ARG001
@@ -79,6 +80,8 @@ def get_include_dirs() -> list[str]:
     """
     Return the unique include directories for Python and pybind11.
     """
+    import sysconfig
+
     dirs = [
         sysconfig.get_path("include"),
         sysconfig.get_path("platinclude"),
@@ -99,9 +102,10 @@ def get_cflags() -> str:
     Unix-style command-line compiler (GCC/Clang). Based on python-config.
     """
     flags = [_quote(f"-I{d}") for d in get_include_dirs()]
-    # CFLAGS/LDFLAGS/LIBS/SYSLIBS are pre-composed multi-flag strings, passed
-    # through as-is (like python-config does)
-    flags += _get_config_var("CFLAGS")
+    # CFLAGS is a pre-composed multi-flag string, passed through as-is (like
+    # python-config does)
+    if cflags := _config("CFLAGS"):
+        flags.append(cflags)
     flags.append("-std=c++17")
     return " ".join(flags)
 
@@ -112,17 +116,21 @@ def get_ldflags(embed: bool = False) -> str:
     embed=True, an embedding program) with a Unix-style command-line
     compiler (GCC/Clang). Based on python-config.
     """
-    flags = _get_config_var("LDFLAGS")
+    # LDFLAGS/LIBS/SYSLIBS are pre-composed multi-flag strings, passed
+    # through as-is (like python-config does)
+    flags = [ldflags] if (ldflags := _config("LDFLAGS")) else []
 
     if embed:
-        flags += _get_config_var("LIBDIR", "-L{}", quote=True)
-        if not sysconfig.get_config_var("Py_ENABLE_SHARED"):
-            flags += _get_config_var("LIBPL", "-L{}", quote=True)
-        version = sysconfig.get_config_var("VERSION") or ""
+        if libdir := _config("LIBDIR"):
+            flags.append(_quote(f"-L{libdir}"))
+        if not _config("Py_ENABLE_SHARED") and (libpl := _config("LIBPL")):
+            flags.append(_quote(f"-L{libpl}"))
         abiflags = getattr(sys, "abiflags", "") or ""
-        flags.append(f"-lpython{version}{abiflags}")
-        flags += _get_config_var("LIBS")
-        flags += _get_config_var("SYSLIBS")
+        flags.append(f"-lpython{_config('VERSION')}{abiflags}")
+        if libs := _config("LIBS"):
+            flags.append(libs)
+        if syslibs := _config("SYSLIBS"):
+            flags.append(syslibs)
     elif sys.platform.startswith("darwin"):
         flags += ["-undefined", "dynamic_lookup", "-shared"]
     elif sys.platform.startswith("linux"):

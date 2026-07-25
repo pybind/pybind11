@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import contextlib
-import importlib.util
+import importlib
 import os
 import re
 import shutil
@@ -418,12 +418,9 @@ def test_cli_ldflags_embed():
 
 @pytest.mark.skipif(os.name != "posix", reason="quote style is platform-specific")
 def test_cflags_quotes_paths_with_spaces(monkeypatch):
-    spec = importlib.util.spec_from_file_location(
-        "pybind11_commands", MAIN_DIR / "pybind11" / "commands.py"
-    )
-    commands = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(commands)
-    monkeypatch.setattr(commands.sysconfig, "get_path", lambda name: f"/spa ced/{name}")
+    monkeypatch.syspath_prepend(str(MAIN_DIR))
+    commands = importlib.import_module("pybind11.commands")
+    monkeypatch.setattr(sysconfig, "get_path", lambda name: f"/spa ced/{name}")
     assert "'-I/spa ced/include'" in commands.get_cflags()
 
 
