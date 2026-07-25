@@ -680,6 +680,10 @@ embeds the interpreter instead of an extension):
 
     $ c++ $(python3 -m pybind11 --file=example.cpp)
 
+These helpers target Unix-style compilers (GCC/Clang) and are intended for
+quick tests, not production builds; ``--file`` places the output next to the
+source file.
+
 In general, it is advisable to include several additional build parameters
 that can considerably reduce the size of the created binary. Refer to section
 :ref:`cmake` for a detailed example of a suitable cross-platform CMake-based

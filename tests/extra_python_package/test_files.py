@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import importlib.util
 import os
 import re
 import shutil
@@ -11,6 +12,8 @@ import tarfile
 import zipfile
 from pathlib import Path
 from typing import Generator
+
+import pytest
 
 # These tests must be run explicitly
 
@@ -409,6 +412,19 @@ def test_cli_cflags():
 def test_cli_ldflags_embed():
     out = run_command_line("--ldflags", "--embed")
     assert "-lpython" in out
+    if sysconfig.get_config_var("LIBDIR"):
+        assert "-L" in out
+
+
+@pytest.mark.skipif(os.name != "posix", reason="quote style is platform-specific")
+def test_cflags_quotes_paths_with_spaces(monkeypatch):
+    spec = importlib.util.spec_from_file_location(
+        "pybind11_commands", MAIN_DIR / "pybind11" / "commands.py"
+    )
+    commands = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(commands)
+    monkeypatch.setattr(commands.sysconfig, "get_path", lambda name: f"/spa ced/{name}")
+    assert "'-I/spa ced/include'" in commands.get_cflags()
 
 
 def test_cli_file():
