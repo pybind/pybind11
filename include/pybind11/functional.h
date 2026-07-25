@@ -20,13 +20,7 @@ PYBIND11_NAMESPACE_BEGIN(type_caster_std_function_specializations)
 // ensure GIL is held during functor destruction
 struct func_handle {
     function f;
-#if !(defined(_MSC_VER) && _MSC_VER == 1916 && defined(PYBIND11_CPP17))
-    // This triggers a syntax error under very special conditions (very weird indeed).
-    explicit
-#endif
-        func_handle(function &&f_) noexcept
-        : f(std::move(f_)) {
-    }
+    explicit func_handle(function &&f_) noexcept : f(std::move(f_)) {}
     func_handle(const func_handle &f_) { operator=(f_); }
     func_handle &operator=(const func_handle &f_) {
         gil_scoped_acquire acq;

@@ -32,15 +32,14 @@ The last line will both compile and run the tests.
 Windows
 -------
 
-On Windows, only **Visual Studio 2017** and newer are supported.
+On Windows, only **Visual Studio 2019** and newer are supported.
 
 .. Note::
 
-    To use the C++17 in Visual Studio 2017 (MSVC 14.1), pybind11 requires the flag
-    ``/permissive-`` to be passed to the compiler `to enforce standard conformance`_. When
-    building with Visual Studio 2019, this is not strictly necessary, but still advised.
+    The ``/permissive-`` flag `to enforce standard conformance`_ is not necessary, but it is
+    still advised.
 
-..  _`to enforce standard conformance`: https://docs.microsoft.com/en-us/cpp/build/reference/permissive-standards-conformance?view=vs-2017
+..  _`to enforce standard conformance`: https://docs.microsoft.com/en-us/cpp/build/reference/permissive-standards-conformance
 
 To compile and run the tests:
 
