@@ -594,6 +594,10 @@ TEST_SUBMODULE(stl, m) {
           [](const std::vector<std::string_view> &, int, const py::list &destroyed) {
               return destroyed.size();
           });
+    m.def("nested_string_view_life_support_check",
+          [](const std::vector<std::vector<std::string_view>> &, int, const py::list &destroyed) {
+              return destroyed.size();
+          });
 #endif
 
     class Placeholder {

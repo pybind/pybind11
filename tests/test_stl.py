@@ -73,6 +73,74 @@ def test_string_view_life_support_during_argument_conversion():
     assert all(ref() is None for ref in weakrefs)
 
 
+@pytest.mark.skipif(
+    not hasattr(m, "string_view_life_support_check"), reason="no <string_view>"
+)
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
+@pytest.mark.parametrize(
+    ("element_type", "values"),
+    [
+        pytest.param(str, ("first", "second"), id="str"),
+        pytest.param(bytes, (b"first", b"second"), id="bytes"),
+        pytest.param(bytearray, (b"first", b"second"), id="bytearray"),
+    ],
+)
+def test_string_view_life_support_for_generator(element_type, values):
+    destroyed = []
+
+    class Tracked(element_type):
+        def __del__(self):
+            destroyed.append(None)
+
+    def source():
+        for value in values:
+            yield Tracked(value)
+
+    class CollectGarbageOnIndex:
+        def __index__(self):
+            pytest.gc_collect()
+            return 0
+
+    assert (
+        m.string_view_life_support_check(source(), CollectGarbageOnIndex(), destroyed)
+        == 0
+    )
+    pytest.gc_collect()
+    assert len(destroyed) == len(values)
+
+
+@pytest.mark.skipif(
+    not hasattr(m, "nested_string_view_life_support_check"),
+    reason="no <string_view>",
+)
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
+def test_string_view_life_support_for_nested_containers():
+    destroyed = []
+
+    class TrackedString(str):
+        def __del__(self):
+            destroyed.append(None)
+
+    source = [
+        [TrackedString("first"), TrackedString("second")],
+        [TrackedString("third"), TrackedString("fourth")],
+    ]
+
+    class ClearSourceOnIndex:
+        def __index__(self):
+            source.clear()
+            pytest.gc_collect()
+            return 0
+
+    assert (
+        m.nested_string_view_life_support_check(source, ClearSourceOnIndex(), destroyed)
+        == 0
+    )
+    assert source == []
+    pytest.gc_collect()
+    assert len(destroyed) == 4
+
+
 def test_deque():
     """std::deque <-> list"""
     lst = m.cast_deque()
