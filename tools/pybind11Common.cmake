@@ -43,16 +43,16 @@ set(pybind11_INCLUDE_DIRS
 
 # CMP0190 prohibits calling FindPython with both Interpreter and Development components
 # when cross-compiling, unless the CMAKE_CROSSCOMPILING_EMULATOR variable is defined.
-if(CMAKE_VERSION VERSION_GREATER_EQUAL "4.1")
+# An emulator can run the target interpreter, so it only suppresses this default; a project
+# that asks for cross-compiling support explicitly always gets it (see #6043).
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "4.1" AND NOT CMAKE_CROSSCOMPILING_EMULATOR)
   cmake_policy(GET CMP0190 _pybind11_cmp0190)
   if(_pybind11_cmp0190 STREQUAL "NEW")
     set(PYBIND11_USE_CROSSCOMPILING "ON")
   endif()
 endif()
 
-if(CMAKE_CROSSCOMPILING
-   AND PYBIND11_USE_CROSSCOMPILING
-   AND NOT DEFINED CMAKE_CROSSCOMPILING_EMULATOR)
+if(CMAKE_CROSSCOMPILING AND PYBIND11_USE_CROSSCOMPILING)
   set(_PYBIND11_CROSSCOMPILING
       ON
       CACHE INTERNAL "")
