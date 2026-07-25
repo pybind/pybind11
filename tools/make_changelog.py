@@ -54,7 +54,7 @@ LABEL = "needs changelog"
 api = ghapi.all.GhApi(owner="pybind", repo="pybind11", token=get_token(), sync=True)
 
 issues_pages = ghapi.page.sync_paged(
-    api.issues.list_for_repo, labels=LABEL, state="closed"
+    api.issues.list_for_repo, labels=LABEL, state="closed", per_page=100
 )
 # The server-side label filter lags behind label removals, so re-check each issue
 issues = (
