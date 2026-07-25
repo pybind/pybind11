@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import weakref
+
 import pytest
 
 import env  # noqa: F401
@@ -39,6 +41,36 @@ def test_vector(doc):
         assert (
             m.func_with_string_views(bytearray(x.encode()) for x in gen()) == expected
         )
+
+
+@pytest.mark.skipif(
+    not hasattr(m, "string_view_life_support_check"), reason="no <string_view>"
+)
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
+def test_string_view_life_support_during_argument_conversion():
+    destroyed = []
+
+    class TrackedString(str):
+        pass
+
+    source = [TrackedString("first"), TrackedString("second")]
+    weakrefs = [weakref.ref(item, lambda _: destroyed.append(None)) for item in source]
+
+    # Clear the only Python owners after the views have loaded, but before the
+    # bound function is called.
+    class ClearSourceOnIndex:
+        def __index__(self):
+            source.clear()
+            pytest.gc_collect()
+            return 0
+
+    assert (
+        m.string_view_life_support_check(source, ClearSourceOnIndex(), destroyed) == 0
+    )
+    assert source == []
+    pytest.gc_collect()
+    assert len(destroyed) == 2
+    assert all(ref() is None for ref in weakrefs)
 
 
 def test_deque():
