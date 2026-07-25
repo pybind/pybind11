@@ -17,6 +17,10 @@ converted (i.e. copied) on every Python->C++ and C++->Python transition, which
 can have implications on the program semantics and performance. Please read the
 next sections for more details and alternative approaches that avoid this.
 
+Copying the container does not make non-owning element types own their data.
+In particular, containers of C++ string views have additional
+:ref:`string_view_lifetime` requirements.
+
 .. note::
 
     Arbitrary nesting of any of these types is possible.
