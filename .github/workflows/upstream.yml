@@ -18,7 +18,7 @@ env:
 
 jobs:
   standard:
-    name: "🐍 3.13 latest • ubuntu-latest • x64"
+    name: "🐍 3.15 latest • ubuntu-latest • x64"
     runs-on: ubuntu-latest
     # Only runs when the  'python dev' label is selected
     if: "contains(github.event.pull_request.labels.*.name, 'python dev')"
@@ -26,10 +26,10 @@ jobs:
     steps:
     - uses: actions/checkout@v7
 
-    - name: Setup Python 3.13
+    - name: Setup Python 3.15
       uses: actions/setup-python@v6
       with:
-        python-version: "3.13"
+        python-version: "3.15"
         allow-prereleases: true
 
     - name: Setup Boost
