@@ -10,8 +10,8 @@ import sys
 import sysconfig
 import tarfile
 import zipfile
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator
 
 import pytest
 

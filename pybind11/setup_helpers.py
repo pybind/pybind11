@@ -48,16 +48,13 @@ import sysconfig
 import tempfile
 import threading
 import warnings
+from collections.abc import Iterable, Iterator
 from functools import lru_cache
 from pathlib import Path
 from typing import (
     Any,
     Callable,
-    Iterable,
-    Iterator,
-    List,
     Optional,
-    Tuple,
     TypeVar,
     Union,
 )
@@ -347,16 +344,16 @@ S = TypeVar("S", bound="ParallelCompile")
 CCompilerMethod = Callable[
     [
         distutils.ccompiler.CCompiler,
-        List[str],
+        list[str],
         Optional[str],
-        Optional[List[Union[Tuple[str], Tuple[str, Optional[str]]]]],
-        Optional[List[str]],
+        Optional[list[Union[tuple[str], tuple[str, Optional[str]]]]],
+        Optional[list[str]],
         bool,
-        Optional[List[str]],
-        Optional[List[str]],
-        Optional[List[str]],
+        Optional[list[str]],
+        Optional[list[str]],
+        Optional[list[str]],
     ],
-    List[str],
+    list[str],
 ]
 
 

@@ -52,7 +52,7 @@ if(NOT Python_FOUND AND NOT Python3_FOUND)
   endif()
 
   find_package(
-    Python 3.8 REQUIRED COMPONENTS ${_pybind11_interp_component} ${_pybind11_dev_component}
+    Python 3.9 REQUIRED COMPONENTS ${_pybind11_interp_component} ${_pybind11_dev_component}
                                    ${_pybind11_quiet} ${_pybind11_global_keyword})
 
   # If we are in submodule mode, export the Python targets to global targets.
@@ -192,8 +192,8 @@ else()
   endif()
 endif()
 
-# Python debug libraries expose slightly different objects before 3.8
-# https://docs.python.org/3.6/c-api/intro.html#debugging-builds
+# A debug build of Python needs Py_DEBUG to select the matching ABI.
+# https://docs.python.org/3/c-api/intro.html#debugging-builds
 # https://stackoverflow.com/questions/39161202/how-to-work-around-missing-pymodule-create2-in-amd64-win-python35-d-lib
 if(PYTHON_IS_DEBUG)
   set_property(

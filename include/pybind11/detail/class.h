@@ -586,10 +586,8 @@ extern "C" inline int pybind11_traverse(PyObject *self, visitproc visit, void *a
     PyObject *&dict = *_PyObject_GetDictPtr(self);
     Py_VISIT(dict);
 #endif
-// https://docs.python.org/3/c-api/typeobj.html#c.PyTypeObject.tp_traverse
-#if PY_VERSION_HEX >= 0x03090000
+    // https://docs.python.org/3/c-api/typeobj.html#c.PyTypeObject.tp_traverse
     Py_VISIT(Py_TYPE(self));
-#endif
     return 0;
 }
 

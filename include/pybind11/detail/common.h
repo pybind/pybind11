@@ -10,8 +10,8 @@
 #pragma once
 
 #include <pybind11/conduit/wrap_include_python_h.h>
-#if PY_VERSION_HEX < 0x03080000
-#    error "PYTHON < 3.8 IS UNSUPPORTED. pybind11 v2.13 was the last to support Python 3.7."
+#if PY_VERSION_HEX < 0x03090000
+#    error "PYTHON < 3.9 IS UNSUPPORTED. pybind11 v3.0 was the last to support Python 3.8."
 #endif
 
 // Similar to Python's convention: https://docs.python.org/3/c-api/apiabiversion.html

@@ -36,7 +36,7 @@ dependency.
 Think of this library as a tiny self-contained version of Boost.Python
 with everything stripped away that isn't relevant for binding
 generation. Without comments, the core header files only require ~4K
-lines of code and depend on Python (CPython 3.8+, PyPy, or GraalPy) and the C++
+lines of code and depend on Python (CPython 3.9+, PyPy, or GraalPy) and the C++
 standard library. This compact implementation was possible thanks to some C++11
 language features (specifically: tuples, lambda functions and variadic
 templates). Since its creation, this library has grown beyond Boost.Python in
@@ -81,7 +81,7 @@ Goodies
 In addition to the core functionality, pybind11 provides some extra
 goodies:
 
-- CPython 3.8+, PyPy3 7.3.17+, and GraalPy 24.1+ are supported with an
+- CPython 3.9+, PyPy3 7.3.17+, and GraalPy 24.1+ are supported with an
   implementation-agnostic interface (see older versions for older CPython
   and PyPy versions).
 
