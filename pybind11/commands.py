@@ -133,7 +133,8 @@ def get_ldflags(embed: bool = False) -> str:
             flags.append(syslibs)
     elif sys.platform.startswith("darwin"):
         flags += ["-undefined", "dynamic_lookup", "-shared"]
-    elif sys.platform.startswith("linux"):
+    elif os.name == "posix":
+        # Linux and other Unix platforms (FreeBSD, Solaris, AIX, ...)
         flags += ["-fPIC", "-shared"]
 
     return " ".join(flags)

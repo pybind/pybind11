@@ -424,6 +424,17 @@ def test_cflags_quotes_paths_with_spaces(monkeypatch):
     assert "'-I/spa ced/include'" in commands.get_cflags()
 
 
+@pytest.mark.skipif(os.name != "posix", reason="Unix link flags only")
+def test_ldflags_other_unix(monkeypatch):
+    monkeypatch.syspath_prepend(str(MAIN_DIR))
+    commands = importlib.import_module("pybind11.commands")
+    monkeypatch.setattr(sys, "platform", "freebsd14")
+    monkeypatch.setattr(commands, "_config", lambda name: "")  # noqa: ARG005
+    out = commands.get_ldflags()
+    assert "-shared" in out
+    assert "-fPIC" in out
+
+
 def test_cli_file():
     out = run_command_line("--file", "example.cpp").rstrip()
     ext_suffix = sysconfig.get_config_var("EXT_SUFFIX")
