@@ -590,6 +590,10 @@ TEST_SUBMODULE(stl, m) {
         }
         return l;
     });
+    m.def("string_view_life_support_check",
+          [](const std::vector<std::string_view> &, int, const py::list &destroyed) {
+              return destroyed.size();
+          });
 #endif
 
     class Placeholder {
