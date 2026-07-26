@@ -177,6 +177,17 @@ if(PYBIND11_MASTER_PROJECT)
       set(Python_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/.venv")
     endif()
   endif()
+
+  # Python_ROOT_DIR is only a search hint, so FindPython may select a newer
+  # Python elsewhere. Set Python_EXECUTABLE to the venv's interpreter path
+  # to bypass interpreter discovery.
+  if(DEFINED Python_ROOT_DIR AND NOT DEFINED Python_EXECUTABLE)
+    if(WIN32 AND EXISTS "${Python_ROOT_DIR}/Scripts/python.exe")
+      set(Python_EXECUTABLE "${Python_ROOT_DIR}/Scripts/python.exe")
+    elseif(EXISTS "${Python_ROOT_DIR}/bin/python")
+      set(Python_EXECUTABLE "${Python_ROOT_DIR}/bin/python")
+    endif()
+  endif()
 endif()
 
 set(PYBIND11_HEADERS
@@ -304,8 +315,10 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/tools/JoinPaths.cmake")
 # Relative directory setting
 if(USE_PYTHON_INCLUDE_DIR AND DEFINED Python_INCLUDE_DIRS)
   file(RELATIVE_PATH CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_PREFIX} ${Python_INCLUDE_DIRS})
+elseif(USE_PYTHON_INCLUDE_DIR AND DEFINED Python3_INCLUDE_DIRS)
+  file(RELATIVE_PATH CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_PREFIX} ${Python3_INCLUDE_DIRS})
 elseif(USE_PYTHON_INCLUDE_DIR AND DEFINED PYTHON_INCLUDE_DIR)
-  file(RELATIVE_PATH CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_PREFIX} ${PYTHON_INCLUDE_DIRS})
+  file(RELATIVE_PATH CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_PREFIX} ${PYTHON_INCLUDE_DIR})
 endif()
 
 if(PYBIND11_INSTALL)
