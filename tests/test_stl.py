@@ -48,6 +48,16 @@ def test_vector(doc):
 )
 @pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_string_view_life_support_during_argument_conversion():
+    # Design background: PR #6096, "Why these lifetime tests are deliberately
+    # implementation-aware".
+    # This test uses conversion of a later argument as a checkpoint between
+    # loading the string views and entering the C++ function. Argument casters
+    # run left-to-right: after the first argument creates the views, the second
+    # argument's __index__ clears the list that owned their Python strings and
+    # forces GC. The C++ probe checks only whether those strings were destroyed,
+    # never the potentially dangling views. Zero during the call proves that
+    # loader life support worked; dead weakrefs afterward prove that it did not
+    # keep the strings alive too long.
     destroyed = []
 
     class TrackedString(str):
@@ -115,6 +125,12 @@ def test_string_view_life_support_for_generator(element_type, values):
 )
 @pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
 def test_string_view_life_support_for_nested_containers():
+    # Design background: PR #6096, "Why these lifetime tests are deliberately
+    # implementation-aware". This uses the later-argument checkpoint described
+    # in test_string_view_life_support_during_argument_conversion. Here,
+    # clearing the outer list also releases the inner lists, verifying that life
+    # support reaches every Python string backing a view in the recursively
+    # converted std::vector<std::vector<std::string_view>>.
     destroyed = []
 
     class TrackedString(str):
