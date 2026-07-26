@@ -92,9 +92,17 @@ def test_python_call_in_catch():
     assert d["good"] is True
 
 
+def ignore_pytest_unraisable_warning(f):
+    unraisable = "PytestUnraisableExceptionWarning"
+    if hasattr(pytest, unraisable):  # pytest >= 6
+        dec = pytest.mark.filterwarnings(f"ignore::pytest.{unraisable}")
+        return dec(f)
+    return f
+
+
 # TODO: find out why this fails on PyPy, https://foss.heptapod.net/pypy/pypy/-/issues/3583
 @pytest.mark.xfail(env.PYPY, reason="Failure on PyPy 3.8 (7.3.7)", strict=False)
-@pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
+@ignore_pytest_unraisable_warning
 def test_python_alreadyset_in_destructor(monkeypatch, capsys):
     triggered = False
 
