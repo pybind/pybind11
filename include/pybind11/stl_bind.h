@@ -295,16 +295,18 @@ void vector_modifiers(
 
             if (step == 1) {
                 v.erase(v.begin() + (DiffType) start, v.begin() + DiffType(start + slicelength));
-            } else {
-                // For a positive step, erasing an element shifts the remaining
-                // (later) elements down by one, so the next index to erase is
-                // ``start + step - 1``. For a negative step the visited indices
-                // are strictly decreasing, so erasing never shifts them and the
-                // next index is simply ``start + step``.
-                ssize_t offset = step > 0 ? step - 1 : step;
+            } else if (slicelength > 0) {
+                // Erase non-contiguous slices in descending index order so that
+                // erasing an element never shifts an index that remains to be erased.
+                if (step > 0) {
+                    start += (slicelength - 1) * step;
+                    step = -step;
+                }
                 for (ssize_t i = 0; i < slicelength; ++i) {
                     v.erase(v.begin() + DiffType(start));
-                    start += offset;
+                    if (i + 1 < slicelength) {
+                        start += step;
+                    }
                 }
             }
         },
