@@ -302,11 +302,12 @@ void vector_modifiers(
                     start += (slicelength - 1) * step;
                     step = -step;
                 }
-                for (ssize_t i = 0; i < slicelength; ++i) {
+                while (true) {
                     v.erase(v.begin() + DiffType(start));
-                    if (i + 1 < slicelength) {
-                        start += step;
+                    if (--slicelength == 0) {
+                        break;
                     }
+                    start += step;
                 }
             }
         },
