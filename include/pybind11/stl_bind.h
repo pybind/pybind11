@@ -286,18 +286,28 @@ void vector_modifiers(
     cl.def(
         "__delitem__",
         [](Vector &v, const slice &slice) {
-            size_t start = 0, stop = 0, step = 0, slicelength = 0;
+            ssize_t start = 0, stop = 0, step = 0, slicelength = 0;
 
-            if (!slice.compute(v.size(), &start, &stop, &step, &slicelength)) {
+            if (!slice.compute(
+                    static_cast<ssize_t>(v.size()), &start, &stop, &step, &slicelength)) {
                 throw error_already_set();
             }
 
-            if (step == 1 && false) {
+            if (step == 1) {
                 v.erase(v.begin() + (DiffType) start, v.begin() + DiffType(start + slicelength));
-            } else {
-                for (size_t i = 0; i < slicelength; ++i) {
+            } else if (slicelength > 0) {
+                // Erase non-contiguous slices in descending index order so that
+                // erasing an element never shifts an index that remains to be erased.
+                if (step > 0) {
+                    start += (slicelength - 1) * step;
+                    step = -step;
+                }
+                while (true) {
                     v.erase(v.begin() + DiffType(start));
-                    start += step - 1;
+                    if (--slicelength == 0) {
+                        break;
+                    }
+                    start += step;
                 }
             }
         },
