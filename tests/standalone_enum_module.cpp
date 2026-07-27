@@ -8,6 +8,6 @@ enum SomeEnum {};
 
 using namespace standalone_enum_module_ns;
 
-PYBIND11_MODULE(standalone_enum_module, m) { // Added in PR #6015
+PYBIND11_MODULE(standalone_enum_module, m, pybind11::mod_gil_used()) { // Added in PR #6015
     pybind11::enum_<SomeEnum> some_enum_wrapper(m, "SomeEnum");
 }

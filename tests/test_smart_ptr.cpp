@@ -370,7 +370,7 @@ struct holder_helper<ref<T>> {
 // Make pybind aware of the ref-counted wrapper type (s):
 PYBIND11_DECLARE_HOLDER_TYPE(T, ref<T>, true)
 PYBIND11_DECLARE_HOLDER_TYPE(T, const_only_shared_ptr<T>, true)
-PYBIND11_DECLARE_HOLDER_TYPE(T, shared_ptr_as_custom_holder<T>)
+PYBIND11_DECLARE_HOLDER_TYPE(T, shared_ptr_as_custom_holder<T>, )
 // The following is not required anymore for std::shared_ptr, but it should compile without error:
 PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>, )
 PYBIND11_DECLARE_HOLDER_TYPE(T, huge_unique_ptr<T>, )
