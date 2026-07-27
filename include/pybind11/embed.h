@@ -119,20 +119,17 @@ inline void initialize_interpreter(PyConfig *config,
     Initialize the Python interpreter. No other pybind11 or CPython API functions can be
     called before this is done; with the exception of `PYBIND11_EMBEDDED_MODULE`. The
     optional `init_signal_handlers` parameter can be used to skip the registration of
-    signal handlers (see the `Python documentation`_ for details). Calling this function
-    again after the interpreter has already been initialized is a fatal error.
+    signal handlers. Calling this function again while an interpreter is running throws
+    ``std::runtime_error``.
 
-    If initializing the Python interpreter fails, then the program is terminated.  (This
-    is controlled by the CPython runtime and is an exception to pybind11's normal behavior
-    of throwing exceptions on errors.)
+    The interpreter starts from a ``PyConfig``, with ``PyConfig_SetBytesArgv`` and
+    ``Py_InitializeFromConfig``. If the start fails, this function throws
+    ``std::runtime_error``. See the `Python documentation`_ for these functions.
 
     The remaining optional parameters, `argc`, `argv`, and `add_program_dir_to_path` are
     used to populate ``sys.argv`` and ``sys.path``.
-    See the |PySys_SetArgvEx documentation|_ for details.
 
-    .. _Python documentation: https://docs.python.org/3/c-api/init.html#c.Py_InitializeEx
-    .. |PySys_SetArgvEx documentation| replace:: ``PySys_SetArgvEx`` documentation
-    .. _PySys_SetArgvEx documentation: https://docs.python.org/3/c-api/init.html#c.PySys_SetArgvEx
+    .. _Python documentation: https://docs.python.org/3/c-api/init_config.html
  \endrst */
 inline void initialize_interpreter(bool init_signal_handlers = true,
                                    int argc = 0,
