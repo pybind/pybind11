@@ -390,7 +390,7 @@ jobs:
   ubuntu-nvhpc:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-24.04
-    name: "🐍 3 • NVHPC 25.11 • C++17 • x64"
+    name: "🐍 3 • NVHPC 26.5 • C++17 • x64"
     timeout-minutes: 90
 
     env:
@@ -413,9 +413,9 @@ jobs:
       run: |
         sudo apt-get update -y
         sudo apt-get install -y cmake environment-modules git python3-dev python3-pip python3-numpy
-        sudo apt-get install -y --no-install-recommends nvhpc-25-11
+        sudo apt-get install -y --no-install-recommends nvhpc-26-5
         sudo rm -rf /var/lib/apt/lists/*
-        apt-cache depends nvhpc-25-11
+        apt-cache depends nvhpc-26-5
         python3 -m pip install --upgrade pip
         python3 -m pip install --upgrade pytest
 
@@ -425,7 +425,7 @@ jobs:
       shell: bash
       run: |
         source /etc/profile.d/modules.sh
-        module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/25.11
+        module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/26.5
         cmake -S . -B build -DDOWNLOAD_CATCH=ON \
                             -DCMAKE_CXX_STANDARD=17 \
                             -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)") \
