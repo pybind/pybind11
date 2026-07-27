@@ -310,15 +310,14 @@ if(PYBIND11_EIGEN_TESTS AND PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
       GIT_TAG "${PYBIND11_EIGEN_VERSION_HASH}"
       ${_opts})
     FetchContent_MakeAvailable(Eigen3)
-    if(NOT CMAKE_VERSION VERSION_LESS 3.18)
-      set(EIGEN3_INCLUDE_DIR "${eigen_SOURCE_DIR}")
-    endif()
-
-    set(EIGEN3_INCLUDE_DIR ${eigen_SOURCE_DIR})
     set(EIGEN3_FOUND TRUE)
-    # When getting locally, the version is not visible from a superprojet,
-    # so just force it.
-    set(EIGEN3_VERSION "${PYBIND11_EIGEN_VERSION_STRING}")
+    if(eigen3_SOURCE_DIR)
+      # Fetched, not found: no config file supplies the target or the version
+      set(EIGEN3_INCLUDE_DIR "${eigen3_SOURCE_DIR}")
+      set(EIGEN3_VERSION "${PYBIND11_EIGEN_VERSION_STRING}")
+    else()
+      set(EIGEN3_VERSION "${Eigen3_VERSION}")
+    endif()
 
   else()
     find_package(Eigen3 3.2.7 QUIET CONFIG)
@@ -395,14 +394,22 @@ if(PYBIND11_CATCH_TESTS)
       GIT_REPOSITORY "${PYBIND11_CATCH_REPO}"
       GIT_TAG "${PYBIND11_CATCH_VERSION_HASH}"
       ${_opts})
+    # Catch2 2.x asks for compatibility with CMake < 3.10. That is deprecated and
+    # becomes fatal under -Werror=dev, so raise the floor for the subproject.
+    # CMake 3.31+ honors this; earlier versions do not give the warning.
+    set(CMAKE_POLICY_VERSION_MINIMUM 3.10)
     FetchContent_MakeAvailable(Catch2)
-    # Fetchcontent-ed branch does not set CATCH_VERSION
+    unset(CMAKE_POLICY_VERSION_MINIMUM)
+    # Fetchcontent-ed branch does not set the version
     if(NOT Catch2_VERSION)
-      set(Catch2_VERSION ${PYBIND11_CATCH_VERSION_STRING})
+      string(REGEX REPLACE "^v" "" Catch2_VERSION "${PYBIND11_CATCH_VERSION_STRING}")
     endif()
   else()
     find_package(Catch2 2.13.10 REQUIRED)
   endif()
+
+  # The test subdirectories report this too
+  set(CATCH_VERSION "${Catch2_VERSION}")
 
   message(STATUS "Building interpreter tests using Catch v${CATCH_VERSION}")
 endif()
