@@ -1462,16 +1462,22 @@ PYBIND11_NAMESPACE_END(detail)
 class mod_gil_not_used {
 public:
     mod_gil_not_used() : flag_(true) {}
+    PYBIND11_DEPRECATED("use py::mod_gil_not_used() or py::mod_gil_used() instead")
+    explicit mod_gil_not_used(bool flag) : flag_(flag) {}
     bool flag() const { return flag_; }
 
     friend mod_gil_not_used mod_gil_used();
 
 private:
     bool flag_;
-    explicit mod_gil_not_used(bool flag) : flag_(flag) {}
 };
 
-inline mod_gil_not_used mod_gil_used() { return mod_gil_not_used(false); }
+// Use to activate Py_MOD_GIL_USED, the current default.
+inline mod_gil_not_used mod_gil_used() {
+    mod_gil_not_used tag;
+    tag.flag_ = false;
+    return tag;
+}
 
 class multiple_interpreters {
 public:
