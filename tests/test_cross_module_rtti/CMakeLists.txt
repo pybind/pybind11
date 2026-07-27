@@ -8,26 +8,16 @@ if("${PYTHON_MODULE_EXTENSION}" MATCHES "pypy"
   message(STATUS "Skipping visibility test on PyPy or GraalPy")
   add_custom_target(test_cross_module_rtti
   )# Dummy target on PyPy or GraalPy. Embedding is not supported.
-  set(_suppress_unused_variable_warning "${DOWNLOAD_CATCH}")
   return()
 endif()
 
 if(TARGET Python::Module AND NOT TARGET Python::Python)
   message(STATUS "Skipping visibility test since no embed libs found")
   add_custom_target(test_cross_module_rtti) # Dummy target since embedding is not supported.
-  set(_suppress_unused_variable_warning "${DOWNLOAD_CATCH}")
   return()
 endif()
 
-find_package(Catch 2.13.10)
-
-if(CATCH_FOUND)
-  message(STATUS "Building interpreter tests using Catch v${CATCH_VERSION}")
-else()
-  message(STATUS "Catch not detected. Interpreter tests will be skipped. Install Catch headers"
-                 " manually or use `cmake -DDOWNLOAD_CATCH=ON` to fetch them automatically.")
-  return()
-endif()
+message(STATUS "Building interpreter tests using Catch ${CATCH_VERSION}")
 
 include(GenerateExportHeader)
 

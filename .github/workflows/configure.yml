@@ -71,7 +71,7 @@ jobs:
     # These steps use a directory with a space in it intentionally
     - name: Configure
       shell: bash
-      run: cmake -S. -B"build dir" -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON
+      run: cmake -S. -B"build dir" -DPYBIND11_WERROR=ON -DPYBIND11_CATCH_TESTS=ON
 
     # Only build and test if this was manually triggered in the GitHub UI
     - name: Build
