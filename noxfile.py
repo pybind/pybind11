@@ -64,18 +64,11 @@ def tests_packaging(session: nox.Session) -> None:
 @nox.session
 def tests_abi(session: nox.Session) -> None:
     """
-    Run the abi checker.
+    Run the cross-version ABI check.
     """
 
-    session.install("pybind11==2.8.0", "--no-build-isolation")
-    session.install(
-        "tests/extra_abi", "--no-build-isolation", env={"EXAMPLE_NAME": "pet"}
-    )
-    session.install(".", "--no-build-isolation")
-    session.install(
-        "tests/extra_abi", "--no-build-isolation", env={"EXAMPLE_NAME": "dog"}
-    )
-    session.run("python", "tests/extra_abi/check_installed.py")
+    session.install("pytest")
+    session.run("pytest", "tests/extra_abi", *session.posargs)
 
 
 @nox.session(reuse_venv=True, default=False)
