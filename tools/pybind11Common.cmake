@@ -353,7 +353,11 @@ function(_pybind11_generate_lto target prefer_thin_lto)
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT APPLE)
       # Clang Gold plugin does not support -Os; append -O3 to MinSizeRel builds to override it
       set(linker_append ";$<$<CONFIG:MinSizeRel>:-O3>")
-    elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU" AND NOT MINGW)
+    elseif(
+      CMAKE_CXX_COMPILER_ID MATCHES "GNU"
+      AND NOT MINGW
+      AND NOT APPLE)
+      # GCC on macOS has no linker plugin, which -fno-fat-lto-objects requires
       set(cxx_append ";-fno-fat-lto-objects")
     endif()
 
