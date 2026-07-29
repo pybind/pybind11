@@ -582,6 +582,24 @@ TEST_SUBMODULE(stl, m) {
           [](const std::list<std::string> &) { return 2; });
     m.def("func_with_string_or_vector_string_arg_overload", [](const std::string &) { return 3; });
 
+#ifdef PYBIND11_HAS_STRING_VIEW
+    m.def("func_with_string_views", [](const std::vector<std::string_view> &svs) {
+        py::list l;
+        for (std::string_view sv : svs) {
+            l.append(sv);
+        }
+        return l;
+    });
+    m.def("string_view_life_support_check",
+          [](const std::vector<std::string_view> &, int, const py::list &destroyed) {
+              return destroyed.size();
+          });
+    m.def("nested_string_view_life_support_check",
+          [](const std::vector<std::vector<std::string_view>> &, int, const py::list &destroyed) {
+              return destroyed.size();
+          });
+#endif
+
     class Placeholder {
     public:
         Placeholder() { print_created(this); }

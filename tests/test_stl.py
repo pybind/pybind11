@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import weakref
+
 import pytest
 
 import env  # noqa: F401
@@ -27,6 +29,132 @@ def test_vector(doc):
 
     # Test regression caused by 936: pointers to stl containers weren't castable
     assert m.cast_ptr_vector() == ["lvalue", "lvalue"]
+
+    if hasattr(m, "func_with_string_views"):
+
+        def gen():
+            return ("a" + str(x) for x in range(10000, 10010))
+
+        expected = list(gen())
+        assert m.func_with_string_views(gen()) == expected
+        assert m.func_with_string_views(x.encode() for x in gen()) == expected
+        assert (
+            m.func_with_string_views(bytearray(x.encode()) for x in gen()) == expected
+        )
+
+
+@pytest.mark.skipif(
+    not hasattr(m, "string_view_life_support_check"), reason="no <string_view>"
+)
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
+def test_string_view_life_support_during_argument_conversion():
+    # Design background: PR #6096, "Why these lifetime tests are deliberately
+    # implementation-aware".
+    # This test uses conversion of a later argument as a checkpoint between
+    # loading the string views and entering the C++ function. Argument casters
+    # run left-to-right: after the first argument creates the views, the second
+    # argument's __index__ clears the list that owned their Python strings and
+    # forces GC. The C++ probe checks only whether those strings were destroyed,
+    # never the potentially dangling views. Zero during the call proves that
+    # loader life support worked; dead weakrefs afterward prove that it did not
+    # keep the strings alive too long.
+    destroyed = []
+
+    class TrackedString(str):
+        pass
+
+    source = [TrackedString("first"), TrackedString("second")]
+    weakrefs = [weakref.ref(item, lambda _: destroyed.append(None)) for item in source]
+
+    # Clear the only Python owners after the views have loaded, but before the
+    # bound function is called.
+    class ClearSourceOnIndex:
+        def __index__(self):
+            source.clear()
+            pytest.gc_collect()
+            return 0
+
+    assert (
+        m.string_view_life_support_check(source, ClearSourceOnIndex(), destroyed) == 0
+    )
+    assert source == []
+    pytest.gc_collect()
+    assert len(destroyed) == 2
+    assert all(ref() is None for ref in weakrefs)
+
+
+@pytest.mark.skipif(
+    not hasattr(m, "string_view_life_support_check"), reason="no <string_view>"
+)
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
+@pytest.mark.parametrize(
+    ("element_type", "values"),
+    [
+        pytest.param(str, ("first", "second"), id="str"),
+        pytest.param(bytes, (b"first", b"second"), id="bytes"),
+        pytest.param(bytearray, (b"first", b"second"), id="bytearray"),
+    ],
+)
+def test_string_view_life_support_for_generator(element_type, values):
+    destroyed = []
+
+    class Tracked(element_type):
+        def __del__(self):
+            destroyed.append(None)
+
+    def source():
+        for value in values:
+            yield Tracked(value)
+
+    class CollectGarbageOnIndex:
+        def __index__(self):
+            pytest.gc_collect()
+            return 0
+
+    assert (
+        m.string_view_life_support_check(source(), CollectGarbageOnIndex(), destroyed)
+        == 0
+    )
+    pytest.gc_collect()
+    assert len(destroyed) == len(values)
+
+
+@pytest.mark.skipif(
+    not hasattr(m, "nested_string_view_life_support_check"),
+    reason="no <string_view>",
+)
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
+def test_string_view_life_support_for_nested_containers():
+    # Design background: PR #6096, "Why these lifetime tests are deliberately
+    # implementation-aware". This uses the later-argument checkpoint described
+    # in test_string_view_life_support_during_argument_conversion. Here,
+    # clearing the outer list also releases the inner lists, verifying that life
+    # support reaches every Python string backing a view in the recursively
+    # converted std::vector<std::vector<std::string_view>>.
+    destroyed = []
+
+    class TrackedString(str):
+        def __del__(self):
+            destroyed.append(None)
+
+    source = [
+        [TrackedString("first"), TrackedString("second")],
+        [TrackedString("third"), TrackedString("fourth")],
+    ]
+
+    class ClearSourceOnIndex:
+        def __index__(self):
+            source.clear()
+            pytest.gc_collect()
+            return 0
+
+    assert (
+        m.nested_string_view_life_support_check(source, ClearSourceOnIndex(), destroyed)
+        == 0
+    )
+    assert source == []
+    pytest.gc_collect()
+    assert len(destroyed) == 4
 
 
 def test_deque():
