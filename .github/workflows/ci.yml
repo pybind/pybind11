@@ -390,7 +390,7 @@ jobs:
   ubuntu-nvhpc:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-24.04
-    name: "🐍 3 • NVHPC 25.11 • C++17 • x64"
+    name: "🐍 3 • NVHPC 26.5 • C++17 • x64"
     timeout-minutes: 90
 
     env:
@@ -404,20 +404,22 @@ jobs:
         sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
         sudo apt-get clean
 
-    - name: Add NVHPC Repo
-      run: |
-        echo 'deb [trusted=yes] https://developer.download.nvidia.com/hpc-sdk/ubuntu/amd64 /' | \
-          sudo tee /etc/apt/sources.list.d/nvhpc.list
-
-    - name: Install 🐍 3 & NVHPC
+    - name: Install 🐍 3
       run: |
         sudo apt-get update -y
         sudo apt-get install -y cmake environment-modules git python3-dev python3-pip python3-numpy
-        sudo apt-get install -y --no-install-recommends nvhpc-25-11
-        sudo rm -rf /var/lib/apt/lists/*
-        apt-cache depends nvhpc-25-11
         python3 -m pip install --upgrade pip
         python3 -m pip install --upgrade pytest
+
+    # Downloaded with curl instead of apt: the Akamai CDN in front of
+    # developer.download.nvidia.com intermittently 404s, and apt neither
+    # retries 404s nor resumes a broken 5 GB transfer.
+    - name: Install NVHPC
+      run: |
+        curl -fSLO --retry 10 --retry-all-errors --retry-delay 15 --continue-at - \
+          https://developer.download.nvidia.com/hpc-sdk/ubuntu/amd64/nvhpc-26-5_26.5-0_amd64.deb
+        sudo apt-get install -y --no-install-recommends ./nvhpc-26-5_26.5-0_amd64.deb
+        rm nvhpc-26-5_26.5-0_amd64.deb
 
     # On some systems, you many need further workarounds:
     # https://github.com/pybind/pybind11/pull/2475
@@ -425,7 +427,7 @@ jobs:
       shell: bash
       run: |
         source /etc/profile.d/modules.sh
-        module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/25.11
+        module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/26.5
         cmake -S . -B build -DDOWNLOAD_CATCH=ON \
                             -DCMAKE_CXX_STANDARD=17 \
                             -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)") \
