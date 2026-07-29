@@ -1461,12 +1461,23 @@ PYBIND11_NAMESPACE_END(detail)
 // Use to activate Py_MOD_GIL_NOT_USED.
 class mod_gil_not_used {
 public:
-    explicit mod_gil_not_used(bool flag = true) : flag_(flag) {}
+    mod_gil_not_used() : flag_(true) {}
+    PYBIND11_DEPRECATED("use py::mod_gil_not_used() or py::mod_gil_used() instead")
+    explicit mod_gil_not_used(bool flag) : flag_(flag) {}
     bool flag() const { return flag_; }
+
+    friend mod_gil_not_used mod_gil_used();
 
 private:
     bool flag_;
 };
+
+// Use to activate Py_MOD_GIL_USED, the current default.
+inline mod_gil_not_used mod_gil_used() {
+    mod_gil_not_used tag;
+    tag.flag_ = false;
+    return tag;
+}
 
 class multiple_interpreters {
 public:
@@ -1735,8 +1746,7 @@ public:
     static module_ create_extension_module(const char *name,
                                            const char *doc,
                                            PyModuleDef *def,
-                                           mod_gil_not_used gil_not_used
-                                           = mod_gil_not_used(false)) {
+                                           mod_gil_not_used gil_not_used = mod_gil_used()) {
         // Placement new (not an allocation).
         new (def) PyModuleDef{/* m_base */ PyModuleDef_HEAD_INIT,
                               /* m_name */ name,
