@@ -102,6 +102,11 @@ option(PYBIND11_SIMPLE_GIL_MANAGEMENT
 set(PYBIND11_INTERNALS_VERSION
     ""
     CACHE STRING "Override the ABI version, may be used to enable the unstable ABI.")
+# Record whether the project set this before option() supplies its OFF default, so
+# pybind11Common.cmake can apply its CMP0190-aware default without clobbering an explicit value.
+if(NOT DEFINED PYBIND11_USE_CROSSCOMPILING)
+  set(_PYBIND11_USE_CROSSCOMPILING_DEFAULTED ON)
+endif()
 option(PYBIND11_USE_CROSSCOMPILING "Respect CMAKE_CROSSCOMPILING" OFF)
 
 if(PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION)

@@ -86,9 +86,11 @@ public:
         return PyComplex_FromDoubles((double) src.real(), (double) src.imag());
     }
 
+    // `complex` does not satisfy `typing.SupportsComplex` in typeshed for Python <= 3.10.
+    // Keep it explicit so generated stubs targeting those versions accept complex values.
     PYBIND11_TYPE_CASTER(
         std::complex<T>,
-        io_name("typing.SupportsComplex | typing.SupportsFloat | typing.SupportsIndex",
+        io_name("complex | typing.SupportsComplex | typing.SupportsFloat | typing.SupportsIndex",
                 "complex"));
 };
 PYBIND11_NAMESPACE_END(detail)
