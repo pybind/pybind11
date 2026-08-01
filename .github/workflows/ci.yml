@@ -174,13 +174,13 @@ jobs:
     - uses: actions/checkout@v7
 
     - name: Setup Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python-version }}
         allow-prereleases: true
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v8.2.0
+      uses: astral-sh/setup-uv@v9.0.0
       with:
         enable-cache: true
 
@@ -736,7 +736,7 @@ jobs:
     steps:
     - uses: actions/checkout@v7
 
-    - uses: actions/setup-python@v6
+    - uses: actions/setup-python@v7
       with:
         python-version: "3.x"
 
@@ -782,7 +782,7 @@ jobs:
     - uses: actions/checkout@v7
 
     - name: Setup Python ${{ matrix.python }}
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python }}
         architecture: x86
@@ -833,7 +833,7 @@ jobs:
     - uses: actions/checkout@v7
 
     - name: Setup Python ${{ matrix.python }}
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python }}
         architecture: x86
@@ -882,7 +882,7 @@ jobs:
     - uses: actions/checkout@v7
 
     - name: Setup Python ${{ matrix.python }}
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python }}
 
@@ -1067,7 +1067,7 @@ jobs:
         uses: egor-tensin/setup-clang@v2
 
       - name: Setup Python ${{ matrix.python }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python }}
 
@@ -1138,7 +1138,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Setup Python ${{ matrix.python }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python }}
           architecture: arm64
