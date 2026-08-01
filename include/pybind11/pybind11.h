@@ -3775,27 +3775,6 @@ PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
         }
     }
 
-    object flush;
-    if (kwargs.contains("flush")) {
-        flush = kwargs["flush"].cast<object>();
-    }
-    auto flush_is_true = [&flush]() {
-        int result = PyObject_IsTrue(flush.ptr());
-        if (result < 0) {
-            throw error_already_set();
-        }
-        return result != 0;
-    };
-
-    bool should_flush = false;
-#if PY_VERSION_HEX >= 0x03090000 && !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)
-    // CPython 3.9+ converts flush to bool during argument parsing. GraalPy does so
-    // after resolving file and validating sep/end; CPython 3.8 and PyPy do so after writing.
-    if (flush) {
-        should_flush = flush_is_true();
-    }
-#endif
-
     object file;
     if (kwargs.contains("file")) {
         file = kwargs["file"].cast<object>();
@@ -3867,12 +3846,6 @@ PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
         throw error_already_set();
     }
 
-#ifdef GRAALVM_PYTHON
-    if (flush) {
-        should_flush = flush_is_true();
-    }
-#endif
-
     for (size_t i = 0; i < args.size(); ++i) {
         if (i > 0) {
             int result = sep && !sep.is_none()
@@ -3893,13 +3866,16 @@ PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
         throw error_already_set();
     }
 
-#if (PY_VERSION_HEX < 0x03090000 && !defined(GRAALVM_PYTHON)) || defined(PYPY_VERSION)
-    if (flush) {
-        should_flush = flush_is_true();
-    }
-#endif
-    if (should_flush) {
-        file.attr("flush")();
+    // Native interpreters differ in when they convert flush to bool. Evaluating it only
+    // after successful output preserves py::print's historical behavior.
+    if (kwargs.contains("flush")) {
+        int should_flush = PyObject_IsTrue(kwargs["flush"].ptr());
+        if (should_flush < 0) {
+            throw error_already_set();
+        }
+        if (should_flush != 0) {
+            file.attr("flush")();
+        }
     }
 }
 PYBIND11_NAMESPACE_END(detail)

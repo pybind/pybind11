@@ -658,7 +658,7 @@ def test_print_flush_uses_python_truthiness():
     assert output.flush_count == 1
 
 
-def test_print_flush_truthiness_error_matches_python():
+def test_print_flush_truthiness_error_after_output():
     class MarkerError(Exception):
         pass
 
@@ -666,45 +666,10 @@ def test_print_flush_truthiness_error_matches_python():
         def __bool__(self):
             raise MarkerError
 
-    expected = StringIO()
-    with pytest.raises(MarkerError):
-        print("text", file=expected, flush=BadFlush())
-
     output = StringIO()
     with pytest.raises(MarkerError):
         m.print_args("text", file=output, flush=BadFlush())
-    assert output.getvalue() == expected.getvalue()
-
-
-def print_flush_evaluation_trace(print_function, **kwargs):
-    events = []
-
-    class Flush:
-        def __bool__(self):
-            events.append("bool:flush")
-            return True
-
-    try:
-        result = print_function("text", flush=Flush(), **kwargs)
-    except Exception as exc:
-        outcome = type(exc)
-    else:
-        outcome = ("return", result)
-    return events, outcome
-
-
-@pytest.mark.parametrize("keyword", ["sep", "end"])
-def test_print_flush_evaluation_order_with_invalid_sep_and_end(keyword):
-    assert print_flush_evaluation_trace(
-        m.print_args, file=StringIO(), **{keyword: object()}
-    ) == print_flush_evaluation_trace(print, file=StringIO(), **{keyword: object()})
-
-
-def test_print_flush_evaluation_order_with_stdout_none(monkeypatch):
-    monkeypatch.setattr(sys, "stdout", None)
-    assert print_flush_evaluation_trace(m.print_args) == print_flush_evaluation_trace(
-        print
-    )
+    assert output.getvalue() == "text\n"
 
 
 def test_print_propagates_stream_errors():
@@ -732,7 +697,7 @@ class PrintMarkerError(Exception):
     pass
 
 
-def print_trace(print_function, failure):
+def pybind_print_trace(failure):
     events = []
 
     class Value:
@@ -744,13 +709,6 @@ def print_trace(print_function, failure):
             if failure == f"str:{self.text}":
                 raise PrintMarkerError
             return self.text
-
-    class Flush:
-        def __bool__(self):
-            events.append(("bool", "flush"))
-            if failure == "flush-bool":
-                raise PrintMarkerError
-            return True
 
     class Stream:
         def __init__(self):
@@ -768,13 +726,13 @@ def print_trace(print_function, failure):
                 raise PrintMarkerError
 
     try:
-        result = print_function(
+        result = m.print_args(
             Value("one"),
             Value("two"),
             sep="|",
             end="!",
             file=Stream(),
-            flush=Flush(),
+            flush=True,
         )
     except Exception as exc:
         outcome = type(exc)
@@ -783,9 +741,20 @@ def print_trace(print_function, failure):
     return events, outcome
 
 
-@pytest.mark.parametrize("failure", [None, "str:two", "write:2", "flush-bool", "flush"])
-def test_print_matches_python_stream_protocol(failure):
-    assert print_trace(m.print_args, failure) == print_trace(print, failure)
+def test_print_stream_protocol():
+    complete_events = [
+        ("str", "one"),
+        ("write", "one"),
+        ("write", "|"),
+        ("str", "two"),
+        ("write", "two"),
+        ("write", "!"),
+        ("flush",),
+    ]
+    assert pybind_print_trace(None) == (complete_events, ("return", None))
+    assert pybind_print_trace("str:two") == (complete_events[:4], PrintMarkerError)
+    assert pybind_print_trace("write:2") == (complete_events[:3], PrintMarkerError)
+    assert pybind_print_trace("flush") == (complete_events, PrintMarkerError)
 
 
 def test_hash():
