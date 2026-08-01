@@ -3764,20 +3764,28 @@ register_local_exception(handle scope, const char *name, handle base = PyExc_Exc
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
+    object sep;
+    object end;
+    object file;
+    object flush;
+
     for (auto item : kwargs) {
         PyObject *key = item.first.ptr();
-        if (PyUnicode_CompareWithASCIIString(key, "sep") != 0
-            && PyUnicode_CompareWithASCIIString(key, "end") != 0
-            && PyUnicode_CompareWithASCIIString(key, "file") != 0
-            && PyUnicode_CompareWithASCIIString(key, "flush") != 0) {
+        auto key_is
+            = [key](const char *name) { return PyUnicode_CompareWithASCIIString(key, name) == 0; };
+
+        if (key_is("sep")) {
+            sep = reinterpret_borrow<object>(item.second);
+        } else if (key_is("end")) {
+            end = reinterpret_borrow<object>(item.second);
+        } else if (key_is("file")) {
+            file = reinterpret_borrow<object>(item.second);
+        } else if (key_is("flush")) {
+            flush = reinterpret_borrow<object>(item.second);
+        } else {
             PyErr_Format(PyExc_TypeError, "'%U' is an invalid keyword argument for print()", key);
             throw error_already_set();
         }
-    }
-
-    object file;
-    if (kwargs.contains("file")) {
-        file = kwargs["file"].cast<object>();
     }
 
     // As with Python's print(), an omitted file or file=None means sys.stdout.
@@ -3824,10 +3832,6 @@ PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
         }
     }
 
-    object sep;
-    if (kwargs.contains("sep")) {
-        sep = kwargs["sep"].cast<object>();
-    }
     if (sep && !sep.is_none() && !PyUnicode_Check(sep.ptr())) {
         PyErr_Format(PyExc_TypeError,
                      "sep must be None or a string, not %.200s",
@@ -3835,10 +3839,6 @@ PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
         throw error_already_set();
     }
 
-    object end;
-    if (kwargs.contains("end")) {
-        end = kwargs["end"].cast<object>();
-    }
     if (end && !end.is_none() && !PyUnicode_Check(end.ptr())) {
         PyErr_Format(PyExc_TypeError,
                      "end must be None or a string, not %.200s",
@@ -3868,8 +3868,8 @@ PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
 
     // Native interpreters differ in when they convert flush to bool. Evaluating it only
     // after successful output preserves py::print's historical behavior.
-    if (kwargs.contains("flush")) {
-        int should_flush = PyObject_IsTrue(kwargs["flush"].ptr());
+    if (flush) {
+        int should_flush = PyObject_IsTrue(flush.ptr());
         if (should_flush < 0) {
             throw error_already_set();
         }
