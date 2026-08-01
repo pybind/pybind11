@@ -360,19 +360,18 @@ TEST_CASE("py::print is safe during interpreter shutdown") {
     struct shutdown_state {
         bool callback_ran = false;
         bool stdout_was_none = false;
-        bool print_returned = false;
+        bool print_threw = false;
     } state;
     {
         auto sys = py::module_::import("sys");
-        sys.attr("pybind11_print_on_shutdown") = py::capsule(&state, [](void *payload) {
+        sys.attr("pybind11_print_on_shutdown") = py::capsule(&state, [](void *payload) noexcept {
             auto *state = static_cast<shutdown_state *>(payload);
             state->callback_ran = true;
             state->stdout_was_none = PySys_GetObject("stdout") == Py_None;
             try {
                 py::print("print during interpreter shutdown");
-                state->print_returned = true;
             } catch (...) {
-                // Reported by print_returned after the interpreter is reinitialized.
+                state->print_threw = true;
             }
         });
     }
@@ -382,7 +381,7 @@ TEST_CASE("py::print is safe during interpreter shutdown") {
 
     REQUIRE(state.callback_ran);
     REQUIRE(state.stdout_was_none);
-    REQUIRE(state.print_returned);
+    REQUIRE_FALSE(state.print_threw);
 }
 
 TEST_CASE("Enum module survives restart") { // Added in PR #6015

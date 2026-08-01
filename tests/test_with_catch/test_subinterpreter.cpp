@@ -121,27 +121,26 @@ TEST_CASE("py::print is safe during subinterpreter shutdown") {
     struct shutdown_state {
         bool callback_ran = false;
         bool stdout_was_none = false;
-        bool print_returned = false;
+        bool print_threw = false;
     } state;
     {
         py::scoped_subinterpreter subinterpreter;
         py::module_::import("sys").attr("pybind11_print_on_shutdown")
-            = py::capsule(&state, [](void *payload) {
+            = py::capsule(&state, [](void *payload) noexcept {
                   auto *state = static_cast<shutdown_state *>(payload);
                   state->callback_ran = true;
                   state->stdout_was_none = PySys_GetObject("stdout") == Py_None;
                   try {
                       py::print("print during subinterpreter shutdown");
-                      state->print_returned = true;
                   } catch (...) {
-                      // Reported by print_returned after returning to the main interpreter.
+                      state->print_threw = true;
                   }
               });
     }
 
     REQUIRE(state.callback_ran);
     REQUIRE(state.stdout_was_none);
-    REQUIRE(state.print_returned);
+    REQUIRE_FALSE(state.print_threw);
 }
 
 #    if PY_VERSION_HEX >= 0x030D0000
