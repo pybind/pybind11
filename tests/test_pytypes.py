@@ -584,7 +584,11 @@ def test_print_file_none_and_stdout(monkeypatch, capture):
     m.print_args(BadStr())
     m.print_args(BadStr(), file=None)
 
-    output = StringIO()
+    class FalseyStream(StringIO):
+        def __bool__(self):
+            return False
+
+    output = FalseyStream()
     m.print_args("explicit stream", file=output)
     assert output.getvalue() == "explicit stream\n"
 
@@ -593,6 +597,78 @@ def test_print_missing_stdout(monkeypatch):
     monkeypatch.delattr(sys, "stdout")
     with pytest.raises(RuntimeError, match="^lost sys.stdout$"):
         m.print_args("no stream")
+
+
+def test_print_none_separator_and_end():
+    output = StringIO()
+    m.print_args("one", "two", sep=None, end=None, file=output)
+    assert output.getvalue() == "one two\n"
+
+
+@pytest.mark.parametrize("keyword", ["sep", "end"])
+def test_print_rejects_non_string_separator_and_end(keyword):
+    output = StringIO()
+    with pytest.raises(TypeError, match=f"^{keyword} must be None or a string"):
+        m.print_args("text", file=output, **{keyword: object()})
+    assert output.getvalue() == ""
+
+
+def test_print_rejects_unknown_keyword():
+    with pytest.raises(
+        TypeError, match="^'unknown' is an invalid keyword argument for print\\(\\)$"
+    ):
+        m.print_args("text", unknown=True)
+
+
+def test_print_flush_uses_python_truthiness():
+    class Stream(StringIO):
+        def __init__(self):
+            super().__init__()
+            self.flush_count = 0
+
+        def flush(self):
+            self.flush_count += 1
+
+    output = Stream()
+    m.print_args("not flushed", file=output, flush=[])
+    m.print_args("flushed", file=output, flush=[1])
+    assert output.getvalue() == "not flushed\nflushed\n"
+    assert output.flush_count == 1
+
+
+def test_print_flush_truthiness_error_precedes_output():
+    class MarkerError(Exception):
+        pass
+
+    class BadFlush:
+        def __bool__(self):
+            raise MarkerError
+
+    output = StringIO()
+    with pytest.raises(MarkerError):
+        m.print_args("text", file=output, flush=BadFlush())
+    assert output.getvalue() == ""
+
+
+def test_print_propagates_stream_errors():
+    class MarkerError(Exception):
+        pass
+
+    class BadWrite:
+        def write(self, value):
+            raise MarkerError(value)
+
+    with pytest.raises(MarkerError, match="text"):
+        m.print_args("text", file=BadWrite())
+
+    class BadFlush(StringIO):
+        def flush(self):
+            raise MarkerError("flush")
+
+    output = BadFlush()
+    with pytest.raises(MarkerError, match="flush"):
+        m.print_args("text", file=output, flush=True)
+    assert output.getvalue() == "text\n"
 
 
 def test_hash():

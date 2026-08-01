@@ -3764,6 +3764,22 @@ register_local_exception(handle scope, const char *name, handle base = PyExc_Exc
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
+    for (auto item : kwargs) {
+        auto key = item.first.cast<std::string>();
+        if (key != "sep" && key != "end" && key != "file" && key != "flush") {
+            throw type_error("'" + key + "' is an invalid keyword argument for print()");
+        }
+    }
+
+    bool flush = false;
+    if (kwargs.contains("flush")) {
+        int result = PyObject_IsTrue(kwargs["flush"].ptr());
+        if (result < 0) {
+            throw error_already_set();
+        }
+        flush = result != 0;
+    }
+
     object file;
     if (kwargs.contains("file")) {
         file = kwargs["file"].cast<object>();
@@ -3771,31 +3787,65 @@ PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
 
     // As with Python's print(), an omitted file or file=None means sys.stdout.
     if (!file || file.is_none()) {
-        PyObject *stdout_obj = PySys_GetObject("stdout");
+        object sys;
+        try {
+            sys = module_::import("sys");
+        } catch (const error_already_set &) {
+            // Importing sys can fail while an interpreter is shutting down.
+            return;
+        }
+        PyObject *sys_dict = PyModule_GetDict(sys.ptr());
+        if (sys_dict == nullptr) {
+            throw error_already_set();
+        }
+        // Keep the stream alive if another thread replaces it in a free-threaded build.
+        PyObject *stdout_obj = dict_getitemstringref(sys_dict, "stdout");
         if (stdout_obj == nullptr) {
             PyErr_SetString(PyExc_RuntimeError, "lost sys.stdout");
             throw error_already_set();
         }
+        file = reinterpret_steal<object>(stdout_obj);
         // sys.stdout may be None when stdout is not connected, for example in
         // a Windows GUI application. In that case, print() is a no-op.
-        if (stdout_obj == Py_None) {
+        if (file.is_none()) {
             return;
         }
-        file = reinterpret_borrow<object>(stdout_obj);
+    }
+
+    object sep = kwargs.contains("sep") ? kwargs["sep"].cast<object>() : str(" ");
+    if (sep.is_none()) {
+        sep = str(" ");
+    } else if (!PyUnicode_Check(sep.ptr())) {
+        PyErr_Format(PyExc_TypeError,
+                     "sep must be None or a string, not %.200s",
+                     Py_TYPE(sep.ptr())->tp_name);
+        throw error_already_set();
+    }
+
+    object end = kwargs.contains("end") ? kwargs["end"].cast<object>() : str("\n");
+    if (end.is_none()) {
+        end = str("\n");
+    } else if (!PyUnicode_Check(end.ptr())) {
+        PyErr_Format(PyExc_TypeError,
+                     "end must be None or a string, not %.200s",
+                     Py_TYPE(end.ptr())->tp_name);
+        throw error_already_set();
     }
 
     auto strings = tuple(args.size());
     for (size_t i = 0; i < args.size(); ++i) {
         strings[i] = str(args[i]);
     }
-    auto sep = kwargs.contains("sep") ? kwargs["sep"] : str(" ");
-    auto line = sep.attr("join")(std::move(strings));
+    auto line = reinterpret_steal<object>(PyUnicode_Join(sep.ptr(), strings.ptr()));
+    if (!line) {
+        throw error_already_set();
+    }
 
     auto write = file.attr("write");
     write(std::move(line));
-    write(kwargs.contains("end") ? kwargs["end"] : str("\n"));
+    write(std::move(end));
 
-    if (kwargs.contains("flush") && kwargs["flush"].cast<bool>()) {
+    if (flush) {
         file.attr("flush")();
     }
 }
