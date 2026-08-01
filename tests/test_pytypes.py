@@ -658,7 +658,7 @@ def test_print_flush_uses_python_truthiness():
     assert output.flush_count == 1
 
 
-def test_print_flush_truthiness_error_precedes_output():
+def test_print_flush_truthiness_error_matches_python():
     class MarkerError(Exception):
         pass
 
@@ -666,10 +666,45 @@ def test_print_flush_truthiness_error_precedes_output():
         def __bool__(self):
             raise MarkerError
 
+    expected = StringIO()
+    with pytest.raises(MarkerError):
+        print("text", file=expected, flush=BadFlush())
+
     output = StringIO()
     with pytest.raises(MarkerError):
         m.print_args("text", file=output, flush=BadFlush())
-    assert output.getvalue() == ""
+    assert output.getvalue() == expected.getvalue()
+
+
+def print_flush_evaluation_trace(print_function, **kwargs):
+    events = []
+
+    class Flush:
+        def __bool__(self):
+            events.append("bool:flush")
+            return True
+
+    try:
+        result = print_function("text", flush=Flush(), **kwargs)
+    except Exception as exc:
+        outcome = type(exc)
+    else:
+        outcome = ("return", result)
+    return events, outcome
+
+
+@pytest.mark.parametrize("keyword", ["sep", "end"])
+def test_print_flush_evaluation_order_with_invalid_sep_and_end(keyword):
+    assert print_flush_evaluation_trace(
+        m.print_args, file=StringIO(), **{keyword: object()}
+    ) == print_flush_evaluation_trace(print, file=StringIO(), **{keyword: object()})
+
+
+def test_print_flush_evaluation_order_with_stdout_none(monkeypatch):
+    monkeypatch.setattr(sys, "stdout", None)
+    assert print_flush_evaluation_trace(m.print_args) == print_flush_evaluation_trace(
+        print
+    )
 
 
 def test_print_propagates_stream_errors():
