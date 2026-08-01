@@ -92,7 +92,7 @@ endif()
 
 # Use the Python interpreter to find the libs.
 if(NOT PythonLibsNew_FIND_VERSION)
-  set(PythonLibsNew_FIND_VERSION "3.8")
+  set(PythonLibsNew_FIND_VERSION "3.9")
 endif()
 
 if(NOT CMAKE_VERSION VERSION_LESS "3.27")

@@ -1968,7 +1968,7 @@ void call_operator_delete(T *p, size_t s, size_t) {
 inline void call_operator_delete(void *p, size_t s, size_t a) {
     (void) s;
     (void) a;
-#if defined(__cpp_aligned_new) && (!defined(_MSC_VER) || _MSC_VER >= 1912)
+#if defined(__cpp_aligned_new)
     if (a > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
 #    ifdef __cpp_sized_deallocation
         ::operator delete(p, s, std::align_val_t(a));
@@ -3847,24 +3847,23 @@ get_type_override(const void *this_ptr, const type_info *this_type, const char *
     /* Don't call dispatch code if invoked from overridden function.
        Unfortunately this doesn't work on PyPy and GraalPy. */
 #if !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)
-#    if PY_VERSION_HEX >= 0x03090000
     PyFrameObject *frame = PyThreadState_GetFrame(PyThreadState_Get());
     if (frame != nullptr) {
         PyCodeObject *f_code = PyFrame_GetCode(frame);
         // f_code is guaranteed to not be NULL
         if (std::string(str(f_code->co_name)) == name && f_code->co_argcount > 0) {
-#        if PY_VERSION_HEX >= 0x030d0000
+#    if PY_VERSION_HEX >= 0x030d0000
             PyObject *locals = PyEval_GetFrameLocals();
-#        else
+#    else
             PyObject *locals = PyEval_GetLocals();
             Py_XINCREF(locals);
-#        endif
+#    endif
             if (locals != nullptr) {
-#        if PY_VERSION_HEX >= 0x030b0000
+#    if PY_VERSION_HEX >= 0x030b0000
                 PyObject *co_varnames = PyCode_GetVarnames(f_code);
-#        else
+#    else
                 PyObject *co_varnames = PyObject_GetAttrString((PyObject *) f_code, "co_varnames");
-#        endif
+#    endif
                 PyObject *self_arg = PyTuple_GET_ITEM(co_varnames, 0);
                 Py_DECREF(co_varnames);
                 PyObject *self_caller = dict_getitem(locals, self_arg);
@@ -3879,18 +3878,6 @@ get_type_override(const void *this_ptr, const type_info *this_type, const char *
         Py_DECREF(f_code);
         Py_DECREF(frame);
     }
-#    else
-    PyFrameObject *frame = PyThreadState_Get()->frame;
-    if (frame != nullptr && (std::string) str(frame->f_code->co_name) == name
-        && frame->f_code->co_argcount > 0) {
-        PyFrame_FastToLocals(frame);
-        PyObject *self_caller
-            = dict_getitem(frame->f_locals, PyTuple_GET_ITEM(frame->f_code->co_varnames, 0));
-        if (self_caller == self.ptr()) {
-            return function();
-        }
-    }
-#    endif
 
 #else
     /* PyPy currently doesn't provide a detailed cpyext emulation of

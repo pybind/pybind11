@@ -1400,10 +1400,8 @@ You can do that using ``py::custom_type_setup``:
            auto *type = &heap_type->ht_type;
            type->tp_flags |= Py_TPFLAGS_HAVE_GC;
            type->tp_traverse = [](PyObject *self_base, visitproc visit, void *arg) {
-   // https://docs.python.org/3/c-api/typeobj.html#c.PyTypeObject.tp_traverse
-   #if PY_VERSION_HEX >= 0x03090000
+               // https://docs.python.org/3/c-api/typeobj.html#c.PyTypeObject.tp_traverse
                Py_VISIT(Py_TYPE(self_base));
-   #endif
                if (py::detail::is_holder_constructed(self_base)) {
                    auto &self = py::cast<ContainerOwnsPythonObjects &>(py::handle(self_base));
                    for (auto &item : self.list) {

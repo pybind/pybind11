@@ -19,16 +19,16 @@ jobs:
   # This builds the sdists and wheels and makes sure the files are exactly as
   # expected.
   test-packaging:
-    name: 🐍 3.8 • 📦 tests • windows-latest
+    name: 🐍 3.9 • 📦 tests • windows-latest
     runs-on: windows-latest
 
     steps:
     - uses: actions/checkout@v7
 
-    - name: Setup 🐍 3.8
+    - name: Setup 🐍 3.9
       uses: actions/setup-python@v7
       with:
-        python-version: 3.8
+        python-version: 3.9
 
     - name: Install uv
       uses: astral-sh/setup-uv@v9.0.0
@@ -43,16 +43,16 @@ jobs:
   # This runs the packaging tests and also builds and saves the packages as
   # artifacts.
   packaging:
-    name: 🐍 3.8 • 📦 & 📦 tests • ubuntu-latest
+    name: 🐍 3.9 • 📦 & 📦 tests • ubuntu-latest
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v7
 
-    - name: Setup 🐍 3.8
+    - name: Setup 🐍 3.9
       uses: actions/setup-python@v7
       with:
-        python-version: 3.8
+        python-version: 3.9
 
     - name: Install uv
       uses: astral-sh/setup-uv@v9.0.0
