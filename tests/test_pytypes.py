@@ -660,43 +660,37 @@ def test_print_flush_uses_python_truthiness():
     assert output.flush_count == 1
 
 
-def test_print_flush_truthiness_error_after_output():
-    class MarkerError(Exception):
-        pass
+class PrintMarkerError(Exception):
+    pass
 
+
+def test_print_flush_truthiness_error_after_output():
     class BadFlush:
         def __bool__(self):
-            raise MarkerError
+            raise PrintMarkerError
 
     output = StringIO()
-    with pytest.raises(MarkerError):
+    with pytest.raises(PrintMarkerError):
         m.print_args("text", file=output, flush=BadFlush())
     assert output.getvalue() == "text\n"
 
 
 def test_print_propagates_stream_errors():
-    class MarkerError(Exception):
-        pass
-
     class BadWrite:
         def write(self, value):
-            raise MarkerError(value)
+            raise PrintMarkerError(value)
 
-    with pytest.raises(MarkerError, match="text"):
+    with pytest.raises(PrintMarkerError, match="text"):
         m.print_args("text", file=BadWrite())
 
     class BadFlush(StringIO):
         def flush(self):
-            raise MarkerError("flush")
+            raise PrintMarkerError("flush")
 
     output = BadFlush()
-    with pytest.raises(MarkerError, match="flush"):
+    with pytest.raises(PrintMarkerError, match="flush"):
         m.print_args("text", file=output, flush=True)
     assert output.getvalue() == "text\n"
-
-
-class PrintMarkerError(Exception):
-    pass
 
 
 def pybind_print_trace(failure):

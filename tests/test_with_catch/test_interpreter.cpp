@@ -7,6 +7,7 @@
 PYBIND11_WARNING_DISABLE_MSVC(4996)
 
 #include "catch_skip.h"
+#include "print_shutdown_probe.h"
 
 #include <catch.hpp>
 #include <cstdlib>
@@ -353,24 +354,8 @@ TEST_CASE("Restart the interpreter") {
 }
 
 TEST_CASE("py::print is safe during interpreter shutdown") {
-    struct shutdown_state {
-        bool callback_ran = false;
-        bool stdout_was_none = false;
-        bool print_threw = false;
-    } state;
-    {
-        auto sys = py::module_::import("sys");
-        sys.attr("pybind11_print_on_shutdown") = py::capsule(&state, [](void *payload) noexcept {
-            auto *state = static_cast<shutdown_state *>(payload);
-            state->callback_ran = true;
-            state->stdout_was_none = PySys_GetObject("stdout") == Py_None;
-            try {
-                py::print("print during interpreter shutdown");
-            } catch (...) {
-                state->print_threw = true;
-            }
-        });
-    }
+    print_shutdown_state state;
+    install_print_shutdown_probe(state);
 
     py::finalize_interpreter();
     py::initialize_interpreter();

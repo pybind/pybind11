@@ -8,6 +8,7 @@
 PYBIND11_WARNING_DISABLE_MSVC(4996)
 
 #    include "catch_skip.h"
+#    include "print_shutdown_probe.h"
 
 #    include <catch.hpp>
 #    include <cstdlib>
@@ -118,24 +119,10 @@ TEST_CASE("Single Subinterpreter") {
 }
 
 TEST_CASE("py::print is safe during subinterpreter shutdown") {
-    struct shutdown_state {
-        bool callback_ran = false;
-        bool stdout_was_none = false;
-        bool print_threw = false;
-    } state;
+    print_shutdown_state state;
     {
         py::scoped_subinterpreter subinterpreter;
-        py::module_::import("sys").attr("pybind11_print_on_shutdown")
-            = py::capsule(&state, [](void *payload) noexcept {
-                  auto *state = static_cast<shutdown_state *>(payload);
-                  state->callback_ran = true;
-                  state->stdout_was_none = PySys_GetObject("stdout") == Py_None;
-                  try {
-                      py::print("print during subinterpreter shutdown");
-                  } catch (...) {
-                      state->print_threw = true;
-                  }
-              });
+        install_print_shutdown_probe(state);
     }
 
     REQUIRE(state.callback_ran);

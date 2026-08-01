@@ -3809,7 +3809,7 @@ PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
         }
         PyObject *stdout_obj = dict_getitemstringref(sys_dict, "stdout");
         if (stdout_obj == nullptr) {
-            PyErr_SetString(PyExc_RuntimeError, "lost sys.stdout");
+            set_error(PyExc_RuntimeError, "lost sys.stdout");
             throw error_already_set();
         }
         file = reinterpret_steal<object>(stdout_obj);
@@ -3826,7 +3826,7 @@ PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
                 // A missing sys module indicates interpreter shutdown.
                 return;
             }
-            PyErr_SetString(PyExc_RuntimeError, "lost sys.stdout");
+            set_error(PyExc_RuntimeError, "lost sys.stdout");
             throw error_already_set();
         }
         file = reinterpret_borrow<object>(stdout_obj);
@@ -3838,50 +3838,41 @@ PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
         }
     }
 
-    if (sep && !sep.is_none() && !PyUnicode_Check(sep.ptr())) {
-        PyErr_Format(PyExc_TypeError,
-                     "sep must be None or a string, not %.200s",
-                     Py_TYPE(sep.ptr())->tp_name);
-        throw error_already_set();
-    }
-
-    if (end && !end.is_none() && !PyUnicode_Check(end.ptr())) {
-        PyErr_Format(PyExc_TypeError,
-                     "end must be None or a string, not %.200s",
-                     Py_TYPE(end.ptr())->tp_name);
-        throw error_already_set();
-    }
-
-    for (size_t i = 0; i < args.size(); ++i) {
-        if (i > 0) {
-            int result = sep && !sep.is_none()
-                             ? PyFile_WriteObject(sep.ptr(), file.ptr(), Py_PRINT_RAW)
-                             : PyFile_WriteString(" ", file.ptr());
-            if (result != 0) {
-                throw error_already_set();
-            }
-        }
-        if (PyFile_WriteObject(args[i].ptr(), file.ptr(), Py_PRINT_RAW) != 0) {
+    // As with Python's print(), an omitted keyword or None selects the default.
+    auto as_string_or_default = [](object &o, const char *name, const char *default_value) {
+        if (!o || o.is_none()) {
+            o = str(default_value);
+        } else if (!PyUnicode_Check(o.ptr())) {
+            PyErr_Format(PyExc_TypeError,
+                         "%s must be None or a string, not %.200s",
+                         name,
+                         Py_TYPE(o.ptr())->tp_name);
             throw error_already_set();
         }
-    }
+    };
+    as_string_or_default(sep, "sep", " ");
+    as_string_or_default(end, "end", "\n");
 
-    int result = end && !end.is_none() ? PyFile_WriteObject(end.ptr(), file.ptr(), Py_PRINT_RAW)
-                                       : PyFile_WriteString("\n", file.ptr());
-    if (result != 0) {
-        throw error_already_set();
+    auto write = [&file](handle text) {
+        if (PyFile_WriteObject(text.ptr(), file.ptr(), Py_PRINT_RAW) != 0) {
+            throw error_already_set();
+        }
+    };
+
+    bool first = true;
+    for (handle arg : args) {
+        if (!first) {
+            write(sep);
+        }
+        first = false;
+        write(arg);
     }
+    write(end);
 
     // Native interpreters differ in when they convert flush to bool. Evaluating it only
     // after successful output preserves py::print's historical behavior.
-    if (flush) {
-        int should_flush = PyObject_IsTrue(flush.ptr());
-        if (should_flush < 0) {
-            throw error_already_set();
-        }
-        if (should_flush != 0) {
-            file.attr("flush")();
-        }
+    if (flush && bool_(flush)) {
+        file.attr("flush")();
     }
 }
 PYBIND11_NAMESPACE_END(detail)
