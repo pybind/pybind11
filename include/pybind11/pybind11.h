@@ -3764,27 +3764,32 @@ register_local_exception(handle scope, const char *name, handle base = PyExc_Exc
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
+    object file;
+    if (kwargs.contains("file")) {
+        file = kwargs["file"].cast<object>();
+    }
+
+    // As with Python's print(), an omitted file or file=None means sys.stdout.
+    if (!file || file.is_none()) {
+        PyObject *stdout_obj = PySys_GetObject("stdout");
+        if (stdout_obj == nullptr) {
+            PyErr_SetString(PyExc_RuntimeError, "lost sys.stdout");
+            throw error_already_set();
+        }
+        // sys.stdout may be None when stdout is not connected, for example in
+        // a Windows GUI application. In that case, print() is a no-op.
+        if (stdout_obj == Py_None) {
+            return;
+        }
+        file = reinterpret_borrow<object>(stdout_obj);
+    }
+
     auto strings = tuple(args.size());
     for (size_t i = 0; i < args.size(); ++i) {
         strings[i] = str(args[i]);
     }
     auto sep = kwargs.contains("sep") ? kwargs["sep"] : str(" ");
     auto line = sep.attr("join")(std::move(strings));
-
-    object file;
-    if (kwargs.contains("file")) {
-        file = kwargs["file"].cast<object>();
-    } else {
-        try {
-            file = module_::import("sys").attr("stdout");
-        } catch (const error_already_set &) {
-            /* If print() is called from code that is executed as
-               part of garbage collection during interpreter shutdown,
-               importing 'sys' can fail. Give up rather than crashing the
-               interpreter in this case. */
-            return;
-        }
-    }
 
     auto write = file.attr("write");
     write(std::move(line));

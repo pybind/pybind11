@@ -3,6 +3,7 @@ from __future__ import annotations
 import contextlib
 import sys
 import types
+from io import StringIO
 
 import pytest
 
@@ -568,6 +569,30 @@ def test_print(capture):
         if detailed_error_messages_enabled
         else "'1' to Python object (#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)"
     )
+
+
+def test_print_file_none_and_stdout(monkeypatch, capture):
+    with capture:
+        m.print_args("explicit file=None", file=None)
+    assert capture == "explicit file=None\n"
+
+    class BadStr:
+        def __str__(self):
+            raise AssertionError("__str__ should not be called")
+
+    monkeypatch.setattr(sys, "stdout", None)
+    m.print_args(BadStr())
+    m.print_args(BadStr(), file=None)
+
+    output = StringIO()
+    m.print_args("explicit stream", file=output)
+    assert output.getvalue() == "explicit stream\n"
+
+
+def test_print_missing_stdout(monkeypatch):
+    monkeypatch.delattr(sys, "stdout")
+    with pytest.raises(RuntimeError, match="^lost sys.stdout$"):
+        m.print_args("no stream")
 
 
 def test_hash():
