@@ -21,10 +21,10 @@ expected in Python:
     auto args = py::make_tuple("unpacked", true);
     py::print("->", *args, "end"_a="<-"); // -> unpacked True <-
 
-As in Python, omitting ``file`` or passing ``py::none()`` uses the current
-``sys.stdout``. If ``sys.stdout`` is ``None``, :func:`py::print` returns without
-writing; a missing ``sys.stdout`` or an error from a custom stream is still
-reported normally.
+As in Python, omitting ``file`` or passing ``"file"_a = py::none()`` uses the
+current ``sys.stdout``. If ``sys.stdout`` is ``None``, :func:`py::print` returns
+without writing. During normal interpreter operation, a missing ``sys.stdout``
+or an error from a custom stream is still reported normally.
 
 .. _ostream_redirect:
 

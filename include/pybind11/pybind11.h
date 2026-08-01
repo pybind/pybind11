@@ -3765,9 +3765,13 @@ register_local_exception(handle scope, const char *name, handle base = PyExc_Exc
 PYBIND11_NAMESPACE_BEGIN(detail)
 PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
     for (auto item : kwargs) {
-        auto key = item.first.cast<std::string>();
-        if (key != "sep" && key != "end" && key != "file" && key != "flush") {
-            throw type_error("'" + key + "' is an invalid keyword argument for print()");
+        PyObject *key = item.first.ptr();
+        if (PyUnicode_CompareWithASCIIString(key, "sep") != 0
+            && PyUnicode_CompareWithASCIIString(key, "end") != 0
+            && PyUnicode_CompareWithASCIIString(key, "file") != 0
+            && PyUnicode_CompareWithASCIIString(key, "flush") != 0) {
+            PyErr_Format(PyExc_TypeError, "'%U' is an invalid keyword argument for print()", key);
+            throw error_already_set();
         }
     }
 
@@ -3787,6 +3791,10 @@ PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
 
     // As with Python's print(), an omitted file or file=None means sys.stdout.
     if (!file || file.is_none()) {
+#ifdef Py_GIL_DISABLED
+        // PySys_GetObject() returns a borrowed reference. Use a strong reference
+        // because sys.stdout can be replaced concurrently in a free-threaded build;
+        // importing sys is the only public API that provides one.
         object sys;
         try {
             sys = module_::import("sys");
@@ -3798,13 +3806,26 @@ PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
         if (sys_dict == nullptr) {
             throw error_already_set();
         }
-        // Keep the stream alive if another thread replaces it in a free-threaded build.
         PyObject *stdout_obj = dict_getitemstringref(sys_dict, "stdout");
         if (stdout_obj == nullptr) {
             PyErr_SetString(PyExc_RuntimeError, "lost sys.stdout");
             throw error_already_set();
         }
         file = reinterpret_steal<object>(stdout_obj);
+#else
+        PyObject *stdout_obj = PySys_GetObject("stdout");
+        if (stdout_obj == nullptr) {
+            try {
+                module_::import("sys");
+            } catch (const error_already_set &) {
+                // A missing sys module indicates interpreter shutdown.
+                return;
+            }
+            PyErr_SetString(PyExc_RuntimeError, "lost sys.stdout");
+            throw error_already_set();
+        }
+        file = reinterpret_borrow<object>(stdout_obj);
+#endif
         // sys.stdout may be None when stdout is not connected, for example in
         // a Windows GUI application. In that case, print() is a no-op.
         if (file.is_none()) {
@@ -3812,38 +3833,47 @@ PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
         }
     }
 
-    object sep = kwargs.contains("sep") ? kwargs["sep"].cast<object>() : str(" ");
-    if (sep.is_none()) {
-        sep = str(" ");
-    } else if (!PyUnicode_Check(sep.ptr())) {
+    object sep;
+    if (kwargs.contains("sep")) {
+        sep = kwargs["sep"].cast<object>();
+    }
+    if (sep && !sep.is_none() && !PyUnicode_Check(sep.ptr())) {
         PyErr_Format(PyExc_TypeError,
                      "sep must be None or a string, not %.200s",
                      Py_TYPE(sep.ptr())->tp_name);
         throw error_already_set();
     }
 
-    object end = kwargs.contains("end") ? kwargs["end"].cast<object>() : str("\n");
-    if (end.is_none()) {
-        end = str("\n");
-    } else if (!PyUnicode_Check(end.ptr())) {
+    object end;
+    if (kwargs.contains("end")) {
+        end = kwargs["end"].cast<object>();
+    }
+    if (end && !end.is_none() && !PyUnicode_Check(end.ptr())) {
         PyErr_Format(PyExc_TypeError,
                      "end must be None or a string, not %.200s",
                      Py_TYPE(end.ptr())->tp_name);
         throw error_already_set();
     }
 
-    auto strings = tuple(args.size());
     for (size_t i = 0; i < args.size(); ++i) {
-        strings[i] = str(args[i]);
-    }
-    auto line = reinterpret_steal<object>(PyUnicode_Join(sep.ptr(), strings.ptr()));
-    if (!line) {
-        throw error_already_set();
+        if (i > 0) {
+            int result = sep && !sep.is_none()
+                             ? PyFile_WriteObject(sep.ptr(), file.ptr(), Py_PRINT_RAW)
+                             : PyFile_WriteString(" ", file.ptr());
+            if (result != 0) {
+                throw error_already_set();
+            }
+        }
+        if (PyFile_WriteObject(args[i].ptr(), file.ptr(), Py_PRINT_RAW) != 0) {
+            throw error_already_set();
+        }
     }
 
-    auto write = file.attr("write");
-    write(std::move(line));
-    write(std::move(end));
+    int result = end && !end.is_none() ? PyFile_WriteObject(end.ptr(), file.ptr(), Py_PRINT_RAW)
+                                       : PyFile_WriteString("\n", file.ptr());
+    if (result != 0) {
+        throw error_already_set();
+    }
 
     if (flush) {
         file.attr("flush")();

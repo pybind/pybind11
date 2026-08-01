@@ -599,6 +599,19 @@ def test_print_missing_stdout(monkeypatch):
         m.print_args("no stream")
 
 
+@pytest.mark.skipif(
+    "env.PY_GIL_DISABLED",
+    reason="PySys_GetObject does not provide a thread-safe strong-reference API",
+)
+def test_print_uses_interpreter_stdout_if_sys_module_is_unavailable(monkeypatch):
+    output = StringIO()
+    with monkeypatch.context() as context:
+        context.setattr(sys, "stdout", output)
+        context.setitem(sys.modules, "sys", None)
+        m.print_args("interpreter stdout")
+    assert output.getvalue() == "interpreter stdout\n"
+
+
 def test_print_none_separator_and_end():
     output = StringIO()
     m.print_args("one", "two", sep=None, end=None, file=output)
@@ -618,6 +631,15 @@ def test_print_rejects_unknown_keyword():
         TypeError, match="^'unknown' is an invalid keyword argument for print\\(\\)$"
     ):
         m.print_args("text", unknown=True)
+
+
+@pytest.mark.parametrize("keyword", ["embedded\0null", "\ud800"])
+def test_print_rejects_unusual_unknown_keyword(keyword):
+    with pytest.raises(TypeError) as exc_info:
+        m.print_args("text", **{keyword: True})
+    assert exc_info.value.args == (
+        f"'{keyword}' is an invalid keyword argument for print()",
+    )
 
 
 def test_print_flush_uses_python_truthiness():
@@ -669,6 +691,66 @@ def test_print_propagates_stream_errors():
     with pytest.raises(MarkerError, match="flush"):
         m.print_args("text", file=output, flush=True)
     assert output.getvalue() == "text\n"
+
+
+class PrintMarkerError(Exception):
+    pass
+
+
+def print_trace(print_function, failure):
+    events = []
+
+    class Value:
+        def __init__(self, text):
+            self.text = text
+
+        def __str__(self):
+            events.append(("str", self.text))
+            if failure == f"str:{self.text}":
+                raise PrintMarkerError
+            return self.text
+
+    class Flush:
+        def __bool__(self):
+            events.append(("bool", "flush"))
+            if failure == "flush-bool":
+                raise PrintMarkerError
+            return True
+
+    class Stream:
+        def __init__(self):
+            self.write_count = 0
+
+        def write(self, value):
+            self.write_count += 1
+            events.append(("write", value))
+            if failure == f"write:{self.write_count}":
+                raise PrintMarkerError
+
+        def flush(self):
+            events.append(("flush",))
+            if failure == "flush":
+                raise PrintMarkerError
+
+    try:
+        result = print_function(
+            Value("one"),
+            Value("two"),
+            sep="|",
+            end="!",
+            file=Stream(),
+            flush=Flush(),
+        )
+    except Exception as exc:
+        outcome = type(exc)
+    else:
+        outcome = ("return", result)
+    return events, outcome
+
+
+@pytest.mark.parametrize("failure", [None, "str:two", "write:2", "flush-bool", "flush"])
+def test_print_matches_python_stream_protocol(failure):
+    assert print_trace(m.print_args, failure) == print_trace(print, failure)
 
 
 def test_hash():
