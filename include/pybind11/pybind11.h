@@ -3791,9 +3791,11 @@ PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
     // As with Python's print(), an omitted file or file=None means sys.stdout.
     if (!file || file.is_none()) {
 #ifdef Py_GIL_DISABLED
-        // PySys_GetObject() returns a borrowed reference. Use a strong reference
-        // because sys.stdout can be replaced concurrently in a free-threaded build;
-        // importing sys is the only public API that provides one.
+        // CPython's built-in print() gets a strong reference to the current interpreter's
+        // sys.stdout with the private _PySys_GetRequiredAttr(), which is unavailable to
+        // extension modules. The public PySys_GetObject() returns only a borrowed reference
+        // that another thread could invalidate, so import sys and use a strong-reference
+        // dictionary lookup instead.
         object sys;
         try {
             sys = module_::import("sys");
@@ -3812,6 +3814,10 @@ PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
         }
         file = reinterpret_steal<object>(stdout_obj);
 #else
+        // With the GIL held, no other thread can replace sys.stdout between the borrowed
+        // lookup and incrementing its reference count. PySys_GetObject() also reads the
+        // current interpreter's sys dictionary directly, matching CPython's built-in print()
+        // without consulting sys.modules.
         PyObject *stdout_obj = PySys_GetObject("stdout");
         if (stdout_obj == nullptr) {
             try {
