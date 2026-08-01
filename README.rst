@@ -127,7 +127,7 @@ pybind11 is exercised in continuous integration across a range of operating
 systems, Python versions, C++ standards, and toolchains. For an up-to-date
 view of the combinations we currently test, please see the
 `pybind11 GitHub Actions <https://github.com/pybind/pybind11/actions?query=branch%3Amaster>`_
-logs.
+and `AppVeyor <https://ci.appveyor.com/project/wjakob/pybind11>`_ logs.
 
 The test matrix naturally evolves over time as older platforms and compilers
 fall out of use and new ones are added by the community. Closely related
