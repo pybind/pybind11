@@ -48,16 +48,13 @@ import sysconfig
 import tempfile
 import threading
 import warnings
+from collections.abc import Iterable, Iterator
 from functools import lru_cache
 from pathlib import Path
 from typing import (
     Any,
     Callable,
-    Iterable,
-    Iterator,
-    List,
     Optional,
-    Tuple,
     TypeVar,
     Union,
 )
@@ -175,8 +172,7 @@ class Pybind11Extension(_Extension):
                 "You cannot safely change the cxx_level after setting it!", stacklevel=2
             )
 
-        # MSVC 2015 Update 3 and later only have 14 (and later 17) modes, so
-        # force a valid flag here.
+        # MSVC only has 14 and later modes, so force a valid flag here.
         if WIN and level == 11:
             level = 14
 
@@ -347,16 +343,16 @@ S = TypeVar("S", bound="ParallelCompile")
 CCompilerMethod = Callable[
     [
         distutils.ccompiler.CCompiler,
-        List[str],
+        list[str],
         Optional[str],
-        Optional[List[Union[Tuple[str], Tuple[str, Optional[str]]]]],
-        Optional[List[str]],
+        Optional[list[Union[tuple[str], tuple[str, Optional[str]]]]],
+        Optional[list[str]],
         bool,
-        Optional[List[str]],
-        Optional[List[str]],
-        Optional[List[str]],
+        Optional[list[str]],
+        Optional[list[str]],
+        Optional[list[str]],
     ],
-    List[str],
+    list[str],
 ]
 
 

@@ -39,7 +39,7 @@ jobs:
       matrix:
         include:
           - runs-on: ubuntu-22.04
-            python-version: '3.8'
+            python-version: '3.9'
             cmake-args: -DPYBIND11_FINDPYTHON=OFF -DPYBIND11_NUMPY_1_ONLY=ON
           - runs-on: ubuntu-latest
             python-version: '3.13'
@@ -60,7 +60,7 @@ jobs:
             python-version: '3.14'
             cmake-args: -DCMAKE_CXX_STANDARD=14
           - runs-on: windows-2022
-            python-version: '3.8'
+            python-version: '3.9'
             cmake-args: -DPYBIND11_FINDPYTHON=OFF
 
 
@@ -78,7 +78,7 @@ jobs:
       matrix:
         include:
           - runs-on: ubuntu-latest
-            python-version: '3.8'
+            python-version: '3.9'
             cmake-args: -DPYBIND11_FINDPYTHON=ON -DCMAKE_CXX_STANDARD=17
           - runs-on: ubuntu-latest
             python-version: '3.10'
@@ -95,7 +95,7 @@ jobs:
 
           # No SciPy for macOS ARM
           - runs-on: macos-15-intel
-            python-version: '3.8'
+            python-version: '3.9'
             cmake-args: -DCMAKE_CXX_STANDARD=14
           - runs-on: macos-15-intel
             python-version: '3.13'
@@ -118,7 +118,7 @@ jobs:
             python-version: '3.9'
             cmake-args: -DPYBIND11_TEST_SMART_HOLDER=ON
           - runs-on: windows-2022
-            python-version: '3.8'
+            python-version: '3.9'
             cmake-args: -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -DPYBIND11_NUMPY_1_ONLY=ON
           # This needs a python built with MTd
           # - runs-on: windows-2022
@@ -187,7 +187,7 @@ jobs:
     - name: Prepare env
       run: uv pip install --python=python --system -r tests/requirements.txt
 
-    # TODO Resolve Windows Ninja shared object issue on Python 3.8+
+    # TODO Resolve Windows Ninja shared object issue on Python 3.9+
     - name: Use Ninja except on Windows
       if: runner.os != 'Windows'
       run: echo "CMAKE_GENERATOR=Ninja" >> "$GITHUB_ENV"
@@ -631,9 +631,9 @@ jobs:
     - name: Latest actions/checkout
       uses: actions/checkout@v7
 
-    - name: Add Python 3.8
+    - name: Add Python 3.9
       if: matrix.container == 'almalinux:8'
-      run: dnf update -y && dnf install -y python38-devel gcc-c++ make git
+      run: dnf update -y && dnf install -y python39-devel gcc-c++ make git
 
     - name: Add Python 3 (default)
       if: matrix.container != 'almalinux:8'
@@ -769,7 +769,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - python: '3.8'
+          - python: '3.9'
             args: -DCMAKE_CXX_STANDARD=17
           - python: '3.13'
 

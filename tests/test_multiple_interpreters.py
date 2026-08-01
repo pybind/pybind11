@@ -157,9 +157,10 @@ def test_independent_subinterpreters_modern():
         """
     ).strip()
 
-    with contextlib.closing(interpreters.create()) as interp1, contextlib.closing(
-        interpreters.create()
-    ) as interp2:
+    with (
+        contextlib.closing(interpreters.create()) as interp1,
+        contextlib.closing(interpreters.create()) as interp2,
+    ):
         with pytest.raises(
             interpreters.ExecutionFailed,
             match="does not support loading in subinterpreters",

@@ -302,7 +302,6 @@ def test_int_convert(doc):
     assert noconvert(7) == 7
     cant_convert(3.14159)
     # TODO: Avoid DeprecationWarning in `PyLong_AsLong` (and similar)
-    # TODO: PyPy 3.8 does not behave like CPython 3.8 here yet (7.3.7)
     if sys.version_info < (3, 10) and env.CPYTHON:
         with pytest.deprecated_call():
             assert convert(Int()) == 42
@@ -312,8 +311,6 @@ def test_int_convert(doc):
     cant_convert(NotInt())
     cant_convert(Float())
 
-    # Before Python 3.8, `PyLong_AsLong` does not pick up on `obj.__index__`,
-    # but pybind11 "backports" this behavior.
     assert convert(Index()) == 42
     assert isinstance(convert(Index()), int)
     assert noconvert(Index()) == 42
@@ -419,9 +416,8 @@ def test_numpy_int_convert():
 
     # The implicit conversion from np.float32 is undesirable but currently accepted.
     # TODO: Avoid DeprecationWarning in `PyLong_AsLong` (and similar)
-    # TODO: PyPy 3.8 does not behave like CPython 3.8 here yet (7.3.7)
     # https://github.com/pybind/pybind11/issues/3408
-    if (3, 8) <= sys.version_info < (3, 10) and env.CPYTHON:
+    if sys.version_info < (3, 10) and env.CPYTHON:
         with pytest.deprecated_call():
             assert convert(np.float32(3.14159)) == 3
     else:
