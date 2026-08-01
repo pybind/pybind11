@@ -117,6 +117,20 @@ TEST_CASE("Single Subinterpreter") {
     unsafe_reset_internals_for_single_interpreter();
 }
 
+TEST_CASE("py::print is safe during subinterpreter shutdown") {
+    bool print_returned = false;
+    {
+        py::scoped_subinterpreter subinterpreter;
+        py::module_::import("sys").attr("pybind11_print_on_shutdown")
+            = py::capsule(&print_returned, [](void *payload) {
+                  py::print("print during subinterpreter shutdown");
+                  *static_cast<bool *>(payload) = true;
+              });
+    }
+
+    REQUIRE(print_returned);
+}
+
 #    if PY_VERSION_HEX >= 0x030D0000
 TEST_CASE("Move Subinterpreter") {
     std::unique_ptr<py::subinterpreter> sub(new py::subinterpreter(py::subinterpreter::create()));
