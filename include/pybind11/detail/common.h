@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include <pybind11/conduit/wrap_include_python_h.h>
+#include <pybind11/conduit/wrap_include_python_h.h> // IWYU pragma: export
 #if PY_VERSION_HEX < 0x03090000
 #    error "PYTHON < 3.9 IS UNSUPPORTED. pybind11 v3.0 was the last to support Python 3.8."
 #endif
@@ -44,7 +44,7 @@
                          PYBIND11_VERSION_RELEASE_LEVEL,                                          \
                          PYBIND11_VERSION_RELEASE_SERIAL)
 
-#include "pybind11_namespace_macros.h"
+#include "pybind11_namespace_macros.h" // IWYU pragma: export
 
 #if !(defined(_MSC_VER) && __cplusplus == 199711L)
 #    if __cplusplus >= 201402L

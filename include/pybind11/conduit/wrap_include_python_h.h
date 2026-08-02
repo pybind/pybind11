@@ -41,9 +41,9 @@
 // C4505: 'PySlice_GetIndicesEx': unreferenced local function has been removed
 #endif
 
-#include <Python.h>
-#include <frameobject.h>
-#include <pythread.h>
+#include <Python.h>      // IWYU pragma: export
+#include <frameobject.h> // IWYU pragma: export
+#include <pythread.h>    // IWYU pragma: export
 
 #if defined(_MSC_VER)
 #    pragma warning(pop)

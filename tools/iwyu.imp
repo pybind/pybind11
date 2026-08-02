@@ -1,0 +1,111 @@
+# include-what-you-use mapping file for pybind11.
+#
+# CPython and both C++ standard libraries make IWYU ask for a header that
+# pybind11 must not include directly: CPython symbols come from headers that
+# only <Python.h> may include, libc++ (macOS) exposes private detail headers,
+# and libstdc++ (Linux) exposes the C headers behind <cXXX>.
+#
+# Prefer a symbol entry. An include entry only takes effect when the left side
+# is private, and declaring a real C header private makes IWYU abort with a
+# "same file seen with two different visibilities" assertion.
+[
+  # CPython headers that <Python.h> includes, generated from the CPython 3.14
+  # include directory (one entry per header named in Python.h itself; headers
+  # such as <datetime.h> that Python.h does not include are kept direct).
+  { include: ["@[\"<]cpython/.*[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]internal/.*[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]abstract\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]audit\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]bltinmodule\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]boolobject\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]bytearrayobject\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]bytesobject\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]ceval\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]codecs\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]compile\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]complexobject\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]critical_section\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]descrobject\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]dictobject\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]enumobject\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]fileobject\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]fileutils\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]floatobject\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]genericaliasobject\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]import\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]intrcheck\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]iterobject\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]listobject\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]lock\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]longobject\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]memoryobject\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]methodobject\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]modsupport\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]moduleobject\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]monitoring\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]object\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]objimpl\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]osmodule\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]patchlevel\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]pyatomic\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]pybuffer\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]pycapsule\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]pyconfig\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]pyerrors\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]pyframe\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]pyhash\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]pylifecycle\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]pymacconfig\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]pymacro\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]pymath\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]pymem\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]pyport\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]pystate\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]pystats\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]pystrcmp\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]pystrtod\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]pythonrun\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]pythread\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]pytypedefs\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]rangeobject\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]refcount\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]setobject\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]sliceobject\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]structseq\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]sysmodule\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]traceback\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]tupleobject\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]typeslots\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]unicodeobject\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]warnings\\.h[\">]", private, "<Python.h>", public] },
+  { include: ["@[\"<]weakrefobject\\.h[\">]", private, "<Python.h>", public] },
+
+  # libstdc++ reports the C header for these C library symbols.
+  { symbol: ["abs", private, "<cstdlib>", public] },
+  { symbol: ["free", private, "<cstdlib>", public] },
+  { symbol: ["malloc", private, "<cstdlib>", public] },
+  { symbol: ["memcpy", private, "<cstring>", public] },
+  { symbol: ["memset", private, "<cstring>", public] },
+  { symbol: ["size_t", private, "<cstddef>", public] },
+  { symbol: ["strcmp", private, "<cstring>", public] },
+  { symbol: ["strlen", private, "<cstring>", public] },
+
+  # libc++ detail headers. These are private, so an include entry works and
+  # covers every symbol at once.
+  { include: ["<_ctype.h>", private, "<cctype>", public] },
+  { include: ["<_stdio.h>", private, "<cstdio>", public] },
+  { include: ["<_stdlib.h>", private, "<cstdlib>", public] },
+  { include: ["<_string.h>", private, "<cstring>", public] },
+  { include: ["<_time.h>", private, "<ctime>", public] },
+  { include: ["<_wchar.h>", private, "<cwchar>", public] },
+  { include: ["<__config>", private, "<version>", public] },
+  { include: ["<__config_site>", private, "<version>", public] },
+  { include: ["<__hash_table>", private, "<unordered_map>", public] },
+  { include: ["<__hash_table>", private, "<unordered_set>", public] },
+  { include: ["<__locale>", private, "<locale>", public] },
+
+  # Eigen detail headers; name the top-level module header instead.
+  { include: ["@[\"<]Eigen/src/SparseCore/.*[\">]", private, "<Eigen/SparseCore>", public] },
+  { include: ["@[\"<]Eigen/src/.*[\">]", private, "<Eigen/Core>", public] },
+  { include: ["@[\"<]unsupported/Eigen/CXX11/src/.*[\">]", private, "<unsupported/Eigen/CXX11/Tensor>", public] },
+]
