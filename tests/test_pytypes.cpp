@@ -643,6 +643,9 @@ TEST_SUBMODULE(pytypes, m) {
             "{a} + {b} = {c}"_s.format("a"_a = "py::print", "b"_a = "str.format", "c"_a = "this"));
     });
 
+    m.def("print_args",
+          [](const py::args &args, const py::kwargs &kwargs) { py::print(*args, **kwargs); });
+
     m.def("print_failure", []() { py::print(42, UnregisteredType()); });
 
     m.def("hash_function", [](py::object obj) { return py::hash(std::move(obj)); });

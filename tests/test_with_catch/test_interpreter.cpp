@@ -352,6 +352,34 @@ TEST_CASE("Restart the interpreter") {
     REQUIRE(py_widget.attr("the_message").cast<std::string>() == "Hello after restart");
 }
 
+TEST_CASE("py::print is safe during interpreter shutdown") {
+    struct shutdown_state {
+        bool callback_ran = false;
+        bool stdout_was_none = false;
+        bool print_threw = false;
+    } state;
+    {
+        auto sys = py::module_::import("sys");
+        sys.attr("pybind11_print_on_shutdown") = py::capsule(&state, [](void *payload) noexcept {
+            auto *state = static_cast<shutdown_state *>(payload);
+            state->callback_ran = true;
+            state->stdout_was_none = PySys_GetObject("stdout") == Py_None;
+            try {
+                py::print("print during interpreter shutdown");
+            } catch (...) {
+                state->print_threw = true;
+            }
+        });
+    }
+
+    py::finalize_interpreter();
+    py::initialize_interpreter();
+
+    REQUIRE(state.callback_ran);
+    REQUIRE(state.stdout_was_none);
+    REQUIRE_FALSE(state.print_threw);
+}
+
 TEST_CASE("Enum module survives restart") { // Added in PR #6015
     // Regression test for gh-5976: py::enum_ uses def_property_static, which
     // calls process_attributes::init after initialize_generic's strdup loop,

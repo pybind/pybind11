@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import builtins
 import contextlib
 import sys
 import types
+from io import StringIO
 
 import pytest
 
@@ -568,6 +570,206 @@ def test_print(capture):
         if detailed_error_messages_enabled
         else "'1' to Python object (#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)"
     )
+
+
+def test_print_file_none_and_stdout(monkeypatch, capture):
+    with capture:
+        m.print_args("explicit file=None", file=None)
+    assert capture == "explicit file=None\n"
+
+    class BadStr:
+        def __str__(self):
+            raise AssertionError("__str__ should not be called")
+
+    monkeypatch.setattr(sys, "stdout", None)
+    m.print_args(BadStr())
+    m.print_args(BadStr(), file=None)
+
+    class FalseyStream(StringIO):
+        def __bool__(self):
+            return False
+
+    output = FalseyStream()
+    m.print_args("explicit stream", file=output)
+    assert output.getvalue() == "explicit stream\n"
+
+
+def print_exception(print_function, *args, **kwargs):
+    with pytest.raises(Exception) as exc_info:
+        print_function(*args, **kwargs)
+    return type(exc_info.value), exc_info.value.args
+
+
+def test_print_missing_stdout(monkeypatch):
+    monkeypatch.delattr(sys, "stdout")
+    native_exception = print_exception(builtins.print, "no stream")
+    assert native_exception[0] is RuntimeError
+    assert print_exception(m.print_args, "no stream") == native_exception
+
+
+def test_print_uses_interpreter_stdout_if_sys_module_is_unavailable(monkeypatch):
+    output = StringIO()
+    with monkeypatch.context() as context:
+        context.setattr(sys, "stdout", output)
+        context.setitem(sys.modules, "sys", None)
+        m.print_args("interpreter stdout")
+    assert output.getvalue() == "interpreter stdout\n"
+
+
+def test_print_none_separator_and_end():
+    output = StringIO()
+    m.print_args("one", "two", sep=None, end=None, file=output)
+    assert output.getvalue() == "one two\n"
+
+
+@pytest.mark.parametrize("keyword", ["sep", "end"])
+def test_print_rejects_non_string_separator_and_end(keyword):
+    value = object()
+    native_output = StringIO()
+    native_exception = print_exception(
+        builtins.print, "text", file=native_output, **{keyword: value}
+    )
+    assert native_exception[0] is TypeError
+
+    pybind_output = StringIO()
+    assert (
+        print_exception(m.print_args, "text", file=pybind_output, **{keyword: value})
+        == native_exception
+    )
+    assert native_output.getvalue() == pybind_output.getvalue() == ""
+
+
+def test_print_rejects_unknown_keyword():
+    native_exception = print_exception(builtins.print, "text", unknown=True)
+    assert native_exception[0] is TypeError
+    assert print_exception(m.print_args, "text", unknown=True) == native_exception
+
+
+@pytest.mark.parametrize("keyword", ["file\0suffix", "\ud800"])
+def test_print_rejects_unusual_unknown_keyword(keyword):
+    native_exception = print_exception(builtins.print, "text", **{keyword: True})
+    assert native_exception[0] is TypeError
+    # Rendering pathological Unicode keyword names is runtime-specific. Delegation
+    # should preserve the active runtime's exception exactly.
+    assert print_exception(m.print_args, "text", **{keyword: True}) == native_exception
+
+
+def test_print_delegates_to_current_builtin(monkeypatch):
+    calls = []
+
+    def replacement(*args, **kwargs):
+        calls.append((args, kwargs))
+
+    monkeypatch.setattr(builtins, "print", replacement)
+    m.print_args("one", "two", sep="|", end="!", flush=[])
+    assert calls == [(("one", "two"), {"sep": "|", "end": "!", "flush": []})]
+
+
+def test_print_flush_uses_python_truthiness():
+    class Stream(StringIO):
+        def __init__(self):
+            super().__init__()
+            self.flush_count = 0
+
+        def flush(self):
+            self.flush_count += 1
+
+    output = Stream()
+    m.print_args("not flushed", file=output, flush=[])
+    m.print_args("flushed", file=output, flush=[1])
+    assert output.getvalue() == "not flushed\nflushed\n"
+    assert output.flush_count == 1
+
+
+def test_print_flush_truthiness_error_matches_native():
+    class MarkerError(Exception):
+        pass
+
+    class BadFlush:
+        def __bool__(self):
+            raise MarkerError
+
+    def output_after_error(print_function):
+        output = StringIO()
+        with pytest.raises(MarkerError):
+            print_function("text", file=output, flush=BadFlush())
+        return output.getvalue()
+
+    assert output_after_error(m.print_args) == output_after_error(builtins.print)
+
+
+def test_print_propagates_stream_errors():
+    class MarkerError(Exception):
+        pass
+
+    class BadWrite:
+        def write(self, value):
+            raise MarkerError(value)
+
+    with pytest.raises(MarkerError, match="text"):
+        m.print_args("text", file=BadWrite())
+
+    class BadFlush(StringIO):
+        def flush(self):
+            raise MarkerError("flush")
+
+    output = BadFlush()
+    with pytest.raises(MarkerError, match="flush"):
+        m.print_args("text", file=output, flush=True)
+    assert output.getvalue() == "text\n"
+
+
+class PrintMarkerError(Exception):
+    pass
+
+
+def print_trace(print_function, failure):
+    events = []
+
+    class Value:
+        def __init__(self, text):
+            self.text = text
+
+        def __str__(self):
+            events.append(("str", self.text))
+            if failure == f"str:{self.text}":
+                raise PrintMarkerError
+            return self.text
+
+    class Stream:
+        def __init__(self):
+            self.write_count = 0
+
+        def write(self, value):
+            self.write_count += 1
+            events.append(("write", value))
+            if failure == f"write:{self.write_count}":
+                raise PrintMarkerError
+
+        def flush(self):
+            events.append(("flush",))
+            if failure == "flush":
+                raise PrintMarkerError
+
+    try:
+        result = print_function(
+            Value("one"),
+            Value("two"),
+            sep="|",
+            end="!",
+            file=Stream(),
+            flush=True,
+        )
+    except Exception as exc:
+        outcome = type(exc)
+    else:
+        outcome = ("return", result)
+    return events, outcome
+
+
+@pytest.mark.parametrize("failure", [None, "str:two", "write:2", "flush"])
+def test_print_stream_protocol_matches_native(failure):
+    assert print_trace(m.print_args, failure) == print_trace(builtins.print, failure)
 
 
 def test_hash():
