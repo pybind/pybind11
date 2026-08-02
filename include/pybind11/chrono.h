@@ -17,7 +17,6 @@
 #include "pytypes.h"
 
 #include <chrono>
-#include <cmath>
 #include <cstdint>
 #include <ctime>
 #include <datetime.h>

@@ -12,9 +12,7 @@
 #include "pytypes.h"
 
 #include <cassert>
-#include <limits>
 #include <type_traits>
-#include <typeindex>
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 

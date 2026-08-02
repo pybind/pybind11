@@ -235,14 +235,10 @@
 #include <cstddef>
 #include <cstring>
 #include <exception>
-#include <forward_list>
 #include <memory>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
-#include <typeindex>
-#include <unordered_map>
-#include <unordered_set>
 #include <vector>
 #if defined(__has_include)
 #    if __has_include(<version>)

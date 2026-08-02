@@ -16,7 +16,6 @@
 #include <cstddef>
 #include <cstdio>
 #include <exception>
-#include <frameobject.h>
 #include <iterator>
 #include <memory>
 #include <stdexcept>
