@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "detail/pybind11_namespace_macros.h"
 #include "pytypes.h"
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)

@@ -20,6 +20,13 @@
 #pragma once
 
 #include "pybind11.h"
+#include "detail/common.h"
+#include "detail/descr.h"
+#include "detail/internals.h"
+#include "attr.h"
+#include "cast.h"
+#include "gil.h"
+#include "pytypes.h"
 
 #include <algorithm>
 #include <cstring>

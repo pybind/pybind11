@@ -41,6 +41,7 @@
 
 #include <pybind11/detail/common.h>
 
+#include <cstddef>
 #include <cstdint>
 #include <type_traits>
 #include <utility>

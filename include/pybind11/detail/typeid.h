@@ -11,6 +11,9 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <memory>
+#include <string>
+#include <typeinfo>
 
 #if defined(__GNUG__)
 #    include <cxxabi.h>

@@ -10,6 +10,12 @@
 #pragma once
 
 #include <pybind11/conduit/wrap_include_python_h.h> // IWYU pragma: export
+
+#include <cassert>
+#include <cstdint>
+#include <initializer_list>
+#include <new>
+#include <utility>
 #if PY_VERSION_HEX < 0x03090000
 #    error "PYTHON < 3.9 IS UNSUPPORTED. pybind11 v3.0 was the last to support Python 3.8."
 #endif

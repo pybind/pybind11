@@ -11,12 +11,18 @@
 #pragma once
 
 #include "pybind11.h"
+#include "detail/common.h"
+#include "detail/descr.h"
+#include "cast.h"
+#include "pytypes.h"
 
 #include <chrono>
 #include <cmath>
+#include <cstdint>
 #include <ctime>
 #include <datetime.h>
 #include <mutex>
+#include <ratio>
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)

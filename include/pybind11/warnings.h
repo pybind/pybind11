@@ -11,6 +11,10 @@
 
 #include "pybind11.h"
 #include "detail/common.h"
+#include "cast.h"
+#include "pytypes.h"
+
+#include <string>
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 

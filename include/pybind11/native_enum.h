@@ -5,9 +5,11 @@
 #pragma once
 
 #include "detail/common.h"
+#include "detail/internals.h"
 #include "detail/native_enum_data.h"
 #include "detail/type_caster_base.h"
 #include "cast.h"
+#include "pytypes.h"
 
 #include <cassert>
 #include <limits>

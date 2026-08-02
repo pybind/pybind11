@@ -14,14 +14,17 @@
 
 #include <assert.h>
 #include <cstddef>
+#include <cstdio>
 #include <exception>
 #include <frameobject.h>
 #include <iterator>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <typeinfo>
 #include <utility>
+#include <vector>
 
 #if defined(PYBIND11_HAS_OPTIONAL)
 #    include <optional>
