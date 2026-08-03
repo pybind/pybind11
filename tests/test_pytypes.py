@@ -582,6 +582,23 @@ def test_print_missing_from_current_builtins_is_silent(monkeypatch):
     assert result is None
 
 
+def test_print_stdout_none_matches_current_builtin(monkeypatch):
+    def exception_type(func):
+        try:
+            func("text")
+        except Exception as exc:
+            return type(exc)
+        return None
+
+    # Python runtimes differ here; py::print should follow the active runtime.
+    with monkeypatch.context() as context:
+        context.setattr(sys, "stdout", None)
+        native_exception_type = exception_type(builtins.print)
+        pybind_exception_type = exception_type(m.print_args)
+
+    assert pybind_exception_type is native_exception_type
+
+
 def test_print_propagates_current_builtin_exception(monkeypatch):
     class MarkerError(Exception):
         pass
