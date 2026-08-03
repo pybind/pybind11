@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import builtins
 import contextlib
 import sys
 import types
@@ -7,7 +8,6 @@ import types
 import pytest
 
 import env
-from pybind11_tests import detailed_error_messages_enabled
 from pybind11_tests import pytypes as m
 
 
@@ -545,29 +545,73 @@ def test_implicit_casting():
     assert z["l"] == [3, 6, 9, 12, 15]
 
 
-def test_print(capture):
-    with capture:
-        m.print_function()
-    assert (
-        capture
-        == """
-        Hello, World!
-        1 2.0 three True -- multiple args
-        *args-and-a-custom-separator
-        no new line here -- next print
-        flush
-        py::print + str.format = this
-    """
-    )
-    assert capture.stderr == "this goes to stderr"
+def test_print_delegates_to_current_builtin(monkeypatch):
+    calls = []
 
-    with pytest.raises(RuntimeError) as excinfo:
-        m.print_failure()
-    assert str(excinfo.value) == "Unable to convert call argument " + (
-        "'1' of type 'UnregisteredType' to Python object"
-        if detailed_error_messages_enabled
-        else "'1' to Python object (#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for details)"
-    )
+    def first_print(*args, **kwargs):
+        calls.append(("first", args, kwargs))
+        return object()
+
+    def second_print(*args, **kwargs):
+        calls.append(("second", args, kwargs))
+        return object()
+
+    positional = [object(), object()]
+    keywords = {"first": object(), "second": object()}
+
+    monkeypatch.setattr(builtins, "print", first_print)
+    assert m.print_args(*positional, **keywords) is None
+
+    monkeypatch.setattr(builtins, "print", second_print)
+    assert m.print_args() is None
+
+    assert calls[0][0] == "first"
+    assert len(calls[0][1]) == len(positional)
+    assert all(actual is expected for actual, expected in zip(calls[0][1], positional))
+    assert list(calls[0][2]) == list(keywords)
+    assert all(calls[0][2][key] is value for key, value in keywords.items())
+    assert calls[1] == ("second", (), {})
+
+
+def test_print_missing_from_current_builtins_is_silent(monkeypatch):
+    # The builtins dictionary may have lost its print entry before C++ destructors
+    # run during interpreter shutdown.
+    with monkeypatch.context() as context:
+        context.delattr(builtins, "print")
+        result = m.print_args("ignored")
+    assert result is None
+
+
+def test_print_stdout_none_matches_current_builtin(monkeypatch):
+    def exception_type(func):
+        try:
+            func("text")
+        except Exception as exc:
+            return type(exc)
+        return None
+
+    # Python runtimes differ here; py::print should follow the active runtime.
+    with monkeypatch.context() as context:
+        context.setattr(sys, "stdout", None)
+        native_exception_type = exception_type(builtins.print)
+        pybind_exception_type = exception_type(m.print_args)
+
+    assert pybind_exception_type is native_exception_type
+
+
+def test_print_propagates_current_builtin_exception(monkeypatch):
+    class MarkerError(Exception):
+        pass
+
+    error = MarkerError()
+
+    def failing_print():
+        raise error
+
+    monkeypatch.setattr(builtins, "print", failing_print)
+    with pytest.raises(MarkerError) as exc_info:
+        m.print_args()
+    assert exc_info.value is error
 
 
 def test_hash():
