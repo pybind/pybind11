@@ -573,6 +573,15 @@ def test_print_delegates_to_current_builtin(monkeypatch):
     assert calls[1] == ("second", (), {})
 
 
+def test_print_missing_from_current_builtins_is_silent(monkeypatch):
+    # The builtins dictionary may have lost its print entry before C++ destructors
+    # run during interpreter shutdown.
+    with monkeypatch.context() as context:
+        context.delattr(builtins, "print")
+        result = m.print_args("ignored")
+    assert result is None
+
+
 def test_print_propagates_current_builtin_exception(monkeypatch):
     class MarkerError(Exception):
         pass

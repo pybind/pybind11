@@ -3769,7 +3769,11 @@ PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
 #else
     auto builtins = reinterpret_borrow<dict>(PyEval_GetBuiltins());
 #endif
-    object native_print = builtins["print"];
+    // The builtins dictionary may already be partially cleared during interpreter shutdown.
+    auto native_print = reinterpret_steal<object>(dict_getitemstringref(builtins.ptr(), "print"));
+    if (!native_print) {
+        return;
+    }
     auto result
         = reinterpret_steal<object>(PyObject_Call(native_print.ptr(), args.ptr(), kwargs.ptr()));
     if (!result) {
