@@ -301,8 +301,7 @@ if(NOT TARGET pybind11_headers)
     pybind11_headers ${pybind11_system} INTERFACE $<BUILD_INTERFACE:${pybind11_INCLUDE_DIR}>
                                                   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
-  target_compile_features(pybind11_headers INTERFACE cxx_inheriting_constructors cxx_user_literals
-                                                     cxx_right_angle_brackets)
+  target_compile_features(pybind11_headers INTERFACE cxx_std_17)
   if(NOT "${PYBIND11_INTERNALS_VERSION}" STREQUAL "")
     target_compile_definitions(
       pybind11_headers INTERFACE "PYBIND11_INTERNALS_VERSION=${PYBIND11_INTERNALS_VERSION}")

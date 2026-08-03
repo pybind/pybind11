@@ -72,6 +72,10 @@
 #    endif
 #endif
 
+#if !defined(PYBIND11_CPP17)
+#    error "pybind11 requires C++17 or newer"
+#endif
+
 // These PYBIND11_HAS_... macros are consolidated in pybind11/detail/common.h
 // to simplify backward compatibility handling for users (e.g., via #ifdef checks):
 #define PYBIND11_HAS_TYPE_CASTER_STD_FUNCTION_SPECIALIZATIONS 1
