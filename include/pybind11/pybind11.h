@@ -3764,34 +3764,20 @@ register_local_exception(handle scope, const char *name, handle base = PyExc_Exc
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
-    auto strings = tuple(args.size());
-    for (size_t i = 0; i < args.size(); ++i) {
-        strings[i] = str(args[i]);
+#if PY_VERSION_HEX >= 0x030D0000
+    auto builtins = reinterpret_steal<dict>(PyEval_GetFrameBuiltins());
+#else
+    auto builtins = reinterpret_borrow<dict>(PyEval_GetBuiltins());
+#endif
+    // The builtins dictionary may already be partially cleared during interpreter shutdown.
+    auto native_print = reinterpret_steal<object>(dict_getitemstringref(builtins.ptr(), "print"));
+    if (!native_print) {
+        return;
     }
-    auto sep = kwargs.contains("sep") ? kwargs["sep"] : str(" ");
-    auto line = sep.attr("join")(std::move(strings));
-
-    object file;
-    if (kwargs.contains("file")) {
-        file = kwargs["file"].cast<object>();
-    } else {
-        try {
-            file = module_::import("sys").attr("stdout");
-        } catch (const error_already_set &) {
-            /* If print() is called from code that is executed as
-               part of garbage collection during interpreter shutdown,
-               importing 'sys' can fail. Give up rather than crashing the
-               interpreter in this case. */
-            return;
-        }
-    }
-
-    auto write = file.attr("write");
-    write(std::move(line));
-    write(kwargs.contains("end") ? kwargs["end"] : str("\n"));
-
-    if (kwargs.contains("flush") && kwargs["flush"].cast<bool>()) {
-        file.attr("flush")();
+    auto result
+        = reinterpret_steal<object>(PyObject_Call(native_print.ptr(), args.ptr(), kwargs.ptr()));
+    if (!result) {
+        throw error_already_set();
     }
 }
 PYBIND11_NAMESPACE_END(detail)
