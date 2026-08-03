@@ -273,7 +273,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - clang: 5
+          # Clang 5 cannot compile libstdc++ 10's C++17 std::variant due to
+          # LLVM PR31852/PR33222.
+          - clang: 8
             std: 17
           - clang: 11
             std: 20
