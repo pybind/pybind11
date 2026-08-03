@@ -7,7 +7,7 @@ import pytest
 import env
 
 m = pytest.importorskip("pybind11_tests.virtual_functions")
-from pybind11_tests import ConstructorStats  # noqa: E402
+from pybind11_tests import ConstructorStats
 
 
 def test_override(capture, msg):

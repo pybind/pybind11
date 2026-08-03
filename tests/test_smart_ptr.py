@@ -5,7 +5,7 @@ import pytest
 import env  # noqa: F401
 
 m = pytest.importorskip("pybind11_tests.smart_ptr")
-from pybind11_tests import ConstructorStats  # noqa: E402
+from pybind11_tests import ConstructorStats
 
 
 @pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")

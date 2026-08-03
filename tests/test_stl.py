@@ -818,7 +818,7 @@ def test_mapping_caster_protocol(doc):
 
 
 def test_set_caster_protocol(doc):
-    from collections.abc import Set
+    from collections.abc import Set as AbstractSet
 
     # Implements the Set protocol without explicitly inheriting from collections.abc.Set.
     class BareSetLike:
@@ -836,7 +836,7 @@ def test_set_caster_protocol(doc):
 
     # Implements the Set protocol by reusing BareSetLike's implementation.
     # Additionally, inherits from collections.abc.Set.
-    class FormalSetLike(BareSetLike, Set):
+    class FormalSetLike(BareSetLike, AbstractSet):
         pass
 
     # convert mode

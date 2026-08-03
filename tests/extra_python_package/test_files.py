@@ -25,7 +25,7 @@ FILENAME_VERSION = re.compile(r"[-_]((\d+\.\d+\.\d+)(?:[a-z]+\d*)?)(?:-|\.tar\.g
 # Newer pytest has global path setting, but keeping old pytest for now
 sys.path.append(str(MAIN_DIR / "tools"))
 
-from make_global import get_global  # noqa: E402
+from make_global import get_global
 
 HAS_UV = shutil.which("uv") is not None
 UV_ARGS = ["--installer=uv"] if HAS_UV else []

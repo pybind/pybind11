@@ -71,6 +71,8 @@ except ImportError:
 import distutils.ccompiler
 import distutils.errors
 
+from typing_extensions import Self
+
 WIN = sys.platform.startswith("win32") and "mingw" not in sysconfig.get_platform()
 MACOS = sys.platform.startswith("darwin")
 STD_TMPL = "/std:c++{}" if WIN else "-std=c++{}"
@@ -397,7 +399,7 @@ class ParallelCompile:
     called.
     """
 
-    __slots__ = ("envvar", "default", "max", "_old", "needs_recompile")
+    __slots__ = ("_old", "default", "envvar", "max", "needs_recompile")
 
     def __init__(
         self,
@@ -477,16 +479,16 @@ class ParallelCompile:
 
         return compile_function
 
-    def install(self: S) -> S:
+    def install(self) -> Self:
         """
         Installs the compile function into distutils.ccompiler.CCompiler.compile.
         """
         distutils.ccompiler.CCompiler.compile = self.function()  # type: ignore[assignment]
         return self
 
-    def __enter__(self: S) -> S:
+    def __enter__(self) -> Self:
         self._old.append(distutils.ccompiler.CCompiler.compile)
         return self.install()
 
-    def __exit__(self, *args: Any) -> None:
+    def __exit__(self, *args: object) -> None:
         distutils.ccompiler.CCompiler.compile = self._old.pop()  # type: ignore[assignment]
