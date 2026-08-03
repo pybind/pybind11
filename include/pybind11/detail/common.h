@@ -83,7 +83,7 @@
 #define PYBIND11_HAS_CPP_CONDUIT 1
 #define PYBIND11_HAS_NATIVE_ENUM 1
 
-#if defined(PYBIND11_CPP17) && defined(__has_include)
+#if defined(__has_include)
 #    if __has_include(<filesystem>)
 #        define PYBIND11_HAS_FILESYSTEM 1
 #    elif __has_include(<experimental/filesystem>)
@@ -113,10 +113,8 @@
 
 // Compiler version assertions
 #if defined(__INTEL_COMPILER)
-#    if __INTEL_COMPILER < 1800
-#        error pybind11 requires Intel C++ compiler v18 or newer
-#    elif __INTEL_COMPILER < 1900 && defined(PYBIND11_CPP14)
-#        error pybind11 supports only C++11 with Intel C++ compiler v18. Use v19 or newer for C++14.
+#    if __INTEL_COMPILER < 1900
+#        error pybind11 requires Intel C++ compiler v19 or newer
 #    endif
 /* The following pragma cannot be pop'ed:
    https://community.intel.com/t5/Intel-C-Compiler/Inline-and-no-inline-warning/td-p/1216764 */
@@ -183,19 +181,11 @@
 // For unknown reasons all PYBIND11_DEPRECATED member trigger a warning when declared
 // whether it is used or not
 #    define PYBIND11_DEPRECATED(reason)
-#elif defined(PYBIND11_CPP14)
-#    define PYBIND11_DEPRECATED(reason) [[deprecated(reason)]]
 #else
-#    define PYBIND11_DEPRECATED(reason) __attribute__((deprecated(reason)))
+#    define PYBIND11_DEPRECATED(reason) [[deprecated(reason)]]
 #endif
 
-#if defined(PYBIND11_CPP17)
-#    define PYBIND11_MAYBE_UNUSED [[maybe_unused]]
-#elif defined(_MSC_VER) && !defined(__clang__)
-#    define PYBIND11_MAYBE_UNUSED
-#else
-#    define PYBIND11_MAYBE_UNUSED __attribute__((__unused__))
-#endif
+#define PYBIND11_MAYBE_UNUSED [[maybe_unused]]
 
 // https://en.cppreference.com/w/c/chrono/localtime
 #if defined(__STDC_LIB_EXT1__) && !defined(__STDC_WANT_LIB_EXT1__)
@@ -203,26 +193,24 @@
 #endif
 
 #ifdef __has_include
-// std::optional (but including it in c++14 mode isn't allowed)
-#    if defined(PYBIND11_CPP17) && __has_include(<optional>)
+// std::optional
+#    if __has_include(<optional>)
 #        define PYBIND11_HAS_OPTIONAL 1
 #    endif
-// std::experimental::optional (but not allowed in c++11 mode)
-#    if defined(PYBIND11_CPP14) && (__has_include(<experimental/optional>) && \
-                                 !__has_include(<optional>))
+// std::experimental::optional
+#    if __has_include(<experimental/optional>) && !__has_include(<optional>)
 #        define PYBIND11_HAS_EXP_OPTIONAL 1
 #    endif
 // std::variant
-#    if defined(PYBIND11_CPP17) && __has_include(<variant>)
+#    if __has_include(<variant>)
 #        define PYBIND11_HAS_VARIANT 1
 #    endif
-#elif defined(_MSC_VER) && defined(PYBIND11_CPP17)
+#elif defined(_MSC_VER)
 #    define PYBIND11_HAS_OPTIONAL 1
 #    define PYBIND11_HAS_VARIANT 1
 #endif
 
-#if defined(PYBIND11_CPP17)                                                                       \
-    && ((defined(__has_include) && __has_include(<string_view>)) || defined(_MSC_VER))
+#if (defined(__has_include) && __has_include(<string_view>)) || defined(_MSC_VER)
 #    define PYBIND11_HAS_STRING_VIEW 1
 #endif
 
@@ -710,22 +698,11 @@ static_assert(std::is_standard_layout<instance>::value,
 template <typename>
 struct always_false : std::false_type {};
 
-/// from __cpp_future__ import (convenient aliases from C++14/17)
-#if defined(PYBIND11_CPP14)
+/// Convenient aliases from newer C++ versions
 using std::conditional_t;
 using std::enable_if_t;
 using std::remove_cv_t;
 using std::remove_reference_t;
-#else
-template <bool B, typename T = void>
-using enable_if_t = typename std::enable_if<B, T>::type;
-template <bool B, typename T, typename F>
-using conditional_t = typename std::conditional<B, T, F>::type;
-template <typename T>
-using remove_cv_t = typename std::remove_cv<T>::type;
-template <typename T>
-using remove_reference_t = typename std::remove_reference<T>::type;
-#endif
 
 #if defined(PYBIND11_CPP20) && defined(__cpp_lib_remove_cvref)
 using std::remove_cvref;
@@ -744,56 +721,8 @@ template <typename T, typename U>
 using is_same_ignoring_cvref = std::is_same<detail::remove_cvref_t<T>, U>;
 
 /// Index sequences
-#if defined(PYBIND11_CPP14)
 using std::index_sequence;
 using std::make_index_sequence;
-#else
-template <size_t...>
-struct index_sequence {};
-// Comments about the algorithm below.
-//
-// Credit: This is based on an algorithm by taocpp here:
-//    https://github.com/taocpp/sequences/blob/main/include/tao/seq/make_integer_sequence.hpp
-// but significantly simplified.
-//
-// We build up a sequence S by repeatedly doubling its length and sometimes adding 1 to the end.
-// E.g. if the current S is 0...3, then we either go to 0...7 or 0...8 on the next pass.
-// The goal is to end with S = 0...N-1.
-// The key insight is that the times we need to add an additional digit to S correspond
-// exactly to the 1's in the binary representation of the number N.
-//
-// Invariants:
-// - digit is a power of 2
-// - N_digit_is_1 is whether N's binary representation has a 1 in that digit's position.
-// - end <= N
-// - S is 0...end-1.
-// - if digit > 0, end * digit * 2 <= N < (end+1) * digit * 2
-//
-// The process starts with digit > N, end = 0, and S is empty.
-// The process concludes with digit=0, in which case, end == N and S is 0...N-1.
-
-template <size_t digit, bool N_digit_is_1, size_t N, size_t end, size_t... S> // N_digit_is_1=false
-struct make_index_sequence_impl
-    : make_index_sequence_impl<digit / 2, (N & (digit / 2)) != 0, N, 2 * end, S..., (S + end)...> {
-};
-template <size_t digit, size_t N, size_t end, size_t... S>
-struct make_index_sequence_impl<digit, true, N, end, S...>
-    : make_index_sequence_impl<digit / 2,
-                               (N & (digit / 2)) != 0,
-                               N,
-                               2 * end + 1,
-                               S...,
-                               (S + end)...,
-                               2 * end> {};
-template <size_t N, size_t end, size_t... S>
-struct make_index_sequence_impl<0, false, N, end, S...> {
-    using type = index_sequence<S...>;
-};
-constexpr size_t next_power_of_2(size_t N) { return N == 0 ? 1 : next_power_of_2(N >> 1) << 1; }
-template <size_t N>
-using make_index_sequence =
-    typename make_index_sequence_impl<next_power_of_2(N), false, N, 0>::type;
-#endif
 
 /// Make an index sequence of the indices of true arguments
 template <typename ISeq, size_t, bool...>
@@ -1206,14 +1135,6 @@ struct format_descriptor<T, detail::enable_if_t<std::is_arithmetic<T>::value>> {
     static std::string format() { return std::string(1, c); }
 };
 
-#if !defined(PYBIND11_CPP17)
-
-template <typename T>
-constexpr const char
-    format_descriptor<T, detail::enable_if_t<std::is_arithmetic<T>::value>>::value[2];
-
-#endif
-
 /// RAII wrapper that temporarily clears any Python error state
 struct error_scope {
     PyObject *type, *value, *trace;
@@ -1281,28 +1202,17 @@ struct overload_cast_impl {
 };
 PYBIND11_NAMESPACE_END(detail)
 
-// overload_cast requires variable templates: C++14
-#if defined(PYBIND11_CPP14)
-#    define PYBIND11_OVERLOAD_CAST 1
+#define PYBIND11_OVERLOAD_CAST 1
 /// Syntax sugar for resolving overloaded function pointers:
 ///  - regular: static_cast<Return (Class::*)(Arg0, Arg1, Arg2)>(&Class::func)
 ///  - sweet:   overload_cast<Arg0, Arg1, Arg2>(&Class::func)
 template <typename... Args>
 static constexpr detail::overload_cast_impl<Args...> overload_cast{};
-#endif
 
 /// Const member function selector for overload_cast
 ///  - regular: static_cast<Return (Class::*)(Arg) const>(&Class::func)
 ///  - sweet:   overload_cast<Arg>(&Class::func, const_)
 static constexpr auto const_ = std::true_type{};
-
-#if !defined(PYBIND11_CPP14) // no overload_cast: providing something that static_assert-fails:
-template <typename... Args>
-struct overload_cast {
-    static_assert(detail::deferred_t<std::false_type, Args...>::value,
-                  "pybind11::overload_cast<...> requires compiling in C++14 mode");
-};
-#endif // overload_cast
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
