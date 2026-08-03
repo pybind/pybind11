@@ -9,9 +9,11 @@ would use ``print``. Since these methods use different buffers, mixing them can
 lead to output order issues. To resolve this, pybind11 modules can use the
 :func:`py::print` function, which writes through Python's printing machinery.
 
-:func:`py::print` delegates each call to the current ``print`` callable in
-Python's built-ins. With the standard built-in, optional keyword arguments
-``sep``, ``end``, ``file``, and ``flush`` work as they do in Python:
+:func:`py::print` delegates each call to the ``print`` entry in the current
+execution frame's built-ins (normally ``builtins.print``). When no Python frame
+is executing, it uses the active interpreter's built-ins. With the standard
+built-in, optional keyword arguments ``sep``, ``end``, ``file``, and ``flush``
+work as they do in Python:
 
 .. code-block:: cpp
 
