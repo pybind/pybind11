@@ -273,12 +273,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Clang 5 cannot compile libstdc++ 10's C++17 std::variant due to
-          # LLVM PR31852/PR33222.
-          - clang: 8
-            std: 17
+          # Clang 11 is the oldest LLVM toolchain available on a Debian base
+          # that meets pybind11's current Python and CMake requirements.
           - clang: 11
-            std: 20
+            std: 17
+            container_suffix: "-bullseye"
           - clang: 16
             std: 20
             container_suffix: "-bullseye"
@@ -294,23 +293,8 @@ jobs:
     steps:
     - uses: actions/checkout@v7
 
-    - name: Use the pinned Debian snapshot for Clang 8
-      if: matrix.clang == 8
-      run: |
-        # This image is based on retired Debian Buster and already provides
-        # matching snapshot entries, commented out by default.
-        sed -i \
-          -e 's|^# deb http://snapshot.debian.org|deb http://snapshot.debian.org|' \
-          -e 's|^deb http://deb.debian.org|# deb http://deb.debian.org|' \
-          /etc/apt/sources.list
-        apt-get -o Acquire::Check-Valid-Until=false update
-
-    - name: Update the package index
-      if: matrix.clang != 8
-      run: apt-get update
-
-    - name: Install Python 3 and test dependencies
-      run: apt-get install -y python3-dev python3-numpy python3-pytest libeigen3-dev
+    - name: Add wget and python3
+      run: apt-get update && apt-get install -y python3-dev python3-numpy python3-pytest libeigen3-dev
 
     - name: Configure
       shell: bash
