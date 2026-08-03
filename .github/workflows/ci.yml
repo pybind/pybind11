@@ -294,8 +294,23 @@ jobs:
     steps:
     - uses: actions/checkout@v7
 
-    - name: Add wget and python3
-      run: apt-get update && apt-get install -y python3-dev python3-numpy python3-pytest libeigen3-dev
+    - name: Use the pinned Debian snapshot for Clang 8
+      if: matrix.clang == 8
+      run: |
+        # This image is based on retired Debian Buster and already provides
+        # matching snapshot entries, commented out by default.
+        sed -i \
+          -e 's|^# deb http://snapshot.debian.org|deb http://snapshot.debian.org|' \
+          -e 's|^deb http://deb.debian.org|# deb http://deb.debian.org|' \
+          /etc/apt/sources.list
+        apt-get -o Acquire::Check-Valid-Until=false update
+
+    - name: Update the package index
+      if: matrix.clang != 8
+      run: apt-get update
+
+    - name: Install Python 3 and test dependencies
+      run: apt-get install -y python3-dev python3-numpy python3-pytest libeigen3-dev
 
     - name: Configure
       shell: bash
