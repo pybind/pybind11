@@ -160,16 +160,16 @@ def test_flush(capfd):
 
     with m.ostream_redirect():
         m.noisy_function(msg, flush=False)
-        stdout, stderr = capfd.readouterr()
+        stdout, _stderr = capfd.readouterr()
         assert not stdout
 
         m.noisy_function(msg2, flush=True)
-        stdout, stderr = capfd.readouterr()
+        stdout, _stderr = capfd.readouterr()
         assert stdout == msg + msg2
 
         m.noisy_function(msg, flush=False)
 
-    stdout, stderr = capfd.readouterr()
+    stdout, _stderr = capfd.readouterr()
     assert stdout == msg
 
 
@@ -218,7 +218,7 @@ def test_multi_captured(capfd):
         m.raw_output("b")
         m.captured_output("c")
         m.raw_output("d")
-    stdout, stderr = capfd.readouterr()
+    stdout, _stderr = capfd.readouterr()
     assert stdout == "bd"
     assert stream.getvalue() == "ac"
 
@@ -235,21 +235,21 @@ def test_redirect(capfd):
     stream = StringIO()
     with redirect_stdout(stream):
         m.raw_output(msg)
-    stdout, stderr = capfd.readouterr()
+    stdout, _stderr = capfd.readouterr()
     assert stdout == msg
     assert not stream.getvalue()
 
     stream = StringIO()
     with redirect_stdout(stream), m.ostream_redirect():
         m.raw_output(msg)
-    stdout, stderr = capfd.readouterr()
+    stdout, _stderr = capfd.readouterr()
     assert not stdout
     assert stream.getvalue() == msg
 
     stream = StringIO()
     with redirect_stdout(stream):
         m.raw_output(msg)
-    stdout, stderr = capfd.readouterr()
+    stdout, _stderr = capfd.readouterr()
     assert stdout == msg
     assert not stream.getvalue()
 

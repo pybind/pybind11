@@ -52,10 +52,10 @@ from collections.abc import Iterable, Iterator
 from functools import lru_cache
 from pathlib import Path
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Optional,
-    TypeVar,
     Union,
 )
 
@@ -71,7 +71,8 @@ except ImportError:
 import distutils.ccompiler
 import distutils.errors
 
-from typing_extensions import Self
+if TYPE_CHECKING:
+    from typing_extensions import Self
 
 WIN = sys.platform.startswith("win32") and "mingw" not in sysconfig.get_platform()
 MACOS = sys.platform.startswith("darwin")
@@ -339,8 +340,6 @@ def no_recompile(obj: str, src: str) -> bool:  # noqa: ARG001
     """
     return True
 
-
-S = TypeVar("S", bound="ParallelCompile")
 
 CCompilerMethod = Callable[
     [

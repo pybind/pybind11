@@ -181,8 +181,14 @@ isort.required-imports = ["from __future__ import annotations"]
   "EM",
   "N",
   "E721",
+  "BLE001", # Tests capture and re-report exceptions from workers and callbacks
+  "DTZ",    # test_chrono.py checks naive local-time round-tripping on purpose
+  "FLY002", # Joining a list keeps long signatures one-per-line
+  "RUF012", # ClassVar annotations are noise in test fixtures
+  "RUF063", # test_pytypes.py reads __annotations__ from __dict__ deliberately
 ]
 "tests/test_call_policies.py" = ["PLC1901"]
+"docs/benchmark.py" = ["DTZ"]
 
 [tool.repo-review]
 ignore = ["PP"]
