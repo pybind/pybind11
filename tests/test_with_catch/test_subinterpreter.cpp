@@ -262,6 +262,54 @@ TEST_CASE("Reused Subinterpreter thread state (multiple interpreters)") {
     unsafe_reset_internals_for_single_interpreter();
 }
 
+TEST_CASE("Create Subinterpreter without a thread state") {
+    // subinterpreter::create() documents that "the main interpreter and its GIL are not required
+    // to be held prior to calling this function".  Embedders routinely end their initialization
+    // with PyEval_SaveThread(), which leaves the calling thread with no PyThreadState at all, and
+    // worker threads that have never touched Python have none either.  So create() must not touch
+    // the current thread state before main_guard attaches one.
+
+    PyInterpreterState *main_interp = PyInterpreterState_Get();
+
+    {
+        py::gil_scoped_release nogil;
+        REQUIRE(py::detail::get_thread_state_unchecked() == nullptr);
+
+        // (a) on a thread that dropped its thread state
+        {
+            auto sub = py::subinterpreter::create();
+            REQUIRE(sub.id() >= 0);
+
+            {
+                py::subinterpreter_scoped_activate activate(sub);
+                REQUIRE(PyInterpreterState_Get() != main_interp);
+            }
+
+            REQUIRE(py::detail::get_thread_state_unchecked() == nullptr);
+        }
+
+        // (b) on a thread that never had one.
+        // REQUIRE throws on failure, so we can't use it within the thread: record what we see
+        // and check it on the main test thread after the join.
+        bool thread_started_without_tstate = false;
+        bool thread_result = false;
+        std::thread([&]() {
+            thread_started_without_tstate = (py::detail::get_thread_state_unchecked() == nullptr);
+
+            auto sub = py::subinterpreter::create();
+            py::subinterpreter_scoped_activate activate(sub);
+            thread_result = (PyInterpreterState_Get() != main_interp);
+        }).join();
+        REQUIRE(thread_started_without_tstate);
+        REQUIRE(thread_result);
+
+        REQUIRE(py::detail::get_thread_state_unchecked() == nullptr);
+    }
+
+    REQUIRE(PyInterpreterState_Get() == main_interp);
+    unsafe_reset_internals_for_single_interpreter();
+}
+
 TEST_CASE("GIL Subinterpreter") {
 
     PyInterpreterState *main_interp = PyInterpreterState_Get();
