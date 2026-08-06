@@ -39,11 +39,11 @@
 /// further ABI-incompatible changes may be made before the ABI is officially
 /// changed to the new version.
 #ifndef PYBIND11_INTERNALS_VERSION
-#    define PYBIND11_INTERNALS_VERSION 12
+#    define PYBIND11_INTERNALS_VERSION 13
 #endif
 
-#if PYBIND11_INTERNALS_VERSION < 12
-#    error "PYBIND11_INTERNALS_VERSION 12 is the minimum for all platforms for pybind11 v3.1.0"
+#if PYBIND11_INTERNALS_VERSION < 13
+#    error "PYBIND11_INTERNALS_VERSION 13 is the minimum for all platforms for pybind11 v3.1.0"
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
@@ -216,6 +216,9 @@ template <typename value_type>
 using type_map = std::unordered_map<std::type_index, value_type, type_hash, type_equal_to>;
 
 struct override_hash {
+    // With libstdc++, the hasher's noexcept determines whether unordered
+    // containers cache the hash in each node, changing the node layout, so
+    // adding/removing it requires a PYBIND11_INTERNALS_VERSION bump (#6090).
     size_t operator()(const std::pair<const PyObject *, const char *> &v) const noexcept {
         size_t value = std::hash<const void *>()(v.first);
         value ^= std::hash<const void *>()(v.second) + 0x9e3779b9 + (value << 6) + (value >> 2);
