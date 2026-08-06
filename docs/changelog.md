@@ -13,7 +13,7 @@ Changes will be added here periodically from the "Suggested changelog
 entry" block in pull request descriptions.
 
 
-## Version 3.1.0 (August 4, 2026)
+## Version 3.1.0 (August 6, 2026)
 
 New Features:
 
@@ -38,6 +38,11 @@ New Features:
   [#5797](https://github.com/pybind/pybind11/pull/5797)
 
 Bug fixes:
+
+- Fixed a crash in `py::subinterpreter::create()` when called without a current `PyThreadState`, which its documentation explicitly allows — for example from an
+  embedder that ended initialization with `PyEval_SaveThread()`, or from a worker thread that has never touched Python. `error_scope` is now constructed after a
+  thread state has been attached instead of before.
+  [#6127](https://github.com/pybind/pybind11/pull/6127)
 
 - Make `py::print` delegate to the current frame/interpreter built-ins `print` entry,
   fixing handling of `sys.stdout = None`, following the active runtime's stream, keyword,
