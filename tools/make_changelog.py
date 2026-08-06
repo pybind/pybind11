@@ -94,8 +94,7 @@ for issue in issues:
     if not msg:
         missing.append(issue)
         continue
-    if msg.startswith("* "):
-        msg = msg[2:]
+    msg = msg.removeprefix("* ")
     if not msg.startswith("- "):
         msg = "- " + msg
     if not msg.endswith("."):
