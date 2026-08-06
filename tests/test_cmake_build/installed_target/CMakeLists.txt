@@ -7,6 +7,8 @@ message(STATUS "Found pybind11 v${pybind11_VERSION}: ${pybind11_INCLUDE_DIRS}")
 
 add_library(test_installed_target MODULE ../main.cpp)
 
+# Verify that the installed interface promotes a consumer that initially requests C++14.
+set_target_properties(test_installed_target PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON)
 target_link_libraries(test_installed_target PRIVATE pybind11::module)
 set_target_properties(test_installed_target PROPERTIES OUTPUT_NAME test_cmake_build)
 

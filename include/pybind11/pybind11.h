@@ -1,5 +1,5 @@
 /*
-    pybind11/pybind11.h: Main header file of the C++11 python
+    pybind11/pybind11.h: Main header file of the C++17 python
     binding generator library
 
     Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>
@@ -42,12 +42,6 @@ PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
 
 #if defined(__GNUG__) && !defined(__clang__)
 #    include <cxxabi.h>
-#endif
-
-#if defined(__cpp_if_constexpr) && __cpp_if_constexpr >= 201606
-#    define PYBIND11_MAYBE_CONSTEXPR constexpr
-#else
-#    define PYBIND11_MAYBE_CONSTEXPR
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
@@ -274,10 +268,7 @@ public:
     using sig_type = decltype(PYBIND11_READABLE_FUNCTION_SIGNATURE_EXPR);
 
 private:
-    // We have to repeat PYBIND11_READABLE_FUNCTION_SIGNATURE_EXPR in decltype()
-    // because C++11 doesn't allow functions to return `auto`. (We don't
-    // know the type because it's some variant of detail::descr<N> with
-    // unknown N.)
+    // The type is some variant of detail::descr<N>, with an N dependent on the casters.
     static constexpr sig_type sig() { return PYBIND11_READABLE_FUNCTION_SIGNATURE_EXPR; }
 
 public:
@@ -291,19 +282,6 @@ public:
 #endif
 };
 #undef PYBIND11_READABLE_FUNCTION_SIGNATURE_EXPR
-
-// Prior to C++17, we don't have inline variables, so we have to
-// provide an out-of-line definition of the class member.
-#if !defined(PYBIND11_CPP17)
-template <typename cast_in, typename cast_out>
-constexpr typename ReadableFunctionSignature<cast_in, cast_out>::sig_type
-    ReadableFunctionSignature<cast_in, cast_out>::kSig;
-#    if !defined(_MSC_VER)
-template <typename cast_in, typename cast_out>
-constexpr typename ReadableFunctionSignature<cast_in, cast_out>::types_type
-    ReadableFunctionSignature<cast_in, cast_out>::kTypes;
-#    endif
-#endif
 
 PYBIND11_NAMESPACE_END(detail)
 
@@ -2436,7 +2414,7 @@ public:
         // so the reinterpret_cast shortcut in load_impl Case 2a is invalid.
         // Force the MI path (implicit_casts) for correct pointer adjustment.
         // Detection: static_cast<Derived*>(Base*) is ill-formed for virtual bases.
-        if PYBIND11_MAYBE_CONSTEXPR (!detail::is_static_downcastable<Base, type>::value) {
+        if constexpr (!detail::is_static_downcastable<Base, type>::value) {
             rec.multiple_inheritance = true;
         }
     }
@@ -3920,9 +3898,9 @@ function get_override(const T *this_ptr, const char *name) {
             auto o = override(__VA_ARGS__);                                                       \
             PYBIND11_WARNING_PUSH                                                                 \
             PYBIND11_WARNING_DISABLE_MSVC(4127)                                                   \
-            if PYBIND11_MAYBE_CONSTEXPR (                                                         \
-                pybind11::detail::cast_is_temporary_value_reference<ret_type>::value              \
-                && !pybind11::detail::is_same_ignoring_cvref<ret_type, PyObject *>::value) {      \
+            if constexpr (pybind11::detail::cast_is_temporary_value_reference<ret_type>::value    \
+                          && !pybind11::detail::is_same_ignoring_cvref<ret_type,                  \
+                                                                       PyObject *>::value) {      \
                 static pybind11::detail::override_caster_t<ret_type> caster;                      \
                 return pybind11::detail::cast_ref<ret_type>(std::move(o), caster);                \
             } else {                                                                              \

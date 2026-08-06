@@ -15,6 +15,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  CIBW_CONFIG_SETTINGS: "cmake.define.CMAKE_CXX_STANDARD=17"
+
 jobs:
   build-wasm-emscripten:
     name: Pyodide wheel
