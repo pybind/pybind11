@@ -27,6 +27,12 @@ PYBIND11_NAMESPACE_BEGIN(detail)
         setattr((PyObject *) obj, "__qualname__", nameobj)
 #endif
 
+PYBIND11_WARNING_PUSH
+// Several of these functions are forward-declared in other headers (internals.h,
+// type_caster_base.h, trampoline_self_life_support.h, cpp_conduit.h), which cannot
+// include this file; the declarations here are the canonical set.
+PYBIND11_WARNING_DISABLE_GCC("-Wredundant-decls")
+
 std::string get_fully_qualified_tp_name(PyTypeObject *type);
 
 PyTypeObject *type_incref(PyTypeObject *type);
@@ -160,6 +166,8 @@ void enable_buffer_protocol(PyHeapTypeObject *heap_type);
 /** Create a brand new Python type according to the `type_record` specification.
     Return value: New reference. */
 PyObject *make_new_python_type(const type_record &rec);
+
+PYBIND11_WARNING_POP
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
