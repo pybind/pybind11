@@ -1,5 +1,6 @@
 /*
-    pybind11/detail/exception_translation-inl.h: Out-of-line definitions for exception_translation.h
+    pybind11/detail/exception_translation-inl.h: Out-of-line definitions for
+   exception_translation.h
 
     Copyright (c) 2024 The Pybind Development Team.
 
@@ -19,7 +20,8 @@
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-PYBIND11_INLINE bool apply_exception_translators(std::forward_list<ExceptionTranslator> &translators) {
+PYBIND11_INLINE bool
+apply_exception_translators(std::forward_list<ExceptionTranslator> &translators) {
     auto last_exception = std::current_exception();
 
     for (auto &translator : translators) {
