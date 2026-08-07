@@ -84,6 +84,7 @@ detail_headers = {
     "include/pybind11/detail/argument_vector.h",
     "include/pybind11/detail/class-inl.h",
     "include/pybind11/detail/class.h",
+    "include/pybind11/detail/common-inl.h",
     "include/pybind11/detail/common.h",
     "include/pybind11/detail/cpp_conduit.h",
     "include/pybind11/detail/descr.h",
@@ -102,6 +103,7 @@ detail_headers = {
     "include/pybind11/detail/typeid.h",
     "include/pybind11/detail/using_smart_holder.h",
     "include/pybind11/detail/value_and_holder.h",
+    "include/pybind11/detail/exception_translation-inl.h",
     "include/pybind11/detail/exception_translation.h",
 }
 
@@ -132,6 +134,8 @@ pkgconfig_files = {
 
 sdist_src_files = {
     "src/class.cpp",
+    "src/common.cpp",
+    "src/exception_translation.cpp",
     "src/internals.cpp",
     "src/type_caster_base.cpp",
     "src/pybind11_combined.cpp",
