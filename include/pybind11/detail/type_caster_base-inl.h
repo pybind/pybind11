@@ -70,7 +70,7 @@ PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void loader_life_support::add_patient(han
 
 // Band-aid workaround to fix a subtle but serious bug in a minimalistic fashion. See PR #4762.
 PYBIND11_INLINE void all_type_info_add_base_most_derived_first(std::vector<type_info *> &bases,
-                                                      type_info *addl_base) {
+                                                               type_info *addl_base) {
     for (auto it = bases.begin(); it != bases.end(); it++) {
         type_info *existing_base = *it;
         if (PyType_IsSubtype(addl_base->type, existing_base->type) != 0) {
@@ -81,7 +81,8 @@ PYBIND11_INLINE void all_type_info_add_base_most_derived_first(std::vector<type_
     bases.push_back(addl_base);
 }
 
-PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void all_type_info_populate(PyTypeObject *t, std::vector<type_info *> &bases) {
+PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void
+all_type_info_populate(PyTypeObject *t, std::vector<type_info *> &bases) {
     assert(bases.empty());
     std::vector<PyTypeObject *> check;
     for (handle parent : reinterpret_borrow<tuple>(t->tp_bases)) {
@@ -209,7 +210,7 @@ PYBIND11_INLINE detail::type_info *get_global_type_info(const std::type_info &tp
 }
 
 PYBIND11_NOINLINE_ATTR PYBIND11_INLINE detail::type_info *get_type_info(const std::type_info &tp,
-                                                   bool throw_if_missing) {
+                                                                        bool throw_if_missing) {
     PYBIND11_LOCK_INTERNALS(get_internals());
     if (auto *ltype = get_local_type_info_lock_held(tp)) {
         return ltype;
@@ -227,7 +228,8 @@ PYBIND11_NOINLINE_ATTR PYBIND11_INLINE detail::type_info *get_type_info(const st
     return nullptr;
 }
 
-PYBIND11_NOINLINE_ATTR PYBIND11_INLINE handle get_type_handle(const std::type_info &tp, bool throw_if_missing) {
+PYBIND11_NOINLINE_ATTR PYBIND11_INLINE handle get_type_handle(const std::type_info &tp,
+                                                              bool throw_if_missing) {
     detail::type_info *type_info = get_type_info(tp, throw_if_missing);
     return handle(type_info ? (reinterpret_cast<PyObject *>(type_info->type)) : nullptr);
 }
@@ -275,8 +277,8 @@ PYBIND11_INLINE bool try_incref(PyObject *obj) {
 #endif
 }
 
-PYBIND11_NOINLINE_ATTR PYBIND11_INLINE handle find_registered_python_instance(void *src,
-                                                         const detail::type_info *tinfo) {
+PYBIND11_NOINLINE_ATTR PYBIND11_INLINE handle
+find_registered_python_instance(void *src, const detail::type_info *tinfo) {
     return with_instance_map(src, [&](instance_map &instances) {
         auto it_instances = instances.equal_range(src);
         for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
@@ -379,7 +381,8 @@ PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void instance::deallocate_layout() {
     }
 }
 
-PYBIND11_NOINLINE_ATTR PYBIND11_INLINE bool isinstance_generic(handle obj, const std::type_info &tp) {
+PYBIND11_NOINLINE_ATTR PYBIND11_INLINE bool isinstance_generic(handle obj,
+                                                               const std::type_info &tp) {
     handle type = detail::get_type_handle(tp, false);
     if (!type) {
         return false;
@@ -387,7 +390,8 @@ PYBIND11_NOINLINE_ATTR PYBIND11_INLINE bool isinstance_generic(handle obj, const
     return isinstance(obj, type);
 }
 
-PYBIND11_NOINLINE_ATTR PYBIND11_INLINE handle get_object_handle(const void *ptr, const detail::type_info *type) {
+PYBIND11_NOINLINE_ATTR PYBIND11_INLINE handle get_object_handle(const void *ptr,
+                                                                const detail::type_info *type) {
     return with_instance_map(ptr, [&](instance_map &instances) {
         auto range = instances.equal_range(ptr);
         for (auto it = range.first; it != range.second; ++it) {
@@ -402,9 +406,9 @@ PYBIND11_NOINLINE_ATTR PYBIND11_INLINE handle get_object_handle(const void *ptr,
 }
 
 PYBIND11_INLINE object cpp_conduit_method(handle self,
-                                 const bytes &pybind11_platform_abi_id,
-                                 const capsule &cpp_type_info_capsule,
-                                 const bytes &pointer_kind) {
+                                          const bytes &pybind11_platform_abi_id,
+                                          const capsule &cpp_type_info_capsule,
+                                          const bytes &pointer_kind) {
 #ifdef PYBIND11_HAS_STRING_VIEW
     using cpp_str = std::string_view;
 #else
@@ -431,7 +435,8 @@ PYBIND11_INLINE std::string quote_cpp_type_name(const std::string &cpp_type_name
     return cpp_type_name; // No-op for now. See PR #4888
 }
 
-PYBIND11_NOINLINE_ATTR PYBIND11_INLINE std::string type_info_description(const std::type_info &ti) {
+PYBIND11_NOINLINE_ATTR PYBIND11_INLINE std::string
+type_info_description(const std::type_info &ti) {
     if (auto *type_data = get_type_info(ti)) {
         handle th(reinterpret_cast<PyObject *>(type_data->type));
         return th.attr("__module__").cast<std::string>() + '.'
