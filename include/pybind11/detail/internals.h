@@ -527,7 +527,7 @@ bool handle_nested_exception(const T &exc, const std::exception_ptr &p) {
 
 bool raise_err(PyObject *exc_type, const char *msg);
 
-void translate_exception(std::exception_ptr p);
+// translate_exception is forward-declared near the top of this header
 
 #if !defined(__GLIBCXX__)
 void translate_local_exception(std::exception_ptr p);
