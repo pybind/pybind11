@@ -46,7 +46,63 @@
 #    error "PYBIND11_INTERNALS_VERSION 12 is the minimum for all platforms for pybind11 v3.1.0"
 #endif
 
+#if defined(PYBIND11_PRECOMPILED)
+// PYBIND11_PRECOMPILED_CONFIG_CHECK names a do-nothing function defined in the precompiled
+// pybind11 library. The identifier encodes every configuration macro that must match between
+// the library and the modules linking it. PYBIND11_MODULE calls it, so a mismatch (or a
+// missing library) surfaces as one readable undefined symbol at link time instead of many
+// unrelated ones at run time. If you add a configuration macro that changes the code in the
+// -inl.h files, encode it here and add it to the list in docs/compiling.rst.
+#    if defined(Py_GIL_DISABLED)
+#        define PYBIND11_PRECOMPILED_CFG_GD 1
+#    else
+#        define PYBIND11_PRECOMPILED_CFG_GD 0
+#    endif
+#    if defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
+#        define PYBIND11_PRECOMPILED_CFG_SG 1
+#    else
+#        define PYBIND11_PRECOMPILED_CFG_SG 0
+#    endif
+#    if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
+#        define PYBIND11_PRECOMPILED_CFG_DE 1
+#    else
+#        define PYBIND11_PRECOMPILED_CFG_DE 0
+#    endif
+#    if defined(PYBIND11_HAS_SUBINTERPRETER_SUPPORT)
+#        define PYBIND11_PRECOMPILED_CFG_SI 1
+#    else
+#        define PYBIND11_PRECOMPILED_CFG_SI 0
+#    endif
+#    if defined(PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET)
+#        define PYBIND11_PRECOMPILED_CFG_TD 1
+#    else
+#        define PYBIND11_PRECOMPILED_CFG_TD 0
+#    endif
+// PYBIND11_CONCAT does not macro-expand its arguments (## suppresses expansion).
+#    define PYBIND11_PRECOMPILED_CONFIG_NAME_(v, gd, sg, de, si, td)                              \
+        pybind11_precompiled_config_v##v##_gd##gd##_sg##sg##_de##de##_si##si##_td##td
+#    define PYBIND11_PRECOMPILED_CONFIG_NAME(v, gd, sg, de, si, td)                               \
+        PYBIND11_PRECOMPILED_CONFIG_NAME_(v, gd, sg, de, si, td)
+#    define PYBIND11_PRECOMPILED_CONFIG_CHECK                                                     \
+        PYBIND11_PRECOMPILED_CONFIG_NAME(PYBIND11_INTERNALS_VERSION,                              \
+                                         PYBIND11_PRECOMPILED_CFG_GD,                             \
+                                         PYBIND11_PRECOMPILED_CFG_SG,                             \
+                                         PYBIND11_PRECOMPILED_CFG_DE,                             \
+                                         PYBIND11_PRECOMPILED_CFG_SI,                             \
+                                         PYBIND11_PRECOMPILED_CFG_TD)
+#    define PYBIND11_PRECOMPILED_CONFIG_GUARD                                                     \
+        ::pybind11::detail::PYBIND11_PRECOMPILED_CONFIG_CHECK();
+#else
+#    define PYBIND11_PRECOMPILED_CONFIG_GUARD
+#endif
+
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+
+#if defined(PYBIND11_PRECOMPILED)
+PYBIND11_NAMESPACE_BEGIN(detail)
+void PYBIND11_PRECOMPILED_CONFIG_CHECK();
+PYBIND11_NAMESPACE_END(detail)
+#endif
 
 using ExceptionTranslator = void (*)(std::exception_ptr);
 
@@ -1084,3 +1140,7 @@ T &get_or_create_shared_data(const std::string &name) {
 }
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
+
+#ifndef PYBIND11_PRECOMPILED
+#    include "internals-inl.h" // IWYU pragma: export
+#endif
