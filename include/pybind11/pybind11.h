@@ -569,13 +569,6 @@ protected:
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-PYBIND11_NAMESPACE_BEGIN(function_record_PyTypeObject_methods)
-
-// This implementation needs the definition of `class cpp_function`.
-void tp_dealloc_impl(PyObject *self);
-
-PYBIND11_NAMESPACE_END(function_record_PyTypeObject_methods)
-
 template <>
 struct handle_type_name<cpp_function> {
     static constexpr auto name = const_name("collections.abc.Callable");
@@ -2147,13 +2140,6 @@ private:
 };
 
 PYBIND11_NAMESPACE_BEGIN(detail)
-
-void keep_alive_impl(handle nurse, handle patient);
-
-void keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret);
-
-std::pair<decltype(internals::registered_types_py)::iterator, bool>
-all_type_info_get_cache(PyTypeObject *type);
 
 /* There are a large number of apparently unused template arguments because
  * each combination requires a separate py::class_ registration.
