@@ -8,12 +8,13 @@ if sys.version_info < (3, 9):  # noqa: UP036
 
 
 from ._version import __version__, version_info
-from .commands import get_cmake_dir, get_include, get_pkgconfig_dir
+from .commands import get_cmake_dir, get_include, get_pkgconfig_dir, get_source_dir
 
 __all__ = (
     "__version__",
     "get_cmake_dir",
     "get_include",
     "get_pkgconfig_dir",
+    "get_source_dir",
     "version_info",
 )
