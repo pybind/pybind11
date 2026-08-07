@@ -179,9 +179,9 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 #define PYBIND11_DUMMY_MODULE_NAME "pybind11_builtins"
 
 // Forward declarations
-inline PyTypeObject *make_static_property_type();
-inline PyTypeObject *make_default_metaclass();
-inline PyObject *make_object_base_type(PyTypeObject *metaclass);
+PyTypeObject *make_static_property_type();
+PyTypeObject *make_default_metaclass();
+PyObject *make_object_base_type(PyTypeObject *metaclass);
 inline void translate_exception(std::exception_ptr p);
 
 inline PyThreadState *get_thread_state_unchecked() {

@@ -190,6 +190,7 @@ endif()
 
 set(PYBIND11_HEADERS
     include/pybind11/detail/argument_vector.h
+    include/pybind11/detail/class-inl.h
     include/pybind11/detail/class.h
     include/pybind11/detail/common.h
     include/pybind11/detail/cpp_conduit.h
