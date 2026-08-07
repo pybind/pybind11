@@ -255,8 +255,10 @@ endif()
 # WITHOUT_SOABI and WITH_SOABI will disable the custom extension handling used by pybind11.
 # WITH_SOABI is passed on to python_add_library.
 function(pybind11_add_module target_name)
-  cmake_parse_arguments(PARSE_ARGV 1 ARG
-                        "STATIC;SHARED;MODULE;THIN_LTO;OPT_SIZE;NO_EXTRAS;WITHOUT_SOABI" "" "")
+  cmake_parse_arguments(
+    PARSE_ARGV 1 ARG
+    "STATIC;SHARED;MODULE;THIN_LTO;OPT_SIZE;NO_EXTRAS;WITHOUT_SOABI;PRECOMPILE;NO_PRECOMPILE" ""
+    "")
 
   if(ARG_STATIC)
     set(lib_type STATIC)
@@ -280,6 +282,11 @@ function(pybind11_add_module target_name)
     target_link_libraries(${target_name} PRIVATE pybind11::module)
   else()
     target_link_libraries(${target_name} PRIVATE pybind11::embed)
+  endif()
+
+  if((ARG_PRECOMPILE OR PYBIND11_PRECOMPILE) AND NOT ARG_NO_PRECOMPILE)
+    pybind11_precompile()
+    target_link_libraries(${target_name} PRIVATE pybind11::precompiled)
   endif()
 
   # -fvisibility=hidden is required to allow multiple modules compiled against

@@ -71,6 +71,28 @@ jobs:
       python-version: ${{ matrix.python-version }}
       cmake-args: ${{ matrix.cmake-args }}
 
+  # Build the test suite against the precompiled pybind11 static library; a
+  # definition missing from the -inl.h split shows up here as a link error.
+  precompile:
+    if: github.event.pull_request.draft == false
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runs-on: ubuntu-latest
+            python-version: '3.13'
+          - runs-on: macos-latest
+            python-version: '3.13'
+          - runs-on: windows-2022
+            python-version: '3.13'
+
+    name: ⚡
+    uses: ./.github/workflows/reusable-standard.yml
+    with:
+      runs-on: ${{ matrix.runs-on }}
+      python-version: ${{ matrix.python-version }}
+      cmake-args: -DPYBIND11_TEST_PRECOMPILE=ON
+
   standard-large:
     if: github.event.pull_request.draft == false
     strategy:
