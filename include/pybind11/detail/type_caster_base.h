@@ -219,7 +219,11 @@ public:
 // (get_value_and_holder, allocate_layout, and deallocate_layout are declared inside
 // struct instance in detail/common.h; definitions are in type_caster_base-inl.h.)
 
+PYBIND11_WARNING_PUSH
+PYBIND11_WARNING_DISABLE_GCC("-Wredundant-decls")
+// also forward-declared in pytypes.h
 bool isinstance_generic(handle obj, const std::type_info &tp);
+PYBIND11_WARNING_POP
 
 handle get_object_handle(const void *ptr, const detail::type_info *type);
 
