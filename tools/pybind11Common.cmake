@@ -466,3 +466,75 @@ function(pybind11_strip target_name)
       COMMAND ${CMAKE_STRIP} ${x_opt} $<TARGET_FILE:${target_name}>)
   endif()
 endfunction()
+
+# -fvisibility=hidden is required to allow multiple modules compiled against
+# different pybind versions to work properly, and for some features (e.g.
+# py::module_local).  We force it on everything inside the `pybind11`
+# namespace; also turning it on for a pybind module compilation here avoids
+# potential warnings or issues from having mixed hidden/non-hidden types.
+function(_pybind11_default_hidden_visibility target_name)
+  if(NOT DEFINED CMAKE_CXX_VISIBILITY_PRESET)
+    set_target_properties(${target_name} PROPERTIES CXX_VISIBILITY_PRESET "hidden")
+  endif()
+
+  if(NOT DEFINED CMAKE_CUDA_VISIBILITY_PRESET)
+    set_target_properties(${target_name} PROPERTIES CUDA_VISIBILITY_PRESET "hidden")
+  endif()
+endfunction()
+
+# --------------------- pybind11_precompile -------------------------
+
+# Create the pybind11::precompiled static library (once per build tree). It is
+# built from the consumer's project with the consumer's flags; each extension
+# module links its own copy, preserving pybind11's per-module state. Modules
+# using it must compile with PYBIND11_PRECOMPILED, which the PUBLIC compile
+# definition below provides automatically.
+function(pybind11_precompile)
+  if(TARGET pybind11_precompiled)
+    return()
+  endif()
+
+  if(PYBIND11_NOPYTHON)
+    message(FATAL_ERROR "pybind11_precompile requires Python headers; it cannot be used "
+                        "with PYBIND11_NOPYTHON")
+  endif()
+
+  if(NOT pybind11_SRC_DIR OR NOT EXISTS "${pybind11_SRC_DIR}")
+    message(FATAL_ERROR "pybind11 library sources not found (pybind11_SRC_DIR: "
+                        "'${pybind11_SRC_DIR}')")
+  endif()
+
+  # CONFIGURE_DEPENDS: an in-place pybind11 upgrade can add src files; a stale
+  # list would fail with confusing undefined symbols.
+  file(GLOB _pybind11_precompile_sources CONFIGURE_DEPENDS "${pybind11_SRC_DIR}/*.cpp")
+  list(FILTER _pybind11_precompile_sources EXCLUDE REGEX "pybind11_combined\\.cpp$")
+
+  add_library(pybind11_precompiled STATIC EXCLUDE_FROM_ALL ${_pybind11_precompile_sources})
+  add_library(pybind11::precompiled ALIAS pybind11_precompiled)
+  target_compile_definitions(pybind11_precompiled PUBLIC PYBIND11_PRECOMPILED)
+  target_link_libraries(
+    pybind11_precompiled
+    PUBLIC pybind11::headers
+    PRIVATE pybind11::pybind11)
+  set_target_properties(pybind11_precompiled PROPERTIES POSITION_INDEPENDENT_CODE ON)
+  _pybind11_default_hidden_visibility(pybind11_precompiled)
+  if(NOT DEFINED CMAKE_VISIBILITY_INLINES_HIDDEN)
+    set_target_properties(pybind11_precompiled PROPERTIES VISIBILITY_INLINES_HIDDEN ON)
+  endif()
+  if(MSVC)
+    target_link_libraries(pybind11_precompiled PRIVATE pybind11::windows_extras)
+  endif()
+
+  # The first caller creates the library, so its directory scope supplies the
+  # library's flags and C++ standard; record it to make that visible.
+  message(STATUS "pybind11::precompiled created in ${CMAKE_CURRENT_SOURCE_DIR}")
+endfunction()
+
+# Link pybind11::precompiled when the PRECOMPILE keyword or the global
+# PYBIND11_PRECOMPILE variable requests it, unless NO_PRECOMPILE opts out.
+function(_pybind11_maybe_precompile target_name precompile no_precompile)
+  if((precompile OR PYBIND11_PRECOMPILE) AND NOT no_precompile)
+    pybind11_precompile()
+    target_link_libraries(${target_name} PRIVATE pybind11::precompiled)
+  endif()
+endfunction()

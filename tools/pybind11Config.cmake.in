@@ -211,6 +211,9 @@ Using ``find_package`` with version info is not recommended except for release v
 # This will be relative unless explicitly set as absolute
 set(pybind11_INCLUDE_DIR "@pybind11_INCLUDEDIR@")
 
+# Location of the library sources for the opt-in precompiled mode
+set(pybind11_SRC_DIR "@pybind11_SRCDIR@")
+
 set(pybind11_LIBRARY "")
 set(pybind11_DEFINITIONS USING_pybind11)
 set(pybind11_VERSION_TYPE "@pybind11_VERSION_TYPE@")
