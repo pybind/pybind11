@@ -11,6 +11,7 @@
 #    error "pybind11 library sources must be compiled with PYBIND11_PRECOMPILED defined."
 #endif
 
+#include <pybind11/detail/class-inl.h>
 #include <pybind11/detail/internals-inl.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/pytypes-inl.h>
