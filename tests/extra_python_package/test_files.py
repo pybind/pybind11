@@ -61,6 +61,7 @@ main_headers = {
     "include/pybind11/numpy.h",
     "include/pybind11/operators.h",
     "include/pybind11/options.h",
+    "include/pybind11/pybind11-inl.h",
     "include/pybind11/pybind11.h",
     "include/pybind11/pytypes-inl.h",
     "include/pybind11/pytypes.h",
@@ -138,6 +139,7 @@ sdist_src_files = {
     "src/exception_translation.cpp",
     "src/internals.cpp",
     "src/type_caster_base.cpp",
+    "src/pybind11.cpp",
     "src/pybind11_combined.cpp",
     "src/pytypes.cpp",
 }

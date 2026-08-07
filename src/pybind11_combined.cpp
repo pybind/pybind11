@@ -4,17 +4,17 @@
 
 // Single-TU build of the pybind11 library sources, for build systems that prefer adding
 // one file over one file per header (e.g. setuptools). Compile this file (and every TU
-// that includes pybind11) with PYBIND11_PRECOMPILED defined. Keep in sync with the list
-// of -inl.h files; the CMake path compiles the individual src/*.cpp files instead.
+// that includes pybind11) with PYBIND11_PRECOMPILED defined. One include per sibling
+// src/*.cpp file; the CMake path compiles those files individually instead.
 
 #if !defined(PYBIND11_PRECOMPILED)
 #    error "pybind11 library sources must be compiled with PYBIND11_PRECOMPILED defined."
 #endif
 
-#include <pybind11/detail/class-inl.h>
-#include <pybind11/detail/common-inl.h>
-#include <pybind11/detail/exception_translation-inl.h>
-#include <pybind11/detail/internals-inl.h>
-#include <pybind11/detail/type_caster_base-inl.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/pytypes-inl.h>
+#include "class.cpp"
+#include "common.cpp"
+#include "exception_translation.cpp"
+#include "internals.cpp"
+#include "pybind11.cpp"
+#include "pytypes.cpp"
+#include "type_caster_base.cpp"
