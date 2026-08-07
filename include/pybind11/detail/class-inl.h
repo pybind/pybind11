@@ -37,11 +37,13 @@ PYBIND11_INLINE PyTypeObject *type_incref(PyTypeObject *type) {
 }
 
 #if !defined(PYPY_VERSION)
-extern "C" PYBIND11_INLINE PyObject *pybind11_static_get(PyObject *self, PyObject * /*ob*/, PyObject *cls) {
+extern "C" PYBIND11_INLINE PyObject *
+pybind11_static_get(PyObject *self, PyObject * /*ob*/, PyObject *cls) {
     return PyProperty_Type.tp_descr_get(self, cls, cls);
 }
 
-extern "C" PYBIND11_INLINE int pybind11_static_set(PyObject *self, PyObject *obj, PyObject *value) {
+extern "C" PYBIND11_INLINE int
+pybind11_static_set(PyObject *self, PyObject *obj, PyObject *value) {
     PyObject *cls = PyType_Check(obj) ? obj : (PyObject *) Py_TYPE(obj);
     return PyProperty_Type.tp_descr_set(self, cls, value);
 }
@@ -109,7 +111,8 @@ class pybind11_static_property(property):
 }
 
 #endif // PYPY
-extern "C" PYBIND11_INLINE int pybind11_meta_setattro(PyObject *obj, PyObject *name, PyObject *value) {
+extern "C" PYBIND11_INLINE int
+pybind11_meta_setattro(PyObject *obj, PyObject *name, PyObject *value) {
     // Use `_PyType_Lookup()` instead of `PyObject_GetAttr()` in order to get the raw
     // descriptor (`property`) instead of calling `tp_descr_get` (`property.__get__()`).
     PyObject *descr = _PyType_Lookup((PyTypeObject *) obj, name);
@@ -149,7 +152,8 @@ extern "C" PYBIND11_INLINE PyObject *pybind11_meta_getattro(PyObject *obj, PyObj
     return PyType_Type.tp_getattro(obj, name);
 }
 
-extern "C" PYBIND11_INLINE PyObject *pybind11_meta_call(PyObject *type, PyObject *args, PyObject *kwargs) {
+extern "C" PYBIND11_INLINE PyObject *
+pybind11_meta_call(PyObject *type, PyObject *args, PyObject *kwargs) {
 
     // use the default metaclass call to create/initialize the object
     PyObject *self = PyType_Type.tp_call(type, args, kwargs);
@@ -261,9 +265,9 @@ PYBIND11_INLINE PyTypeObject *make_default_metaclass() {
 }
 
 PYBIND11_INLINE void traverse_offset_bases(void *valueptr,
-                                  const detail::type_info *tinfo,
-                                  instance *self,
-                                  bool (*f)(void * /*parentptr*/, instance * /*self*/)) {
+                                           const detail::type_info *tinfo,
+                                           instance *self,
+                                           bool (*f)(void * /*parentptr*/, instance * /*self*/)) {
     for (handle h : reinterpret_borrow<tuple>(tinfo->type->tp_bases)) {
         if (auto *parent_tinfo = get_type_info(reinterpret_cast<PyTypeObject *>(h.ptr()))) {
             for (auto &c : parent_tinfo->implicit_casts) {
@@ -358,7 +362,8 @@ PYBIND11_INLINE PyObject *make_new_instance(PyTypeObject *type) {
     return self;
 }
 
-extern "C" PYBIND11_INLINE PyObject *pybind11_object_new(PyTypeObject *type, PyObject *, PyObject *) {
+extern "C" PYBIND11_INLINE PyObject *
+pybind11_object_new(PyTypeObject *type, PyObject *, PyObject *) {
     return make_new_instance(type);
 }
 
