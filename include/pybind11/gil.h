@@ -9,9 +9,12 @@
 
 #pragma once
 
+// common.h must come first: on PyPy/GraalPy it defines PYBIND11_SIMPLE_GIL_MANAGEMENT,
+// which selects the branch below.
+#include "detail/common.h"
+
 #if defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
 
-#    include "detail/common.h"
 #    include "gil_simple.h"
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
@@ -23,7 +26,6 @@ PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 
 #else
 
-#    include "detail/common.h"
 #    include "detail/internals.h"
 
 #    include <cassert>
