@@ -101,7 +101,11 @@ public:
         // However, in GraalPy (as of v25.0 or older), TSS is implemented by Java and this call
         // requires a living Python interpreter.
 #ifdef GRAALVM_PYTHON
+#    if PY_VERSION_HEX >= 0x030D0000
+        if (Py_IsInitialized() == 0 || Py_IsFinalizing() != 0) {
+#    else
         if (Py_IsInitialized() == 0 || _Py_IsFinalizing() != 0) {
+#    endif
             return;
         }
 #endif
