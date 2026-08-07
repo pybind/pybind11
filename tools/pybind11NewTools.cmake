@@ -461,6 +461,12 @@ function(pybind11_add_module target_name)
       endif()
     endif()
     _pybind11_stable_abi_setup(${target_name})
+  elseif(lib_type STREQUAL "SHARED")
+    # Bypass python_add_library, which links SHARED libraries against libpython.
+    # An extension module must not link libpython on macOS; with a statically
+    # linked interpreter (e.g. python-build-standalone) that loads a second
+    # Python runtime and aborts on import. Matches classic pybind11Tools.cmake.
+    add_library(${target_name} SHARED ${ARG_UNPARSED_ARGUMENTS})
   elseif("${_Python}" STREQUAL "Python")
     python_add_library(${target_name} ${lib_type} ${use_sabi} ${ARG_UNPARSED_ARGUMENTS})
   elseif("${_Python}" STREQUAL "Python3")
@@ -480,8 +486,10 @@ function(pybind11_add_module target_name)
     endif()
   elseif(stable_abi)
     # A SHARED helper library that stable-ABI modules link: same ABI, no embedding.
-  else()
+  elseif(lib_type STREQUAL "STATIC")
     target_link_libraries(${target_name} PRIVATE pybind11::embed)
+  else()
+    target_link_libraries(${target_name} PRIVATE pybind11::module)
   endif()
 
   _pybind11_maybe_precompile(${target_name} "${ARG_PRECOMPILE}" "${ARG_NO_PRECOMPILE}"
