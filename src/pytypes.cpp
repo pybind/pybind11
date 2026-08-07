@@ -9,5 +9,4 @@
 // pybind11.h first: the -inl.h definitions instantiate templates (e.g. handle::cast<T>)
 // whose definitions live in other headers.
 #include <pybind11/pybind11.h>
-
 #include <pybind11/pytypes-inl.h>
