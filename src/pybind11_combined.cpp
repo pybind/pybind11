@@ -12,6 +12,8 @@
 #endif
 
 #include <pybind11/detail/class-inl.h>
+#include <pybind11/detail/common-inl.h>
+#include <pybind11/detail/exception_translation-inl.h>
 #include <pybind11/detail/internals-inl.h>
 #include <pybind11/detail/type_caster_base-inl.h>
 #include <pybind11/pybind11.h>

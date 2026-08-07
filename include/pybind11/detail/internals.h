@@ -182,7 +182,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 PyTypeObject *make_static_property_type();
 PyTypeObject *make_default_metaclass();
 PyObject *make_object_base_type(PyTypeObject *metaclass);
-inline void translate_exception(std::exception_ptr p);
+void translate_exception(std::exception_ptr p);
 
 inline PyThreadState *get_thread_state_unchecked() {
 #if defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
@@ -199,22 +199,7 @@ inline PyInterpreterState *get_interpreter_state_unchecked() {
     return tstate ? tstate->interp : nullptr;
 }
 
-inline object get_python_state_dict() {
-    object state_dict;
-#if defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
-    state_dict = reinterpret_borrow<object>(PyEval_GetBuiltins());
-#else
-    auto *istate = get_interpreter_state_unchecked();
-    if (istate) {
-        state_dict = reinterpret_borrow<object>(PyInterpreterState_GetDict(istate));
-    }
-#endif
-    if (!state_dict) {
-        raise_from(PyExc_SystemError, "pybind11::detail::get_python_state_dict() FAILED");
-        throw error_already_set();
-    }
-    return state_dict;
-}
+object get_python_state_dict();
 
 // Python loads modules by default with dlopen with the RTLD_LOCAL flag; under libc++ and possibly
 // other STLs, this means `typeid(A)` from one module won't equal `typeid(A)` from another module
@@ -322,19 +307,7 @@ struct instance_map_shard {
 static_assert(sizeof(instance_map_shard) % 64 == 0,
               "instance_map_shard size is not a multiple of 64 bytes");
 
-inline uint64_t round_up_to_next_pow2(uint64_t x) {
-    // Round-up to the next power of two.
-    // See https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
-    x--;
-    x |= (x >> 1);
-    x |= (x >> 2);
-    x |= (x >> 4);
-    x |= (x >> 8);
-    x |= (x >> 16);
-    x |= (x >> 32);
-    x++;
-    return x;
-}
+uint64_t round_up_to_next_pow2(uint64_t x);
 #endif
 
 class loader_life_support;
@@ -513,10 +486,7 @@ struct native_enum_record {
 /// We use this to figure out if there are or have been multiple subinterpreters active at any
 /// point. This must never go from true to false while any interpreter may be running in any
 /// thread!
-inline std::atomic_bool &has_seen_non_main_interpreter() {
-    static std::atomic_bool multi(false);
-    return multi;
-}
+std::atomic_bool &has_seen_non_main_interpreter();
 
 template <class T,
           enable_if_t<std::is_same<std::nested_exception, remove_cvref_t<T>>::value, int> = 0>
@@ -538,88 +508,12 @@ bool handle_nested_exception(const T &exc, const std::exception_ptr &p) {
     return false;
 }
 
-inline bool raise_err(PyObject *exc_type, const char *msg) {
-    if (PyErr_Occurred()) {
-        raise_from(exc_type, msg);
-        return true;
-    }
-    set_error(exc_type, msg);
-    return false;
-}
+bool raise_err(PyObject *exc_type, const char *msg);
 
-inline void translate_exception(std::exception_ptr p) {
-    if (!p) {
-        return;
-    }
-    try {
-        std::rethrow_exception(p);
-    } catch (error_already_set &e) {
-        handle_nested_exception(e, p);
-        e.restore();
-        return;
-    } catch (const builtin_exception &e) {
-        // Could not use template since it's an abstract class.
-        if (const auto *nep = dynamic_cast<const std::nested_exception *>(std::addressof(e))) {
-            handle_nested_exception(*nep, p);
-        }
-        e.set_error();
-        return;
-    } catch (const std::bad_alloc &e) {
-        handle_nested_exception(e, p);
-        raise_err(PyExc_MemoryError, e.what());
-        return;
-    } catch (const std::domain_error &e) {
-        handle_nested_exception(e, p);
-        raise_err(PyExc_ValueError, e.what());
-        return;
-    } catch (const std::invalid_argument &e) {
-        handle_nested_exception(e, p);
-        raise_err(PyExc_ValueError, e.what());
-        return;
-    } catch (const std::length_error &e) {
-        handle_nested_exception(e, p);
-        raise_err(PyExc_ValueError, e.what());
-        return;
-    } catch (const std::out_of_range &e) {
-        handle_nested_exception(e, p);
-        raise_err(PyExc_IndexError, e.what());
-        return;
-    } catch (const std::range_error &e) {
-        handle_nested_exception(e, p);
-        raise_err(PyExc_ValueError, e.what());
-        return;
-    } catch (const std::overflow_error &e) {
-        handle_nested_exception(e, p);
-        raise_err(PyExc_OverflowError, e.what());
-        return;
-    } catch (const std::exception &e) {
-        handle_nested_exception(e, p);
-        raise_err(PyExc_RuntimeError, e.what());
-        return;
-    } catch (const std::nested_exception &e) {
-        handle_nested_exception(e, p);
-        raise_err(PyExc_RuntimeError, "Caught an unknown nested exception!");
-        return;
-    } catch (...) {
-        raise_err(PyExc_RuntimeError, "Caught an unknown exception!");
-        return;
-    }
-}
+void translate_exception(std::exception_ptr p);
 
 #if !defined(__GLIBCXX__)
-inline void translate_local_exception(std::exception_ptr p) {
-    try {
-        if (p) {
-            std::rethrow_exception(p);
-        }
-    } catch (error_already_set &e) {
-        e.restore();
-        return;
-    } catch (const builtin_exception &e) {
-        e.set_error();
-        return;
-    }
-}
+void translate_local_exception(std::exception_ptr p);
 #endif
 
 // Sentinel value for the `dtor` parameter of `atomic_get_or_create_in_state_dict`.
@@ -880,109 +774,34 @@ private:
 // libc++ with CPython doesn't require this (types are explicitly exported)
 // libc++ with PyPy still need it, awaiting further investigation
 #if !defined(__GLIBCXX__)
-inline void check_internals_local_exception_translator(internals *internals_ptr) {
-    if (internals_ptr) {
-        for (auto et : internals_ptr->registered_exception_translators) {
-            if (et == &translate_local_exception) {
-                return;
-            }
-        }
-        internals_ptr->registered_exception_translators.push_front(&translate_local_exception);
-    }
-}
+void check_internals_local_exception_translator(internals *internals_ptr);
 #endif
 
-inline internals_pp_manager<internals> &get_internals_pp_manager() {
-#if defined(__GLIBCXX__)
-#    define ON_FETCH_FN nullptr
-#else
-#    define ON_FETCH_FN &check_internals_local_exception_translator
-#endif
-    return internals_pp_manager<internals>::get_instance(PYBIND11_INTERNALS_ID, ON_FETCH_FN);
-#undef ON_FETCH_FN
-}
+internals_pp_manager<internals> &get_internals_pp_manager();
 
 /// Return a reference to the current `internals` data
-PYBIND11_NOINLINE internals &get_internals() {
-    auto &ppmgr = get_internals_pp_manager();
-    auto *pp = ppmgr.get_pp();
-    if (!pp) {
-        pybind11_fail("get_internals: get_pp() returned nullptr");
-    }
-    auto &internals_ptr = *pp;
-    if (!internals_ptr) {
-        // Slow path, something needs fetched from the state dict or created
-        gil_scoped_acquire_simple gil;
-        error_scope err_scope;
-
-        ppmgr.create_pp_content_once(&internals_ptr);
-
-        if (!internals_ptr) {
-            pybind11_fail("get_internals: create_pp_content_once() produced nullptr");
-        }
-        if (!internals_ptr->instance_base) {
-            // This calls get_internals, so cannot be called from within the internals constructor
-            // called above because internals_ptr must be set before get_internals is called again
-            internals_ptr->instance_base = make_object_base_type(internals_ptr->default_metaclass);
-        }
-    }
-    return *internals_ptr;
-}
+internals &get_internals();
 
 /// Return the PyObject* for the internals capsule (borrowed reference).
 /// Returns nullptr if the capsule doesn't exist yet.
-inline PyObject *get_internals_capsule() {
-    auto state_dict = reinterpret_borrow<dict>(get_python_state_dict());
-    return dict_getitemstring(state_dict.ptr(), PYBIND11_INTERNALS_ID);
-}
+PyObject *get_internals_capsule();
 
 /// Return the key used for local_internals in the state dict.
 /// This function ensures a consistent key is used across all call sites within the same
 /// compilation unit. The key includes the address of a static variable to make it unique per
 /// module (DSO), matching the behavior of get_local_internals_pp_manager().
-inline const std::string &get_local_internals_key() {
-    static const std::string key
-        = PYBIND11_MODULE_LOCAL_ID + std::to_string(reinterpret_cast<uintptr_t>(&key));
-    return key;
-}
+const std::string &get_local_internals_key();
 
 /// Return the PyObject* for the local_internals capsule (borrowed reference).
 /// Returns nullptr if the capsule doesn't exist yet.
-inline PyObject *get_local_internals_capsule() {
-    const auto &key = get_local_internals_key();
-    auto state_dict = reinterpret_borrow<dict>(get_python_state_dict());
-    return dict_getitemstring(state_dict.ptr(), key.c_str());
-}
+PyObject *get_local_internals_capsule();
 
-inline void ensure_internals() {
-    pybind11::detail::get_internals_pp_manager().unref();
-#ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
-    if (PyInterpreterState_Get() != PyInterpreterState_Main()) {
-        has_seen_non_main_interpreter() = true;
-    }
-#endif
-    pybind11::detail::get_internals();
-}
+void ensure_internals();
 
-inline internals_pp_manager<local_internals> &get_local_internals_pp_manager() {
-    // Use the address of a static variable as part of the key, so that the value is uniquely tied
-    // to where the module is loaded in memory
-    return internals_pp_manager<local_internals>::get_instance(get_local_internals_key().c_str(),
-                                                               nullptr);
-}
+internals_pp_manager<local_internals> &get_local_internals_pp_manager();
 
 /// Works like `get_internals`, but for things which are locally registered.
-inline local_internals &get_local_internals() {
-    auto &ppmgr = get_local_internals_pp_manager();
-    auto &internals_ptr = *ppmgr.get_pp();
-    if (!internals_ptr) {
-        gil_scoped_acquire_simple gil;
-        error_scope err_scope;
-
-        ppmgr.create_pp_content_once(&internals_ptr);
-    }
-    return *internals_ptr;
-}
+local_internals &get_local_internals();
 
 #ifdef Py_GIL_DISABLED
 #    define PYBIND11_LOCK_INTERNALS(internals) pycritical_section lock((internals).mutex)
@@ -1021,14 +840,7 @@ inline auto with_exception_translators(const F &cb)
               local_internals.registered_exception_translators);
 }
 
-inline std::uint64_t mix64(std::uint64_t z) {
-    // David Stafford's variant 13 of the MurmurHash3 finalizer popularized
-    // by the SplitMix PRNG.
-    // https://zimbry.blogspot.com/2011/09/better-bit-mixing-improving-on.html
-    z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9;
-    z = (z ^ (z >> 27)) * 0x94d049bb133111eb;
-    return z ^ (z >> 31);
-}
+std::uint64_t mix64(std::uint64_t z);
 
 template <typename F>
 inline auto with_instance_map(const void *ptr, const F &cb)
@@ -1056,20 +868,7 @@ inline auto with_instance_map(const void *ptr, const F &cb)
 
 // Returns the number of registered instances for testing purposes.  The result may not be
 // consistent if other threads are registering or unregistering instances concurrently.
-inline size_t num_registered_instances() {
-    auto &internals = get_internals();
-#ifdef Py_GIL_DISABLED
-    size_t count = 0;
-    for (size_t i = 0; i <= internals.instance_shards_mask; ++i) {
-        auto &shard = internals.instance_shards[i];
-        std::unique_lock<pymutex> lock(shard.mutex);
-        count += shard.registered_instances.size();
-    }
-    return count;
-#else
-    return internals.registered_instances.size();
-#endif
-}
+size_t num_registered_instances();
 
 /// Constructs a std::string with the given arguments, stores it in `internals`, and returns its
 /// `c_str()`.  Such strings objects have a long storage duration -- the internal strings are only
