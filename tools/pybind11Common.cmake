@@ -495,10 +495,13 @@ function(pybind11_precompile)
   add_library(pybind11_precompiled STATIC EXCLUDE_FROM_ALL ${_pybind11_precompile_sources})
   add_library(pybind11::precompiled ALIAS pybind11_precompiled)
   target_compile_definitions(pybind11_precompiled PUBLIC PYBIND11_PRECOMPILED)
+  # pybind11::module (not just pybind11::pybind11): the library must compile with the
+  # interpreter's ABI macros (e.g. Py_GIL_DISABLED, which FindPython attaches to
+  # Python::Module); on free-threaded Windows they select the correct autolink library.
   target_link_libraries(
     pybind11_precompiled
     PUBLIC pybind11::headers
-    PRIVATE pybind11::pybind11)
+    PRIVATE pybind11::module)
   set_target_properties(pybind11_precompiled PROPERTIES POSITION_INDEPENDENT_CODE ON)
   if(NOT DEFINED CMAKE_CXX_VISIBILITY_PRESET)
     set_target_properties(pybind11_precompiled PROPERTIES CXX_VISIBILITY_PRESET hidden)
