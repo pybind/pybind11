@@ -110,6 +110,78 @@ def test_simple_setup_py(monkeypatch, tmpdir, parallel, std):
     )
 
 
+def test_precompile_setup_py(monkeypatch, tmpdir):
+    monkeypatch.chdir(tmpdir)
+    monkeypatch.syspath_prepend(MAIN_DIR)
+
+    (tmpdir / "setup.py").write_text(
+        dedent(
+            f"""\
+            import sys
+            sys.path.append({MAIN_DIR!r})
+
+            from setuptools import setup
+            from pybind11.setup_helpers import Pybind11Extension
+
+            ext_modules = [
+                Pybind11Extension(
+                    "precompile_setup",
+                    sorted(["main.cpp"]),
+                    cxx_std=17,
+                    precompile=True,
+                ),
+            ]
+
+            setup(
+                name="precompile_setup_package",
+                ext_modules=ext_modules,
+            )
+            """
+        ),
+        encoding="ascii",
+    )
+
+    (tmpdir / "main.cpp").write_text(
+        dedent(
+            """\
+            #include <pybind11/pybind11.h>
+
+            #ifndef PYBIND11_PRECOMPILED
+            #    error "expected PYBIND11_PRECOMPILED to be defined"
+            #endif
+
+            int f(int x) {
+                return x * 3;
+            }
+            PYBIND11_MODULE(precompile_setup, m, pybind11::mod_gil_used()) {
+                m.def("f", &f);
+            }
+            """
+        ),
+        encoding="ascii",
+    )
+
+    subprocess.check_call(
+        [sys.executable, "setup.py", "build_ext", "--inplace"],
+        stdout=sys.stdout,
+        stderr=sys.stderr,
+    )
+
+    (tmpdir / "test.py").write_text(
+        dedent(
+            """\
+            import precompile_setup
+            assert precompile_setup.f(3) == 9
+            """
+        ),
+        encoding="ascii",
+    )
+
+    subprocess.check_call(
+        [sys.executable, "test.py"], stdout=sys.stdout, stderr=sys.stderr
+    )
+
+
 def test_intree_extensions(monkeypatch, tmpdir):
     monkeypatch.syspath_prepend(MAIN_DIR)
 
