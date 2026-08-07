@@ -60,10 +60,10 @@ PYBIND11_INLINE std::string replace_newlines_and_squash(const char *text) {
 }
 
 PYBIND11_INLINE std::string generate_function_signature(const char *type_caster_name_field,
-                                               detail::function_record *func_rec,
-                                               const std::type_info *const *types,
-                                               size_t &type_index,
-                                               size_t &arg_index) {
+                                                        detail::function_record *func_rec,
+                                                        const std::type_info *const *types,
+                                                        size_t &type_index,
+                                                        size_t &arg_index) {
     std::string signature;
     bool is_starred = false;
     // `is_return_value.top()` is true if we are currently inside the return type of the
@@ -440,8 +440,9 @@ PYBIND11_INLINE const char *error_already_set::what() const noexcept {
 }
 
 PYBIND11_NAMESPACE_BEGIN(detail)
-PYBIND11_INLINE function
-get_type_override(const void *this_ptr, const type_info *this_type, const char *name) {
+PYBIND11_INLINE function get_type_override(const void *this_ptr,
+                                           const type_info *this_type,
+                                           const char *name) {
     handle self = get_object_handle(this_ptr, this_type);
     if (!self) {
         return function();
@@ -542,11 +543,10 @@ cpp_function::make_function_record() {
     return unique_function_record(new detail::function_record());
 }
 
-
 PYBIND11_INLINE void cpp_function::initialize_generic(unique_function_record &&unique_rec,
-                        const char *text,
-                        const std::type_info *const *types,
-                        size_t args) {
+                                                      const char *text,
+                                                      const std::type_info *const *types,
+                                                      size_t args) {
     // Do NOT receive `unique_rec` by value. If this function fails to move out the unique_ptr,
     // we do not want this to destruct the pointer. `initialize` (the caller) still relies on
     // the pointee being alive after this call. Only move out if a `capsule` is going to keep
@@ -619,8 +619,7 @@ PYBIND11_INLINE void cpp_function::initialize_generic(unique_function_record &&u
         if (PyCFunction_Check(rec->sibling.ptr())) {
             auto *self = PyCFunction_GET_SELF(rec->sibling.ptr());
             if (self == nullptr) {
-                pybind11_fail(
-                    "initialize_generic: Unexpected nullptr from PyCFunction_GET_SELF");
+                pybind11_fail("initialize_generic: Unexpected nullptr from PyCFunction_GET_SELF");
             }
             chain = detail::function_record_ptr_from_PyObject(self);
             if (chain && !chain->scope.is(rec->scope)) {
@@ -758,7 +757,6 @@ PYBIND11_INLINE void cpp_function::initialize_generic(unique_function_record &&u
     }
 }
 
-
 PYBIND11_INLINE void cpp_function::destruct(detail::function_record *rec, bool free_strings) {
 // If on Python 3.9, check the interpreter "MICRO" (patch) version.
 // If this is running on 3.9.0, we have to work around a bug.
@@ -804,7 +802,6 @@ PYBIND11_INLINE void cpp_function::destruct(detail::function_record *rec, bool f
     }
 }
 
-
 PYBIND11_INLINE PyObject *cpp_function::dispatcher(PyObject *self,
                                                    PyObject *const *args_in_arr,
                                                    size_t nargsf,
@@ -820,8 +817,7 @@ PYBIND11_INLINE PyObject *cpp_function::dispatcher(PyObject *self,
        overload */
     const auto n_args_in = static_cast<size_t>(PyVectorcall_NARGS(nargsf));
 
-    handle parent = n_args_in > 0 ? args_in_arr[0] : nullptr,
-           result = PYBIND11_TRY_NEXT_OVERLOAD;
+    handle parent = n_args_in > 0 ? args_in_arr[0] : nullptr, result = PYBIND11_TRY_NEXT_OVERLOAD;
 
     auto self_value_and_holder = value_and_holder();
     if (overloads->is_constructor) {
@@ -852,8 +848,7 @@ PYBIND11_INLINE PyObject *cpp_function::dispatcher(PyObject *self,
         std::vector<function_call> second_pass;
 
         // However, if there are no overloads, we can just skip the no-convert pass entirely
-        const bool overloaded
-            = current_overload != nullptr && current_overload->next != nullptr;
+        const bool overloaded = current_overload != nullptr && current_overload->next != nullptr;
 
         for (; current_overload != nullptr; current_overload = current_overload->next) {
 
@@ -1069,8 +1064,7 @@ PYBIND11_INLINE PyObject *cpp_function::dispatcher(PyObject *self,
                 // set of all-false flags.  If the call fails, we'll swap the flags back in for
                 // the conversion-allowed call below.
                 second_pass_convert = std::move(call.args_convert);
-                call.args_convert
-                    = args_convert_vector<arg_vector_small_size>(func.nargs, false);
+                call.args_convert = args_convert_vector<arg_vector_small_size>(func.nargs, false);
             }
 
             // 6. Call the function.
@@ -1252,7 +1246,6 @@ PYBIND11_INLINE PyObject *cpp_function::dispatcher(PyObject *self,
     return result.ptr();
 }
 
-
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 PYBIND11_INLINE void generic_type::initialize(const type_record &rec) {
@@ -1315,8 +1308,7 @@ PYBIND11_INLINE void generic_type::initialize(const type_record &rec) {
         mark_parents_nonsimple(tinfo->type);
         tinfo->simple_ancestors = false;
     } else if (rec.bases.size() == 1) {
-        auto *parent_tinfo
-            = get_type_info(reinterpret_cast<PyTypeObject *>(rec.bases[0].ptr()));
+        auto *parent_tinfo = get_type_info(reinterpret_cast<PyTypeObject *>(rec.bases[0].ptr()));
         assert(parent_tinfo != nullptr);
         bool parent_simple_ancestors = parent_tinfo->simple_ancestors;
         tinfo->simple_ancestors = parent_simple_ancestors;
@@ -1331,7 +1323,6 @@ PYBIND11_INLINE void generic_type::initialize(const type_record &rec) {
     }
 }
 
-
 PYBIND11_INLINE void generic_type::mark_parents_nonsimple(PyTypeObject *value) {
     auto t = reinterpret_borrow<tuple>(value->tp_bases);
     for (handle h : t) {
@@ -1343,8 +1334,8 @@ PYBIND11_INLINE void generic_type::mark_parents_nonsimple(PyTypeObject *value) {
     }
 }
 
-
-PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void enum_base::init(bool is_arithmetic, bool is_convertible) {
+PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void enum_base::init(bool is_arithmetic,
+                                                            bool is_convertible) {
     m_base.attr("__entries") = dict();
     auto property = handle(reinterpret_cast<PyObject *>(&PyProperty_Type));
     auto static_property
@@ -1380,8 +1371,8 @@ PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void enum_base::init(bool is_arithmetic, 
                     std::string docstring;
                     dict entries = arg.attr("__entries");
                     if ((reinterpret_cast<PyTypeObject *>(arg.ptr()))->tp_doc) {
-                        docstring += std::string(
-                            reinterpret_cast<PyTypeObject *>(arg.ptr())->tp_doc);
+                        docstring
+                            += std::string(reinterpret_cast<PyTypeObject *>(arg.ptr())->tp_doc);
                         docstring += "\n\n";
                     }
                     docstring += "Members:";
@@ -1405,8 +1396,7 @@ PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void enum_base::init(bool is_arithmetic, 
 
     m_base.attr("__members__") = static_property(cpp_function(
                                                      [](handle arg) -> dict {
-                                                         dict entries = arg.attr("__entries"),
-                                                              m;
+                                                         dict entries = arg.attr("__entries"), m;
                                                          for (auto kv : entries) {
                                                              m[kv.first] = kv.second[int_(0)];
                                                          }
@@ -1418,38 +1408,38 @@ PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void enum_base::init(bool is_arithmetic, 
                                                  "");
 
 #define PYBIND11_ENUM_OP_STRICT(op, expr, strict_behavior)                                        \
-m_base.attr(op) = cpp_function(                                                               \
-    [](const object &a, const object &b) {                                                    \
-        if (!type::handle_of(a).is(type::handle_of(b)))                                       \
-            strict_behavior; /* NOLINT(bugprone-macro-parentheses) */                         \
-        return expr;                                                                          \
-    },                                                                                        \
-    name(op),                                                                                 \
-    is_method(m_base),                                                                        \
-    arg("other"),                                                                             \
-    pos_only())
+    m_base.attr(op) = cpp_function(                                                               \
+        [](const object &a, const object &b) {                                                    \
+            if (!type::handle_of(a).is(type::handle_of(b)))                                       \
+                strict_behavior; /* NOLINT(bugprone-macro-parentheses) */                         \
+            return expr;                                                                          \
+        },                                                                                        \
+        name(op),                                                                                 \
+        is_method(m_base),                                                                        \
+        arg("other"),                                                                             \
+        pos_only())
 
 #define PYBIND11_ENUM_OP_CONV(op, expr)                                                           \
-m_base.attr(op) = cpp_function(                                                               \
-    [](const object &a_, const object &b_) {                                                  \
-        int_ a(a_), b(b_);                                                                    \
-        return expr;                                                                          \
-    },                                                                                        \
-    name(op),                                                                                 \
-    is_method(m_base),                                                                        \
-    arg("other"),                                                                             \
-    pos_only())
+    m_base.attr(op) = cpp_function(                                                               \
+        [](const object &a_, const object &b_) {                                                  \
+            int_ a(a_), b(b_);                                                                    \
+            return expr;                                                                          \
+        },                                                                                        \
+        name(op),                                                                                 \
+        is_method(m_base),                                                                        \
+        arg("other"),                                                                             \
+        pos_only())
 
 #define PYBIND11_ENUM_OP_CONV_LHS(op, expr)                                                       \
-m_base.attr(op) = cpp_function(                                                               \
-    [](const object &a_, const object &b) {                                                   \
-        int_ a(a_);                                                                           \
-        return expr;                                                                          \
-    },                                                                                        \
-    name(op),                                                                                 \
-    is_method(m_base),                                                                        \
-    arg("other"),                                                                             \
-    pos_only())
+    m_base.attr(op) = cpp_function(                                                               \
+        [](const object &a_, const object &b) {                                                   \
+            int_ a(a_);                                                                           \
+            return expr;                                                                          \
+        },                                                                                        \
+        name(op),                                                                                 \
+        is_method(m_base),                                                                        \
+        arg("other"),                                                                             \
+        pos_only())
 
     if (is_convertible) {
         if (is_arithmetic) {
@@ -1476,8 +1466,8 @@ m_base.attr(op) = cpp_function(                                                 
                                            pos_only());
 }
 
-
-PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void enum_base::value(char const *name_, object value, const char *doc) {
+PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void
+enum_base::value(char const *name_, object value, const char *doc) {
     dict entries = m_base.attr("__entries");
     str name(name_);
     if (entries.contains(name)) {
@@ -1490,14 +1480,12 @@ PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void enum_base::value(char const *name_, 
     m_base.attr(std::move(name)) = std::move(value);
 }
 
-
 PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void enum_base::export_values() {
     dict entries = m_base.attr("__entries");
     for (auto kv : entries) {
         m_parent.attr(kv.first) = kv.second[int_(0)];
     }
 }
-
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
