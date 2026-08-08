@@ -466,3 +466,50 @@ function(pybind11_strip target_name)
       COMMAND ${CMAKE_STRIP} ${x_opt} $<TARGET_FILE:${target_name}>)
   endif()
 endfunction()
+
+# --------------------- pybind11_precompile -------------------------
+
+# Create the pybind11::precompiled static library (once per build tree). It is
+# built from the consumer's project with the consumer's flags; each extension
+# module links its own copy, preserving pybind11's per-module state. Modules
+# using it must compile with PYBIND11_PRECOMPILED, which the PUBLIC compile
+# definition below provides automatically.
+function(pybind11_precompile)
+  if(TARGET pybind11_precompiled)
+    return()
+  endif()
+
+  if(PYBIND11_NOPYTHON)
+    message(FATAL_ERROR "pybind11_precompile requires Python headers; it cannot be used "
+                        "with PYBIND11_NOPYTHON")
+  endif()
+
+  if(NOT pybind11_SRC_DIR OR NOT EXISTS "${pybind11_SRC_DIR}")
+    message(FATAL_ERROR "pybind11 library sources not found (pybind11_SRC_DIR: "
+                        "'${pybind11_SRC_DIR}')")
+  endif()
+
+  file(GLOB _pybind11_precompile_sources "${pybind11_SRC_DIR}/*.cpp")
+  list(FILTER _pybind11_precompile_sources EXCLUDE REGEX "pybind11_combined\\.cpp$")
+
+  add_library(pybind11_precompiled STATIC EXCLUDE_FROM_ALL ${_pybind11_precompile_sources})
+  add_library(pybind11::precompiled ALIAS pybind11_precompiled)
+  target_compile_definitions(pybind11_precompiled PUBLIC PYBIND11_PRECOMPILED)
+  # pybind11::module (not just pybind11::pybind11): the library must compile with the
+  # interpreter's ABI macros (e.g. Py_GIL_DISABLED, which FindPython attaches to
+  # Python::Module); on free-threaded Windows they select the correct autolink library.
+  target_link_libraries(
+    pybind11_precompiled
+    PUBLIC pybind11::headers
+    PRIVATE pybind11::module)
+  set_target_properties(pybind11_precompiled PROPERTIES POSITION_INDEPENDENT_CODE ON)
+  if(NOT DEFINED CMAKE_CXX_VISIBILITY_PRESET)
+    set_target_properties(pybind11_precompiled PROPERTIES CXX_VISIBILITY_PRESET hidden)
+  endif()
+  if(NOT DEFINED CMAKE_VISIBILITY_INLINES_HIDDEN)
+    set_target_properties(pybind11_precompiled PROPERTIES VISIBILITY_INLINES_HIDDEN ON)
+  endif()
+  if(MSVC)
+    target_link_libraries(pybind11_precompiled PRIVATE pybind11::windows_extras)
+  endif()
+endfunction()

@@ -139,7 +139,8 @@ endfunction()
 #                     [NO_EXTRAS] [THIN_LTO] [OPT_SIZE] source1 [source2 ...])
 #
 function(pybind11_add_module target_name)
-  set(options "MODULE;SHARED;EXCLUDE_FROM_ALL;NO_EXTRAS;SYSTEM;THIN_LTO;OPT_SIZE")
+  set(options
+      "MODULE;SHARED;EXCLUDE_FROM_ALL;NO_EXTRAS;SYSTEM;THIN_LTO;OPT_SIZE;PRECOMPILE;NO_PRECOMPILE")
   cmake_parse_arguments(ARG "${options}" "" "" ${ARGN})
 
   if(ARG_MODULE AND ARG_SHARED)
@@ -159,6 +160,11 @@ function(pybind11_add_module target_name)
   add_library(${target_name} ${lib_type} ${exclude_from_all} ${ARG_UNPARSED_ARGUMENTS})
 
   target_link_libraries(${target_name} PRIVATE pybind11::module)
+
+  if((ARG_PRECOMPILE OR PYBIND11_PRECOMPILE) AND NOT ARG_NO_PRECOMPILE)
+    pybind11_precompile()
+    target_link_libraries(${target_name} PRIVATE pybind11::precompiled)
+  endif()
 
   if(ARG_SYSTEM)
     message(

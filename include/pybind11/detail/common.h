@@ -468,6 +468,7 @@ PyModuleDef_Init should be treated like any other PyObject (so not shared across
     static int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject *);                                 \
     PYBIND11_PLUGIN_IMPL(name) {                                                                  \
         PYBIND11_CHECK_PYTHON_VERSION                                                             \
+        PYBIND11_PRECOMPILED_CONFIG_GUARD                                                         \
         try {                                                                                     \
             pybind11::detail::ensure_internals();                                                 \
             static ::pybind11::detail::slots_array mod_def_slots                                  \

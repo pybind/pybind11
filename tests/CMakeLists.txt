@@ -71,6 +71,13 @@ option(DOWNLOAD_CATCH "Download catch2 if not found" OFF)
 option(DOWNLOAD_EIGEN "Download EIGEN" OFF)
 option(PYBIND11_CUDA_TESTS "Enable building CUDA tests" OFF)
 option(PYBIND11_TEST_SMART_HOLDER "Change the default to smart holder" OFF)
+option(PYBIND11_TEST_PRECOMPILE "Build the test modules against the precompiled library" OFF)
+
+if(PYBIND11_TEST_PRECOMPILE)
+  # Picked up by every pybind11_add_module() call below; any definition missing
+  # from the precompiled library shows up as a link error across the test modules.
+  set(PYBIND11_PRECOMPILE ON)
+endif()
 set(PYBIND11_TEST_OVERRIDE
     ""
     CACHE STRING "Tests from ;-separated list of *.cpp files will be built instead of all tests")
@@ -483,8 +490,16 @@ foreach(target ${test_targets})
     set_property(SOURCE ${target}.cpp PROPERTY LANGUAGE CUDA)
   endif()
 
+  # These modules redefine PYBIND11_INTERNALS_VERSION inside their own TU, so they
+  # cannot share the precompiled library.
+  set(no_precompile_arg "")
+  if("${target}" MATCHES "^(exo_planet_pybind11|cross_module_gil_utils)$")
+    set(no_precompile_arg NO_PRECOMPILE)
+  endif()
+
   # Create the binding library
-  pybind11_add_module(${target} THIN_LTO ${target}.cpp ${test_files} ${PYBIND11_HEADERS})
+  pybind11_add_module(${target} THIN_LTO ${no_precompile_arg} ${target}.cpp ${test_files}
+                      ${PYBIND11_HEADERS})
   pybind11_enable_warnings(${target})
 
   if(NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
