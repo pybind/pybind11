@@ -14,15 +14,31 @@
 #include <pybind11/pytypes.h>
 #include <pybind11/trampoline_self_life_support.h>
 
+#include "../buffer_info.h"
 #include "common.h"
 #include "struct_smart_holder.h"
+#include "value_and_holder.h"
 
 #include <atomic>
 #include <cstdint>
+#include <cstring>
 #include <exception>
+#include <forward_list>
+#include <functional>
 #include <limits>
+#include <memory>
 #include <mutex>
+#include <new>
+#include <stdexcept>
+#include <string>
 #include <thread>
+#include <type_traits>
+#include <typeindex>
+#include <typeinfo>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <vector>
 
 /// Tracks the `internals` and `type_info` ABI version independent of the main library version.
 ///

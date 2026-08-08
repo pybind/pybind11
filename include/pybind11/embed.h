@@ -10,7 +10,11 @@
 #pragma once
 
 #include "pybind11.h"
+#include "detail/common.h"
+#include "detail/internals.h"
 #include "eval.h"
+
+#include <stdexcept>
 
 #if defined(PYPY_VERSION)
 #    error Embedding the interpreter is not supported with PyPy

@@ -11,10 +11,21 @@
 #pragma once
 
 #include "detail/common.h"
+#include "detail/internals.h"
+#include "detail/type_caster_base.h"
+#include "detail/typeid.h"
+#include "detail/value_and_holder.h"
 #include "cast.h"
+#include "pytypes.h"
 #include "trampoline_self_life_support.h"
 
+#include <cstdint>
 #include <functional>
+#include <string>
+#include <type_traits>
+#include <typeinfo>
+#include <utility>
+#include <vector>
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 

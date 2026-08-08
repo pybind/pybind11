@@ -11,21 +11,29 @@
 
 #include "pybind11.h"
 #include "detail/common.h"
+#include "detail/descr.h"
+#include "detail/internals.h"
+#include "buffer_info.h"
+#include "cast.h"
 #include "complex.h"
 #include "gil_safe_call_once.h"
 #include "pytypes.h"
 
 #include <algorithm>
 #include <array>
+#include <complex>
+#include <cstddef>
 #include <cstdint>
-#include <cstdlib>
-#include <cstring>
 #include <functional>
 #include <numeric>
 #include <sstream>
+#include <stdexcept>
 #include <string>
+#include <tuple>
 #include <type_traits>
 #include <typeindex>
+#include <typeinfo>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 

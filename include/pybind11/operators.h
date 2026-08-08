@@ -10,6 +10,12 @@
 #pragma once
 
 #include "pybind11.h"
+#include "detail/pybind11_namespace_macros.h"
+#include "attr.h"
+
+#include <cmath>
+#include <functional>
+#include <type_traits>
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)

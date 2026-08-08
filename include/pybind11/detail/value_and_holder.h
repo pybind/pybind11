@@ -6,9 +6,7 @@
 
 #include "common.h"
 
-#include <cstddef>
 #include <cstdint>
-#include <typeinfo>
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
