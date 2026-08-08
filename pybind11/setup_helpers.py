@@ -108,6 +108,11 @@ class Pybind11Extension(_Extension):
 
     If you want to add pybind11 headers manually, for example for an exact
     git checkout, then set ``include_pybind11=False``.
+
+    Set ``precompile=True`` to compile the pybind11 library sources into the
+    extension (one extra translation unit) instead of instantiating everything
+    inline in every file; this usually builds faster. Requires an installed
+    pybind11 package that ships the library sources.
     """
 
     # flags are prepended, so that they can be further overridden, e.g. by
@@ -127,6 +132,7 @@ class Pybind11Extension(_Extension):
             kwargs["language"] = "c++"
 
         include_pybind11 = kwargs.pop("include_pybind11", True)
+        precompile = kwargs.pop("precompile", False)
 
         super().__init__(*args, **kwargs)
 
@@ -142,6 +148,27 @@ class Pybind11Extension(_Extension):
                     self.include_dirs.append(pyinc)
             except ModuleNotFoundError:
                 pass
+
+        if precompile:
+            # No silent fallback: failing to precompile would quietly rebuild
+            # everything inline, so a missing source tree is an error.
+            try:
+                import pybind11
+
+                combined = os.path.join(
+                    pybind11.get_source_dir(), "pybind11_combined.cpp"
+                )
+            except (ImportError, AttributeError) as err:
+                msg = (
+                    "precompile=True requires an installed pybind11 package "
+                    "that provides the library sources"
+                )
+                raise ValueError(msg) from err
+            if not os.path.exists(combined):
+                msg = f"pybind11 library sources not found: {combined}"
+                raise ValueError(msg)
+            self.sources.append(combined)
+            self.define_macros.append(("PYBIND11_PRECOMPILED", None))
 
         self.cxx_std = cxx_std
 

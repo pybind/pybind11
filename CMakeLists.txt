@@ -410,6 +410,7 @@ if(PYBIND11_INSTALL)
     endif()
   endif()
   join_paths(includedir_for_pc_file "\${prefix}" "${CMAKE_INSTALL_INCLUDEDIR}")
+  join_paths(srcdir_for_pc_file "\${prefix}" "${CMAKE_INSTALL_DATAROOTDIR}/pybind11/src")
   configure_file("${CMAKE_CURRENT_SOURCE_DIR}/tools/pybind11.pc.in"
                  "${CMAKE_CURRENT_BINARY_DIR}/pybind11.pc" @ONLY)
   install(FILES "${CMAKE_CURRENT_BINARY_DIR}/pybind11.pc"

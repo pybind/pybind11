@@ -1,5 +1,6 @@
 prefix=@prefix_for_pc_file@
 includedir=@includedir_for_pc_file@
+srcdir=@srcdir_for_pc_file@
 
 Name: @PROJECT_NAME@
 Description: Seamless operability between C++11 and Python
