@@ -109,13 +109,6 @@ if(NOT DEFINED PYBIND11_USE_CROSSCOMPILING)
 endif()
 option(PYBIND11_USE_CROSSCOMPILING "Respect CMAKE_CROSSCOMPILING" OFF)
 
-if(PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION)
-  add_compile_definitions(PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION)
-endif()
-if(PYBIND11_SIMPLE_GIL_MANAGEMENT)
-  add_compile_definitions(PYBIND11_SIMPLE_GIL_MANAGEMENT)
-endif()
-
 cmake_dependent_option(
   USE_PYTHON_INCLUDE_DIR
   "Install pybind11 headers in Python include directory instead of default installation prefix"
@@ -306,6 +299,13 @@ if(NOT TARGET pybind11_headers)
   if(NOT "${PYBIND11_INTERNALS_VERSION}" STREQUAL "")
     target_compile_definitions(
       pybind11_headers INTERFACE "PYBIND11_INTERNALS_VERSION=${PYBIND11_INTERNALS_VERSION}")
+  endif()
+  if(PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION)
+    target_compile_definitions(pybind11_headers
+                               INTERFACE PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION)
+  endif()
+  if(PYBIND11_SIMPLE_GIL_MANAGEMENT)
+    target_compile_definitions(pybind11_headers INTERFACE PYBIND11_SIMPLE_GIL_MANAGEMENT)
   endif()
 else()
   # It is invalid to install a target twice, too.
