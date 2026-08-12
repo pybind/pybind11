@@ -855,6 +855,14 @@ protected:
 
         std::string signatures;
         int index = 0;
+        auto append_doc_signature = [&signatures](const char *sig) {
+            for (const char *p = sig; *p != '\0'; ++p) {
+                if (*p == '*') {
+                    signatures += '\\';
+                }
+                signatures += *p;
+            }
+        };
         /* Create a nice pydoc rec including all signatures and
            docstrings of the functions in the overload chain */
         if (chain && options::show_function_signatures()
@@ -876,7 +884,7 @@ protected:
                     signatures += std::to_string(++index) + ". ";
                 }
                 signatures += rec->name;
-                signatures += it->signature;
+                append_doc_signature(it->signature);
                 signatures += '\n';
             }
             if (it->doc && it->doc[0] != '\0' && options::show_user_defined_docstrings()) {
