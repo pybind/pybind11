@@ -145,7 +145,8 @@ def test_unusual_op_ref():
 
 
 @pytest.mark.skipif(
-    not hasattr(m, "get_copy_only_deleted_move"), reason="requires C++17 copy elision"
+    not hasattr(m, "get_copy_only_deleted_move"),
+    reason="requires guaranteed copy elision",
 )
 def test_copy_only_deleted_move():
     """#6142: a copyable type with a deleted move constructor can be returned by value

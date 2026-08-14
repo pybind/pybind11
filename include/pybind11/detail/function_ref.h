@@ -31,7 +31,7 @@
 // - renamed back to function_ref
 // - use pybind11 enable_if_t, remove_cvref_t, and remove_reference_t
 // - lint suppressions
-// - accept same-type non-movable returns under C++17 guaranteed copy elision
+// - accept same-type non-movable returns under guaranteed copy elision
 //   (issue #6142)
 
 // torch::executor: modified from llvm::function_ref
@@ -59,11 +59,11 @@ class function_ref;
 
 // pybind11: is_convertible<Ret, Ret> is false for a copyable but non-movable
 // type (it tests conversion from an xvalue, which selects the deleted move
-// constructor), but in C++17 a same-type prvalue is returnable via guaranteed
-// copy elision. Accept that case explicitly. See issue #6142.
+// constructor), but with guaranteed copy elision a same-type prvalue is still
+// returnable. Accept that case explicitly. See issue #6142.
 template <typename From, typename To>
 using is_returnable_as = bool_constant<
-#if defined(PYBIND11_CPP17)
+#if defined(__cpp_guaranteed_copy_elision) && __cpp_guaranteed_copy_elision >= 201606L
     std::is_same<From, To>::value ||
 #endif
     std::is_convertible<From, To>::value>;
