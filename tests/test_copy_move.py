@@ -142,3 +142,15 @@ def test_unusual_op_ref():
     # Merely to test that this still exists and built successfully.
     assert m.CallCastUnusualOpRefConstRef().__class__.__name__ == "UnusualOpRef"
     assert m.CallCastUnusualOpRefMovable().__class__.__name__ == "UnusualOpRef"
+
+
+@pytest.mark.skipif(
+    not hasattr(m, "get_copy_only_deleted_move"),
+    reason="requires guaranteed copy elision",
+)
+def test_copy_only_deleted_move():
+    """#6142: a copyable type with a deleted move constructor can be returned by value
+
+    This is primarily a compile-time regression test.
+    """
+    assert m.get_copy_only_deleted_move().value == 42

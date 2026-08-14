@@ -31,6 +31,8 @@
 // - renamed back to function_ref
 // - use pybind11 enable_if_t, remove_cvref_t, and remove_reference_t
 // - lint suppressions
+// - accept same-type non-movable returns under guaranteed copy elision
+//   (issue #6142)
 
 // torch::executor: modified from llvm::function_ref
 // - renamed to FunctionRef
@@ -54,6 +56,17 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 
 template <typename Fn>
 class function_ref;
+
+// pybind11: is_convertible<Ret, Ret> is false for a copyable but non-movable
+// type (it tests conversion from an xvalue, which selects the deleted move
+// constructor), but with guaranteed copy elision a same-type prvalue is still
+// returnable. Accept that case explicitly. See issue #6142.
+template <typename From, typename To>
+using is_returnable_as = bool_constant<
+#if defined(__cpp_guaranteed_copy_elision) && __cpp_guaranteed_copy_elision >= 201606L
+    std::is_same<From, To>::value ||
+#endif
+    std::is_convertible<From, To>::value>;
 
 template <typename Ret, typename... Params>
 class function_ref<Ret(Params...)> {
@@ -81,8 +94,8 @@ public:
         // Functor must be callable and return a suitable type.
         enable_if_t<
             std::is_void<Ret>::value
-            || std::is_convertible<decltype(std::declval<Callable>()(std::declval<Params>()...)),
-                                   Ret>::value> * = nullptr)
+            || is_returnable_as<decltype(std::declval<Callable>()(std::declval<Params>()...)),
+                                Ret>::value> * = nullptr)
         : callback(callback_fn<remove_reference_t<Callable>>),
           callable(reinterpret_cast<intptr_t>(&callable)) {}
 
