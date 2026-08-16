@@ -541,6 +541,7 @@ it when Sphinx processes the docstring by connecting an
         for i, line in enumerate(lines):
             lines[i] = line.replace("*", r"\*")
 
+
     def setup(app):
         app.connect("autodoc-process-docstring", process_docstring)
 
