@@ -14,6 +14,9 @@
 
 #if defined(__GNUG__)
 #    if !defined(__has_include)
+// All supported Clang versions provide __has_include, but GCC versions before 5 do not.
+// Preserve the previous unconditional __GNUG__ behavior for those older, still-supported
+// GCC versions (see PR #6145).
 #        define PYBIND11_HAS_CXXABI_H
 #    elif __has_include(<cxxabi.h>)
 #        define PYBIND11_HAS_CXXABI_H
