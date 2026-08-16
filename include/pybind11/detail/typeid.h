@@ -13,6 +13,13 @@
 #include <cstdlib>
 
 #if defined(__GNUG__)
+#    if !defined(__has_include)
+#        define PYBIND11_HAS_CXXABI_H
+#    elif __has_include(<cxxabi.h>)
+#        define PYBIND11_HAS_CXXABI_H
+#    endif
+#endif
+#if defined(PYBIND11_HAS_CXXABI_H)
 #    include <cxxabi.h>
 #endif
 
@@ -33,7 +40,7 @@ inline void erase_all(std::string &string, const std::string &search) {
 }
 
 PYBIND11_NOINLINE void clean_type_id(std::string &name) {
-#if defined(__GNUG__)
+#if defined(PYBIND11_HAS_CXXABI_H)
     int status = 0;
     std::unique_ptr<char, void (*)(void *)> res{
         abi::__cxa_demangle(name.c_str(), nullptr, nullptr, &status), std::free};
