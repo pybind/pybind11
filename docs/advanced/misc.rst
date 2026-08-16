@@ -499,7 +499,7 @@ strings in pybind11-based extension modules to automatically generate beautiful
 documentation in a variety formats. The python_example repository [#f5]_ contains a
 simple example repository which uses this approach.
 
-There are two potential gotchas when using this approach: first, make sure that
+There are a few potential gotchas when using this approach: first, make sure that
 the resulting strings do not contain any :kbd:`TAB` characters, which break the
 docstring parsing routines. You may want to use C++11 raw string literals,
 which are convenient for multi-line comments. Conveniently, any excess
@@ -522,6 +522,27 @@ work, it is important that all lines are indented consistently, i.e.:
         Parameters
         ----------
     )mydelimiter");
+
+Second, auto-generated signatures intentionally contain a literal ``*`` (for
+``*args``, ``py::args``, ``py::kw_only``, and similar). That matches normal
+Python / ``help()`` / stubgen conventions, and Sphinx's own
+``autodoc_docstring_signature`` expects it. Sphinx reStructuredText, however,
+treats unpaired ``*`` as emphasis and may warn with
+``Inline emphasis start-string without end-string``.
+
+Do **not** escape ``*`` inside the generated docstring itself. Instead, escape
+it when Sphinx processes the docstring by connecting an
+``autodoc-process-docstring`` handler in your project's ``conf.py`` (with
+``sphinx.ext.autodoc`` enabled):
+
+.. code-block:: python
+
+    def process_docstring(app, what, name, obj, options, lines):
+        for i, line in enumerate(lines):
+            lines[i] = line.replace("*", r"\*")
+
+    def setup(app):
+        app.connect("autodoc-process-docstring", process_docstring)
 
 By default, pybind11 automatically generates and prepends a signature to the docstring of a function
 registered with ``module_::def()`` and ``class_::def()``. Sometimes this
