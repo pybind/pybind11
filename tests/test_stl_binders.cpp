@@ -7,6 +7,7 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
+#include <pybind11/attr.h>
 #include <pybind11/numpy.h>
 #include <pybind11/stl_bind.h>
 
@@ -14,6 +15,7 @@
 
 #include <deque>
 #include <map>
+#include <set>
 #include <unordered_map>
 #include <vector>
 
@@ -182,6 +184,10 @@ TEST_SUBMODULE(stl_binders, m) {
     py::class_<El>(m, "El").def(py::init<int>());
     py::bind_vector<std::vector<El>>(m, "VectorEl");
     py::bind_vector<std::vector<std::vector<El>>>(m, "VectorVectorEl");
+
+    // test_set_int
+    py::bind_set<std::set<int>>(m, "SetInt");
+    // py::implicitly_convertible<py::set, std::set<int>>();
 
     // test_map_string_double
     py::bind_map<std::map<std::string, double>>(m, "MapStringDouble");
