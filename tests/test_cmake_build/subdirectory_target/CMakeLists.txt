@@ -15,6 +15,15 @@ set_target_properties(test_subdirectory_target PROPERTIES OUTPUT_NAME test_cmake
 
 target_link_libraries(test_subdirectory_target PRIVATE pybind11::module)
 
+# If a pybind11 option is on, main.cpp checks that the matching macro reached this
+# consumer target via the pybind11_headers usage requirements.
+foreach(opt IN ITEMS PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION
+                     PYBIND11_SIMPLE_GIL_MANAGEMENT)
+  if(${opt})
+    target_compile_definitions(test_subdirectory_target PRIVATE "EXPECT_${opt}")
+  endif()
+endforeach()
+
 # Make sure result is, for example, test_installed_target.so, not libtest_installed_target.dylib
 pybind11_extension(test_subdirectory_target)
 
