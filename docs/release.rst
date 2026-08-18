@@ -241,6 +241,14 @@ new empty directory, verify their version and complete file inventory, and run
 only the missing files explicitly; do not use a reused ``dist/`` directory or
 a broad wildcard.
 
+For example, if both artifacts were inspected but only the second is missing
+from PyPI, pass the exact filenames to Twine:
+
+.. code-block:: bash
+
+    twine check "/path/to/artifact-one.whl" "/path/to/artifact-two.tar.gz"
+    twine upload "/path/to/artifact-two.tar.gz"
+
 You can also make the files locally, but only from a fresh, clean detached
 checkout of the verified tag/release commit and with an empty output directory.
 This is still not recommended in general because SDists can pick up unrelated
