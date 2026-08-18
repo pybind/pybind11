@@ -48,7 +48,28 @@ versions).
   [needs changelog](https://github.com/pybind/pybind11/pulls?q=is%3Apr+is%3Aclosed+label%3A%22needs+changelog%22).
 - Integrate the output into `docs/changelog.md` under the section for this
   version, and add the release date (today) to the section header.
-- Review, and inform the user if any edits are needed.
+- Do not paste generated or suggested entries verbatim without review. Normalize
+  them to match the surrounding changelog style:
+  - Use concise, user-facing entries; avoid PR-description detail, rationale,
+    implementation history, and long caveats unless needed to understand the
+    user-visible change.
+  - Use reporting/past-tense style consistently (`Fixed`, `Added`, `Updated`,
+    `Improved`, `Removed`, etc.), converting imperative suggestions like
+    "Fix ..." or "Add ...". Prefer wording like "was updated to ..." when it
+    preserves the meaning better than "now ..."; use "now" only when it is the
+    clearest way to avoid ambiguity.
+  - Preserve the technical meaning of the PR suggestion. If shortening risks
+    changing the meaning, inspect the PR description and commits before
+    rewriting.
+  - Keep the standard entry shape: bullet text, then the PR link on the next
+    indented line. Flatten accidental code fences or deeply nested bullets
+    unless they are genuinely needed.
+  - Categorize using the nearby release pattern (`New Features`, `Bug fixes`,
+    `Internal`, `Documentation`, `Tests`, `CI`, etc.). Put non-breaking
+    production-code maintenance that is not user-facing under `Internal`.
+- Proofread the resulting section for consistent tense, category placement,
+  duplicate/missing PR links, and overly long entries. Inform the user if any
+  wording or categorization still needs human review.
 - Remind the user to clear the `needs changelog` labels in the GitHub web UI
   (or offer to do it with `gh pr edit <n> --remove-label "needs changelog"`).
 
