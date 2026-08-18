@@ -100,9 +100,8 @@ If you don't have nox, you should either use ``pipx run nox`` instead, or use
   - Make sure you are on master, not somewhere else: ``git checkout master``
 
   - Update version macros in ``include/pybind11/detail/common.h`` (set PATCH to
-    ``0a0`` and increment MINOR).
-
-  - Update ``pybind11/_version.py`` to match.
+    ``0a0`` and increment MINOR). ``pybind11/_version.py`` reads the macros
+    from there, so it needs no edit.
 
   - Run ``nox -s tests_packaging`` to ensure this was done correctly.
 

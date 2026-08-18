@@ -56,3 +56,6 @@ CMakeUserPresents.json
 # Symlink to AGENTS.md
 CLAUDE.md
 .claude/
+
+# "Release" above matches case-insensitively on macOS/Windows
+!.agents/**
