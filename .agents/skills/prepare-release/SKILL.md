@@ -1,7 +1,6 @@
 ---
 name: prepare-release
 description: Open the pybind11 release-preparation PR — version bump in common.h and changelog integration. Follows docs/release.rst. After the PR merges, use publish-release.
-argument-hint: <X.Y.Z or X.Y.ZrcN>
 ---
 
 # pybind11 release preparation PR
@@ -32,7 +31,8 @@ it, so it needs no edit:
 
 - `PYBIND11_VERSION_MAJOR` / `MINOR` / `MICRO`: plain integers.
 - `PYBIND11_VERSION_RELEASE_LEVEL`: `PY_RELEASE_LEVEL_FINAL` for a final
-  release; `_ALPHA` / `_BETA` / `_GAMMA` (rc) for pre-releases, with
+  release; `PY_RELEASE_LEVEL_ALPHA` / `PY_RELEASE_LEVEL_BETA` /
+  `PY_RELEASE_LEVEL_GAMMA` (rc) for pre-releases, with
   `PYBIND11_VERSION_RELEASE_SERIAL` set to the pre-release number.
 - `PYBIND11_VERSION_PATCH`: `Z` for final, `Zrc1` / `Zb1` / `Za1` for
   pre-releases (must agree with the level/serial above).
@@ -83,5 +83,5 @@ versions).
 
 ## Handing off
 
-When the PR is approved and merged, run `/publish-release X.Y.Z` for the
-branch, tag, stable update, GitHub release, and post-release bump.
+When the PR is approved and merged, invoke the `publish-release` skill for
+the branch, tag, stable update, GitHub release, and post-release bump.
