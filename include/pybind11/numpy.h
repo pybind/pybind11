@@ -1799,16 +1799,29 @@ private:
 #    define PYBIND11_NUMPY_DTYPE_EX(Type, ...) ((void) 0)
 #else
 
-#    define PYBIND11_FIELD_DESCRIPTOR_EX(T, Field, Name)                                          \
+// The _IMPL variants take T parenthesized to survive the comma re-splitting in the
+// PYBIND11_MAP_LIST expansions below; the plain variants keep accepting a bare type (see #4018).
+#    define PYBIND11_UNPAREN_TYPE(T) PYBIND11_TYPE T
+
+#    define PYBIND11_FIELD_DESCRIPTOR_EX_IMPL(T, Field, Name)                                     \
         ::pybind11::detail::field_descriptor {                                                    \
-            Name, offsetof(T, Field), sizeof(decltype(std::declval<T>().Field)),                  \
-                ::pybind11::format_descriptor<decltype(std::declval<T>().Field)>::format(),       \
+            Name, offsetof(PYBIND11_UNPAREN_TYPE(T), Field),                                      \
+                sizeof(decltype(std::declval<PYBIND11_UNPAREN_TYPE(T)>().Field)),                 \
+                ::pybind11::format_descriptor<                                                    \
+                    decltype(std::declval<PYBIND11_UNPAREN_TYPE(T)>().Field)>::format(),          \
                 ::pybind11::detail::npy_format_descriptor<                                        \
-                    decltype(std::declval<T>().Field)>::dtype()                                   \
+                    decltype(std::declval<PYBIND11_UNPAREN_TYPE(T)>().Field)>::dtype()            \
         }
 
+#    define PYBIND11_FIELD_DESCRIPTOR_IMPL(T, Field)                                              \
+        PYBIND11_FIELD_DESCRIPTOR_EX_IMPL(T, Field, #Field)
+
+#    define PYBIND11_FIELD_DESCRIPTOR_EX(T, Field, Name)                                          \
+        PYBIND11_FIELD_DESCRIPTOR_EX_IMPL((T), Field, Name)
+
 // Extract name, offset and format descriptor for a struct field
-#    define PYBIND11_FIELD_DESCRIPTOR(T, Field) PYBIND11_FIELD_DESCRIPTOR_EX(T, Field, #Field)
+#    define PYBIND11_FIELD_DESCRIPTOR(T, Field)                                                   \
+        PYBIND11_FIELD_DESCRIPTOR_EX_IMPL((T), Field, #Field)
 
 // The main idea of this macro is borrowed from https://github.com/swansontec/map-macro
 // (C) William Swanson, Paul Fultz
@@ -1846,7 +1859,7 @@ private:
 #    define PYBIND11_NUMPY_DTYPE(Type, ...)                                                       \
         ::pybind11::detail::npy_format_descriptor<Type>::register_dtype(                          \
             ::std::vector<::pybind11::detail::field_descriptor>{                                  \
-                PYBIND11_MAP_LIST(PYBIND11_FIELD_DESCRIPTOR, Type, __VA_ARGS__)})
+                PYBIND11_MAP_LIST(PYBIND11_FIELD_DESCRIPTOR_IMPL, (Type), __VA_ARGS__)})
 
 #    if defined(_MSC_VER) && !defined(__clang__)
 #        define PYBIND11_MAP2_LIST_NEXT1(test, next)                                              \
@@ -1868,7 +1881,7 @@ private:
 #    define PYBIND11_NUMPY_DTYPE_EX(Type, ...)                                                    \
         ::pybind11::detail::npy_format_descriptor<Type>::register_dtype(                          \
             ::std::vector<::pybind11::detail::field_descriptor>{                                  \
-                PYBIND11_MAP2_LIST(PYBIND11_FIELD_DESCRIPTOR_EX, Type, __VA_ARGS__)})
+                PYBIND11_MAP2_LIST(PYBIND11_FIELD_DESCRIPTOR_EX_IMPL, (Type), __VA_ARGS__)})
 
 #endif // __CLION_IDE__
 
