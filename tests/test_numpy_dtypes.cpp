@@ -102,6 +102,12 @@ PYBIND11_PACKED(struct StructWithUglyNames {
     uint64_t __y__;
 });
 
+template <typename T1, typename T2>
+struct TemplatedStruct {
+    T1 a;
+    T2 b;
+};
+
 enum class E1 : int64_t { A = -1, B = 1 };
 enum E2 : uint8_t { X = 1, Y = 2 };
 
@@ -351,6 +357,14 @@ TEST_SUBMODULE(numpy_dtypes, m) {
     PYBIND11_NUMPY_DTYPE(ArrayStruct, a, b, c, d);
     PYBIND11_NUMPY_DTYPE(EnumStruct, e1, e2);
     PYBIND11_NUMPY_DTYPE(ComplexStruct, cflt, cdbl);
+
+    // test_templated_dtype
+    PYBIND11_NUMPY_DTYPE(PYBIND11_TYPE(TemplatedStruct<int32_t, float>), a, b);
+    PYBIND11_NUMPY_DTYPE_EX(PYBIND11_TYPE(TemplatedStruct<int16_t, int16_t>), a, "x", b, "y");
+    m.def("templated_dtypes", []() {
+        return py::make_tuple(py::dtype::of<TemplatedStruct<int32_t, float>>(),
+                              py::dtype::of<TemplatedStruct<int16_t, int16_t>>());
+    });
 
     // ... or after
     py::class_<PackedStruct>(m, "PackedStruct");
