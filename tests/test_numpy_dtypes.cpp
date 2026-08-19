@@ -360,10 +360,23 @@ TEST_SUBMODULE(numpy_dtypes, m) {
 
     // test_templated_dtype
     PYBIND11_NUMPY_DTYPE(PYBIND11_TYPE(TemplatedStruct<int32_t, float>), a, b);
-    PYBIND11_NUMPY_DTYPE_EX(PYBIND11_TYPE(TemplatedStruct<int16_t, int16_t>), a, "x", b, "y");
+    PYBIND11_NUMPY_DTYPE_EX(PYBIND11_TYPE(TemplatedStruct<int16_t, uint16_t>), a, "x", b, "y");
     m.def("templated_dtypes", []() {
         return py::make_tuple(py::dtype::of<TemplatedStruct<int32_t, float>>(),
-                              py::dtype::of<TemplatedStruct<int16_t, int16_t>>());
+                              py::dtype::of<TemplatedStruct<int16_t, uint16_t>>());
+    });
+
+    // test_direct_field_descriptor
+    m.def("direct_field_descriptors", []() {
+        py::detail::field_descriptor direct[]
+            = {PYBIND11_FIELD_DESCRIPTOR(SimpleStruct, uint_),
+               PYBIND11_FIELD_DESCRIPTOR_EX(SimpleStruct, float_, "flt"),
+               PYBIND11_FIELD_DESCRIPTOR(PYBIND11_TYPE(TemplatedStruct<int32_t, float>), b)};
+        py::list names;
+        for (const auto &fd : direct) {
+            names.append(fd.name);
+        }
+        return names;
     });
 
     // ... or after

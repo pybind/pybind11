@@ -209,7 +209,11 @@ def test_templated_dtype():
     """A type spelled with a comma needs PYBIND11_TYPE here."""
     plain, renamed = m.templated_dtypes()
     assert plain == np.dtype([("a", "i4"), ("b", "f4")])
-    assert renamed == np.dtype([("x", "i2"), ("y", "i2")])
+    assert renamed == np.dtype([("x", "i2"), ("y", "u2")])
+
+
+def test_direct_field_descriptor():
+    assert m.direct_field_descriptors() == ["uint_", "flt", "b"]
 
 
 def test_recarray(simple_dtype, packed_dtype):
