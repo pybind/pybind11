@@ -78,7 +78,7 @@ that. Your ``meson.build`` file would look something like this:
        'cpp',
        version: '0.1.0',
        default_options: [
-           'cpp_std=c++11',
+           'cpp_std=c++14',
        ],
    )
 
@@ -649,7 +649,7 @@ On Linux, you can compile an example such as the one given in
 
 .. code-block:: bash
 
-    $ c++ -O3 -Wall -shared -std=c++11 -fPIC $(python3 -m pybind11 --includes) example.cpp -o example$(python3-config --extension-suffix)
+    $ c++ -O3 -Wall -shared -std=c++14 -fPIC $(python3 -m pybind11 --includes) example.cpp -o example$(python3-config --extension-suffix)
 
 The ``python3 -m pybind11 --includes`` command fetches the include paths for
 both pybind11 and Python headers. This assumes that pybind11 has been installed
@@ -663,7 +663,7 @@ building the module:
 
 .. code-block:: bash
 
-    $ c++ -O3 -Wall -shared -std=c++11 -undefined dynamic_lookup $(python3 -m pybind11 --includes) example.cpp -o example$(python3-config --extension-suffix)
+    $ c++ -O3 -Wall -shared -std=c++14 -undefined dynamic_lookup $(python3 -m pybind11 --includes) example.cpp -o example$(python3-config --extension-suffix)
 
 For quick tests, the command line tool can also produce the full set of flags
 for you, based on ``python-config``:

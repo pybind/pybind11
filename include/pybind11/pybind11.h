@@ -1,5 +1,5 @@
 /*
-    pybind11/pybind11.h: Main header file of the C++11 python
+    pybind11/pybind11.h: Main header file of the C++14 python
     binding generator library
 
     Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>

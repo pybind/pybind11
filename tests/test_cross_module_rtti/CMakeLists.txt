@@ -36,7 +36,7 @@ add_library(test_cross_module_rtti_lib::test_cross_module_rtti_lib ALIAS
             test_cross_module_rtti_lib)
 target_include_directories(test_cross_module_rtti_lib PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(test_cross_module_rtti_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_compile_features(test_cross_module_rtti_lib PUBLIC cxx_std_11)
+target_compile_features(test_cross_module_rtti_lib PUBLIC cxx_std_14)
 
 generate_export_header(test_cross_module_rtti_lib)
 
