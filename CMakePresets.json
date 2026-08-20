@@ -12,6 +12,7 @@
       },
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_STANDARD": "17",
         "CMAKE_EXPORT_COMPILE_COMMANDS": true,
         "DOWNLOAD_CATCH": true,
         "DOWNLOAD_EIGEN": true,
@@ -35,8 +36,7 @@
       "inherits": "default",
       "binaryDir": "build-tidy",
       "cacheVariables": {
-        "CMAKE_CXX_CLANG_TIDY": "clang-tidy;--use-color;--warnings-as-errors=*",
-        "CMAKE_CXX_STANDARD": "17"
+        "CMAKE_CXX_CLANG_TIDY": "clang-tidy;--use-color;--warnings-as-errors=*"
       }
     }
   ],
