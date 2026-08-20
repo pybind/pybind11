@@ -857,45 +857,38 @@ template <typename...>
 struct type_list {};
 
 /// Compile-time integer sum
-#ifdef __cpp_fold_expressions
 template <typename... Ts>
 constexpr size_t constexpr_sum(Ts... ns) {
-    return (0 + ... + size_t{ns});
+    size_t result = 0;
+    for (size_t n : {size_t{0}, size_t{ns}...}) {
+        result += n;
+    }
+    return result;
 }
-#else
-constexpr size_t constexpr_sum() { return 0; }
-template <typename T, typename... Ts>
-constexpr size_t constexpr_sum(T n, Ts... ns) {
-    return size_t{n} + constexpr_sum(ns...);
-}
-#endif
-
-PYBIND11_NAMESPACE_BEGIN(constexpr_impl)
-/// Implementation details for constexpr functions
-constexpr int first(int i) { return i; }
-template <typename T, typename... Ts>
-constexpr int first(int i, T v, Ts... vs) {
-    return v ? i : first(i + 1, vs...);
-}
-
-constexpr int last(int /*i*/, int result) { return result; }
-template <typename T, typename... Ts>
-constexpr int last(int i, int result, T v, Ts... vs) {
-    return last(i + 1, v ? i : result, vs...);
-}
-PYBIND11_NAMESPACE_END(constexpr_impl)
 
 /// Return the index of the first type in Ts which satisfies Predicate<T>.
 /// Returns sizeof...(Ts) if none match.
 template <template <typename> class Predicate, typename... Ts>
 constexpr int constexpr_first() {
-    return constexpr_impl::first(0, Predicate<Ts>::value...);
+    constexpr bool matches[] = {Predicate<Ts>::value..., false};
+    for (int i = 0; i < static_cast<int>(sizeof...(Ts)); ++i) {
+        if (matches[i]) {
+            return i;
+        }
+    }
+    return static_cast<int>(sizeof...(Ts));
 }
 
 /// Return the index of the last type in Ts which satisfies Predicate<T>, or -1 if none match.
 template <template <typename> class Predicate, typename... Ts>
 constexpr int constexpr_last() {
-    return constexpr_impl::last(0, -1, Predicate<Ts>::value...);
+    constexpr bool matches[] = {Predicate<Ts>::value..., false};
+    for (int i = static_cast<int>(sizeof...(Ts)) - 1; i >= 0; --i) {
+        if (matches[i]) {
+            return i;
+        }
+    }
+    return -1;
 }
 
 /// Return the Nth element from the parameter pack
@@ -999,9 +992,8 @@ struct is_input_iterator<T,
     : std::true_type {};
 
 template <typename T>
-using is_function_pointer
-    = bool_constant<std::is_pointer<T>::value
-                    && std::is_function<typename std::remove_pointer<T>::type>::value>;
+using is_function_pointer = bool_constant<std::is_pointer<T>::value
+                                          && std::is_function<std::remove_pointer_t<T>>::value>;
 
 template <typename F>
 struct strip_function_object {

@@ -150,7 +150,7 @@ void vector_modifiers(
         "Add an item to the end of the list");
 
     cl.def(init([](const iterable &it) {
-        auto v = std::unique_ptr<Vector>(new Vector());
+        auto v = std::make_unique<Vector>();
         v->reserve(len_hint(it));
         for (handle h : it) {
             v->push_back(h.cast<T>());

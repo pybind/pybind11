@@ -842,7 +842,7 @@ struct shared_ptr_trampoline_self_life_support {
 
 template <typename T,
           typename D,
-          typename std::enable_if<std::is_default_constructible<D>::value, int>::type = 0>
+          std::enable_if_t<std::is_default_constructible<D>::value, int> = 0>
 inline std::unique_ptr<T, D> unique_with_deleter(T *raw_ptr, std::unique_ptr<D> &&deleter) {
     if (deleter == nullptr) {
         return std::unique_ptr<T, D>(raw_ptr);
@@ -852,7 +852,7 @@ inline std::unique_ptr<T, D> unique_with_deleter(T *raw_ptr, std::unique_ptr<D> 
 
 template <typename T,
           typename D,
-          typename std::enable_if<!std::is_default_constructible<D>::value, int>::type = 0>
+          std::enable_if_t<!std::is_default_constructible<D>::value, int> = 0>
 inline std::unique_ptr<T, D> unique_with_deleter(T *raw_ptr, std::unique_ptr<D> &&deleter) {
     if (deleter == nullptr) {
         pybind11_fail("smart_holder_type_casters: deleter is not default constructible and no"
@@ -1361,8 +1361,8 @@ inline object cpp_conduit_method(handle self,
  */
 template <typename T>
 using cast_op_type = conditional_t<std::is_pointer<remove_reference_t<T>>::value,
-                                   typename std::add_pointer<intrinsic_t<T>>::type,
-                                   typename std::add_lvalue_reference<intrinsic_t<T>>::type>;
+                                   std::add_pointer_t<intrinsic_t<T>>,
+                                   std::add_lvalue_reference_t<intrinsic_t<T>>>;
 
 /**
  * Determine suitable casting operator for a type caster with a movable value.  Such a type caster
@@ -1373,11 +1373,11 @@ using cast_op_type = conditional_t<std::is_pointer<remove_reference_t<T>>::value
  */
 template <typename T>
 using movable_cast_op_type
-    = conditional_t<std::is_pointer<typename std::remove_reference<T>::type>::value,
-                    typename std::add_pointer<intrinsic_t<T>>::type,
+    = conditional_t<std::is_pointer<std::remove_reference_t<T>>::value,
+                    std::add_pointer_t<intrinsic_t<T>>,
                     conditional_t<std::is_rvalue_reference<T>::value,
-                                  typename std::add_rvalue_reference<intrinsic_t<T>>::type,
-                                  typename std::add_lvalue_reference<intrinsic_t<T>>::type>>;
+                                  std::add_rvalue_reference_t<intrinsic_t<T>>,
+                                  std::add_lvalue_reference_t<intrinsic_t<T>>>>;
 
 // Does the container have a mapped type and is it recursive?
 // Implemented by specializations below.
@@ -1390,8 +1390,7 @@ struct container_mapped_type_traits {
 template <typename Container>
 struct container_mapped_type_traits<
     Container,
-    typename std::enable_if<
-        std::is_same<typename Container::mapped_type, Container>::value>::type> {
+    std::enable_if_t<std::is_same<typename Container::mapped_type, Container>::value>> {
     static constexpr bool has_mapped_type = true;
     static constexpr bool has_recursive_mapped_type = true;
 };
@@ -1399,8 +1398,7 @@ struct container_mapped_type_traits<
 template <typename Container>
 struct container_mapped_type_traits<
     Container,
-    typename std::enable_if<
-        negation<std::is_same<typename Container::mapped_type, Container>>::value>::type> {
+    std::enable_if_t<negation<std::is_same<typename Container::mapped_type, Container>>::value>> {
     static constexpr bool has_mapped_type = true;
     static constexpr bool has_recursive_mapped_type = false;
 };
@@ -1416,8 +1414,7 @@ struct container_value_type_traits : std::false_type {
 template <typename Container>
 struct container_value_type_traits<
     Container,
-    typename std::enable_if<
-        std::is_same<typename Container::value_type, Container>::value>::type> {
+    std::enable_if_t<std::is_same<typename Container::value_type, Container>::value>> {
     static constexpr bool has_value_type = true;
     static constexpr bool has_recursive_value_type = true;
 };
@@ -1425,8 +1422,7 @@ struct container_value_type_traits<
 template <typename Container>
 struct container_value_type_traits<
     Container,
-    typename std::enable_if<
-        negation<std::is_same<typename Container::value_type, Container>>::value>::type> {
+    std::enable_if_t<negation<std::is_same<typename Container::value_type, Container>>::value>> {
     static constexpr bool has_value_type = true;
     static constexpr bool has_recursive_value_type = false;
 };
@@ -1461,8 +1457,8 @@ struct impl_type_to_check_recursively {
  */
 template <typename A, typename B>
 struct impl_type_to_check_recursively<std::pair<A, B>, /* is_this_a_map = */ true> {
-    using if_recursive = typename std::remove_const<A>::type;
-    using if_not_recursive = std::pair<typename std::remove_const<A>::type, B>;
+    using if_recursive = std::remove_const_t<A>;
+    using if_not_recursive = std::pair<std::remove_const_t<A>, B>;
 };
 
 /*
@@ -1476,7 +1472,7 @@ struct impl_recursive_container_traits {
 template <typename Container>
 struct impl_recursive_container_traits<
     Container,
-    typename std::enable_if<container_value_type_traits<Container>::has_value_type>::type> {
+    std::enable_if_t<container_value_type_traits<Container>::has_value_type>> {
     static constexpr bool is_recursive
         = container_mapped_type_traits<Container>::has_recursive_mapped_type
           || container_value_type_traits<Container>::has_recursive_value_type;
@@ -1489,14 +1485,14 @@ struct impl_recursive_container_traits<
      *    should be removed.
      *
      */
-    using type_to_check_recursively = typename std::conditional<
+    using type_to_check_recursively = std::conditional_t<
         is_recursive,
         typename impl_type_to_check_recursively<
             typename Container::value_type,
             container_mapped_type_traits<Container>::has_mapped_type>::if_recursive,
         typename impl_type_to_check_recursively<
             typename Container::value_type,
-            container_mapped_type_traits<Container>::has_mapped_type>::if_not_recursive>::type;
+            container_mapped_type_traits<Container>::has_mapped_type>::if_not_recursive>;
 };
 
 /*

@@ -158,7 +158,7 @@ struct numpy_internals {
 
     template <typename T>
     numpy_type_info *get_type_info(bool throw_if_missing = true) {
-        return get_type_info(typeid(typename std::remove_cv<T>::type), throw_if_missing);
+        return get_type_info(typeid(std::remove_cv_t<T>), throw_if_missing);
     }
 };
 
@@ -881,14 +881,14 @@ public:
     /// Return dtype associated with a C++ type.
     template <typename T>
     static dtype of() {
-        return detail::npy_format_descriptor<typename std::remove_cv<T>::type>::dtype();
+        return detail::npy_format_descriptor<std::remove_cv_t<T>>::dtype();
     }
 
     /// Return the type number associated with a C++ type.
     /// This is the constexpr equivalent of `dtype::of<T>().num()`.
     template <typename T>
     static constexpr int num_of() {
-        return detail::npy_format_descriptor<typename std::remove_cv<T>::type>::value;
+        return detail::npy_format_descriptor<std::remove_cv_t<T>>::value;
     }
 
     /// Size of the data type in bytes.
@@ -1528,7 +1528,7 @@ protected:
 template <typename T>
 struct format_descriptor<T, detail::enable_if_t<detail::is_pod_struct<T>::value>> {
     static std::string format() {
-        return detail::npy_format_descriptor<typename std::remove_cv<T>::type>::format();
+        return detail::npy_format_descriptor<std::remove_cv_t<T>>::format();
     }
 };
 
@@ -1544,8 +1544,7 @@ struct format_descriptor<std::array<char, N>> {
 template <typename T>
 struct format_descriptor<T, detail::enable_if_t<std::is_enum<T>::value>> {
     static std::string format() {
-        return format_descriptor<
-            typename std::remove_cv<typename std::underlying_type<T>::type>::type>::format();
+        return format_descriptor<std::remove_cv_t<std::underlying_type_t<T>>>::format();
     }
 };
 
@@ -1662,7 +1661,7 @@ public:
 template <typename T>
 struct npy_format_descriptor<T, enable_if_t<std::is_enum<T>::value>> {
 private:
-    using base_descr = npy_format_descriptor<typename std::underlying_type<T>::type>;
+    using base_descr = npy_format_descriptor<std::underlying_type_t<T>>;
 
 public:
     static constexpr auto name = base_descr::name;
@@ -1767,10 +1766,8 @@ struct npy_format_descriptor {
     }
 
     static void register_dtype(any_container<field_descriptor> fields) {
-        register_structured_dtype(std::move(fields),
-                                  typeid(typename std::remove_cv<T>::type),
-                                  sizeof(T),
-                                  &direct_converter);
+        register_structured_dtype(
+            std::move(fields), typeid(std::remove_cv_t<T>), sizeof(T), &direct_converter);
     }
 
 private:
@@ -2155,8 +2152,8 @@ private:
 public:
     template <typename T,
               // SFINAE to prevent shadowing the copy constructor.
-              typename = detail::enable_if_t<
-                  !std::is_same<vectorize_helper, typename std::decay<T>::type>::value>>
+              typename
+              = detail::enable_if_t<!std::is_same<vectorize_helper, std::decay_t<T>>::value>>
     explicit vectorize_helper(T &&f) : f(std::forward<T>(f)) {}
 
     object operator()(typename vectorize_arg<Args>::type... args) {
@@ -2173,7 +2170,7 @@ private:
     // with "/permissive-" flag when arg_call_types is manually inlined.
     using arg_call_types = std::tuple<typename vectorize_arg<Args>::call_type...>;
     template <size_t Index>
-    using param_n_t = typename std::tuple_element<Index, arg_call_types>::type;
+    using param_n_t = std::tuple_element_t<Index, arg_call_types>;
 
     using returned_array = vectorize_returned_array<Func, Return, Args...>;
 
