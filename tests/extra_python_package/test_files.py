@@ -62,6 +62,7 @@ main_headers = {
     "include/pybind11/operators.h",
     "include/pybind11/options.h",
     "include/pybind11/pybind11.h",
+    "include/pybind11/pytypes-inl.h",
     "include/pybind11/pytypes.h",
     "include/pybind11/subinterpreter.h",
     "include/pybind11/stl.h",
@@ -90,6 +91,7 @@ detail_headers = {
     "include/pybind11/detail/function_ref.h",
     "include/pybind11/detail/holder_caster_foreign_helpers.h",
     "include/pybind11/detail/init.h",
+    "include/pybind11/detail/internals-inl.h",
     "include/pybind11/detail/internals.h",
     "include/pybind11/detail/native_enum_data.h",
     "include/pybind11/detail/pybind11_namespace_macros.h",
@@ -126,6 +128,14 @@ pkgconfig_files = {
     "share/pkgconfig/pybind11.pc",
 }
 
+sdist_src_files = {
+    "src/internals.cpp",
+    "src/pybind11_combined.cpp",
+    "src/pytypes.cpp",
+}
+
+src_files = {f"share/pybind11/{n}" for n in sdist_src_files}
+
 py_files = {
     "__init__.py",
     "__main__.py",
@@ -138,7 +148,7 @@ py_files = {
 }
 
 headers = main_headers | conduit_headers | detail_headers | eigen_headers | stl_headers
-generated_files = cmake_files | pkgconfig_files
+generated_files = cmake_files | pkgconfig_files | src_files
 all_files = headers | generated_files | py_files
 
 sdist_files = {
@@ -204,7 +214,7 @@ def test_build_sdist(monkeypatch, tmpdir):
         pyproject_toml = read_tz_file(tar, "pyproject.toml")
         pkg_info = read_tz_file(tar, pkg_info_path).decode("utf-8")
 
-    files = headers | sdist_files
+    files = headers | sdist_src_files | sdist_files
     assert files <= simpler
 
     assert b'name = "pybind11"' in pyproject_toml
@@ -241,7 +251,7 @@ def test_build_global_dist(monkeypatch, tmpdir):
         pyproject_toml = read_tz_file(tar, "pyproject.toml")
         pkg_info = read_tz_file(tar, pkg_info_path).decode("utf-8")
 
-    files = headers | sdist_files
+    files = headers | sdist_src_files | sdist_files
     assert files <= simpler
 
     assert b'name = "pybind11-global"' in pyproject_toml
