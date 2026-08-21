@@ -49,17 +49,18 @@ typename make_caster<T>::template cast_op_type<T> cast_op(make_caster<T> &caster
     return caster.operator result_t();
 }
 template <typename T>
-typename make_caster<T>::template cast_op_type<typename std::add_rvalue_reference<T>::type>
+typename make_caster<T>::template cast_op_type<std::add_rvalue_reference_t<T>>
 cast_op(make_caster<T> &&caster) {
-    using result_t = typename make_caster<T>::template cast_op_type<
-        typename std::add_rvalue_reference<T>::type>; // See PR #4893
+    using result_t =
+        typename make_caster<T>::template cast_op_type<std::add_rvalue_reference_t<T>>; // See PR
+                                                                                        // #4893
     return std::move(caster).operator result_t();
 }
 
 template <typename EnumType>
 class type_caster_enum_type {
 private:
-    using Underlying = typename std::underlying_type<EnumType>::type;
+    using Underlying = std::underlying_type_t<EnumType>;
 
 public:
     static constexpr auto name = const_name<EnumType>();
@@ -167,11 +168,10 @@ private:
     using reference_t = type &;
     using subcaster_cast_op_type = typename caster_t::template cast_op_type<reference_t>;
 
-    static_assert(
-        std::is_same<typename std::remove_const<type>::type &, subcaster_cast_op_type>::value
-            || std::is_same<reference_t, subcaster_cast_op_type>::value,
-        "std::reference_wrapper<T> caster requires T to have a caster with an "
-        "`operator T &()` or `operator const T &()`");
+    static_assert(std::is_same<std::remove_const_t<type> &, subcaster_cast_op_type>::value
+                      || std::is_same<reference_t, subcaster_cast_op_type>::value,
+                  "std::reference_wrapper<T> caster requires T to have a caster with an "
+                  "`operator T &()` or `operator const T &()`");
 
 public:
     bool load(handle src, bool convert) { return subcaster.load(src, convert); }
@@ -230,9 +230,8 @@ using is_std_char_type = any_of<std::is_same<CharT, char>, /* std::string */
 template <typename T>
 struct type_caster<T, enable_if_t<std::is_arithmetic<T>::value && !is_std_char_type<T>::value>> {
     using _py_type_0 = conditional_t<sizeof(T) <= sizeof(long), long, long long>;
-    using _py_type_1 = conditional_t<std::is_signed<T>::value,
-                                     _py_type_0,
-                                     typename std::make_unsigned<_py_type_0>::type>;
+    using _py_type_1
+        = conditional_t<std::is_signed<T>::value, _py_type_0, std::make_unsigned_t<_py_type_0>>;
     using py_type = conditional_t<std::is_floating_point<T>::value, double, _py_type_1>;
 
 public:
@@ -310,39 +309,39 @@ public:
     }
 
     template <typename U = T>
-    static typename std::enable_if<std::is_floating_point<U>::value, handle>::type
+    static std::enable_if_t<std::is_floating_point<U>::value, handle>
     cast(U src, return_value_policy /* policy */, handle /* parent */) {
         return PyFloat_FromDouble((double) src);
     }
 
     template <typename U = T>
-    static typename std::enable_if<!std::is_floating_point<U>::value && std::is_signed<U>::value
-                                       && (sizeof(U) <= sizeof(long)),
-                                   handle>::type
+    static std::enable_if_t<!std::is_floating_point<U>::value && std::is_signed<U>::value
+                                && (sizeof(U) <= sizeof(long)),
+                            handle>
     cast(U src, return_value_policy /* policy */, handle /* parent */) {
         return PYBIND11_LONG_FROM_SIGNED((long) src);
     }
 
     template <typename U = T>
-    static typename std::enable_if<!std::is_floating_point<U>::value && std::is_unsigned<U>::value
-                                       && (sizeof(U) <= sizeof(unsigned long)),
-                                   handle>::type
+    static std::enable_if_t<!std::is_floating_point<U>::value && std::is_unsigned<U>::value
+                                && (sizeof(U) <= sizeof(unsigned long)),
+                            handle>
     cast(U src, return_value_policy /* policy */, handle /* parent */) {
         return PYBIND11_LONG_FROM_UNSIGNED((unsigned long) src);
     }
 
     template <typename U = T>
-    static typename std::enable_if<!std::is_floating_point<U>::value && std::is_signed<U>::value
-                                       && (sizeof(U) > sizeof(long)),
-                                   handle>::type
+    static std::enable_if_t<!std::is_floating_point<U>::value && std::is_signed<U>::value
+                                && (sizeof(U) > sizeof(long)),
+                            handle>
     cast(U src, return_value_policy /* policy */, handle /* parent */) {
         return PyLong_FromLongLong((long long) src);
     }
 
     template <typename U = T>
-    static typename std::enable_if<!std::is_floating_point<U>::value && std::is_unsigned<U>::value
-                                       && (sizeof(U) > sizeof(unsigned long)),
-                                   handle>::type
+    static std::enable_if_t<!std::is_floating_point<U>::value && std::is_unsigned<U>::value
+                                && (sizeof(U) > sizeof(unsigned long)),
+                            handle>
     cast(U src, return_value_policy /* policy */, handle /* parent */) {
         return PyLong_FromUnsignedLongLong((unsigned long long) src);
     }
@@ -1269,13 +1268,12 @@ public:
     }
 
     template <typename T_>
-    using cast_op_type
-        = conditional_t<std::is_same<typename std::remove_volatile<T_>::type,
-                                     const std::unique_ptr<type, deleter> &>::value
-                            || std::is_same<typename std::remove_volatile<T_>::type,
-                                            const std::unique_ptr<const type, deleter> &>::value,
-                        const std::unique_ptr<type, deleter> &,
-                        std::unique_ptr<type, deleter>>;
+    using cast_op_type = conditional_t<
+        std::is_same<std::remove_volatile_t<T_>, const std::unique_ptr<type, deleter> &>::value
+            || std::is_same<std::remove_volatile_t<T_>,
+                            const std::unique_ptr<const type, deleter> &>::value,
+        const std::unique_ptr<type, deleter> &,
+        std::unique_ptr<type, deleter>>;
 
     explicit operator std::unique_ptr<type, deleter>() {
         if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
@@ -1738,7 +1736,7 @@ template <typename T, detail::enable_if_t<!detail::is_pyobject<T>::value, int> =
 object cast(T &&value,
             return_value_policy policy = return_value_policy::automatic_reference,
             handle parent = handle()) {
-    using no_ref_T = typename std::remove_reference<T>::type;
+    using no_ref_T = std::remove_reference_t<T>;
     if (policy == return_value_policy::automatic) {
         policy = std::is_pointer<no_ref_T>::value     ? return_value_policy::take_ownership
                  : std::is_lvalue_reference<T>::value ? return_value_policy::copy

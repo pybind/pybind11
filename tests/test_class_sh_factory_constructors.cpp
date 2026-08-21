@@ -41,7 +41,7 @@ atyp_mptr*       rtrn_mptr() { return new atyp_mptr{"Mptr"}; }
 std::shared_ptr<atyp_shmp>       rtrn_shmp() { return std::make_shared<atyp_shmp>(atyp_shmp{"Shmp"}); }
 std::shared_ptr<atyp_shcp const> rtrn_shcp() { return std::shared_ptr<atyp_shcp const>(new atyp_shcp{"Shcp"}); }
 
-std::unique_ptr<atyp_uqmp>       rtrn_uqmp() { return std::unique_ptr<atyp_uqmp      >(new atyp_uqmp{"Uqmp"}); }
+std::unique_ptr<atyp_uqmp>       rtrn_uqmp() { return std::make_unique<atyp_uqmp      >(atyp_uqmp{"Uqmp"}); }
 std::unique_ptr<atyp_uqcp const> rtrn_uqcp() { return std::unique_ptr<atyp_uqcp const>(new atyp_uqcp{"Uqcp"}); }
 
 struct sddm : std::default_delete<atyp_udmp      > {};
@@ -135,7 +135,7 @@ TEST_SUBMODULE(class_sh_factory_constructors, m) {
             return p;
         }))
         .def(py::init([](int i, int j) {
-            auto p = std::unique_ptr<with_alias_alias>(new with_alias_alias);
+            auto p = std::make_unique<with_alias_alias>();
             p->val = i * 100 + j * 10;
             return p;
         }))
@@ -144,11 +144,10 @@ TEST_SUBMODULE(class_sh_factory_constructors, m) {
             p->val = i * 100 + j * 10 + k;
             return p;
         }))
-        .def(py::init(
-            [](int, int, int, int) { return std::unique_ptr<with_alias>(new with_alias); },
-            [](int, int, int, int) {
-                return std::unique_ptr<with_alias>(new with_alias); // Invalid alias factory.
-            }))
+        .def(py::init([](int, int, int, int) { return std::make_unique<with_alias>(); },
+                      [](int, int, int, int) {
+                          return std::make_unique<with_alias>(); // Invalid alias factory.
+                      }))
         .def(py::init([](int, int, int, int, int) { return std::make_shared<with_alias>(); },
                       [](int, int, int, int, int) {
                           return std::make_shared<with_alias>(); // Invalid alias factory.

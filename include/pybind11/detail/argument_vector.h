@@ -31,7 +31,7 @@ PYBIND11_WARNING_DISABLE_MSVC(4127)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 // Shared implementation utility for our small_vector-like containers.
-// We support C++11 and C++14, so we cannot use
+// We support C++14, so we cannot use
 // std::variant. Union with the tag packed next to the inline
 // array's size is smaller anyway, allowing 1 extra handle of
 // inline storage for free. Compare the layouts (1 line per

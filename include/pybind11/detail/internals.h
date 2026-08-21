@@ -626,7 +626,7 @@ std::pair<Payload *, bool> atomic_get_or_create_in_state_dict(const char *key,
         // Storage doesn't exist yet, create a new one.
         // Use unique_ptr for exception safety: if capsule creation throws, the storage is
         // automatically deleted.
-        auto storage_ptr = std::unique_ptr<Payload>(new Payload{});
+        auto storage_ptr = std::make_unique<Payload>();
         auto new_capsule
             = capsule(storage_ptr.get(),
                       // The destructor will be called when the capsule is GC'ed.
@@ -753,7 +753,7 @@ public:
         // Assume the GIL is held here. May call back into Python. We cannot hold the lock with our
         // mutex here. So there may be multiple threads creating the content at the same time. Only
         // one will install its content to pp below. Others will be freed when going out of scope.
-        auto tmp = std::unique_ptr<InternalsType>(new InternalsType());
+        auto tmp = std::make_unique<InternalsType>();
 
         {
             // Lock scope must not include Python calls, which may require the GIL and cause

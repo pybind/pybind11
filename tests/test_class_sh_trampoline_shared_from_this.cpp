@@ -94,7 +94,7 @@ void pass_unique_ptr_rref(std::unique_ptr<Sft> &&) {
 Sft *make_pure_cpp_sft_raw_ptr(const std::string &history_seed) { return new Sft{history_seed}; }
 
 std::unique_ptr<Sft> make_pure_cpp_sft_unq_ptr(const std::string &history_seed) {
-    return std::unique_ptr<Sft>(new Sft{history_seed});
+    return std::make_unique<Sft>(history_seed);
 }
 
 std::shared_ptr<Sft> make_pure_cpp_sft_shd_ptr(const std::string &history_seed) {

@@ -108,12 +108,12 @@ inline guarded_delete *get_guarded_delete(const std::shared_ptr<void> &ptr) {
 
 using get_guarded_delete_fn = guarded_delete *(*) (const std::shared_ptr<void> &);
 
-template <typename T, typename std::enable_if<std::is_destructible<T>::value, int>::type = 0>
+template <typename T, std::enable_if_t<std::is_destructible<T>::value, int> = 0>
 inline void std_default_delete_if_destructible(void *raw_ptr) {
     std::default_delete<T>{}(static_cast<T *>(raw_ptr));
 }
 
-template <typename T, typename std::enable_if<!std::is_destructible<T>::value, int>::type = 0>
+template <typename T, std::enable_if_t<!std::is_destructible<T>::value, int> = 0>
 inline void std_default_delete_if_destructible(void *) {
     // This noop operator is needed to avoid a compilation error (for `delete raw_ptr;`), but
     // throwing an exception from a destructor will std::terminate the process. Therefore the
@@ -273,7 +273,7 @@ struct smart_holder {
             }
             static_assert(std::is_copy_constructible<D>::value,
                           "Required for compatibility with smart_holder functionality.");
-            return std::unique_ptr<D>(new D(custom_deleter_ptr->deleter));
+            return std::make_unique<D>(custom_deleter_ptr->deleter);
         }
         return nullptr;
     }

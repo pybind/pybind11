@@ -77,7 +77,7 @@ std::shared_ptr<VBase> make_diamond_as_vbase_shared_ptr() {
 }
 
 std::unique_ptr<VBase> make_diamond_as_vbase_unique_ptr() {
-    auto uqptr = std::unique_ptr<Diamond>(new Diamond);
+    auto uqptr = std::make_unique<Diamond>();
     return uqptr; // upcast
 }
 
@@ -132,7 +132,7 @@ public:
         return std::make_shared<Tiger>(*this); // upcast
     }
     std::unique_ptr<Animal> clone_unique_ptr() const override {
-        return std::unique_ptr<Tiger>(new Tiger(*this)); // upcast
+        return std::make_unique<Tiger>(*this); // upcast
     }
 };
 
@@ -142,7 +142,7 @@ TEST_SUBMODULE(class_sh_mi_thunks, m) {
     using namespace test_class_sh_mi_thunks;
 
     m.def("ptrdiff_drvd_base0", []() {
-        auto drvd = std::unique_ptr<Derived>(new Derived);
+        auto drvd = std::make_unique<Derived>();
         auto *base0 = dynamic_cast<Base0 *>(drvd.get());
         return std::ptrdiff_t(reinterpret_cast<char *>(drvd.get())
                               - reinterpret_cast<char *>(base0));
@@ -168,7 +168,7 @@ TEST_SUBMODULE(class_sh_mi_thunks, m) {
     });
 
     m.def("get_drvd_as_base0_unique_ptr", []() {
-        auto drvd = std::unique_ptr<Derived>(new Derived);
+        auto drvd = std::make_unique<Derived>();
         auto base0 = std::unique_ptr<Base0>(std::move(drvd));
         return base0;
     });

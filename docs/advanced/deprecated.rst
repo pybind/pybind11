@@ -3,8 +3,8 @@
 Deprecated
 ##########
 
-Support for C++11 is deprecated and will be removed in a future version. Please
-use at least C++14.
+Support for C++11 was removed in pybind11 3.1. Please use at least C++14;
+C++17 or newer is recommended.
 
 Support for FindPythonLibs (not available in CMake 3.26+ mode) is deprecated
 and will be removed in a future version. The default mode is also going to

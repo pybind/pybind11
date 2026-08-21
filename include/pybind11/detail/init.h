@@ -388,17 +388,9 @@ struct factory<Func, void_type (*)(), Return(Args...), void_type()> {
     // instance, or the alias needs to be constructible from a `Class &&` argument.
     template <typename Class, typename... Extra>
     void execute(Class &cl, const Extra &...extra) && {
-#if defined(PYBIND11_CPP14)
         cl.def(
             "__init__",
-            [func = std::move(class_factory)]
-#else
-        auto &func = class_factory;
-        cl.def(
-            "__init__",
-            [func]
-#endif
-            (value_and_holder &v_h, Args... args) {
+            [func = std::move(class_factory)](value_and_holder &v_h, Args... args) {
                 construct<Class>(
                     v_h, func(std::forward<Args>(args)...), Py_TYPE(v_h.inst) != v_h.type->type);
             },
@@ -435,18 +427,10 @@ struct factory<CFunc, AFunc, CReturn(CArgs...), AReturn(AArgs...)> {
         static_assert(Class::has_alias,
                       "The two-argument version of `py::init()` can "
                       "only be used if the class has an alias");
-#if defined(PYBIND11_CPP14)
         cl.def(
             "__init__",
-            [class_func = std::move(class_factory), alias_func = std::move(alias_factory)]
-#else
-        auto &class_func = class_factory;
-        auto &alias_func = alias_factory;
-        cl.def(
-            "__init__",
-            [class_func, alias_func]
-#endif
-            (value_and_holder &v_h, CArgs... args) {
+            [class_func = std::move(class_factory),
+             alias_func = std::move(alias_factory)](value_and_holder &v_h, CArgs... args) {
                 if (Py_TYPE(v_h.inst) == v_h.type->type) {
                     // If the instance type equals the registered type we don't have inheritance,
                     // so don't need the alias and can construct using the class function:
@@ -524,17 +508,9 @@ struct pickle_factory<Get, Set, RetState(Self), NewInstance(ArgState)> {
     void execute(Class &cl, const Extra &...extra) && {
         cl.def("__getstate__", std::move(get), pos_only());
 
-#if defined(PYBIND11_CPP14)
         cl.def(
             "__setstate__",
-            [func = std::move(set)]
-#else
-        auto &func = set;
-        cl.def(
-            "__setstate__",
-            [func]
-#endif
-            (value_and_holder &v_h, ArgState state) {
+            [func = std::move(set)](value_and_holder &v_h, ArgState state) {
                 setstate<Class>(
                     v_h, func(std::forward<ArgState>(state)), Py_TYPE(v_h.inst) != v_h.type->type);
             },
