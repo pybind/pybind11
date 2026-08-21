@@ -1202,7 +1202,7 @@ struct format_descriptor<T, detail::enable_if_t<std::is_arithmetic<T>::value>> {
     static std::string format() { return std::string(1, c); }
 };
 
-#if !defined(PYBIND11_CPP17)
+#if !defined(__cpp_inline_variables) || __cpp_inline_variables < 201606L
 
 template <typename T>
 constexpr const char
@@ -1278,7 +1278,7 @@ struct overload_cast_impl {
 PYBIND11_NAMESPACE_END(detail)
 
 // overload_cast requires variable templates: C++14
-#if defined(PYBIND11_CPP14)
+#if defined(__cpp_variable_templates) && __cpp_variable_templates >= 201304L
 #    define PYBIND11_OVERLOAD_CAST 1
 /// Syntax sugar for resolving overloaded function pointers:
 ///  - regular: static_cast<Return (Class::*)(Arg0, Arg1, Arg2)>(&Class::func)
@@ -1292,7 +1292,8 @@ static constexpr detail::overload_cast_impl<Args...> overload_cast{};
 ///  - sweet:   overload_cast<Arg>(&Class::func, const_)
 static constexpr auto const_ = std::true_type{};
 
-#if !defined(PYBIND11_CPP14) // no overload_cast: providing something that static_assert-fails:
+#if !defined(__cpp_variable_templates) || __cpp_variable_templates < 201304L
+// No overload_cast: providing something that static_assert-fails.
 template <typename... Args>
 struct overload_cast {
     static_assert(detail::deferred_t<std::false_type, Args...>::value,
