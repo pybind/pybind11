@@ -10,8 +10,14 @@
 #pragma once
 
 #include "pybind11.h"
+#include "detail/common.h"
+#include "detail/descr.h"
+#include "cast.h"
+#include "pytypes.h"
 
 #include <complex>
+#include <string>
+#include <type_traits>
 
 /// glibc defines I as a macro which breaks things, e.g., boost template names
 #ifdef I
