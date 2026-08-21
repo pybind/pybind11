@@ -17,9 +17,7 @@ public:
     pointee &operator=(pointee &&) = delete;
 };
 
-inline std::unique_ptr<pointee> make_unique_pointee() {
-    return std::unique_ptr<pointee>(new pointee);
-}
+inline std::unique_ptr<pointee> make_unique_pointee() { return std::make_unique<pointee>(); }
 
 class ptr_owner {
 public:

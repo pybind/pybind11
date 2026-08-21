@@ -715,12 +715,11 @@ public:
     /// shapes
     template <bool Dyn = Dynamic>
     enable_if_t<!Dyn, ssize_t> size() const {
-        return std::accumulate(
-            shape_.begin(), shape_.end(), (ssize_t) 1, std::multiplies<ssize_t>());
+        return std::accumulate(shape_.begin(), shape_.end(), (ssize_t) 1, std::multiplies<>());
     }
     template <bool Dyn = Dynamic>
     enable_if_t<Dyn, ssize_t> size() const {
-        return std::accumulate(shape_, shape_ + ndim(), (ssize_t) 1, std::multiplies<ssize_t>());
+        return std::accumulate(shape_, shape_ + ndim(), (ssize_t) 1, std::multiplies<>());
     }
 
     /// Returns the total number of bytes used by the referenced data.  Note that the actual span
@@ -1129,7 +1128,7 @@ public:
 
     /// Total number of elements
     ssize_t size() const {
-        return std::accumulate(shape(), shape() + ndim(), (ssize_t) 1, std::multiplies<ssize_t>());
+        return std::accumulate(shape(), shape() + ndim(), (ssize_t) 1, std::multiplies<>());
     }
 
     /// Byte size of a single element
@@ -2202,8 +2201,7 @@ private:
         auto trivial = broadcast(buffers, nd, shape);
         auto ndim = (size_t) nd;
 
-        size_t size
-            = std::accumulate(shape.begin(), shape.end(), (size_t) 1, std::multiplies<size_t>());
+        size_t size = std::accumulate(shape.begin(), shape.end(), (size_t) 1, std::multiplies<>());
 
         // If all arguments are 0-dimension arrays (i.e. single values) return a plain value (i.e.
         // not wrapped in an array).

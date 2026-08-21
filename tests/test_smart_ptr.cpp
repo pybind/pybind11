@@ -11,6 +11,8 @@
 #include "object.h"
 #include "pybind11_tests.h"
 
+#include <memory>
+
 // This breaks on PYBIND11_DECLARE_HOLDER_TYPE
 PYBIND11_WARNING_DISABLE_GCC("-Wpedantic")
 
@@ -438,8 +440,7 @@ void wrap(py::module_ &m) {
     m.def("return_std_shared_ptr_example_drvd",
           // NOLINTNEXTLINE(modernize-make-shared)
           []() { return std::shared_ptr<example_drvd>(new example_drvd()); });
-    m.def("return_std_unique_ptr_example_drvd",
-          []() { return std::unique_ptr<example_drvd>(new example_drvd()); });
+    m.def("return_std_unique_ptr_example_drvd", []() { return std::make_unique<example_drvd>(); });
 }
 
 } // namespace holder_caster_traits_test

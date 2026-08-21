@@ -84,7 +84,7 @@ std::shared_ptr<atyp const> rtrn_shcp() { return std::shared_ptr<atyp const>(new
 std::string pass_shmp(std::shared_ptr<atyp>       obj) { return "pass_shmp:" + obj->mtxt; } // NOLINT
 std::string pass_shcp(std::shared_ptr<atyp const> obj) { return "pass_shcp:" + obj->mtxt; } // NOLINT
 
-std::unique_ptr<atyp>       rtrn_uqmp() { return std::unique_ptr<atyp      >(new atyp{"rtrn_uqmp"}); }
+std::unique_ptr<atyp>       rtrn_uqmp() { return std::make_unique<atyp      >("rtrn_uqmp"); }
 std::unique_ptr<atyp const> rtrn_uqcp() { return std::unique_ptr<atyp const>(new atyp{"rtrn_uqcp"}); }
 
 std::string pass_uqmp(std::unique_ptr<atyp      > obj) { return "pass_uqmp:" + obj->mtxt; }
@@ -232,7 +232,7 @@ TEST_SUBMODULE(class_sh_basic, m) {
     // Make sure unique_ptr type caster accept automatic_reference return value policy.
     m.def(
         "rtrn_uq_automatic_reference",
-        []() { return std::unique_ptr<atyp>(new atyp("rtrn_uq_automatic_reference")); },
+        []() { return std::make_unique<atyp>("rtrn_uq_automatic_reference"); },
         pybind11::return_value_policy::automatic_reference);
 
     m.def("pass_shared_ptr_ptr", [](std::shared_ptr<atyp> *) {});
