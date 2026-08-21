@@ -27,7 +27,7 @@ struct format_descriptor<std::complex<T>, detail::enable_if_t<std::is_floating_p
     static std::string format() { return std::string(value); }
 };
 
-#ifndef PYBIND11_CPP17
+#if !defined(__cpp_inline_variables) || __cpp_inline_variables < 201606L
 
 template <typename T>
 constexpr const char
