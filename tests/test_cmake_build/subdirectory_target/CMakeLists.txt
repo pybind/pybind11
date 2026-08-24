@@ -13,6 +13,8 @@ add_subdirectory("${pybind11_SOURCE_DIR}" pybind11)
 add_library(test_subdirectory_target MODULE ../main.cpp)
 set_target_properties(test_subdirectory_target PROPERTIES OUTPUT_NAME test_cmake_build)
 
+# Verify that pybind11's interface requirement promotes a consumer that initially requests C++14.
+set_target_properties(test_subdirectory_target PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON)
 target_link_libraries(test_subdirectory_target PRIVATE pybind11::module)
 
 # If a pybind11 option is on, main.cpp checks that the matching macro reached this

@@ -1,5 +1,5 @@
 """
-This module provides helpers for C++11+ projects using pybind11.
+This module provides helpers for C++17+ projects using pybind11.
 
 LICENSE:
 
@@ -88,7 +88,7 @@ STD_TMPL = "/std:c++{}" if WIN else "-std=c++{}"
 
 class Pybind11Extension(_Extension):
     """
-    Build a C++11+ Extension module with pybind11. This automatically adds the
+    Build a C++17+ Extension module with pybind11. This automatically adds the
     recommended flags when you init the extension and assumes C++ sources - you
     can further modify the options yourself.
 
@@ -101,8 +101,8 @@ class Pybind11Extension(_Extension):
     Finally, you can set ``cxx_std`` via constructor or afterwards to enable
     flags for C++ std, and a few extra helper flags related to the C++ standard
     level. It is _highly_ recommended you either set this, or use the provided
-    ``build_ext``, which will search for the highest supported extension for
-    you if the ``cxx_std`` property is not set. Do not set the ``cxx_std``
+    ``build_ext``, which will check for C++17 support if the ``cxx_std``
+    property is not set. Do not set the ``cxx_std``
     property more than once, as flags are added when you set it. Set the
     property to None to disable the addition of C++ standard flags.
 
@@ -120,7 +120,7 @@ class Pybind11Extension(_Extension):
         self.extra_link_args[:0] = flags
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        self._cxx_level = 0
+        self._cxx_level: str | int | None = 0
         cxx_std = kwargs.pop("cxx_std", 0)
 
         if "language" not in kwargs:
@@ -158,26 +158,25 @@ class Pybind11Extension(_Extension):
         self._add_cflags(cflags)
 
     @property
-    def cxx_std(self) -> int:
+    def cxx_std(self) -> str | int | None:
         """
         The CXX standard level. If set, will add the required flags. If left at
         0, it will trigger an automatic search when pybind11's build_ext is
         used. If None, will have no effect.  Besides just the flags, this may
-        add a macos-min 10.9 or 10.14 flag if MACOSX_DEPLOYMENT_TARGET is
-        unset.
+        add a macos-min 10.14 flag if MACOSX_DEPLOYMENT_TARGET is unset.
         """
         return self._cxx_level
 
     @cxx_std.setter
-    def cxx_std(self, level: int) -> None:
+    def cxx_std(self, level: str | int | None) -> None:
+        if isinstance(level, int) and level != 0 and level < 17:
+            msg = "pybind11 requires C++17 or newer"
+            raise ValueError(msg)
+
         if self._cxx_level:
             warnings.warn(
                 "You cannot safely change the cxx_level after setting it!", stacklevel=2
             )
-
-        # MSVC only has 14 and later modes, so force a valid flag here.
-        if WIN and level == 11:
-            level = 14
 
         self._cxx_level = level
 
@@ -194,7 +193,7 @@ class Pybind11Extension(_Extension):
             # setting for general use. However, never set higher than the
             # current macOS version!
             current_macos = tuple(int(x) for x in platform.mac_ver()[0].split(".")[:2])
-            desired_macos = (10, 9) if level < 17 else (10, 14)
+            desired_macos = (10, 14)
             macos_string = ".".join(str(x) for x in min(current_macos, desired_macos))
             macosx_min = f"-mmacosx-version-min={macos_string}"
             cflags += [macosx_min]
@@ -247,27 +246,24 @@ def has_flag(compiler: Any, flag: str) -> bool:
 @lru_cache
 def auto_cpp_level(compiler: Any) -> str | int:
     """
-    Return the max supported C++ std level (17, 14, or 11). Returns latest on Windows.
+    Return the minimum supported C++ std level (17). Returns latest on Windows.
     """
 
     if WIN:
         return "latest"
 
-    levels = [17, 14, 11]
+    if has_flag(compiler, STD_TMPL.format(17)):
+        return 17
 
-    for level in levels:
-        if has_flag(compiler, STD_TMPL.format(level)):
-            return level
-
-    msg = "Unsupported compiler -- at least C++11 support is needed!"
+    msg = "Unsupported compiler -- at least C++17 support is needed!"
     raise RuntimeError(msg)
 
 
 class build_ext(_build_ext):  # noqa: N801
     """
-    Customized build_ext that allows an auto-search for the highest supported
-    C++ level for Pybind11Extension. This is only needed for the auto-search
-    for now, and is completely optional otherwise.
+    Customized build_ext that checks for C++17 support for Pybind11Extension.
+    This is only needed for the automatic check and is completely optional
+    otherwise.
     """
 
     def build_extensions(self) -> None:
