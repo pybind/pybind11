@@ -7,6 +7,8 @@ message(STATUS "Found pybind11 v${pybind11_VERSION}: ${pybind11_INCLUDE_DIRS}")
 
 add_library(test_installed_target MODULE ../main.cpp)
 
+# Verify that the installed interface promotes a consumer that initially requests C++11.
+set_target_properties(test_installed_target PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON)
 target_link_libraries(test_installed_target PRIVATE pybind11::module)
 
 # If a pybind11 option is on, main.cpp checks that the matching macro reached this

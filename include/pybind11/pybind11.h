@@ -1,5 +1,5 @@
 /*
-    pybind11/pybind11.h: Main header file of the C++11 python
+    pybind11/pybind11.h: Main header file of the C++14 python
     binding generator library
 
     Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>
@@ -262,25 +262,20 @@ inline std::string generate_type_signature() {
 #    define PYBIND11_COMPAT_STRDUP strdup
 #endif
 
-#define PYBIND11_READABLE_FUNCTION_SIGNATURE_EXPR                                                 \
-    detail::const_name("(") + cast_in::arg_names + detail::const_name(") -> ") + cast_out::name
-
 // We factor out readable function signatures to a specific template
 // so that they don't get duplicated across different instantiations of
 // cpp_function::initialize (which is templated on more types).
 template <typename cast_in, typename cast_out>
 class ReadableFunctionSignature {
-public:
-    using sig_type = decltype(PYBIND11_READABLE_FUNCTION_SIGNATURE_EXPR);
-
 private:
-    // We have to repeat PYBIND11_READABLE_FUNCTION_SIGNATURE_EXPR in decltype()
-    // because C++11 doesn't allow functions to return `auto`. (We don't
-    // know the type because it's some variant of detail::descr<N> with
-    // unknown N.)
-    static constexpr sig_type sig() { return PYBIND11_READABLE_FUNCTION_SIGNATURE_EXPR; }
+    // The type is some variant of detail::descr<N> with an N dependent on the casters.
+    static constexpr auto sig() {
+        return detail::const_name("(") + cast_in::arg_names + detail::const_name(") -> ")
+               + cast_out::name;
+    }
 
 public:
+    using sig_type = decltype(sig());
     static constexpr sig_type kSig = sig();
     // We can only stash the result of detail::descr::types() in a
     // constexpr variable if we aren't on MSVC (see
@@ -290,7 +285,6 @@ public:
     static constexpr types_type kTypes = sig_type::types();
 #endif
 };
-#undef PYBIND11_READABLE_FUNCTION_SIGNATURE_EXPR
 
 // Prior to C++17, we don't have inline variables, so we have to
 // provide an out-of-line definition of the class member.
@@ -654,7 +648,7 @@ protected:
         static constexpr const auto &types
             = detail::ReadableFunctionSignature<cast_in, cast_out>::kTypes;
 #else
-        PYBIND11_DESCR_CONSTEXPR auto types = std::decay<decltype(signature)>::type::types();
+        PYBIND11_DESCR_CONSTEXPR auto types = std::decay_t<decltype(signature)>::types();
 #endif
 
         /* Register the function with Python from generic (non-templated) code */
@@ -2143,7 +2137,7 @@ struct both_t_and_d_use_type_caster_base<
 // This prevents disowning of the Python object owning the raw pointer member.
 template <typename T, typename D>
 struct property_cpp_function_sh_raw_ptr_member {
-    using drp = typename std::remove_pointer<D>::type;
+    using drp = std::remove_pointer_t<D>;
 
     template <typename PM, must_be_member_function_pointer<PM> = 0>
     static cpp_function readonly(PM pm, const handle &hdl) {
@@ -2190,12 +2184,11 @@ struct property_cpp_function_sh_member_held_by_value {
         type_info *tinfo = get_type_info(typeid(T), /*throw_if_missing=*/true);
         if (tinfo->holder_enum_v == holder_enum_t::smart_holder) {
             return cpp_function(
-                [pm](handle c_hdl) -> std::shared_ptr<typename std::add_const<D>::type> {
+                [pm](handle c_hdl) -> std::shared_ptr<std::add_const_t<D>> {
                     std::shared_ptr<T> c_sp
                         = type_caster<std::shared_ptr<T>>::shared_ptr_with_responsible_parent(
                             c_hdl);
-                    return std::shared_ptr<typename std::add_const<D>::type>(c_sp,
-                                                                             &(c_sp.get()->*pm));
+                    return std::shared_ptr<std::add_const_t<D>>(c_sp, &(c_sp.get()->*pm));
                 },
                 is_method(hdl));
         }
@@ -3183,7 +3176,7 @@ public:
     using Base::attr;
     using Base::def_property_readonly;
     using Base::def_property_readonly_static;
-    using Underlying = typename std::underlying_type<Type>::type;
+    using Underlying = std::underlying_type_t<Type>;
     // Scalar is the integer representation of underlying type
     using Scalar = detail::conditional_t<detail::any_of<detail::is_std_char_type<Underlying>,
                                                         std::is_same<Underlying, bool>>::value,
@@ -3298,9 +3291,8 @@ public:
     // def(const char *, ...) template as ambiguous with enum_::def(const char *, ...).
     template <typename T,
               typename... Extra,
-              detail::enable_if_t<
-                  !std::is_convertible<typename std::decay<T>::type, const char *>::value,
-                  int> = 0>
+              detail::enable_if_t<!std::is_convertible<std::decay_t<T>, const char *>::value, int>
+              = 0>
     enum_ &def(T &&op, const Extra &...extra) {
         Base::def(std::forward<T>(op), extra...);
         return *this;

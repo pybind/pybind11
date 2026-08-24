@@ -13,7 +13,7 @@ WIN = sys.platform.startswith("win32") or sys.platform.startswith("cygwin")
 
 
 @pytest.mark.parametrize("parallel", [False, True])
-@pytest.mark.parametrize("std", [11, 0])
+@pytest.mark.parametrize("std", [14, 0])
 def test_simple_setup_py(monkeypatch, tmpdir, parallel, std):
     monkeypatch.chdir(tmpdir)
     monkeypatch.syspath_prepend(MAIN_DIR)
@@ -108,6 +108,14 @@ def test_simple_setup_py(monkeypatch, tmpdir, parallel, std):
     subprocess.check_call(
         [sys.executable, "test.py"], stdout=sys.stdout, stderr=sys.stderr
     )
+
+
+def test_cxx_std_too_old(monkeypatch):
+    monkeypatch.syspath_prepend(MAIN_DIR)
+    from pybind11.setup_helpers import Pybind11Extension
+
+    with pytest.raises(ValueError, match=r"pybind11 requires C\+\+14 or newer"):
+        Pybind11Extension("example", ["example.cpp"], cxx_std=11)
 
 
 def test_intree_extensions(monkeypatch, tmpdir):

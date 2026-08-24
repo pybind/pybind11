@@ -492,8 +492,8 @@ struct type_caster<Eigen::TensorMap<Type, Options>,
 
 #if EIGEN_VERSION_AT_LEAST(3, 4, 0)
 
-    static constexpr bool needs_writeable = !std::is_const<typename std::remove_pointer<
-        typename get_storage_pointer_type<MapType>::SPT>::type>::value;
+    static constexpr bool needs_writeable = !std::is_const<
+        std::remove_pointer_t<typename get_storage_pointer_type<MapType>::SPT>>::value;
 #else
     // Handle Eigen bug
     static constexpr bool needs_writeable = !std::is_const<Type>::value;

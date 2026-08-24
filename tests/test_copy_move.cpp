@@ -13,6 +13,7 @@
 #include "constructor_stats.h"
 #include "pybind11_tests.h"
 
+#include <memory>
 #include <type_traits>
 
 template <typename derived>
@@ -319,7 +320,7 @@ TEST_SUBMODULE(copy_move_policies, m) {
     // `py::return_value_policy::move`
     m.def(
         "get_moveissue1",
-        [](int i) { return std::unique_ptr<MoveIssue1>(new MoveIssue1(i)); },
+        [](int i) { return std::make_unique<MoveIssue1>(i); },
         py::return_value_policy::move);
     m.def("get_moveissue2", [](int i) { return MoveIssue2(i); }, py::return_value_policy::move);
 

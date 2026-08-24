@@ -99,7 +99,7 @@ jobs:
             cmake-args: -DCMAKE_CXX_STANDARD=14
           - runs-on: macos-15-intel
             python-version: '3.13'
-            cmake-args: -DCMAKE_CXX_STANDARD=11
+            cmake-args: -DCMAKE_CXX_STANDARD=14
           - runs-on: macos-latest
             python-version: '3.12'
             cmake-args: -DCMAKE_CXX_STANDARD=17 -DPYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION=ON
@@ -152,7 +152,7 @@ jobs:
       python-version: ${{ matrix.python-version }}
       cmake-args: ${{ matrix.cmake-args }}
 
-  # This checks inplace builds with C++11
+  # This checks inplace builds with C++14
   inplace:
     if: github.event.pull_request.draft == false
     strategy:
@@ -254,12 +254,15 @@ jobs:
         run: uv tool install ninja
 
       - name: Configure via preset
-        run: cmake --preset venv -DPYBIND11_CREATE_WITH_UV="${{ matrix.python-version }}"
+        run: >
+          cmake --preset venv
+          -DPYBIND11_CREATE_WITH_UV="${{ matrix.python-version }}"
+          -DCMAKE_CXX_STANDARD=14
 
-      - name: Build C++11
+      - name: Build C++14
         run: cmake --build --preset venv
 
-      - name: Python tests C++11
+      - name: Python tests C++14
         run: cmake --build --preset testsvenv -t pytest
 
   # Testing on clang using the excellent silkeh clang docker images
@@ -536,43 +539,43 @@ jobs:
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
         python3 -m pip install -r tests/requirements.txt
 
-    - name: Configure C++11
+    - name: Configure C++14
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
-        cmake -S . -B build-11     \
+        cmake -S . -B build-14     \
         -DPYBIND11_WERROR=ON    \
         -DDOWNLOAD_CATCH=ON     \
         -DDOWNLOAD_EIGEN=OFF    \
-        -DCMAKE_CXX_STANDARD=11             \
+        -DCMAKE_CXX_STANDARD=14             \
         -DCMAKE_CXX_COMPILER=$(which icpc)  \
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
-    - name: Build C++11
+    - name: Build C++14
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
-        cmake --build build-11 -j 2 -v
+        cmake --build build-14 -j 2 -v
 
-    - name: Python tests C++11
+    - name: Python tests C++14
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
         sudo service apport stop
-        cmake --build build-11 --target check
+        cmake --build build-14 --target check
 
-    - name: C++ tests C++11
+    - name: C++ tests C++14
       timeout-minutes: 3
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
-        cmake --build build-11 --target cpptest
+        cmake --build build-14 --target cpptest
 
-    - name: Interface test C++11
+    - name: Interface test C++14
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
-        cmake --build build-11 --target test_cmake_build
+        cmake --build build-14 --target test_cmake_build
 
     - name: Visibility test
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
-        cmake --build build-11 --target test_cross_module_rtti
+        cmake --build build-14 --target test_cross_module_rtti
 
     - name: Configure C++17
       run: |
@@ -659,7 +662,7 @@ jobs:
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
-        -DCMAKE_CXX_STANDARD=11
+        -DCMAKE_CXX_STANDARD=14
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
     - name: Build
@@ -810,7 +813,7 @@ jobs:
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
         ${{ matrix.args }}
-    - name: Build C++11
+    - name: Build C++14
       run: cmake --build build -j 2
 
     - name: Python tests
@@ -859,7 +862,7 @@ jobs:
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
         ${{ matrix.args }}
-    - name: Build C++11
+    - name: Build C++14
       run: cmake --build build --config Debug -j 2
 
     - name: Python tests
@@ -969,54 +972,29 @@ jobs:
 
     - uses: actions/checkout@v7
 
-    - name: Configure C++11
+    - name: Configure C++14
       # LTO leads to many undefined reference like
       # `pybind11::detail::function_call::function_call(pybind11::detail::function_call&&)
       run: >-
-        cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=11 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON
+        cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=14 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON
         -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")
         -S . -B build
 
-    - name: Build C++11
+    - name: Build C++14
       run: cmake --build build -j 2
 
-    - name: Python tests C++11
+    - name: Python tests C++14
       run: cmake --build build --target pytest -j 2
 
-    - name: C++11 tests
+    - name: C++14 tests
       timeout-minutes: 3
       run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build --target cpptest -j 2
 
-    - name: Interface test C++11
+    - name: Interface test C++14
       run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build --target test_cmake_build
 
     - name: Visibility test
       run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build --target test_cross_module_rtti
-
-    - name: Clean directory
-      run: git clean -fdx
-
-    - name: Configure C++14
-      run: >-
-        cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=14 -DPYBIND11_WERROR=ON -DDOWNLOAD_CATCH=ON
-        -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")
-        -S . -B build2
-
-    - name: Build C++14
-      run: cmake --build build2 -j 2
-
-    - name: Python tests C++14
-      run: cmake --build build2 --target pytest -j 2
-
-    - name: C++14 tests
-      timeout-minutes: 3
-      run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build2 --target cpptest -j 2
-
-    - name: Interface test C++14
-      run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build2 --target test_cmake_build
-
-    - name: Visibility test
-      run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build2 --target test_cross_module_rtti
 
     - name: Clean directory
       run: git clean -fdx

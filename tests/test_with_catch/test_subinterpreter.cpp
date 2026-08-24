@@ -13,6 +13,7 @@ PYBIND11_WARNING_DISABLE_MSVC(4996)
 #    include <cstdlib>
 #    include <fstream>
 #    include <functional>
+#    include <memory>
 #    include <thread>
 #    include <utility>
 
@@ -438,7 +439,7 @@ TEST_CASE("Multiple Subinterpreters") {
             REQUIRE(sub1_int != main_int);
 
             // while the old one is active, create a new one
-            psi2.reset(new py::subinterpreter(py::subinterpreter::create()));
+            psi2 = std::make_unique<py::subinterpreter>(py::subinterpreter::create());
         }
 
         {

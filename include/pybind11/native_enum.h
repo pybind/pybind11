@@ -20,7 +20,7 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 template <typename EnumType>
 class native_enum : public detail::native_enum_data {
 public:
-    using Underlying = typename std::underlying_type<EnumType>::type;
+    using Underlying = std::underlying_type_t<EnumType>;
 
     native_enum(handle parent_scope,
                 const char *name,

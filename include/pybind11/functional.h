@@ -33,7 +33,8 @@ struct func_handle {
     }
 };
 
-// to emulate 'move initialization capture' in C++11
+// Shared base for the func_wrapper specializations below and any user-provided
+// ones (see PYBIND11_HAS_TYPE_CASTER_STD_FUNCTION_SPECIALIZATIONS).
 struct func_wrapper_base {
     func_handle hfunc;
     explicit func_wrapper_base(func_handle &&hf) noexcept : hfunc(hf) {}

@@ -1,5 +1,5 @@
 """
-This module provides helpers for C++11+ projects using pybind11.
+This module provides helpers for C++14+ projects using pybind11.
 
 LICENSE:
 
@@ -88,7 +88,7 @@ STD_TMPL = "/std:c++{}" if WIN else "-std=c++{}"
 
 class Pybind11Extension(_Extension):
     """
-    Build a C++11+ Extension module with pybind11. This automatically adds the
+    Build a C++14+ Extension module with pybind11. This automatically adds the
     recommended flags when you init the extension and assumes C++ sources - you
     can further modify the options yourself.
 
@@ -120,7 +120,7 @@ class Pybind11Extension(_Extension):
         self.extra_link_args[:0] = flags
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        self._cxx_level = 0
+        self._cxx_level: str | int | None = 0
         cxx_std = kwargs.pop("cxx_std", 0)
 
         if "language" not in kwargs:
@@ -158,7 +158,7 @@ class Pybind11Extension(_Extension):
         self._add_cflags(cflags)
 
     @property
-    def cxx_std(self) -> int:
+    def cxx_std(self) -> str | int | None:
         """
         The CXX standard level. If set, will add the required flags. If left at
         0, it will trigger an automatic search when pybind11's build_ext is
@@ -169,15 +169,15 @@ class Pybind11Extension(_Extension):
         return self._cxx_level
 
     @cxx_std.setter
-    def cxx_std(self, level: int) -> None:
+    def cxx_std(self, level: str | int | None) -> None:
+        if isinstance(level, int) and level != 0 and level < 14:
+            msg = "pybind11 requires C++14 or newer"
+            raise ValueError(msg)
+
         if self._cxx_level:
             warnings.warn(
                 "You cannot safely change the cxx_level after setting it!", stacklevel=2
             )
-
-        # MSVC only has 14 and later modes, so force a valid flag here.
-        if WIN and level == 11:
-            level = 14
 
         self._cxx_level = level
 
@@ -194,7 +194,9 @@ class Pybind11Extension(_Extension):
             # setting for general use. However, never set higher than the
             # current macOS version!
             current_macos = tuple(int(x) for x in platform.mac_ver()[0].split(".")[:2])
-            desired_macos = (10, 9) if level < 17 else (10, 14)
+            desired_macos = (
+                (10, 9) if isinstance(level, int) and level < 17 else (10, 14)
+            )
             macos_string = ".".join(str(x) for x in min(current_macos, desired_macos))
             macosx_min = f"-mmacosx-version-min={macos_string}"
             cflags += [macosx_min]
@@ -247,19 +249,19 @@ def has_flag(compiler: Any, flag: str) -> bool:
 @lru_cache
 def auto_cpp_level(compiler: Any) -> str | int:
     """
-    Return the max supported C++ std level (17, 14, or 11). Returns latest on Windows.
+    Return the max supported C++ std level (17 or 14). Returns latest on Windows.
     """
 
     if WIN:
         return "latest"
 
-    levels = [17, 14, 11]
+    levels = [17, 14]
 
     for level in levels:
         if has_flag(compiler, STD_TMPL.format(level)):
             return level
 
-    msg = "Unsupported compiler -- at least C++11 support is needed!"
+    msg = "Unsupported compiler -- at least C++14 support is needed!"
     raise RuntimeError(msg)
 
 

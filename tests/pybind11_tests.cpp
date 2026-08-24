@@ -68,10 +68,8 @@ const char *cpp_std() {
         "C++20";
 #elif defined(PYBIND11_CPP17)
         "C++17";
-#elif defined(PYBIND11_CPP14)
-        "C++14";
 #else
-        "C++11";
+        "C++14";
 #endif
 }
 
