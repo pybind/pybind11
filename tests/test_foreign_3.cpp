@@ -213,21 +213,22 @@ PYBIND11_MODULE(test_foreign_3, m, py::mod_gil_not_used()) {
 
     m.def("clear_foreign_bindings", [hm]() {
         py::list bound;
-        pymb_lock_registry(registry);
+        struct pymb_lock_ticket ticket;
+        pymb_lock_registry(&ticket, registry);
         // NOLINTNEXTLINE(modernize-use-auto)
         PYMB_LIST_FOREACH(struct pymb_binding *, binding, registry->bindings) {
             bound.append(py::reinterpret_borrow<py::object>((PyObject *) binding->pytype));
         }
-        pymb_unlock_registry(registry);
+        pymb_unlock_registry(&ticket);
         for (auto type : bound) {
             py::delattr(type, "__pymetabind_binding__");
         }
 
         bool bindings_removed = false;
         for (int i = 0; i < 5; ++i) {
-            pymb_lock_registry(registry);
+            pymb_lock_registry(&ticket, registry);
             bindings_removed = pymb_list_is_empty(&registry->bindings);
-            pymb_unlock_registry(registry);
+            pymb_unlock_registry(&ticket);
             if (bindings_removed) {
                 break;
             }

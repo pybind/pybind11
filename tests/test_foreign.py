@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import collections
+import contextlib
 import gc
 import itertools
 import sys
@@ -58,8 +59,7 @@ def delattr_and_ensure_destroyed(*specs):
 @pytest.fixture(autouse=True)
 def clean_after():
     yield
-    if sys.implementation.name != "graalpy":
-        t3.clear_foreign_bindings()
+    t3.clear_foreign_bindings()
 
     if not types_are_immortal:
         delattr_and_ensure_destroyed(
@@ -75,11 +75,9 @@ def clean_after():
         # this helps prevent different tests from interfering with each other
         for mod in (t1, t2, t3, t4, t5):
             for name in ("Shared", "SharedEnum", "RawShared"):
-                if (
-                    (ty := getattr(mod, name, None))
-                    and hasattr(ty, "__pymetabind_binding__")
-                ):
-                    del ty.__pymetabind_binding__
+                if ty := getattr(mod, name, None):
+                    with contextlib.suppress(AttributeError):
+                        del ty.__pymetabind_binding__
 
     if sys.implementation.name in ("pypy", "graalpy"):
         pytest.gc_collect()
@@ -94,7 +92,7 @@ def check_stats(mod, **entries):
         # will be too few destructions in one check_stats() and then correspondingly
         # too many in the next one for the same module, so just skip the check
         return
-    if sys.implementation.name == "pypy":
+    if sys.implementation.name in ("pypy"):
         pytest.gc_collect()
     stats = mod.pull_stats()
     if 0 < (move_diff := stats["move"] - entries.get("move", 0)) <= 2:
@@ -356,12 +354,10 @@ def test_import_export_errors():
     t3.create_raw_binding()
 
     # Can't import a type that doesn't have __pymetabind_binding__
-    try:
+    with contextlib.suppress(AttributeError):
         # Convertible gets a binding because it's in an export-by-default
         # module, but we don't rely on that binding anywhere
         del t1.Convertible.__pymetabind_binding__
-    except AttributeError:
-        pass
     with pytest.raises(
         RuntimeError, match="type does not define a __pymetabind_binding__"
     ):
@@ -851,12 +847,3 @@ def test_on_request_with_local_binding():
     # But t4 can now accept t1's types
     obj1 = t1.make(30)
     assert t4.check(obj1) == 30
-
-
-# =====================================================================
-# GraalPy has issues with GC-dependent tests
-# =====================================================================
-
-if sys.implementation.name == "graalpy":
-    del test_implicit_conversion_from_foreign
-    del test_three_module_interop

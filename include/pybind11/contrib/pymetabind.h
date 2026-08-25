@@ -7,7 +7,9 @@
  * This functionality is intended to be used by the framework itself,
  * rather than by users of the framework.
  *
- * This is version 0.4 of pymetabind. Changelog:
+ * This is version 0.4+dev of pymetabind. Changelog:
+ *
+ *      Unreleased: Use critical section API to avoid lock ordering issues.
  *
  *     Version 0.4: Properly return NULL if registry capsule creation fails.
  *      2026-01-23  Support concurrent calls to `pymb_get_registry`.
@@ -270,20 +272,47 @@ struct pymb_registry {
 #endif
 };
 
-#if defined(Py_GIL_DISABLED)
-PYMB_INLINE void pymb_lock_registry(struct pymb_registry* registry) {
-    PyMutex_Lock(&registry->mutex);
+#if !defined(Py_GIL_DISABLED)
+
+struct pymb_lock_ticket {
+    char unused;
+};
+PYMB_INLINE void pymb_lock_registry(struct pymb_lock_ticket* ticket,
+                                    struct pymb_registry* registry) {
+    (void) ticket;
+    (void) registry;
 }
-PYMB_INLINE void pymb_unlock_registry(struct pymb_registry* registry) {
-    PyMutex_Unlock(&registry->mutex);
+PYMB_INLINE void pymb_unlock_registry(struct pymb_lock_ticket* ticket) {
+    (void) ticket;
 }
+
+#elif PY_VERSION_HEX >= 0x030E00C1 // 3.14.0rc1 has PyCriticalSection_BeginMutex
+
+struct pymb_lock_ticket {
+    PyCriticalSection cs;
+};
+PYMB_INLINE void pymb_lock_registry(struct pymb_lock_ticket* ticket,
+                                    struct pymb_registry* registry) {
+    PyCriticalSection_BeginMutex(&ticket->cs, &registry->mutex);
+}
+PYMB_INLINE void pymb_unlock_registry(struct pymb_lock_ticket* ticket) {
+    PyCriticalSection_End(&ticket->cs);
+}
+
 #else
-PYMB_INLINE void pymb_lock_registry(struct pymb_registry* registry) {
-    (void) registry;
+
+struct pymb_lock_ticket {
+    struct pymb_registry* registry;
+};
+PYMB_INLINE void pymb_lock_registry(struct pymb_lock_ticket* ticket,
+                                    struct pymb_registry* registry) {
+    PyMutex_Lock(&registry->mutex);
+    ticket->registry = registry;
 }
-PYMB_INLINE void pymb_unlock_registry(struct pymb_registry* registry) {
-    (void) registry;
+PYMB_INLINE void pymb_unlock_registry(struct pymb_lock_ticket* ticket) {
+    PyMutex_Unlock(&ticket->registry->mutex);
 }
+
 #endif
 
 struct pymb_binding;
@@ -908,7 +937,9 @@ PYMB_FUNC void pymb_add_framework(struct pymb_registry* registry,
     framework->link.next = NULL;
     framework->link.prev = NULL;
     framework->registry = registry;
-    pymb_lock_registry(registry);
+
+    struct pymb_lock_ticket ticket;
+    pymb_lock_registry(&ticket, registry);
     PYMB_LIST_FOREACH(struct pymb_framework*, other, registry->frameworks) {
         // Intern `abi_extra` strings so they can be compared by pointer
         if (other->abi_extra && framework->abi_extra &&
@@ -930,7 +961,7 @@ PYMB_FUNC void pymb_add_framework(struct pymb_registry* registry,
             framework->add_foreign_binding(binding);
         }
     }
-    pymb_unlock_registry(registry);
+    pymb_unlock_registry(&ticket);
 }
 
 /*
@@ -1036,14 +1067,15 @@ PYMB_FUNC void pymb_add_binding(struct pymb_binding* binding,
     }
     Py_DECREF(binding->capsule); // keep only a borrowed reference
 
-    pymb_lock_registry(registry);
+    struct pymb_lock_ticket ticket;
+    pymb_lock_registry(&ticket, registry);
     pymb_list_append(&registry->bindings, &binding->link);
     PYMB_LIST_FOREACH(struct pymb_framework*, other, registry->frameworks) {
         if (other != binding->framework) {
             other->add_foreign_binding(binding);
         }
     }
-    pymb_unlock_registry(registry);
+    pymb_unlock_registry(&ticket);
     return;
 
   error:
@@ -1083,11 +1115,12 @@ PYMB_FUNC void pymb_remove_binding_internal(struct pymb_binding* binding,
 
     // Since we need to obtain it anyway, use the registry lock to serialize
     // concurrent attempts to remove the same binding
-    pymb_lock_registry(registry);
+    struct pymb_lock_ticket ticket;
+    pymb_lock_registry(&ticket, registry);
     if (!binding->capsule) {
         // Binding was concurrently removed from multiple places; the first
         // one to get the registry lock wins.
-        pymb_unlock_registry(registry);
+        pymb_unlock_registry(&ticket);
         return;
     }
 
@@ -1130,7 +1163,7 @@ PYMB_FUNC void pymb_remove_binding_internal(struct pymb_binding* binding,
             other->remove_foreign_binding(binding);
         }
     }
-    pymb_unlock_registry(registry);
+    pymb_unlock_registry(&ticket);
 
 #if !defined(Py_GIL_DISABLED)
     // On GIL builds, there's no need to delay deallocation

@@ -684,14 +684,17 @@ inline void foreign_internals::enable_autoimport() {
     });
     if (enabled_by_us) {
         // Note lock order: pymb_registry lock is 'outside' our internals lock.
-        pymb_lock_registry(registry);
+        // (This doesn't matter after 3.14 since the critical section API fixes
+        // lock order issues.)
+        struct pymb_lock_ticket ticket;
+        pymb_lock_registry(&ticket, registry);
         // NOLINTNEXTLINE(modernize-use-auto)
         PYMB_LIST_FOREACH(struct pymb_binding *, binding, registry->bindings) {
             if (binding->framework != self.get()) {
                 foreign_cb_add_foreign_binding(binding);
             }
         }
-        pymb_unlock_registry(registry);
+        pymb_unlock_registry(&ticket);
     }
 }
 
@@ -814,9 +817,10 @@ export_to_foreign(const std::type_info *cpptype, PyTypeObject *pytype, type_info
     ++foreign_internals.bindings_update_count;
     lst.push_back(binding);
 
-#ifdef Py_GIL_DISABLED
-    // Call pymb_add_binding() with unlocked internals in order to maintain
-    // consistent lock order: the pymb_registry lock is locked outside our
+#if defined(Py_GIL_DISABLED) && PY_VERSION_HEX < 0x030E00C1
+    // This interpreter doesn't have PyCriticalSection_BeginMutex(), so
+    // we must ensure a consistent lock order between our internals lock
+    // and the pymb_registry lock. The pymb_registry lock is locked outside our
     // internals lock in enable_autoimport(), so it must not be locked inside
     // our internals lock here. pymb_add_binding() is noexcept so we don't
     // need a scope guard.
@@ -824,7 +828,7 @@ export_to_foreign(const std::type_info *cpptype, PyTypeObject *pytype, type_info
     internals.mutex.unlock();
 #endif
     pymb_add_binding(binding, /* tp_finalize_will_remove */ 0);
-#ifdef Py_GIL_DISABLED
+#if defined(Py_GIL_DISABLED) && PY_VERSION_HEX < 0x030E00C1
     internals.mutex.lock();
 #endif
 }
@@ -881,7 +885,9 @@ PYBIND11_NOINLINE void *try_foreign_bindings(const std::type_info *type,
             {
 #ifdef Py_GIL_DISABLED
                 // attempt() might execute Python code; drop the internals lock
-                // to avoid a deadlock
+                // to avoid a deadlock. This can be removed once we require
+                // 3.14, since using PyCriticalSection for the internals lock
+                // is already sufficient to prevent a deadlock.
                 auto guard = lock.temporarily_drop();
 #endif
                 void *result = attempt(closure, binding);
