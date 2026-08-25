@@ -17,7 +17,7 @@ namespace test_pytorch_regressions {
 // Directly extracted from PyTorch patterns that regressed in CI.
 struct TracingState : std::enable_shared_from_this<TracingState> {
     TracingState() = default;
-    TracingState(const TracingState&) = default;
+    TracingState(const TracingState &) = default;
     ~TracingState() = default;
     int value = 0;
 };
@@ -29,7 +29,7 @@ const std::shared_ptr<TracingState> &get_tracing_state() {
 
 struct InterfaceType {
     InterfaceType() = default;
-    InterfaceType(const InterfaceType&) = default;
+    InterfaceType(const InterfaceType &) = default;
     ~InterfaceType() = default;
     int value = 0;
 };

@@ -394,7 +394,7 @@ struct foreign_internals {
     // While by far the most common vector length will be 1,
     // the on-heap alternative stores a std::vector (3 pointers)
     // so there's nothing saved by reducing the InlineSize below 3.
-    using binding_list = small_vector<pymb_binding*, 3>;
+    using binding_list = small_vector<pymb_binding *, 3>;
 
     // Registered pymetabind bindings for each C++ type, including both our
     // own (exported) and other frameworks' (imported).
@@ -518,7 +518,8 @@ struct local_internals {
     // local_internals, this must be a slow type_map because we do lookups in it
     // using the type_info objects from foreign bindings, which could come from
     // other DSOs.
-    std::unordered_multimap<std::type_index, pymb_framework*, type_hash, type_equal_to> foreign_local_imports;
+    std::unordered_multimap<std::type_index, pymb_framework *, type_hash, type_equal_to>
+        foreign_local_imports;
 };
 
 enum class holder_enum_t : uint8_t {
@@ -594,8 +595,8 @@ struct native_enum_record {
     static const char *attribute_name() { return "__pybind11_native_enum__"; }
 };
 
-#define PYBIND11_INTERNALS_ABI_ID                                              \
-    "v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                          \
+#define PYBIND11_INTERNALS_ABI_ID                                                                 \
+    "v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                                             \
         PYBIND11_COMPILER_TYPE_LEADING_UNDERSCORE PYBIND11_PLATFORM_ABI_ID
 
 #define PYBIND11_INTERNALS_ID "__pybind11_internals_" PYBIND11_INTERNALS_ABI_ID "__"
@@ -1115,12 +1116,13 @@ inline foreign_internals &ensure_foreign_internals() {
     if (local.foreign) {
         return *local.foreign;
     }
-    with_internals([&](internals&) {
+    with_internals([&](internals &) {
         if (local.foreign) {
             return;
         }
         auto &wp = *detail::atomic_get_or_create_in_state_dict<std::weak_ptr<foreign_internals>>(
-            PYBIND11_INTERNALS_ID "foreign").first;
+                        PYBIND11_INTERNALS_ID "foreign")
+                        .first;
         if (auto sp = wp.lock()) {
             local.foreign = sp;
         } else {
@@ -1143,14 +1145,14 @@ inline foreign_internals *get_foreign_internals() {
 }
 
 enum class foreign_interop_level {
-    disabled,               // Fully disable the foreign interop mechanism;
-                            // local_internals::foreign is null
-    on_request,             // All foreign interop must be requested explicitly
-    import_only,            // Import others' types by default, only export
-                            // ours when requested
-    export_only,            // Export our types by default, only import others'
-                            // when requested
-    full,                   // Default: automatically import/export all we can
+    disabled,    // Fully disable the foreign interop mechanism;
+                 // local_internals::foreign is null
+    on_request,  // All foreign interop must be requested explicitly
+    import_only, // Import others' types by default, only export
+                 // ours when requested
+    export_only, // Export our types by default, only import others'
+                 // when requested
+    full,        // Default: automatically import/export all we can
 };
 
 inline void ensure_internals(foreign_interop_level level) {

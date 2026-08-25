@@ -281,7 +281,6 @@ public:
         return m_repr.hvector.vec.size();
     }
 
-
     void reserve(std::size_t sz) {
         if (is_inline()) {
             if (sz > kInlineSize) {

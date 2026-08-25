@@ -41,7 +41,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 
 // Forward declaration, implemented in foreign.h
 template <class Fn>
-void *try_foreign_bindings(const std::type_info *type, const Fn& attempt);
+void *try_foreign_bindings(const std::type_info *type, const Fn &attempt);
 
 /// A life support system for temporary objects created by `type_caster::load()`.
 /// Adding a patient will keep it alive up until the enclosing function returns.
@@ -304,8 +304,7 @@ PYBIND11_NOINLINE detail::type_info *get_type_info(const std::type_info &tp,
     return nullptr;
 }
 
-PYBIND11_NOINLINE handle get_type_handle(const std::type_info &tp,
-                                         bool throw_if_missing) {
+PYBIND11_NOINLINE handle get_type_handle(const std::type_info &tp, bool throw_if_missing) {
     if (detail::type_info *type_info = get_type_info(tp)) {
         return handle(reinterpret_cast<PyObject *>(type_info->type));
     }
@@ -1117,9 +1116,10 @@ public:
 
         auto *result = (PyObject *) result_v;
         if (result && policy_ == return_value_policy::reference_internal && srcs.is_new) {
-            if ((srcs.used_foreign->keep_alive_types & (uint8_t) pymb_keep_alive_pyobject) == 0 ||
-                srcs.used_foreign->keep_alive(result, pymb_keep_alive_pyobject,
-                                              parent.ptr(), nullptr) == 0) {
+            if ((srcs.used_foreign->keep_alive_types & (uint8_t) pymb_keep_alive_pyobject) == 0
+                || srcs.used_foreign->keep_alive(
+                       result, pymb_keep_alive_pyobject, parent.ptr(), nullptr)
+                       == 0) {
                 keep_alive_impl(result, parent.ptr());
             }
         }
@@ -1148,8 +1148,8 @@ public:
             // No pybind11 type info. See if we can use another framework's
             // type to complete this cast. Set srcs.used_foreign if so.
             foreign_internals *foreign = nullptr;
-            if (srcs.original.cpptype && (foreign = get_foreign_internals()) &&
-                foreign->imported_any) {
+            if (srcs.original.cpptype && (foreign = get_foreign_internals())
+                && foreign->imported_any) {
                 if (handle ret = cast_foreign(srcs, policy, parent, existing_holder != nullptr)) {
                     return ret;
                 }
@@ -1360,9 +1360,9 @@ public:
     PYBIND11_NOINLINE bool try_load_foreign(handle src, bool convert, bool foreign_ok) {
         constexpr auto *local_key = PYBIND11_MODULE_LOCAL_ID;
         const auto pytype = type::handle_of(src);
-        if (hasattr(pytype, local_key) &&
-            try_load_other_module_local(
-                    src, reinterpret_borrow<capsule>(getattr(pytype, local_key)))) {
+        if (hasattr(pytype, local_key)
+            && try_load_other_module_local(
+                src, reinterpret_borrow<capsule>(getattr(pytype, local_key)))) {
             return true;
         }
         return foreign_ok && try_load_other_framework(src, convert);
@@ -1782,7 +1782,8 @@ cast_sources::cast_sources(const itype *ptr) : original{ptr, &typeid(itype)} {
 }
 
 // Forward declaration - defined in cast.h
-template <typename T> struct holder_helper;
+template <typename T>
+struct holder_helper;
 
 /// Generic type caster for objects stored on the heap
 template <typename type>
@@ -1830,17 +1831,17 @@ public:
         handle ret, std::shared_ptr<const void> holder, pymb_framework *framework) {
         // Try to pass the shared_ptr to the framework as a shared_ptr. This
         // helps with pybind/pybind interop.
-        if ((framework->keep_alive_types & (uint8_t) pymb_keep_alive_cpp_shared_ptr_void) &&
-            framework->keep_alive(ret.ptr(), pymb_keep_alive_cpp_shared_ptr_void,
-                                  &holder, nullptr)) {
+        if ((framework->keep_alive_types & (uint8_t) pymb_keep_alive_cpp_shared_ptr_void)
+            && framework->keep_alive(
+                ret.ptr(), pymb_keep_alive_cpp_shared_ptr_void, &holder, nullptr)) {
             return;
         }
         // If the framework we're calling can't work with that, do the
         // equivalent as a callback.
         std::unique_ptr<std::shared_ptr<const void>> sp{new auto(std::move(holder))};
         auto deleter = [](void *p) noexcept { delete (std::shared_ptr<const void> *) p; };
-        if ((framework->keep_alive_types & (uint8_t) pymb_keep_alive_callback) &&
-            framework->keep_alive(ret.ptr(), pymb_keep_alive_callback, sp.get(), deleter)) {
+        if ((framework->keep_alive_types & (uint8_t) pymb_keep_alive_callback)
+            && framework->keep_alive(ret.ptr(), pymb_keep_alive_callback, sp.get(), deleter)) {
             sp.release();
             return;
         }
@@ -1911,8 +1912,9 @@ public:
             // and then delegate to the logic for handling std::shared_ptr casts
             // to foreign.
             after_shared_ptr_cast_to_foreign(
-                ret, std::shared_ptr<const void>{srcs.original.cppobj,
-                                                 [h = std::move(*holder)](const void*) {}},
+                ret,
+                std::shared_ptr<const void>{srcs.original.cppobj,
+                                            [h = std::move(*holder)](const void *) {}},
                 srcs.used_foreign);
         }
         return ret;

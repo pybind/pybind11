@@ -12,8 +12,6 @@ import weakref
 
 import pytest
 
-import env
-
 # t1, t2, t3 all use the default foreign_interop::full(), meaning they
 # auto-import and auto-export all bindings. They each use a different
 # PYBIND11_INTERNALS_VERSION so they are foreign to each other.
@@ -26,12 +24,13 @@ import env
 # Upon import, bindings are defined for the functions, but not for the
 # types (Shared and SharedEnum) until you call bind_types().
 # t3's RawShared is created via create_raw_binding().
-
 import test_foreign_1 as t1
 import test_foreign_2 as t2
 import test_foreign_3 as t3
 import test_foreign_4 as t4
 import test_foreign_5 as t5
+
+import env
 
 free_threaded = hasattr(sys, "_is_gil_enabled") and not sys._is_gil_enabled()
 types_are_immortal = sys.implementation.name in ("graalpy", "pypy") or (
@@ -194,6 +193,7 @@ def expect(from_mod, to_mod, pattern, **extra):
 # Test 1: Automatic interoperability between full-mode modules
 # =====================================================================
 
+
 def test_auto_interop_full():
     """t1 and t2 both use foreign_interop::full(). Once they bind their types,
     the types should be auto-exported and auto-imported, allowing seamless
@@ -217,6 +217,7 @@ def test_auto_interop_full():
 # =====================================================================
 # Test 2: Exception translator sharing
 # =====================================================================
+
 
 @pytest.mark.skipif(
     (env.MACOS and env.PYPY) or env.ANDROID,
@@ -242,6 +243,7 @@ def test_auto_interop_exceptions():
 # Test 3: C API framework interop (non-C++ types need explicit import)
 # =====================================================================
 
+
 def test_c_api_requires_explicit_import():
     """t3's RawShared is bound via the C API, not C++. Auto-import doesn't
     work for non-C++ types, so we need explicit import_foreign<Shared>()."""
@@ -265,6 +267,7 @@ def test_c_api_requires_explicit_import():
 # =====================================================================
 # Test 4: on_request mode
 # =====================================================================
+
 
 def test_on_request_mode():
     """t4 uses foreign_interop::on_request(). It should not auto-import
@@ -302,6 +305,7 @@ def test_on_request_mode():
 # Test 5: disabled mode
 # =====================================================================
 
+
 def test_disabled_mode():
     """t5 uses foreign_interop::disabled(). import_foreign and
     export_to_foreign should raise exceptions."""
@@ -325,6 +329,7 @@ def test_disabled_mode():
 # =====================================================================
 # Test 6: Import/export error handling
 # =====================================================================
+
 
 def test_import_export_errors():
     """Test various error conditions for import_foreign and export_to_foreign."""
@@ -374,6 +379,7 @@ def test_import_export_errors():
 # Test 7: Manual import priority
 # =====================================================================
 
+
 def test_manual_import_priority():
     """When a type has multiple foreign bindings, import_foreign() should
     move the imported one to the front (preferred for to-Python conversions).
@@ -409,6 +415,7 @@ def test_manual_import_priority():
 # Test 8: shared_ptr use counts
 # =====================================================================
 
+
 def test_shared_ptr_use_count():
     """Foreign shared_ptr creates a new control block (use_count=1),
     while local reuses the existing one (use_count=2)."""
@@ -432,6 +439,7 @@ def test_shared_ptr_use_count():
 # Test 9: unique_ptr transfer rejected across foreign boundary
 # =====================================================================
 
+
 def test_unique_ptr_foreign_rejected():
     """Cannot pass unique_ptr across foreign boundary because ownership
     can't be transferred to a foreign framework."""
@@ -451,6 +459,7 @@ def test_unique_ptr_foreign_rejected():
 # =====================================================================
 # Test 10: Implicit conversion from foreign types
 # =====================================================================
+
 
 def test_implicit_conversion_from_foreign():
     """py::implicitly_convertible<Shared, Convertible>() in t1 should
@@ -473,6 +482,7 @@ def test_implicit_conversion_from_foreign():
 # =====================================================================
 # Test 11: Remove binding
 # =====================================================================
+
 
 @pytest.mark.skipif(types_are_immortal, reason="can't GC type object on this platform")
 def test_remove_binding():
@@ -508,6 +518,7 @@ def test_remove_binding():
 # Test 12: Remove and recreate raw binding
 # =====================================================================
 
+
 @pytest.mark.skipif(types_are_immortal, reason="can't GC type object on this platform")
 def test_remove_raw_binding():
     """Removing and recreating t3.RawShared should be handled gracefully."""
@@ -531,6 +542,7 @@ def test_remove_raw_binding():
 # =====================================================================
 # Test 13: Concurrent access
 # =====================================================================
+
 
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
 def test_concurrent_access():
@@ -561,6 +573,7 @@ def test_concurrent_access():
 # =====================================================================
 # Test 14: Concurrent modification (free-threaded only)
 # =====================================================================
+
 
 @pytest.mark.skipif(not free_threaded, reason="not relevant on non-FT")
 def test_concurrent_modification():
@@ -620,6 +633,7 @@ def test_concurrent_modification():
 # Test 15: Native enum interop
 # =====================================================================
 
+
 def test_native_enum_interop():
     """SharedEnum can be passed across foreign boundaries."""
     t1.bind_types()
@@ -645,6 +659,7 @@ def test_native_enum_interop():
 # =====================================================================
 # Test 16: Three-module interop (t1, t2, t3)
 # =====================================================================
+
 
 def test_three_module_interop():
     """Comprehensive test of interop between all three full-mode modules."""
@@ -677,6 +692,7 @@ def test_three_module_interop():
 # Test 17: Local type stays preferred over foreign
 # =====================================================================
 
+
 def test_local_preferred_over_foreign():
     """When a module has its own binding for a type, it should always
     prefer the local binding over any foreign ones."""
@@ -703,6 +719,7 @@ def test_local_preferred_over_foreign():
 # =====================================================================
 # Test 18: on_request selective import/export
 # =====================================================================
+
 
 def test_on_request_selective():
     """t4 (on_request) can selectively import/export individual types."""
@@ -735,6 +752,7 @@ def test_on_request_selective():
 # Test 19: Export only mode (using t1 with manual export check)
 # =====================================================================
 
+
 def test_export_without_import():
     """t1 auto-exports. Verify that auto-export means other modules
     can see t1's types after explicit import."""
@@ -756,6 +774,7 @@ def test_export_without_import():
 # Test 20: Binding types multiple times is safe
 # =====================================================================
 
+
 def test_bind_types_idempotent():
     """Calling bind_types() multiple times should be safe."""
     t1.bind_types()
@@ -771,6 +790,7 @@ def test_bind_types_idempotent():
 # =====================================================================
 # Test 21: Interop with RawShared (C API framework) value round-trip
 # =====================================================================
+
 
 def test_raw_shared_value_roundtrip():
     """Test that values created by the C API framework (t3.RawShared)
@@ -794,6 +814,7 @@ def test_raw_shared_value_roundtrip():
 # Test 22: t3 local binding coexists with foreign
 # =====================================================================
 
+
 def test_local_and_foreign_coexist():
     """t3 can have both its own pybind11 Shared binding AND use foreign
     ones. Local should always be preferred."""
@@ -816,6 +837,7 @@ def test_local_and_foreign_coexist():
 # =====================================================================
 # Test 23: shared_ptr from foreign (share_ownership RVP)
 # =====================================================================
+
 
 def test_shared_ptr_foreign_ownership():
     """When a foreign-bound function returns shared_ptr, pybind11 should
@@ -843,6 +865,7 @@ def test_shared_ptr_foreign_ownership():
 # Test 24: Export idempotent
 # =====================================================================
 
+
 def test_export_idempotent():
     """Exporting the same type multiple times should be a no-op."""
     t1.bind_types()
@@ -862,6 +885,7 @@ def test_export_idempotent():
 # Test 25: Return value policy none (lookup existing instance)
 # =====================================================================
 
+
 def test_rvp_none_foreign():
     """When converting C++ to Python with RVP 'none' via foreign binding,
     pybind11 should return an existing registered instance or None."""
@@ -880,6 +904,7 @@ def test_rvp_none_foreign():
 # =====================================================================
 # Test 26: Exception translator chain with multiple frameworks
 # =====================================================================
+
 
 @pytest.mark.skipif(
     (env.MACOS and env.PYPY) or env.ANDROID,
@@ -905,6 +930,7 @@ def test_exception_translator_chain():
 # Test 27: on_request module export makes types visible to full modules
 # =====================================================================
 
+
 def test_on_request_export_visible_to_full():
     """When an on_request module exports a type, full-mode modules
     should automatically see it (they auto-import)."""
@@ -920,6 +946,7 @@ def test_on_request_export_visible_to_full():
 # =====================================================================
 # Test 28: on_request mode with local types
 # =====================================================================
+
 
 def test_on_request_with_local_binding():
     """t4 (on_request) has its own local binding. It should prefer

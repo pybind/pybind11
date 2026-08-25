@@ -18,8 +18,7 @@
 
 namespace py = pybind11;
 
-PYBIND11_MODULE(test_foreign_5, m, py::mod_gil_not_used(),
-                py::foreign_interop::disabled()) {
+PYBIND11_MODULE(test_foreign_5, m, py::mod_gil_not_used(), py::foreign_interop::disabled()) {
     py::handle hm = m;
     Shared::bind_funcs</*SmartHolder=*/true>(m);
     m.def("bind_types", [hm]() { Shared::bind_types</*SmartHolder=*/true>(hm); });

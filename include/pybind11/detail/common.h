@@ -1452,7 +1452,8 @@ inline void silence_unused_warnings(Args &&...) {}
 #endif
 
 // Defined in cast.h
-template <typename T> struct always_construct_holder;
+template <typename T>
+struct always_construct_holder;
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

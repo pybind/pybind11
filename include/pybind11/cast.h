@@ -1029,8 +1029,8 @@ public:
         }
 
         auto *tinfo = srcs.result.tinfo;
-        if (tinfo == nullptr /* uses foreign binding */ ||
-            tinfo->holder_enum_v == holder_enum_t::std_shared_ptr) {
+        if (tinfo == nullptr /* uses foreign binding */
+            || tinfo->holder_enum_v == holder_enum_t::std_shared_ptr) {
             return type_caster_base<type>::cast_holder(srcs, &src);
         }
 

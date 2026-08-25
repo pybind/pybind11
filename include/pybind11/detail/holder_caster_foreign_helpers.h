@@ -100,7 +100,8 @@ struct holder_caster_foreign_helpers {
         return false;
     }
 
-    template <typename type, typename holder,
+    template <typename type,
+              typename holder,
               typename = enable_if_t<always_construct_holder<holder>::value>>
     static bool set_foreign_holder(handle /*src*/, type *value, holder *holder_out) {
         if (value == nullptr) {

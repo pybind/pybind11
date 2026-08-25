@@ -448,7 +448,7 @@ TEST_SUBMODULE(buffers, m) {
         float *m_data;
         py::ssize_t m_n;
         explicit OneDBuffer(py::ssize_t n) : m_data(new float[(size_t) n]()), m_n(n) {}
-        OneDBuffer(const OneDBuffer&) = delete;
+        OneDBuffer(const OneDBuffer &) = delete;
         ~OneDBuffer() { delete[] m_data; }
         // Exercises def_buffer(Return (Class::*)(Args...) noexcept)
         py::buffer_info get_buffer() noexcept {
@@ -471,7 +471,7 @@ TEST_SUBMODULE(buffers, m) {
         float *m_data;
         py::ssize_t m_n;
         explicit OneDBufferConst(py::ssize_t n) : m_data(new float[(size_t) n]()), m_n(n) {}
-        OneDBufferConst(const OneDBufferConst&) = delete;
+        OneDBufferConst(const OneDBufferConst &) = delete;
         ~OneDBufferConst() { delete[] m_data; }
         // Exercises def_buffer(Return (Class::*)(Args...) const noexcept)
         py::buffer_info get_buffer() const noexcept {
@@ -493,7 +493,7 @@ TEST_SUBMODULE(buffers, m) {
         float *m_data;
         py::ssize_t m_n;
         explicit OneDBufferLRef(py::ssize_t n) : m_data(new float[(size_t) n]()), m_n(n) {}
-        OneDBufferLRef(const OneDBufferLRef&) = delete;
+        OneDBufferLRef(const OneDBufferLRef &) = delete;
         ~OneDBufferLRef() { delete[] m_data; }
         // Exercises def_buffer(Return (Class::*)(Args...) &)
         py::buffer_info get_buffer() & {
@@ -513,7 +513,7 @@ TEST_SUBMODULE(buffers, m) {
         float *m_data;
         py::ssize_t m_n;
         explicit OneDBufferConstLRef(py::ssize_t n) : m_data(new float[(size_t) n]()), m_n(n) {}
-        OneDBufferConstLRef(const OneDBufferConstLRef&) = delete;
+        OneDBufferConstLRef(const OneDBufferConstLRef &) = delete;
         ~OneDBufferConstLRef() { delete[] m_data; }
         // Exercises def_buffer(Return (Class::*)(Args...) const &)
         py::buffer_info get_buffer() const & {
@@ -535,7 +535,7 @@ TEST_SUBMODULE(buffers, m) {
         float *m_data;
         py::ssize_t m_n;
         explicit OneDBufferLRefNoexcept(py::ssize_t n) : m_data(new float[(size_t) n]()), m_n(n) {}
-        OneDBufferLRefNoexcept(const OneDBufferLRefNoexcept&) = delete;
+        OneDBufferLRefNoexcept(const OneDBufferLRefNoexcept &) = delete;
         ~OneDBufferLRefNoexcept() { delete[] m_data; }
         // Exercises def_buffer(Return (Class::*)(Args...) & noexcept)
         py::buffer_info get_buffer() & noexcept {
@@ -556,7 +556,7 @@ TEST_SUBMODULE(buffers, m) {
         py::ssize_t m_n;
         explicit OneDBufferConstLRefNoexcept(py::ssize_t n)
             : m_data(new float[(size_t) n]()), m_n(n) {}
-        OneDBufferConstLRefNoexcept(const OneDBufferConstLRefNoexcept&) = delete;
+        OneDBufferConstLRefNoexcept(const OneDBufferConstLRefNoexcept &) = delete;
         ~OneDBufferConstLRefNoexcept() { delete[] m_data; }
         // Exercises def_buffer(Return (Class::*)(Args...) const & noexcept)
         py::buffer_info get_buffer() const & noexcept {
