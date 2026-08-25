@@ -294,7 +294,7 @@ public:
 
 // Prior to C++17, we don't have inline variables, so we have to
 // provide an out-of-line definition of the class member.
-#if !defined(PYBIND11_CPP17)
+#if !defined(__cpp_inline_variables) || __cpp_inline_variables < 201606L
 template <typename cast_in, typename cast_out>
 constexpr typename ReadableFunctionSignature<cast_in, cast_out>::sig_type
     ReadableFunctionSignature<cast_in, cast_out>::kSig;

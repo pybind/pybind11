@@ -388,7 +388,7 @@ struct factory<Func, void_type (*)(), Return(Args...), void_type()> {
     // instance, or the alias needs to be constructible from a `Class &&` argument.
     template <typename Class, typename... Extra>
     void execute(Class &cl, const Extra &...extra) && {
-#if defined(PYBIND11_CPP14)
+#if defined(__cpp_init_captures) && __cpp_init_captures >= 201304L
         cl.def(
             "__init__",
             [func = std::move(class_factory)]
@@ -435,7 +435,7 @@ struct factory<CFunc, AFunc, CReturn(CArgs...), AReturn(AArgs...)> {
         static_assert(Class::has_alias,
                       "The two-argument version of `py::init()` can "
                       "only be used if the class has an alias");
-#if defined(PYBIND11_CPP14)
+#if defined(__cpp_init_captures) && __cpp_init_captures >= 201304L
         cl.def(
             "__init__",
             [class_func = std::move(class_factory), alias_func = std::move(alias_factory)]
@@ -524,7 +524,7 @@ struct pickle_factory<Get, Set, RetState(Self), NewInstance(ArgState)> {
     void execute(Class &cl, const Extra &...extra) && {
         cl.def("__getstate__", std::move(get), pos_only());
 
-#if defined(PYBIND11_CPP14)
+#if defined(__cpp_init_captures) && __cpp_init_captures >= 201304L
         cl.def(
             "__setstate__",
             [func = std::move(set)]
