@@ -63,7 +63,7 @@ inline void import_foreign_binding(pymb_binding *binding,
     auto &foreign_internals = *get_foreign_internals();
     foreign_internals.imported_any = true;
     auto &lst = foreign_internals.bindings[*cpptype];
-    auto pos = lst.find(binding);
+    auto *pos = lst.find(binding);
     if (!pos) {
         ++foreign_internals.bindings_update_count;
         lst.push_back(binding);
@@ -390,7 +390,7 @@ inline int foreign_cb_keep_alive(PyObject *nurse,
                         result = std::shared_ptr<void>(payload, cb);
                         break;
                     case pymb_keep_alive_pyobject: {
-                        PyObject *patient = static_cast<PyObject *>(payload);
+                        auto *patient = static_cast<PyObject *>(payload);
                         Py_INCREF(patient);
                         result = std::shared_ptr<PyObject>(patient, Py_DecRef);
                         break;
@@ -440,7 +440,7 @@ inline int foreign_cb_keep_alive(PyObject *nurse,
         } while (false);
 
         // Normal keep-alive logic for all instances except those newly
-        // created with pymb_rv_polcy_share_ownership
+        // created with pymb_rv_policy_share_ownership
         switch (type) {
             case pymb_keep_alive_callback: {
                 capsule patient{payload, cb};
@@ -685,6 +685,7 @@ inline void foreign_internals::enable_autoimport() {
     if (enabled_by_us) {
         // Note lock order: pymb_registry lock is 'outside' our internals lock.
         pymb_lock_registry(registry);
+        // NOLINTNEXTLINE(modernize-use-auto)
         PYMB_LIST_FOREACH(struct pymb_binding *, binding, registry->bindings) {
             if (binding->framework != self.get()) {
                 foreign_cb_add_foreign_binding(binding);
@@ -715,7 +716,7 @@ inline foreign_internals::~foreign_internals() {
     } else {
         // Leak framework so the still-existing bindings can be used during
         // teardown of other frameworks
-        self.release();
+        self.release(); // NOLINT(bugprone-unused-return-value)
     }
     auto &cache = foreign_internals_local_cache();
     if (cache == this) {
@@ -866,8 +867,8 @@ PYBIND11_NOINLINE void *try_foreign_bindings(const std::type_info *type,
                 auto range
                     = local_internals.foreign_local_imports.equal_range(std::type_index(*type));
                 bool found = false;
-                for (auto it = range.first; it != range.second; ++it) {
-                    if (it->second == binding->framework) {
+                for (auto it2 = range.first; it2 != range.second; ++it2) {
+                    if (it2->second == binding->framework) {
                         found = true;
                         break;
                     }
@@ -877,18 +878,17 @@ PYBIND11_NOINLINE void *try_foreign_bindings(const std::type_info *type,
                 }
             }
 
+            {
 #ifdef Py_GIL_DISABLED
-            // attempt() might execute Python code; drop the internals lock
-            // to avoid a deadlock
-            lock.unlock();
+                // attempt() might execute Python code; drop the internals lock
+                // to avoid a deadlock
+                auto guard = lock.temporarily_drop();
 #endif
-            void *result = attempt(closure, binding);
-            if (result) {
-                return result;
+                void *result = attempt(closure, binding);
+                if (result) {
+                    return result;
+                }
             }
-#ifdef Py_GIL_DISABLED
-            lock.lock();
-#endif
             // Make sure our iterator wasn't invalidated by something that
             // was done within attempt(), or concurrently during attempt()
             // while we didn't hold the internals lock

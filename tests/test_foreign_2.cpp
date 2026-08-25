@@ -9,6 +9,9 @@
 
 // Use an unrealistically large internals version to isolate the test_foreign
 // modules from each other and from the rest of the pybind11 tests
+#if defined(PYBIND11_INTERNALS_VERSION)
+#    undef PYBIND11_INTERNALS_VERSION
+#endif
 #define PYBIND11_INTERNALS_VERSION 200
 
 #include <pybind11/pybind11.h>

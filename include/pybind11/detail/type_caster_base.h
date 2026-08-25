@@ -1148,9 +1148,12 @@ public:
             // No pybind11 type info. See if we can use another framework's
             // type to complete this cast. Set srcs.used_foreign if so.
             foreign_internals *foreign = nullptr;
-            if (srcs.original.cpptype && (foreign = get_foreign_internals())
-                && foreign->imported_any) {
-                if (handle ret = cast_foreign(srcs, policy, parent, existing_holder != nullptr)) {
+            if (srcs.original.cpptype) {
+                foreign = get_foreign_internals();
+                if (!foreign->imported_any) {
+                    // skip check since it won't return anything
+                } else if (handle ret
+                           = cast_foreign(srcs, policy, parent, existing_holder != nullptr)) {
                     return ret;
                 }
             }
@@ -1357,7 +1360,7 @@ public:
     /// Try whichever of try_load_other_module_local() or try_load_other_framework()
     /// are applicable for the given object. Used when there is no
     /// native typeinfo, or when the native one wasn't able to produce a value.
-    PYBIND11_NOINLINE bool try_load_foreign(handle src, bool convert, bool foreign_ok) {
+    PYBIND11_NOINLINE bool try_load_foreign(handle src, bool convert) {
         constexpr auto *local_key = PYBIND11_MODULE_LOCAL_ID;
         const auto pytype = type::handle_of(src);
         if (hasattr(pytype, local_key)
@@ -1365,7 +1368,7 @@ public:
                 src, reinterpret_borrow<capsule>(getattr(pytype, local_key)))) {
             return true;
         }
-        return foreign_ok && try_load_other_framework(src, convert);
+        return try_load_other_framework(src, convert);
     }
 
     // Implementation of `load`; this takes the type of `this` so that it can dispatch the relevant
@@ -1378,7 +1381,7 @@ public:
             return false;
         }
         if (!typeinfo) {
-            return try_load_foreign(src, convert, foreign_ok) && this_.set_foreign_holder(src);
+            return foreign_ok && try_load_foreign(src, convert) && this_.set_foreign_holder(src);
         }
 
         this_.check_holder_compat();
@@ -1442,18 +1445,27 @@ public:
             }
         }
 
-        // Failed to match local typeinfo. Try again with global.
-        if (typeinfo->module_local) {
-            if (auto *gtype = get_global_type_info(*typeinfo->cpptype)) {
-                typeinfo = gtype;
-                return load_impl<ThisT>(src, false);
+        if (!foreign_ok) {
+            // When !foreign_ok, we never try loading as any type except the
+            // one whose typeinfo we were constructed on. That's because
+            // !foreign_ok means we're already being invoked as part of an
+            // attempt to load from a foreign binding; if the other possible
+            // types are relevant to our caller, it's their responsibility to
+            // try them, not ours. If we try too, it degrades performance.
+        } else {
+            // Failed to match local typeinfo. Try again with global.
+            if (typeinfo->module_local) {
+                if (auto *gtype = get_global_type_info(*typeinfo->cpptype)) {
+                    typeinfo = gtype;
+                    return load_impl<ThisT>(src, false);
+                }
             }
-        }
 
-        // Global typeinfo has precedence over foreign module_local and
-        // foreign frameworks
-        if (try_load_foreign(src, convert, foreign_ok)) {
-            return this_.set_foreign_holder(src);
+            // Global typeinfo has precedence over foreign module_local and
+            // foreign frameworks
+            if (try_load_foreign(src, convert)) {
+                return this_.set_foreign_holder(src);
+            }
         }
 
         // Custom converters didn't take None, now we convert None to nullptr.
@@ -1831,18 +1843,20 @@ public:
         handle ret, std::shared_ptr<const void> holder, pymb_framework *framework) {
         // Try to pass the shared_ptr to the framework as a shared_ptr. This
         // helps with pybind/pybind interop.
-        if ((framework->keep_alive_types & (uint8_t) pymb_keep_alive_cpp_shared_ptr_void)
+        if ((framework->keep_alive_types & (uint8_t) pymb_keep_alive_cpp_shared_ptr_void) != 0
             && framework->keep_alive(
-                ret.ptr(), pymb_keep_alive_cpp_shared_ptr_void, &holder, nullptr)) {
+                   ret.ptr(), pymb_keep_alive_cpp_shared_ptr_void, &holder, nullptr)
+                   != 0) {
             return;
         }
         // If the framework we're calling can't work with that, do the
         // equivalent as a callback.
         std::unique_ptr<std::shared_ptr<const void>> sp{new auto(std::move(holder))};
         auto deleter = [](void *p) noexcept { delete (std::shared_ptr<const void> *) p; };
-        if ((framework->keep_alive_types & (uint8_t) pymb_keep_alive_callback)
-            && framework->keep_alive(ret.ptr(), pymb_keep_alive_callback, sp.get(), deleter)) {
-            sp.release();
+        if ((framework->keep_alive_types & (uint8_t) pymb_keep_alive_callback) != 0
+            && framework->keep_alive(ret.ptr(), pymb_keep_alive_callback, sp.get(), deleter)
+                   != 0) {
+            sp.release(); // NOLINT(bugprone-unused-return-value)
             return;
         }
         // If they don't provide a keep_alive at all, use our own weakref-based
@@ -1911,11 +1925,15 @@ public:
             // Wrap the custom holder in a std::shared_ptr with custom deleter,
             // and then delegate to the logic for handling std::shared_ptr casts
             // to foreign.
-            after_shared_ptr_cast_to_foreign(
-                ret,
-                std::shared_ptr<const void>{srcs.original.cppobj,
-                                            [h = std::move(*holder)](const void *) {}},
-                srcs.used_foreign);
+#ifdef PYBIND11_CPP14
+            std::shared_ptr<const void> held{srcs.original.cppobj,
+                                             [h = std::move(*holder)](const void *) {}};
+#else
+            // Work around lack of capture-with-initializer on C++11
+            auto heap_holder = std::make_shared<Holder>(std::move(*holder));
+            std::shared_ptr<const void> held{std::move(heap_holder), srcs.original.cppobj};
+#endif
+            after_shared_ptr_cast_to_foreign(ret, held, srcs.used_foreign);
         }
         return ret;
     }

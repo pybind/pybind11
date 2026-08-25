@@ -7,7 +7,7 @@ Functions that are bound using pybind11 3.1 or later, and calls to ``py::cast()`
 in pybind11 3.1 or later, can accept and return instances of types that were
 bound using other binding libraries that support the `pymetabind
 <https://github.com/hudson-trading/pymetabind>`__ standard, including both
-some non-pybind11 libraries such as `nanobind <https://github.com/wjakob/nanobind>`
+some non-pybind11 libraries such as `nanobind <https://github.com/wjakob/nanobind>`__
 (if built with appropriate flags) and otherwise ABI-incompatible versions of
 pybind11 3.1 or later (without further customization). The README for
 pymetabind contains a list of other libraries that claim such support.

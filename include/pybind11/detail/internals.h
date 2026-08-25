@@ -253,8 +253,7 @@ class pycritical_section {
     PyCriticalSection cs;
 #    endif
 
-public:
-    explicit pycritical_section(pymutex &m) : mutex(m) {
+    void enter() {
         // PyCriticalSection_BeginMutex was added in Python 3.15.0a1 and backported to 3.14.0rc1
 #    if PY_VERSION_HEX >= 0x030E00C1 // 3.14.0rc1
         PyCriticalSection_BeginMutex(&cs, &mutex.mutex);
@@ -263,13 +262,29 @@ public:
         mutex.lock();
 #    endif
     }
-    ~pycritical_section() {
+
+    void leave() {
 #    if PY_VERSION_HEX >= 0x030E00C1 // 3.14.0rc1
         PyCriticalSection_End(&cs);
 #    else
         mutex.unlock();
 #    endif
     }
+
+    struct temporarily_drop_guard {
+        pycritical_section &parent;
+        temporarily_drop_guard(pycritical_section &p) : parent(p) { parent.leave(); }
+        ~temporarily_drop_guard() { parent.enter(); }
+    };
+
+public:
+    explicit pycritical_section(pymutex &m) : mutex(m) { enter(); }
+    ~pycritical_section() { leave(); }
+
+    // Return an RAII guard that temporarily exits the critical section,
+    // re-entering it when the guard is destroyed. You must not have any
+    // other critical section active on top of this one.
+    temporarily_drop_guard temporarily_drop() { return temporarily_drop_guard{*this}; }
 
     // Non-copyable and non-movable to prevent double-unlock
     pycritical_section(const pycritical_section &) = delete;
@@ -447,7 +462,7 @@ struct foreign_internals {
     // invalidated. Protected by internals::mutex.
     uint32_t bindings_update_count = 0;
 
-    inline foreign_internals() = default;
+    foreign_internals() = default;
     inline ~foreign_internals();
 
     // This should be called immediately after construction. It can't be done in
