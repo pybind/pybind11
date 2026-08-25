@@ -96,6 +96,12 @@ PYBIND11_MODULE(pybind11_tests, m, py::mod_gil_not_used()) {
 #else
         false;
 #endif
+    m.attr("PYBIND11_TEST_SMART_HOLDER") =
+#if defined(PYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE)
+        true;
+#else
+        false;
+#endif
 
     bind_ConstructorStats(m);
 
@@ -103,6 +109,12 @@ PYBIND11_MODULE(pybind11_tests, m, py::mod_gil_not_used()) {
     m.attr("detailed_error_messages_enabled") = true;
 #else
     m.attr("detailed_error_messages_enabled") = false;
+#endif
+
+#if defined(__cpp_noexcept_function_type)
+    m.attr("defined___cpp_noexcept_function_type") = true;
+#else
+    m.attr("defined___cpp_noexcept_function_type") = false;
 #endif
 
     py::class_<UserType>(m, "UserType", "A `py::class_` type for testing")

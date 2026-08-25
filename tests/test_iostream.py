@@ -160,16 +160,16 @@ def test_flush(capfd):
 
     with m.ostream_redirect():
         m.noisy_function(msg, flush=False)
-        stdout, stderr = capfd.readouterr()
+        stdout, _stderr = capfd.readouterr()
         assert not stdout
 
         m.noisy_function(msg2, flush=True)
-        stdout, stderr = capfd.readouterr()
+        stdout, _stderr = capfd.readouterr()
         assert stdout == msg + msg2
 
         m.noisy_function(msg, flush=False)
 
-    stdout, stderr = capfd.readouterr()
+    stdout, _stderr = capfd.readouterr()
     assert stdout == msg
 
 
@@ -218,7 +218,7 @@ def test_multi_captured(capfd):
         m.raw_output("b")
         m.captured_output("c")
         m.raw_output("d")
-    stdout, stderr = capfd.readouterr()
+    stdout, _stderr = capfd.readouterr()
     assert stdout == "bd"
     assert stream.getvalue() == "ac"
 
@@ -235,21 +235,21 @@ def test_redirect(capfd):
     stream = StringIO()
     with redirect_stdout(stream):
         m.raw_output(msg)
-    stdout, stderr = capfd.readouterr()
+    stdout, _stderr = capfd.readouterr()
     assert stdout == msg
     assert not stream.getvalue()
 
     stream = StringIO()
     with redirect_stdout(stream), m.ostream_redirect():
         m.raw_output(msg)
-    stdout, stderr = capfd.readouterr()
+    stdout, _stderr = capfd.readouterr()
     assert not stdout
     assert stream.getvalue() == msg
 
     stream = StringIO()
     with redirect_stdout(stream):
         m.raw_output(msg)
-    stdout, stderr = capfd.readouterr()
+    stdout, _stderr = capfd.readouterr()
     assert stdout == msg
     assert not stream.getvalue()
 
@@ -282,6 +282,31 @@ def test_redirect_both(capfd):
     assert not stderr
     assert stream.getvalue() == msg
     assert stream2.getvalue() == msg2
+
+
+def test_move_redirect(capsys):
+    m.move_redirect_output("before_move", "after_move")
+    stdout, stderr = capsys.readouterr()
+    assert stdout == "before_moveafter_move"
+    assert not stderr
+
+
+def test_move_redirect_unflushed(capsys):
+    m.move_redirect_output_unflushed("before_move", "after_move")
+    stdout, stderr = capsys.readouterr()
+    assert stdout == "before_moveafter_move"
+    assert not stderr
+
+
+def test_move_redirect_null_rdbuf(capsys):
+    m.move_redirect_null_rdbuf("hello")
+    stdout, stderr = capsys.readouterr()
+    assert stdout == "hellohello"
+    assert not stderr
+
+
+def test_null_rdbuf_restored():
+    assert m.get_null_rdbuf_restored("test")
 
 
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")

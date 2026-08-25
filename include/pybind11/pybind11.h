@@ -14,6 +14,7 @@
 #include "detail/exception_translation.h"
 #include "detail/foreign.h"
 #include "detail/function_record_pyobject.h"
+#include "detail/function_ref.h"
 #include "detail/init.h"
 #include "detail/native_enum_data.h"
 #include "detail/using_smart_holder.h"
@@ -185,7 +186,8 @@ inline std::string generate_function_signature(const char *type_caster_name_fiel
             signature += *++pc;
         } else if (c == '@') {
             // `@^ ... @!` and `@$ ... @!` are used to force arg/return value type (see
-            // typing::Callable/detail::arg_descr/detail::return_descr)
+            // typing::Callable/detail::arg_descr/detail::return_descr).
+            // `@~ ... @!` inverts the current context (see detail::inv_descr).
             if (*(pc + 1) == '^') {
                 is_return_value.emplace(false);
                 ++pc;
@@ -193,6 +195,11 @@ inline std::string generate_function_signature(const char *type_caster_name_fiel
             }
             if (*(pc + 1) == '$') {
                 is_return_value.emplace(true);
+                ++pc;
+                continue;
+            }
+            if (*(pc + 1) == '~') {
+                is_return_value.emplace(!is_return_value.top());
                 ++pc;
                 continue;
             }
@@ -282,7 +289,7 @@ public:
 
 // Prior to C++17, we don't have inline variables, so we have to
 // provide an out-of-line definition of the class member.
-#if !defined(PYBIND11_CPP17)
+#if !defined(__cpp_inline_variables) || __cpp_inline_variables < 201606L
 template <typename cast_in, typename cast_out>
 constexpr typename ReadableFunctionSignature<cast_in, cast_out>::sig_type
     ReadableFunctionSignature<cast_in, cast_out>::kSig;
@@ -364,6 +371,96 @@ public:
                    extra...);
     }
 
+    /// Construct a cpp_function from a class method (non-const, rvalue ref-qualifier)
+    template <typename Return, typename Class, typename... Arg, typename... Extra>
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    cpp_function(Return (Class::*f)(Arg...) &&, const Extra &...extra) {
+        initialize(
+            [f](Class *c, Arg... args) -> Return {
+                return (std::move(*c).*f)(std::forward<Arg>(args)...);
+            },
+            (Return (*)(Class *, Arg...)) nullptr,
+            extra...);
+    }
+
+    /// Construct a cpp_function from a class method (const, rvalue ref-qualifier)
+    template <typename Return, typename Class, typename... Arg, typename... Extra>
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    cpp_function(Return (Class::*f)(Arg...) const &&, const Extra &...extra) {
+        initialize(
+            [f](const Class *c, Arg... args) -> Return {
+                return (std::move(*c).*f)(std::forward<Arg>(args)...);
+            },
+            (Return (*)(const Class *, Arg...)) nullptr,
+            extra...);
+    }
+
+#ifdef __cpp_noexcept_function_type
+    /// Construct a cpp_function from a class method (non-const, no ref-qualifier, noexcept)
+    template <typename Return, typename Class, typename... Arg, typename... Extra>
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    cpp_function(Return (Class::*f)(Arg...) noexcept, const Extra &...extra) {
+        initialize(
+            [f](Class *c, Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
+            (Return (*)(Class *, Arg...)) nullptr,
+            extra...);
+    }
+
+    /// Construct a cpp_function from a class method (non-const, lvalue ref-qualifier, noexcept)
+    template <typename Return, typename Class, typename... Arg, typename... Extra>
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    cpp_function(Return (Class::*f)(Arg...) & noexcept, const Extra &...extra) {
+        initialize(
+            [f](Class *c, Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
+            (Return (*)(Class *, Arg...)) nullptr,
+            extra...);
+    }
+
+    /// Construct a cpp_function from a class method (const, no ref-qualifier, noexcept)
+    template <typename Return, typename Class, typename... Arg, typename... Extra>
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    cpp_function(Return (Class::*f)(Arg...) const noexcept, const Extra &...extra) {
+        initialize([f](const Class *c,
+                       Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
+                   (Return (*)(const Class *, Arg...)) nullptr,
+                   extra...);
+    }
+
+    /// Construct a cpp_function from a class method (const, lvalue ref-qualifier, noexcept)
+    template <typename Return, typename Class, typename... Arg, typename... Extra>
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    cpp_function(Return (Class::*f)(Arg...) const & noexcept, const Extra &...extra) {
+        initialize([f](const Class *c,
+                       Arg... args) -> Return { return (c->*f)(std::forward<Arg>(args)...); },
+                   (Return (*)(const Class *, Arg...)) nullptr,
+                   extra...);
+    }
+
+    /// Construct a cpp_function from a class method (non-const, rvalue ref-qualifier, noexcept)
+    template <typename Return, typename Class, typename... Arg, typename... Extra>
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    cpp_function(Return (Class::*f)(Arg...) && noexcept, const Extra &...extra) {
+        initialize(
+            [f](Class *c, Arg... args) -> Return {
+                return (std::move(*c).*f)(std::forward<Arg>(args)...);
+            },
+            (Return (*)(Class *, Arg...)) nullptr,
+            extra...);
+    }
+
+    /// Construct a cpp_function from a class method (const, rvalue ref-qualifier, noexcept)
+    template <typename Return, typename Class, typename... Arg, typename... Extra>
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    cpp_function(Return (Class::*f)(Arg...) const && noexcept, const Extra &...extra) {
+        initialize(
+            [f](const Class *c, Arg... args) -> Return {
+                return (std::move(*c).*f)(std::forward<Arg>(args)...);
+            },
+            (Return (*)(const Class *, Arg...)) nullptr,
+            extra...);
+    }
+#endif
+
     /// Return the function name
     object name() const { return attr("__name__"); }
 
@@ -381,6 +478,46 @@ protected:
         return unique_function_record(new detail::function_record());
     }
 
+private:
+    // This is outlined from the dispatch lambda in initialize to save
+    // on code size. Crucially, we use function_ref to type-erase the
+    // actual function lambda so that we can get code reuse for
+    // functions with the same Return, Args, and Guard.
+    template <typename Return, typename Guard, typename ArgsConverter, typename... Args>
+    static handle call_impl(detail::function_call &call, detail::function_ref<Return(Args...)> f) {
+        using namespace detail;
+        // Static assertion: function_ref must be trivially copyable to ensure safe pass-by-value.
+        // Lifetime safety: The function_ref is created from cap->f which lives in the capture
+        // object stored in the function record, and is only used synchronously within this
+        // function call. It is never stored beyond the scope of call_impl.
+        static_assert(std::is_trivially_copyable<detail::function_ref<Return(Args...)>>::value,
+                      "function_ref must be trivially copyable for safe pass-by-value usage");
+        using cast_out
+            = make_caster<conditional_t<std::is_void<Return>::value, void_type, Return>>;
+
+        ArgsConverter args_converter;
+        if (!args_converter.load_args(call)) {
+            return PYBIND11_TRY_NEXT_OVERLOAD;
+        }
+
+        /* Override policy for rvalues -- usually to enforce rvp::move on an rvalue */
+        return_value_policy policy
+            = return_value_policy_override<Return>::policy(call.func.policy);
+
+        /* Perform the function call */
+        handle result;
+        if (call.func.is_setter) {
+            (void) std::move(args_converter).template call<Return, Guard>(f);
+            result = none().release();
+        } else {
+            result = cast_out::cast(
+                std::move(args_converter).template call<Return, Guard>(f), policy, call.parent);
+        }
+
+        return result;
+    }
+
+protected:
     /// Special internal constructor for functors, lambda functions, etc.
     template <typename Func, typename Return, typename... Args, typename... Extra>
     void initialize(Func &&f, Return (*)(Args...), const Extra &...extra) {
@@ -443,13 +580,6 @@ protected:
 
         /* Dispatch code which converts function arguments and performs the actual function call */
         rec->impl = [](function_call &call) -> handle {
-            cast_in args_converter;
-
-            /* Try to cast the function arguments into the C++ domain */
-            if (!args_converter.load_args(call)) {
-                return PYBIND11_TRY_NEXT_OVERLOAD;
-            }
-
             /* Invoke call policy pre-call hook */
             process_attributes<Extra...>::precall(call);
 
@@ -458,24 +588,11 @@ protected:
                                                                           : call.func.data[0]);
             auto *cap = const_cast<capture *>(reinterpret_cast<const capture *>(data));
 
-            /* Override policy for rvalues -- usually to enforce rvp::move on an rvalue */
-            return_value_policy policy
-                = return_value_policy_override<Return>::policy(call.func.policy);
-
-            /* Function scope guard -- defaults to the compile-to-nothing `void_type` */
-            using Guard = extract_guard_t<Extra...>;
-
-            /* Perform the function call */
-            handle result;
-            if (call.func.is_setter) {
-                (void) std::move(args_converter).template call<Return, Guard>(cap->f);
-                result = none().release();
-            } else {
-                result = cast_out::cast(
-                    std::move(args_converter).template call<Return, Guard>(cap->f),
-                    policy,
-                    call.parent);
-            }
+            auto result = call_impl<Return,
+                                    /* Function scope guard -- defaults to the compile-to-nothing
+                                       `void_type` */
+                                    extract_guard_t<Extra...>,
+                                    cast_in>(call, detail::function_ref<Return(Args...)>(cap->f));
 
             /* Invoke call policy post-call hook */
             process_attributes<Extra...>::postcall(call, result);
@@ -1316,9 +1433,15 @@ PYBIND11_NAMESPACE_BEGIN(function_record_PyTypeObject_methods)
 
 // This implementation needs the definition of `class cpp_function`.
 inline void tp_dealloc_impl(PyObject *self) {
+    // Save type before PyObject_Free invalidates self.
+    auto *type = Py_TYPE(self);
     auto *py_func_rec = reinterpret_cast<function_record_PyObject *>(self);
     cpp_function::destruct(py_func_rec->cpp_func_rec);
     py_func_rec->cpp_func_rec = nullptr;
+    // PyObject_New increments the heap type refcount and allocates via
+    // PyObject_Malloc; balance both here
+    PyObject_Free(self);
+    Py_DECREF(type);
 }
 
 PYBIND11_NAMESPACE_END(function_record_PyTypeObject_methods)
@@ -1333,12 +1456,23 @@ PYBIND11_NAMESPACE_END(detail)
 // Use to activate Py_MOD_GIL_NOT_USED.
 class mod_gil_not_used {
 public:
-    explicit mod_gil_not_used(bool flag = true) : flag_(flag) {}
+    mod_gil_not_used() : flag_(true) {}
+    PYBIND11_DEPRECATED("use py::mod_gil_not_used() or py::mod_gil_used() instead")
+    explicit mod_gil_not_used(bool flag) : flag_(flag) {}
     bool flag() const { return flag_; }
+
+    friend mod_gil_not_used mod_gil_used();
 
 private:
     bool flag_;
 };
+
+// Use to activate Py_MOD_GIL_USED, the current default.
+inline mod_gil_not_used mod_gil_used() {
+    mod_gil_not_used tag;
+    tag.flag_ = false;
+    return tag;
+}
 
 class multiple_interpreters {
 public:
@@ -1652,8 +1786,7 @@ public:
     static module_ create_extension_module(const char *name,
                                            const char *doc,
                                            PyModuleDef *def,
-                                           mod_gil_not_used gil_not_used
-                                           = mod_gil_not_used(false)) {
+                                           mod_gil_not_used gil_not_used = mod_gil_used()) {
         // Placement new (not an allocation).
         new (def) PyModuleDef{/* m_base */ PyModuleDef_HEAD_INIT,
                               /* m_name */ name,
@@ -1880,7 +2013,7 @@ void call_operator_delete(T *p, size_t s, size_t) {
 inline void call_operator_delete(void *p, size_t s, size_t a) {
     (void) s;
     (void) a;
-#if defined(__cpp_aligned_new) && (!defined(_MSC_VER) || _MSC_VER >= 1912)
+#if defined(__cpp_aligned_new)
     if (a > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
 #    ifdef __cpp_sized_deallocation
         ::operator delete(p, s, std::align_val_t(a));
@@ -1904,29 +2037,89 @@ inline void add_class_method(object &cls, const char *name_, const cpp_function 
     }
 }
 
+/// Type trait to rebind a member function pointer's class to `Derived`, preserving all
+/// cv/ref/noexcept qualifiers. The primary template has no `type` member, providing SFINAE
+/// failure for unsupported member function pointer types. `source_class` holds the original
+/// class for use in `is_accessible_base_of` checks.
+template <typename Derived, typename T>
+struct rebind_member_ptr {};
+
+// Define one specialization per supported qualifier combination via a local macro.
+// The qualifiers argument appears in type position, not expression position, so
+// parenthesizing it would produce invalid C++.
+// The no-qualifier specialization is written out explicitly to avoid invoking the macro with an
+// empty argument, which triggers MSVC warning C4003.
+template <typename Derived, typename Return, typename Class, typename... Args>
+struct rebind_member_ptr<Derived, Return (Class::*)(Args...)> {
+    using type = Return (Derived::*)(Args...);
+    using source_class = Class;
+};
+// NOLINTBEGIN(bugprone-macro-parentheses)
+#define PYBIND11_REBIND_MEMBER_PTR(qualifiers)                                                    \
+    template <typename Derived, typename Return, typename Class, typename... Args>                \
+    struct rebind_member_ptr<Derived, Return (Class::*)(Args...) qualifiers> {                    \
+        using type = Return (Derived::*)(Args...) qualifiers;                                     \
+        using source_class = Class;                                                               \
+    }
+PYBIND11_REBIND_MEMBER_PTR(const);
+PYBIND11_REBIND_MEMBER_PTR(&);
+PYBIND11_REBIND_MEMBER_PTR(const &);
+PYBIND11_REBIND_MEMBER_PTR(&&);
+PYBIND11_REBIND_MEMBER_PTR(const &&);
+#ifdef __cpp_noexcept_function_type
+PYBIND11_REBIND_MEMBER_PTR(noexcept);
+PYBIND11_REBIND_MEMBER_PTR(const noexcept);
+PYBIND11_REBIND_MEMBER_PTR(& noexcept);
+PYBIND11_REBIND_MEMBER_PTR(const & noexcept);
+PYBIND11_REBIND_MEMBER_PTR(&& noexcept);
+PYBIND11_REBIND_MEMBER_PTR(const && noexcept);
+#endif
+#undef PYBIND11_REBIND_MEMBER_PTR
+// NOLINTEND(bugprone-macro-parentheses)
+
+/// Shared implementation body for all method_adaptor member-function-pointer overloads.
+/// Asserts Base is accessible from Derived, then casts the member pointer.
+template <typename Derived,
+          typename T,
+          typename Traits = rebind_member_ptr<Derived, T>,
+          typename Adapted = typename Traits::type>
+constexpr PYBIND11_ALWAYS_INLINE Adapted adapt_member_ptr(T pmf) {
+    static_assert(
+        detail::is_accessible_base_of<typename Traits::source_class, Derived>::value,
+        "Cannot bind an inaccessible base class method; use a lambda definition instead");
+    return pmf;
+}
+
 PYBIND11_NAMESPACE_END(detail)
 
 /// Given a pointer to a member function, cast it to its `Derived` version.
-/// Forward everything else unchanged.
-template <typename /*Derived*/, typename F>
-auto method_adaptor(F &&f) -> decltype(std::forward<F>(f)) {
+/// For all other callables (lambdas, function pointers, etc.), forward unchanged.
+///
+/// Two overloads cover all cases without explicit per-qualifier instantiations:
+///
+///  (1) Generic fallback — disabled for member function pointers so that (2) wins
+///      without any partial-ordering ambiguity.
+///  (2) MFP overload — SFINAE on rebind_member_ptr::type, which exists for every
+///      supported qualifier combination (const, &, &&, noexcept, ...).  A single
+///      template therefore covers all combinations that rebind_member_ptr handles.
+template <
+    typename /*Derived*/,
+    typename F,
+    detail::enable_if_t<!std::is_member_function_pointer<detail::remove_reference_t<F>>::value,
+                        int> = 0>
+constexpr auto method_adaptor(F &&f) -> decltype(std::forward<F>(f)) {
     return std::forward<F>(f);
 }
 
-template <typename Derived, typename Return, typename Class, typename... Args>
-auto method_adaptor(Return (Class::*pmf)(Args...)) -> Return (Derived::*)(Args...) {
-    static_assert(
-        detail::is_accessible_base_of<Class, Derived>::value,
-        "Cannot bind an inaccessible base class method; use a lambda definition instead");
-    return pmf;
-}
-
-template <typename Derived, typename Return, typename Class, typename... Args>
-auto method_adaptor(Return (Class::*pmf)(Args...) const) -> Return (Derived::*)(Args...) const {
-    static_assert(
-        detail::is_accessible_base_of<Class, Derived>::value,
-        "Cannot bind an inaccessible base class method; use a lambda definition instead");
-    return pmf;
+template <typename Derived,
+          typename T,
+          typename Adapted = typename detail::rebind_member_ptr<Derived, T>::type>
+constexpr Adapted method_adaptor(T pmf) {
+    // Expected to be redundant (SFINAE on rebind_member_ptr) but cheap and makes the intent
+    // explicit.
+    static_assert(std::is_member_function_pointer<T>::value,
+                  "method_adaptor: T must be a member function pointer");
+    return detail::adapt_member_ptr<Derived>(pmf);
 }
 
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -2289,13 +2482,20 @@ public:
         rec.add_base(typeid(Base), [](void *src) -> void * {
             return static_cast<Base *>(reinterpret_cast<type *>(src));
         });
+        // Virtual inheritance means the base subobject is at a dynamic offset,
+        // so the reinterpret_cast shortcut in load_impl Case 2a is invalid.
+        // Force the MI path (implicit_casts) for correct pointer adjustment.
+        // Detection: static_cast<Derived*>(Base*) is ill-formed for virtual bases.
+        if PYBIND11_MAYBE_CONSTEXPR (!detail::is_static_downcastable<Base, type>::value) {
+            rec.multiple_inheritance = true;
+        }
     }
 
     template <typename Base, detail::enable_if_t<!is_base<Base>::value, int> = 0>
     static void add_base(detail::type_record &) {}
 
     template <typename Func, typename... Extra>
-    class_ &def(const char *name_, Func &&f, const Extra &...extra) {
+    PYBIND11_ALWAYS_INLINE class_ &def(const char *name_, Func &&f, const Extra &...extra) {
         cpp_function cf(method_adaptor<type>(std::forward<Func>(f)),
                         name(name_),
                         is_method(*this),
@@ -2389,6 +2589,40 @@ public:
     class_ &def_buffer(Return (Class::*func)(Args...) const) {
         return def_buffer([func](const type &obj) { return (obj.*func)(); });
     }
+
+    // Intentionally no &&/const&& overloads: buffer protocol callbacks are invoked on an
+    // existing Python object and should not move-from self.
+    template <typename Return, typename Class, typename... Args>
+    class_ &def_buffer(Return (Class::*func)(Args...) &) {
+        return def_buffer([func](type &obj) { return (obj.*func)(); });
+    }
+
+    template <typename Return, typename Class, typename... Args>
+    class_ &def_buffer(Return (Class::*func)(Args...) const &) {
+        return def_buffer([func](const type &obj) { return (obj.*func)(); });
+    }
+
+#ifdef __cpp_noexcept_function_type
+    template <typename Return, typename Class, typename... Args>
+    class_ &def_buffer(Return (Class::*func)(Args...) noexcept) {
+        return def_buffer([func](type &obj) { return (obj.*func)(); });
+    }
+
+    template <typename Return, typename Class, typename... Args>
+    class_ &def_buffer(Return (Class::*func)(Args...) const noexcept) {
+        return def_buffer([func](const type &obj) { return (obj.*func)(); });
+    }
+
+    template <typename Return, typename Class, typename... Args>
+    class_ &def_buffer(Return (Class::*func)(Args...) & noexcept) {
+        return def_buffer([func](type &obj) { return (obj.*func)(); });
+    }
+
+    template <typename Return, typename Class, typename... Args>
+    class_ &def_buffer(Return (Class::*func)(Args...) const & noexcept) {
+        return def_buffer([func](const type &obj) { return (obj.*func)(); });
+    }
+#endif
 
     template <typename C, typename D, typename... Extra>
     class_ &def_readwrite(const char *name, D C::*pm, const Extra &...extra) {
@@ -2517,18 +2751,40 @@ public:
         if (rec_fget) {
             char *doc_prev = rec_fget->doc; /* 'extra' field may include a property-specific
                                                documentation string */
+            auto args_before = rec_fget->args.size();
             detail::process_attributes<Extra...>::init(extra..., rec_fget);
             if (rec_fget->doc && rec_fget->doc != doc_prev) {
                 std::free(doc_prev);
                 rec_fget->doc = PYBIND11_COMPAT_STRDUP(rec_fget->doc);
             }
+            // Args added by process_attributes (e.g. "self" via is_method + pos_only/kw_only)
+            // need their strings strdup'd: initialize_generic's strdup loop already ran during
+            // cpp_function construction, so it won't process these late additions. Without this,
+            // destruct() would call free() on string literals. See gh-5976.
+            for (auto i = args_before; i < rec_fget->args.size(); ++i) {
+                if (rec_fget->args[i].name) {
+                    rec_fget->args[i].name = PYBIND11_COMPAT_STRDUP(rec_fget->args[i].name);
+                }
+                if (rec_fget->args[i].descr) {
+                    rec_fget->args[i].descr = PYBIND11_COMPAT_STRDUP(rec_fget->args[i].descr);
+                }
+            }
         }
         if (rec_fset) {
             char *doc_prev = rec_fset->doc;
+            auto args_before = rec_fset->args.size();
             detail::process_attributes<Extra...>::init(extra..., rec_fset);
             if (rec_fset->doc && rec_fset->doc != doc_prev) {
                 std::free(doc_prev);
                 rec_fset->doc = PYBIND11_COMPAT_STRDUP(rec_fset->doc);
+            }
+            for (auto i = args_before; i < rec_fset->args.size(); ++i) {
+                if (rec_fset->args[i].name) {
+                    rec_fset->args[i].name = PYBIND11_COMPAT_STRDUP(rec_fset->args[i].name);
+                }
+                if (rec_fset->args[i].descr) {
+                    rec_fset->args[i].descr = PYBIND11_COMPAT_STRDUP(rec_fset->args[i].descr);
+                }
             }
             if (!rec_active) {
                 rec_active = rec_fset;
@@ -2880,37 +3136,12 @@ struct enum_base {
         pos_only())
 
         if (is_convertible) {
-            PYBIND11_ENUM_OP_CONV_LHS("__eq__", !b.is_none() && a.equal(b));
-            PYBIND11_ENUM_OP_CONV_LHS("__ne__", b.is_none() || !a.equal(b));
-
             if (is_arithmetic) {
-                PYBIND11_ENUM_OP_CONV("__lt__", a < b);
-                PYBIND11_ENUM_OP_CONV("__gt__", a > b);
-                PYBIND11_ENUM_OP_CONV("__le__", a <= b);
-                PYBIND11_ENUM_OP_CONV("__ge__", a >= b);
-                PYBIND11_ENUM_OP_CONV("__and__", a & b);
-                PYBIND11_ENUM_OP_CONV("__rand__", a & b);
-                PYBIND11_ENUM_OP_CONV("__or__", a | b);
-                PYBIND11_ENUM_OP_CONV("__ror__", a | b);
-                PYBIND11_ENUM_OP_CONV("__xor__", a ^ b);
-                PYBIND11_ENUM_OP_CONV("__rxor__", a ^ b);
                 m_base.attr("__invert__")
                     = cpp_function([](const object &arg) { return ~(int_(arg)); },
                                    name("__invert__"),
                                    is_method(m_base),
                                    pos_only());
-            }
-        } else {
-            PYBIND11_ENUM_OP_STRICT("__eq__", int_(a).equal(int_(b)), return false);
-            PYBIND11_ENUM_OP_STRICT("__ne__", !int_(a).equal(int_(b)), return true);
-
-            if (is_arithmetic) {
-#define PYBIND11_THROW throw type_error("Expected an enumeration of matching type!");
-                PYBIND11_ENUM_OP_STRICT("__lt__", int_(a) < int_(b), PYBIND11_THROW);
-                PYBIND11_ENUM_OP_STRICT("__gt__", int_(a) > int_(b), PYBIND11_THROW);
-                PYBIND11_ENUM_OP_STRICT("__le__", int_(a) <= int_(b), PYBIND11_THROW);
-                PYBIND11_ENUM_OP_STRICT("__ge__", int_(a) >= int_(b), PYBIND11_THROW);
-#undef PYBIND11_THROW
             }
         }
 
@@ -3000,7 +3231,6 @@ class enum_ : public class_<Type> {
 public:
     using Base = class_<Type>;
     using Base::attr;
-    using Base::def;
     using Base::def_property_readonly;
     using Base::def_property_readonly_static;
     using Underlying = typename std::underlying_type<Type>::type;
@@ -3027,6 +3257,69 @@ public:
 
         def(init([](Scalar i) { return static_cast<Type>(i); }), arg("value"));
         def_property_readonly("value", [](Type value) { return (Scalar) value; }, pos_only());
+#define PYBIND11_ENUM_OP_SAME_TYPE(op, expr)                                                      \
+    def(op, [](Type a, Type b) { return expr; }, pybind11::name(op), arg("other"), pos_only())
+#define PYBIND11_ENUM_OP_SAME_TYPE_RHS_MAY_BE_NONE(op, expr)                                      \
+    def(op, [](Type a, Type *b_ptr) { return expr; }, pybind11::name(op), arg("other"), pos_only())
+#define PYBIND11_ENUM_OP_SCALAR(op, op_expr)                                                      \
+    def(                                                                                          \
+        op,                                                                                       \
+        [](Type a, Scalar b) { return static_cast<Scalar>(a) op_expr b; },                        \
+        pybind11::name(op),                                                                       \
+        arg("other"),                                                                             \
+        pos_only())
+#define PYBIND11_ENUM_OP_CONV_ARITHMETIC(op, op_expr)                                             \
+    /* NOLINTNEXTLINE(bugprone-macro-parentheses) */                                              \
+    PYBIND11_ENUM_OP_SAME_TYPE(op, static_cast<Scalar>(a) op_expr static_cast<Scalar>(b));        \
+    PYBIND11_ENUM_OP_SCALAR(op, op_expr)
+#define PYBIND11_ENUM_OP_REJECT_UNRELATED_TYPE(op, strict_behavior)                               \
+    def(                                                                                          \
+        op,                                                                                       \
+        [](Type, const object &) { strict_behavior; },                                            \
+        pybind11::name(op),                                                                       \
+        arg("other"),                                                                             \
+        pos_only())
+#define PYBIND11_ENUM_OP_STRICT_ARITHMETIC(op, op_expr, strict_behavior)                          \
+    /* NOLINTNEXTLINE(bugprone-macro-parentheses) */                                              \
+    PYBIND11_ENUM_OP_SAME_TYPE(op, static_cast<Scalar>(a) op_expr static_cast<Scalar>(b));        \
+    PYBIND11_ENUM_OP_REJECT_UNRELATED_TYPE(op, strict_behavior);
+
+        PYBIND11_ENUM_OP_SAME_TYPE_RHS_MAY_BE_NONE("__eq__", b_ptr && a == *b_ptr);
+        PYBIND11_ENUM_OP_SAME_TYPE_RHS_MAY_BE_NONE("__ne__", !b_ptr || a != *b_ptr);
+        if (std::is_convertible<Type, Scalar>::value) {
+            PYBIND11_ENUM_OP_SCALAR("__eq__", ==);
+            PYBIND11_ENUM_OP_SCALAR("__ne__", !=);
+            if (is_arithmetic) {
+                PYBIND11_ENUM_OP_CONV_ARITHMETIC("__lt__", <);
+                PYBIND11_ENUM_OP_CONV_ARITHMETIC("__gt__", >);
+                PYBIND11_ENUM_OP_CONV_ARITHMETIC("__le__", <=);
+                PYBIND11_ENUM_OP_CONV_ARITHMETIC("__ge__", >=);
+                PYBIND11_ENUM_OP_CONV_ARITHMETIC("__and__", &);
+                PYBIND11_ENUM_OP_CONV_ARITHMETIC("__rand__", &);
+                PYBIND11_ENUM_OP_CONV_ARITHMETIC("__or__", |);
+                PYBIND11_ENUM_OP_CONV_ARITHMETIC("__ror__", |);
+                PYBIND11_ENUM_OP_CONV_ARITHMETIC("__xor__", ^);
+                PYBIND11_ENUM_OP_CONV_ARITHMETIC("__rxor__", ^);
+            }
+        } else if (is_arithmetic) {
+#define PYBIND11_ENUM_OP_THROW_TYPE_ERROR                                                         \
+    throw type_error("Expected an enumeration of matching type!");
+            PYBIND11_ENUM_OP_STRICT_ARITHMETIC("__lt__", <, PYBIND11_ENUM_OP_THROW_TYPE_ERROR);
+            PYBIND11_ENUM_OP_STRICT_ARITHMETIC("__gt__", >, PYBIND11_ENUM_OP_THROW_TYPE_ERROR);
+            PYBIND11_ENUM_OP_STRICT_ARITHMETIC("__le__", <=, PYBIND11_ENUM_OP_THROW_TYPE_ERROR);
+            PYBIND11_ENUM_OP_STRICT_ARITHMETIC("__ge__", >=, PYBIND11_ENUM_OP_THROW_TYPE_ERROR);
+#undef PYBIND11_ENUM_OP_THROW_TYPE_ERROR
+        }
+        PYBIND11_ENUM_OP_REJECT_UNRELATED_TYPE("__eq__", return false);
+        PYBIND11_ENUM_OP_REJECT_UNRELATED_TYPE("__ne__", return true);
+
+#undef PYBIND11_ENUM_OP_SAME_TYPE
+#undef PYBIND11_ENUM_OP_SAME_TYPE_RHS_MAY_BE_NONE
+#undef PYBIND11_ENUM_OP_SCALAR
+#undef PYBIND11_ENUM_OP_CONV_ARITHMETIC
+#undef PYBIND11_ENUM_OP_REJECT_UNRELATED_TYPE
+#undef PYBIND11_ENUM_OP_STRICT_ARITHMETIC
+
         def("__int__", [](Type value) { return (Scalar) value; }, pos_only());
         def("__index__", [](Type value) { return (Scalar) value; }, pos_only());
         attr("__setstate__") = cpp_function(
@@ -3039,6 +3332,28 @@ public:
             is_method(*this),
             arg("state"),
             pos_only());
+    }
+
+    template <typename Func, typename... Extra>
+    enum_ &def(const char *name_, Func &&f, const Extra &...extra) {
+        if (std::strcmp(name_, "__str__") == 0) {
+            Base::def(name_, std::forward<Func>(f), prepend{}, extra...);
+        } else {
+            Base::def(name_, std::forward<Func>(f), extra...);
+        }
+        return *this;
+    }
+
+    // Avoid using Base::def here: GCC 15/MinGW sees the duplicate dependent-base
+    // def(const char *, ...) template as ambiguous with enum_::def(const char *, ...).
+    template <typename T,
+              typename... Extra,
+              detail::enable_if_t<
+                  !std::is_convertible<typename std::decay<T>::type, const char *>::value,
+                  int> = 0>
+    enum_ &def(T &&op, const Extra &...extra) {
+        Base::def(std::forward<T>(op), extra...);
+        return *this;
     }
 
     /// Export enumeration entries into the parent scope
@@ -3233,6 +3548,11 @@ iterator make_iterator_impl(Iterator first, Sentinel last, Extra &&...extra) {
     using state = detail::iterator_state<Access, Policy, Iterator, Sentinel, ValueType, Extra...>;
     // TODO: state captures only the types of Extra, not the values
 
+    // For Python < 3.14.0rc1, pycritical_section uses direct mutex locking (same as a unique
+    // lock), which may deadlock during type registration. See detail/internals.h for details.
+#if PY_VERSION_HEX >= 0x030E00C1 // 3.14.0rc1
+    PYBIND11_LOCK_INTERNALS(get_internals());
+#endif
     if (!detail::get_type_info(typeid(state), false)) {
         class_<state>(handle(), "iterator", pybind11::module_local())
             .def(
@@ -3354,13 +3674,10 @@ typing::Iterator<ValueType> make_value_iterator(Type &value, Extra &&...extra) {
 
 template <typename InputType, typename OutputType>
 void implicitly_convertible() {
-    static int tss_sentinel_pointee = 1; // arbitrary value
     struct set_flag {
-        thread_specific_storage<int> &flag;
-        explicit set_flag(thread_specific_storage<int> &flag_) : flag(flag_) {
-            flag = &tss_sentinel_pointee; // trick: the pointer itself is the sentinel
-        }
-        ~set_flag() { flag.reset(nullptr); }
+        bool &flag;
+        explicit set_flag(bool &flag_) : flag(flag_) { flag_ = true; }
+        ~set_flag() { flag = false; }
 
         // Prevent copying/moving to ensure RAII guard is used safely
         set_flag(const set_flag &) = delete;
@@ -3369,7 +3686,7 @@ void implicitly_convertible() {
         set_flag &operator=(set_flag &&) = delete;
     };
     auto implicit_caster = [](PyObject *obj, PyTypeObject *type) -> PyObject * {
-        static thread_specific_storage<int> currently_used;
+        thread_local bool currently_used = false;
         if (currently_used) { // implicit conversions are non-reentrant
             return nullptr;
         }
@@ -3507,34 +3824,20 @@ register_local_exception(handle scope, const char *name, handle base = PyExc_Exc
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 PYBIND11_NOINLINE void print(const tuple &args, const dict &kwargs) {
-    auto strings = tuple(args.size());
-    for (size_t i = 0; i < args.size(); ++i) {
-        strings[i] = str(args[i]);
+#if PY_VERSION_HEX >= 0x030D0000
+    auto builtins = reinterpret_steal<dict>(PyEval_GetFrameBuiltins());
+#else
+    auto builtins = reinterpret_borrow<dict>(PyEval_GetBuiltins());
+#endif
+    // The builtins dictionary may already be partially cleared during interpreter shutdown.
+    auto native_print = reinterpret_steal<object>(dict_getitemstringref(builtins.ptr(), "print"));
+    if (!native_print) {
+        return;
     }
-    auto sep = kwargs.contains("sep") ? kwargs["sep"] : str(" ");
-    auto line = sep.attr("join")(std::move(strings));
-
-    object file;
-    if (kwargs.contains("file")) {
-        file = kwargs["file"].cast<object>();
-    } else {
-        try {
-            file = module_::import("sys").attr("stdout");
-        } catch (const error_already_set &) {
-            /* If print() is called from code that is executed as
-               part of garbage collection during interpreter shutdown,
-               importing 'sys' can fail. Give up rather than crashing the
-               interpreter in this case. */
-            return;
-        }
-    }
-
-    auto write = file.attr("write");
-    write(std::move(line));
-    write(kwargs.contains("end") ? kwargs["end"] : str("\n"));
-
-    if (kwargs.contains("flush") && kwargs["flush"].cast<bool>()) {
-        file.attr("flush")();
+    auto result
+        = reinterpret_steal<object>(PyObject_Call(native_print.ptr(), args.ptr(), kwargs.ptr()));
+    if (!result) {
+        throw error_already_set();
     }
 }
 PYBIND11_NAMESPACE_END(detail)
@@ -3590,24 +3893,23 @@ get_type_override(const void *this_ptr, const type_info *this_type, const char *
     /* Don't call dispatch code if invoked from overridden function.
        Unfortunately this doesn't work on PyPy and GraalPy. */
 #if !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)
-#    if PY_VERSION_HEX >= 0x03090000
     PyFrameObject *frame = PyThreadState_GetFrame(PyThreadState_Get());
     if (frame != nullptr) {
         PyCodeObject *f_code = PyFrame_GetCode(frame);
         // f_code is guaranteed to not be NULL
         if (std::string(str(f_code->co_name)) == name && f_code->co_argcount > 0) {
-#        if PY_VERSION_HEX >= 0x030d0000
+#    if PY_VERSION_HEX >= 0x030d0000
             PyObject *locals = PyEval_GetFrameLocals();
-#        else
+#    else
             PyObject *locals = PyEval_GetLocals();
             Py_XINCREF(locals);
-#        endif
+#    endif
             if (locals != nullptr) {
-#        if PY_VERSION_HEX >= 0x030b0000
+#    if PY_VERSION_HEX >= 0x030b0000
                 PyObject *co_varnames = PyCode_GetVarnames(f_code);
-#        else
+#    else
                 PyObject *co_varnames = PyObject_GetAttrString((PyObject *) f_code, "co_varnames");
-#        endif
+#    endif
                 PyObject *self_arg = PyTuple_GET_ITEM(co_varnames, 0);
                 Py_DECREF(co_varnames);
                 PyObject *self_caller = dict_getitem(locals, self_arg);
@@ -3622,18 +3924,6 @@ get_type_override(const void *this_ptr, const type_info *this_type, const char *
         Py_DECREF(f_code);
         Py_DECREF(frame);
     }
-#    else
-    PyFrameObject *frame = PyThreadState_Get()->frame;
-    if (frame != nullptr && (std::string) str(frame->f_code->co_name) == name
-        && frame->f_code->co_argcount > 0) {
-        PyFrame_FastToLocals(frame);
-        PyObject *self_caller
-            = dict_getitem(frame->f_locals, PyTuple_GET_ITEM(frame->f_code->co_varnames, 0));
-        if (self_caller == self.ptr()) {
-            return function();
-        }
-    }
-#    endif
 
 #else
     /* PyPy currently doesn't provide a detailed cpyext emulation of

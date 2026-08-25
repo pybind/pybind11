@@ -3,8 +3,6 @@
 Deprecated
 ##########
 
-Support for Python 3.8 is deprecated and will be removed in 3.1.
-
 Support for C++11 is deprecated and will be removed in a future version. Please
 use at least C++14.
 

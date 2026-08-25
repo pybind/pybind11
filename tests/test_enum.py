@@ -5,13 +5,9 @@ import re
 
 import pytest
 
-import env
 from pybind11_tests import enums as m
 
 
-@pytest.mark.xfail(
-    env.GRAALPY and env.GRAALPY_VERSION < (24, 2), reason="Fixed in GraalPy 24.2"
-)
 def test_unscoped_enum():
     assert str(m.UnscopedEnum.EOne) == "UnscopedEnum.EOne"
     assert str(m.UnscopedEnum.ETwo) == "UnscopedEnum.ETwo"
@@ -75,8 +71,8 @@ def test_unscoped_enum():
     assert y != 3
     assert 3 != y
     # Compare with None
-    assert y != None  # noqa: E711
-    assert not (y == None)  # noqa: E711
+    assert y != None
+    assert not (y == None)
     # Compare with an object
     assert y != object()
     assert not (y == object())
@@ -141,8 +137,8 @@ def test_scoped_enum():
     assert z != 3
     assert 3 != z
     # Compare with None
-    assert z != None  # noqa: E711
-    assert not (z == None)  # noqa: E711
+    assert z != None
+    assert not (z == None)
     # Compare with an object
     assert z != object()
     assert not (z == object())
@@ -197,9 +193,6 @@ def test_implicit_conversion():
     assert repr(x) == "{<EMode.EFirstMode: 1>: 3, <EMode.ESecondMode: 2>: 4}"
 
 
-@pytest.mark.xfail(
-    env.GRAALPY and env.GRAALPY_VERSION < (24, 2), reason="Fixed in GraalPy 24.2"
-)
 def test_binary_operators():
     assert int(m.Flags.Read) == 4
     assert int(m.Flags.Write) == 2
@@ -277,6 +270,15 @@ def test_str_signature():
         assert enum_type.__str__.__doc__.startswith("__str__")
 
 
+def test_enum_custom_str_keeps_name_property():
+    assert str(m.CustomStrEnum.A) == "CustomStrEnum value 1"
+    assert str(m.CustomStrEnum.B) == "CustomStrEnum value 2"
+    assert m.CustomStrEnum.A.name == "A"
+    assert m.CustomStrEnum.A.value == 1
+    assert m.CustomStrEnum.B.name == "B"
+    assert m.CustomStrEnum.B.value == 2
+
+
 def test_generated_dunder_methods_pos_only():
     for enum_type in [m.ScopedEnum, m.UnscopedEnum]:
         for binary_op in [
@@ -296,9 +298,19 @@ def test_generated_dunder_methods_pos_only():
         ]:
             method = getattr(enum_type, binary_op, None)
             if method is not None:
+                # 1) The docs must start with the name of the op.
                 assert (
                     re.match(
-                        rf"^{binary_op}\(self: [\w\.]+, other: [\w\.]+, /\)",
+                        rf"^{binary_op}\(",
+                        method.__doc__,
+                    )
+                    is not None
+                )
+                # 2) The docs must contain the op's signature. This is a separate check
+                # and not anchored at the start because the op may be overloaded.
+                assert (
+                    re.search(
+                        rf"{binary_op}\(self: [\w\.]+, other: [\w\.]+, /\)",
                         method.__doc__,
                     )
                     is not None

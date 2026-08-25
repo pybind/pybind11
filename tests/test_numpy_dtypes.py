@@ -205,6 +205,17 @@ def test_dtype(simple_dtype):
     assert (m.test_dtype_switch(arr.astype("longdouble")) == arr + 1).all()
 
 
+def test_templated_dtype():
+    """A type spelled with a comma needs PYBIND11_TYPE here."""
+    plain, renamed = m.templated_dtypes()
+    assert plain == np.dtype([("a", "i4"), ("b", "f4")])
+    assert renamed == np.dtype([("x", "i2"), ("y", "u2")])
+
+
+def test_direct_field_descriptor():
+    assert m.direct_field_descriptors() == ["uint_", "flt", "b"]
+
+
 def test_recarray(simple_dtype, packed_dtype):
     elements = [(False, 0, 0.0, -0.0), (True, 1, 1.5, -2.5), (False, 2, 3.0, -5.0)]
 
@@ -316,12 +327,18 @@ def test_array_array():
         "'offsets':[0,12,20,24],'itemsize':56}"
     )
     assert m.print_array_array(arr) == [
-        "a={{A,B,C,D},{K,L,M,N},{U,V,W,X}},b={0,1},"
-        "c={0,1,2},d={{0,1},{10,11},{20,21},{30,31}}",
-        "a={{W,X,Y,Z},{G,H,I,J},{Q,R,S,T}},b={1000,1001},"
-        "c={10,11,12},d={{100,101},{110,111},{120,121},{130,131}}",
-        "a={{S,T,U,V},{C,D,E,F},{M,N,O,P}},b={2000,2001},"
-        "c={20,21,22},d={{200,201},{210,211},{220,221},{230,231}}",
+        (
+            "a={{A,B,C,D},{K,L,M,N},{U,V,W,X}},b={0,1},"
+            "c={0,1,2},d={{0,1},{10,11},{20,21},{30,31}}"
+        ),
+        (
+            "a={{W,X,Y,Z},{G,H,I,J},{Q,R,S,T}},b={1000,1001},"
+            "c={10,11,12},d={{100,101},{110,111},{120,121},{130,131}}"
+        ),
+        (
+            "a={{S,T,U,V},{C,D,E,F},{M,N,O,P}},b={2000,2001},"
+            "c={20,21,22},d={{200,201},{210,211},{220,221},{230,231}}"
+        ),
     ]
     assert arr["a"].tolist() == [
         [b"ABCD", b"KLMN", b"UVWX"],

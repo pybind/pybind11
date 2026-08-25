@@ -31,10 +31,11 @@ jobs:
     timeout-minutes: 90
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup Python ${{ inputs.python-version }}
-        uses: actions/setup-python@v6
+        id: python
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ inputs.python-version }}
           allow-prereleases: true
@@ -44,14 +45,14 @@ jobs:
 
       - name: Setup Boost (Linux)
         if: runner.os == 'Linux'
-        run: sudo apt-get install libboost-dev
+        run: sudo apt-get update && sudo apt-get install -y libboost-dev
 
       - name: Setup Boost (macOS)
         if: runner.os == 'macOS'
         run: brew install boost
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@v9.0.0
         with:
           enable-cache: true
 
@@ -62,11 +63,14 @@ jobs:
         if: runner.os == 'Linux'
         run: uv pip install --python=python --system pytest-github-actions-annotate-failures
 
-      # TODO Resolve Windows Ninja shared object issue on Python 3.8+
+      # TODO Resolve Windows Ninja shared object issue on Python 3.9+
       - name: Use Ninja except on Windows
         if: runner.os != 'Windows'
         run: echo "CMAKE_GENERATOR=Ninja" >> "$GITHUB_ENV"
 
+      # Pass setup-python's resolved interpreter path to CMake so FindPython
+      # does not select a different interpreter (e.g. Homebrew's 3.14 instead
+      # of setup-python's 3.14t).
       - name: Configure
         run: >
           cmake -S. -Bbuild -Werror=dev
@@ -74,6 +78,7 @@ jobs:
           -DPYBIND11_PYTEST_ARGS=-v
           -DDOWNLOAD_CATCH=ON
           -DDOWNLOAD_EIGEN=ON
+          -DPYTHON_EXECUTABLE=${{ steps.python.outputs.python-path }}
           ${{ inputs.cmake-args }}
 
       - name: Build

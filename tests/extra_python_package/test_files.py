@@ -1,15 +1,19 @@
 from __future__ import annotations
 
 import contextlib
+import importlib
 import os
 import re
 import shutil
 import subprocess
 import sys
+import sysconfig
 import tarfile
 import zipfile
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator
+
+import pytest
 
 # These tests must be run explicitly
 
@@ -21,7 +25,7 @@ FILENAME_VERSION = re.compile(r"[-_]((\d+\.\d+\.\d+)(?:[a-z]+\d*)?)(?:-|\.tar\.g
 # Newer pytest has global path setting, but keeping old pytest for now
 sys.path.append(str(MAIN_DIR / "tools"))
 
-from make_global import get_global  # noqa: E402
+from make_global import get_global
 
 HAS_UV = shutil.which("uv") is not None
 UV_ARGS = ["--installer=uv"] if HAS_UV else []
@@ -84,6 +88,7 @@ detail_headers = {
     "include/pybind11/detail/dynamic_raw_ptr_cast_if_possible.h",
     "include/pybind11/detail/foreign.h",
     "include/pybind11/detail/function_record_pyobject.h",
+    "include/pybind11/detail/function_ref.h",
     "include/pybind11/detail/holder_caster_foreign_helpers.h",
     "include/pybind11/detail/init.h",
     "include/pybind11/detail/internals.h",
@@ -395,3 +400,63 @@ def test_version_matches():
         expected_patch = f"{micro}{level_str}{release_serial}"
 
     assert patch == expected_patch
+
+
+def run_command_line(*args: str) -> str:
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(MAIN_DIR)
+    result = subprocess.run(
+        [sys.executable, "-m", "pybind11", *args],
+        capture_output=True,
+        text=True,
+        check=True,
+        env=env,
+    )
+    return result.stdout
+
+
+def test_cli_cflags():
+    out = run_command_line("--cflags")
+    assert "-std=c++17" in out
+    assert f"-I{sysconfig.get_path('include')}" in out
+
+
+def test_cli_ldflags_embed():
+    out = run_command_line("--ldflags", "--embed")
+    assert "-lpython" in out
+    if sysconfig.get_config_var("LIBDIR"):
+        assert "-L" in out
+
+
+@pytest.mark.skipif(os.name != "posix", reason="quote style is platform-specific")
+def test_cflags_quotes_paths_with_spaces(monkeypatch):
+    monkeypatch.syspath_prepend(str(MAIN_DIR))
+    commands = importlib.import_module("pybind11.commands")
+    monkeypatch.setattr(sysconfig, "get_path", lambda name: f"/spa ced/{name}")
+    assert "'-I/spa ced/include'" in commands.get_cflags()
+
+
+@pytest.mark.skipif(os.name != "posix", reason="Unix link flags only")
+def test_ldflags_other_unix(monkeypatch):
+    monkeypatch.syspath_prepend(str(MAIN_DIR))
+    commands = importlib.import_module("pybind11.commands")
+    monkeypatch.setattr(sys, "platform", "freebsd14")
+    monkeypatch.setattr(commands, "_config", lambda name: "")  # noqa: ARG005
+    out = commands.get_ldflags()
+    assert "-shared" in out
+    assert "-fPIC" in out
+
+
+def test_cli_file():
+    out = run_command_line("--file", "example.cpp").rstrip()
+    ext_suffix = sysconfig.get_config_var("EXT_SUFFIX")
+    assert "-std=c++17" in out
+    assert out.index("-std=c++17") < out.index("example.cpp")
+    assert out.endswith(f"-o example{ext_suffix}")
+    if sys.platform.startswith(("linux", "darwin")):
+        assert out.index("example.cpp") < out.index("-shared")
+
+
+def test_cli_file_embed():
+    out = run_command_line("--file", "example.cpp", "--embed").rstrip()
+    assert out.endswith("-o example")

@@ -196,8 +196,7 @@ public:                                                                         
     template <typename T_,                                                                        \
               ::pybind11::detail::enable_if_t<                                                    \
                   std::is_same<type, ::pybind11::detail::remove_cv_t<T_>>::value,                 \
-                  int>                                                                            \
-              = 0>                                                                                \
+                  int> = 0>                                                                       \
     static ::pybind11::handle cast(                                                               \
         T_ *src, ::pybind11::return_value_policy policy, ::pybind11::handle parent) {             \
         if (!src)                                                                                 \
@@ -241,29 +240,28 @@ public:
             return false;
         }
 
-#if !defined(PYPY_VERSION)
-        auto index_check = [](PyObject *o) { return PyIndex_Check(o); };
-#else
-        // In PyPy 7.3.3, `PyIndex_Check` is implemented by calling `__index__`,
-        // while CPython only considers the existence of `nb_index`/`__index__`.
-        auto index_check = [](PyObject *o) { return hasattr(o, "__index__"); };
-#endif
-
         if (std::is_floating_point<T>::value) {
-            if (convert || PyFloat_Check(src.ptr())) {
+            if (convert || PyFloat_Check(src.ptr()) || PYBIND11_LONG_CHECK(src.ptr())) {
                 py_value = (py_type) PyFloat_AsDouble(src.ptr());
             } else {
                 return false;
             }
         } else if (PyFloat_Check(src.ptr())
-                   || (!convert && !PYBIND11_LONG_CHECK(src.ptr()) && !index_check(src.ptr()))) {
+                   || !(convert || PYBIND11_LONG_CHECK(src.ptr())
+                        || PYBIND11_INDEX_CHECK(src.ptr()))) {
+            // Explicitly reject float → int conversion even in convert mode.
+            // This prevents silent truncation (e.g., 1.9 → 1).
+            // Only int → float conversion is allowed (widening, no precision loss).
+            // Also reject if none of the conversion conditions are met.
             return false;
         } else {
             handle src_or_index = src;
             // PyPy: 7.3.7's 3.8 does not implement PyLong_*'s __index__ calls.
 #if defined(PYPY_VERSION)
             object index;
-            if (!PYBIND11_LONG_CHECK(src.ptr())) { // So: index_check(src.ptr())
+            // If not a PyLong, we need to call PyNumber_Index explicitly on PyPy.
+            // When convert is false, we only reach here if PYBIND11_INDEX_CHECK passed above.
+            if (!PYBIND11_LONG_CHECK(src.ptr())) {
                 index = reinterpret_steal<object>(PyNumber_Index(src.ptr()));
                 if (!index) {
                     PyErr_Clear();
@@ -283,8 +281,10 @@ public:
             }
         }
 
-        // Python API reported an error
-        bool py_err = py_value == (py_type) -1 && PyErr_Occurred();
+        bool py_err = (PyErr_Occurred() != nullptr);
+        if (py_err) {
+            assert(py_value == static_cast<py_type>(-1));
+        }
 
         // Check to see if the conversion is valid (integers should match exactly)
         // Signed/unsigned checks happen elsewhere
@@ -504,12 +504,11 @@ struct string_caster {
     static constexpr size_t UTF_N = 8 * sizeof(CharT);
 
     bool load(handle src, bool) {
-        handle load_src = src;
         if (!src) {
             return false;
         }
-        if (!PyUnicode_Check(load_src.ptr())) {
-            return load_raw(load_src);
+        if (!PyUnicode_Check(src.ptr())) {
+            return load_raw(src);
         }
 
         // For UTF-8 we avoid the need for a temporary `bytes` object by using
@@ -517,17 +516,22 @@ struct string_caster {
         if (UTF_N == 8) {
             Py_ssize_t size = -1;
             const auto *buffer
-                = reinterpret_cast<const CharT *>(PyUnicode_AsUTF8AndSize(load_src.ptr(), &size));
+                = reinterpret_cast<const CharT *>(PyUnicode_AsUTF8AndSize(src.ptr(), &size));
             if (!buffer) {
                 PyErr_Clear();
                 return false;
             }
             value = StringType(buffer, static_cast<size_t>(size));
+            if (IsView) {
+                // `src` owns the buffer; keep it alive if inside a bound function,
+                // otherwise the caller is responsible for its lifetime.
+                loader_life_support::try_add_patient(src);
+            }
             return true;
         }
 
         auto utfNbytes
-            = reinterpret_steal<object>(PyUnicode_AsEncodedString(load_src.ptr(),
+            = reinterpret_steal<object>(PyUnicode_AsEncodedString(src.ptr(),
                                                                   UTF_N == 8    ? "utf-8"
                                                                   : UTF_N == 16 ? "utf-16"
                                                                                 : "utf-32",
@@ -600,6 +604,9 @@ private:
                 pybind11_fail("Unexpected PYBIND11_BYTES_AS_STRING() failure.");
             }
             value = StringType(bytes, (size_t) PYBIND11_BYTES_SIZE(src.ptr()));
+            if (IsView) {
+                loader_life_support::try_add_patient(src);
+            }
             return true;
         }
         if (PyByteArray_Check(src.ptr())) {
@@ -610,6 +617,9 @@ private:
                 pybind11_fail("Unexpected PyByteArray_AsString() failure.");
             }
             value = StringType(bytearray, (size_t) PyByteArray_Size(src.ptr()));
+            if (IsView) {
+                loader_life_support::try_add_patient(src);
+            }
             return true;
         }
 
@@ -1017,7 +1027,20 @@ public:
             return smart_holder_type_caster_support::smart_holder_from_shared_ptr(
                 src, policy, parent, srcs.result);
         }
-        return type_caster_base<type>::cast_holder(srcs, &src);
+
+        auto *tinfo = srcs.result.tinfo;
+        if (tinfo == nullptr /* uses foreign binding */ ||
+            tinfo->holder_enum_v == holder_enum_t::std_shared_ptr) {
+            return type_caster_base<type>::cast_holder(srcs, &src);
+        }
+
+        if (parent) {
+            return type_caster_generic::cast_non_owning(
+                srcs, return_value_policy::reference_internal, parent);
+        }
+
+        throw cast_error("Unable to convert std::shared_ptr<T> to Python when the bound type "
+                         "does not use std::shared_ptr or py::smart_holder as its holder type");
     }
 
     // This function will succeed even if the `responsible_parent` does not own the
@@ -1659,8 +1682,7 @@ PYBIND11_NAMESPACE_END(detail)
 template <typename T,
           detail::enable_if_t<!detail::is_pyobject<T>::value
                                   && !detail::is_same_ignoring_cvref<T, PyObject *>::value,
-                              int>
-          = 0>
+                              int> = 0>
 T cast(const handle &handle) {
     using namespace detail;
     constexpr bool is_enum_cast = type_uses_type_caster_enum_type<intrinsic_t<T>>::value;
@@ -1695,8 +1717,7 @@ template <typename T,
           typename Handle,
           detail::enable_if_t<detail::is_same_ignoring_cvref<T, PyObject *>::value
                                   && detail::is_same_ignoring_cvref<Handle, handle>::value,
-                              int>
-          = 0>
+                              int> = 0>
 T cast(Handle &&handle) {
     return handle.inc_ref().ptr();
 }
@@ -1705,8 +1726,7 @@ template <typename T,
           typename Object,
           detail::enable_if_t<detail::is_same_ignoring_cvref<T, PyObject *>::value
                                   && detail::is_same_ignoring_cvref<Object, object>::value,
-                              int>
-          = 0>
+                              int> = 0>
 T cast(Object &&obj) {
     return obj.release().ptr();
 }
@@ -2240,7 +2260,7 @@ public:
         if (m_names) {
             nargs -= m_names.size();
         }
-        PyObject *result = _PyObject_Vectorcall(
+        PyObject *result = PyObject_Vectorcall(
             ptr, m_args.data() + 1, nargs | PY_VECTORCALL_ARGUMENTS_OFFSET, m_names.ptr());
         if (!result) {
             throw error_already_set();

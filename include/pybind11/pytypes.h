@@ -259,8 +259,7 @@ public:
         detail::enable_if_t<detail::all_of<detail::none_of<std::is_base_of<handle, T>,
                                                            detail::is_pyobj_ptr_or_nullptr_t<T>>,
                                            std::is_convertible<T, PyObject *>>::value,
-                            int>
-        = 0>
+                            int> = 0>
     // NOLINTNEXTLINE(google-explicit-constructor)
     handle(T &obj) : m_ptr(obj) {}
 
@@ -671,12 +670,7 @@ struct error_fetch_and_normalize {
             Py_XINCREF(frame);
             result += "\n\nAt:\n";
             while (frame) {
-#    if PY_VERSION_HEX >= 0x030900B1
                 PyCodeObject *f_code = PyFrame_GetCode(frame);
-#    else
-                PyCodeObject *f_code = frame->f_code;
-                Py_INCREF(f_code);
-#    endif
                 int lineno = PyFrame_GetLineNumber(frame);
                 result += "  ";
                 result += handle(f_code->co_filename).cast<std::string>();
@@ -686,12 +680,7 @@ struct error_fetch_and_normalize {
                 result += handle(f_code->co_name).cast<std::string>();
                 result += '\n';
                 Py_DECREF(f_code);
-#    if PY_VERSION_HEX >= 0x030900B1
                 auto *b_frame = PyFrame_GetBack(frame);
-#    else
-                auto *b_frame = frame->f_back;
-                Py_XINCREF(b_frame);
-#    endif
                 Py_DECREF(frame);
                 frame = b_frame;
             }
@@ -1694,8 +1683,7 @@ public:
     template <typename T,
               detail::enable_if_t<!std::is_base_of<object, detail::remove_cvref_t<T>>::value
                                       && std::is_constructible<handle, T>::value,
-                                  int>
-              = 0>
+                                  int> = 0>
     explicit str(T &&h) : object(raw_str(handle(std::forward<T>(h)).ptr()), stolen_t{}) {
         if (!m_ptr) {
             throw error_already_set();

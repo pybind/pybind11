@@ -4,6 +4,8 @@ import platform
 import sys
 import sysconfig
 
+import pytest
+
 ANDROID = sys.platform.startswith("android")
 IOS = sys.platform.startswith("ios")
 LINUX = sys.platform.startswith("linux")
@@ -11,13 +13,22 @@ MACOS = sys.platform.startswith("darwin")
 WIN = sys.platform.startswith("win32") or sys.platform.startswith("cygwin")
 FREEBSD = sys.platform.startswith("freebsd")
 
+MUSLLINUX = False
+MANYLINUX = False
+if LINUX:
+
+    def _is_musl() -> bool:
+        libc, _ = platform.libc_ver()
+        return libc == "musl" or (libc != "glibc" and libc != "")
+
+    MUSLLINUX = _is_musl()
+    MANYLINUX = not MUSLLINUX
+    del _is_musl
+
 CPYTHON = platform.python_implementation() == "CPython"
 PYPY = platform.python_implementation() == "PyPy"
+PYPY_PRE_7_3_23 = PYPY and sys.pypy_version_info < (7, 3, 23)
 GRAALPY = sys.implementation.name == "graalpy"
-_graalpy_version = (
-    sys.modules["__graalpython__"].get_graalvm_version() if GRAALPY else "0.0.0"
-)
-GRAALPY_VERSION = tuple(int(t) for t in _graalpy_version.split("-")[0].split(".")[:3])
 
 # Compile-time config (what the binary was built for)
 PY_GIL_DISABLED = bool(sysconfig.get_config_var("Py_GIL_DISABLED"))
@@ -29,3 +40,34 @@ TYPES_ARE_IMMORTAL = (
     or GRAALPY
     or (CPYTHON and PY_GIL_DISABLED and (3, 13) <= sys.version_info < (3, 14))
 )
+
+
+def check_script_success_in_subprocess(code: str, *, rerun: int = 8) -> None:
+    """Runs the given code in a subprocess."""
+    import os
+    import subprocess
+    import sys
+    import textwrap
+
+    if ANDROID or IOS or sys.platform.startswith("emscripten"):
+        pytest.skip("Requires subprocess support")
+
+    code = textwrap.dedent(code).strip()
+    try:
+        for _ in range(rerun):  # run flakily failing test multiple times
+            subprocess.check_output(
+                [sys.executable, "-c", code],
+                cwd=os.getcwd(),
+                stderr=subprocess.STDOUT,
+                text=True,
+            )
+    except subprocess.CalledProcessError as ex:
+        raise RuntimeError(
+            f"Subprocess failed with exit code {ex.returncode}.\n\n"
+            f"Code:\n"
+            f"```python\n"
+            f"{code}\n"
+            f"```\n\n"
+            f"Output:\n"
+            f"{ex.output}"
+        ) from None

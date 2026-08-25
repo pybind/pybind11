@@ -102,14 +102,12 @@ option(PYBIND11_SIMPLE_GIL_MANAGEMENT
 set(PYBIND11_INTERNALS_VERSION
     ""
     CACHE STRING "Override the ABI version, may be used to enable the unstable ABI.")
+# Record whether the project set this before option() supplies its OFF default, so
+# pybind11Common.cmake can apply its CMP0190-aware default without clobbering an explicit value.
+if(NOT DEFINED PYBIND11_USE_CROSSCOMPILING)
+  set(_PYBIND11_USE_CROSSCOMPILING_DEFAULTED ON)
+endif()
 option(PYBIND11_USE_CROSSCOMPILING "Respect CMAKE_CROSSCOMPILING" OFF)
-
-if(PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION)
-  add_compile_definitions(PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION)
-endif()
-if(PYBIND11_SIMPLE_GIL_MANAGEMENT)
-  add_compile_definitions(PYBIND11_SIMPLE_GIL_MANAGEMENT)
-endif()
 
 cmake_dependent_option(
   USE_PYTHON_INCLUDE_DIR
@@ -177,6 +175,17 @@ if(PYBIND11_MASTER_PROJECT)
       set(Python_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/.venv")
     endif()
   endif()
+
+  # Python_ROOT_DIR is only a search hint, so FindPython may select a newer
+  # Python elsewhere. Set Python_EXECUTABLE to the venv's interpreter path
+  # to bypass interpreter discovery.
+  if(DEFINED Python_ROOT_DIR AND NOT DEFINED Python_EXECUTABLE)
+    if(WIN32 AND EXISTS "${Python_ROOT_DIR}/Scripts/python.exe")
+      set(Python_EXECUTABLE "${Python_ROOT_DIR}/Scripts/python.exe")
+    elseif(EXISTS "${Python_ROOT_DIR}/bin/python")
+      set(Python_EXECUTABLE "${Python_ROOT_DIR}/bin/python")
+    endif()
+  endif()
 endif()
 
 set(PYBIND11_HEADERS
@@ -190,6 +199,7 @@ set(PYBIND11_HEADERS
     include/pybind11/detail/exception_translation.h
     include/pybind11/detail/foreign.h
     include/pybind11/detail/function_record_pyobject.h
+    include/pybind11/detail/function_ref.h
     include/pybind11/detail/holder_caster_foreign_helpers.h
     include/pybind11/detail/init.h
     include/pybind11/detail/internals.h
@@ -292,6 +302,13 @@ if(NOT TARGET pybind11_headers)
     target_compile_definitions(
       pybind11_headers INTERFACE "PYBIND11_INTERNALS_VERSION=${PYBIND11_INTERNALS_VERSION}")
   endif()
+  if(PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION)
+    target_compile_definitions(pybind11_headers
+                               INTERFACE PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION)
+  endif()
+  if(PYBIND11_SIMPLE_GIL_MANAGEMENT)
+    target_compile_definitions(pybind11_headers INTERFACE PYBIND11_SIMPLE_GIL_MANAGEMENT)
+  endif()
 else()
   # It is invalid to install a target twice, too.
   set(PYBIND11_INSTALL OFF)
@@ -305,8 +322,10 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/tools/JoinPaths.cmake")
 # Relative directory setting
 if(USE_PYTHON_INCLUDE_DIR AND DEFINED Python_INCLUDE_DIRS)
   file(RELATIVE_PATH CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_PREFIX} ${Python_INCLUDE_DIRS})
+elseif(USE_PYTHON_INCLUDE_DIR AND DEFINED Python3_INCLUDE_DIRS)
+  file(RELATIVE_PATH CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_PREFIX} ${Python3_INCLUDE_DIRS})
 elseif(USE_PYTHON_INCLUDE_DIR AND DEFINED PYTHON_INCLUDE_DIR)
-  file(RELATIVE_PATH CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_PREFIX} ${PYTHON_INCLUDE_DIRS})
+  file(RELATIVE_PATH CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_PREFIX} ${PYTHON_INCLUDE_DIR})
 endif()
 
 if(PYBIND11_INSTALL)

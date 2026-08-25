@@ -48,17 +48,14 @@ import sysconfig
 import tempfile
 import threading
 import warnings
+from collections.abc import Iterable, Iterator
 from functools import lru_cache
 from pathlib import Path
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
-    Iterable,
-    Iterator,
-    List,
     Optional,
-    Tuple,
-    TypeVar,
     Union,
 )
 
@@ -73,6 +70,9 @@ except ImportError:
 
 import distutils.ccompiler
 import distutils.errors
+
+if TYPE_CHECKING:
+    from typing_extensions import Self
 
 WIN = sys.platform.startswith("win32") and "mingw" not in sysconfig.get_platform()
 MACOS = sys.platform.startswith("darwin")
@@ -175,8 +175,7 @@ class Pybind11Extension(_Extension):
                 "You cannot safely change the cxx_level after setting it!", stacklevel=2
             )
 
-        # MSVC 2015 Update 3 and later only have 14 (and later 17) modes, so
-        # force a valid flag here.
+        # MSVC only has 14 and later modes, so force a valid flag here.
         if WIN and level == 11:
             level = 14
 
@@ -243,10 +242,6 @@ def has_flag(compiler: Any, flag: str) -> bool:
         except distutils.errors.CompileError:
             return False
         return True
-
-
-# Every call will cache the result
-cpp_flag_cache = None
 
 
 @lru_cache
@@ -338,7 +333,7 @@ def naive_recompile(obj: str, src: str) -> bool:
     return os.stat(obj).st_mtime < os.stat(src).st_mtime
 
 
-def no_recompile(obg: str, src: str) -> bool:  # noqa: ARG001
+def no_recompile(obj: str, src: str) -> bool:  # noqa: ARG001
     """
     This is the safest but slowest choice (and is the default) - will always
     recompile sources.
@@ -346,21 +341,19 @@ def no_recompile(obg: str, src: str) -> bool:  # noqa: ARG001
     return True
 
 
-S = TypeVar("S", bound="ParallelCompile")
-
 CCompilerMethod = Callable[
     [
         distutils.ccompiler.CCompiler,
-        List[str],
+        list[str],
         Optional[str],
-        Optional[List[Union[Tuple[str], Tuple[str, Optional[str]]]]],
-        Optional[List[str]],
+        Optional[list[Union[tuple[str], tuple[str, Optional[str]]]]],
+        Optional[list[str]],
         bool,
-        Optional[List[str]],
-        Optional[List[str]],
-        Optional[List[str]],
+        Optional[list[str]],
+        Optional[list[str]],
+        Optional[list[str]],
     ],
-    List[str],
+    list[str],
 ]
 
 
@@ -405,7 +398,7 @@ class ParallelCompile:
     called.
     """
 
-    __slots__ = ("envvar", "default", "max", "_old", "needs_recompile")
+    __slots__ = ("_old", "default", "envvar", "max", "needs_recompile")
 
     def __init__(
         self,
@@ -485,16 +478,16 @@ class ParallelCompile:
 
         return compile_function
 
-    def install(self: S) -> S:
+    def install(self) -> Self:
         """
         Installs the compile function into distutils.ccompiler.CCompiler.compile.
         """
         distutils.ccompiler.CCompiler.compile = self.function()  # type: ignore[assignment]
         return self
 
-    def __enter__(self: S) -> S:
+    def __enter__(self) -> Self:
         self._old.append(distutils.ccompiler.CCompiler.compile)
         return self.install()
 
-    def __exit__(self, *args: Any) -> None:
+    def __exit__(self, *args: object) -> None:
         distutils.ccompiler.CCompiler.compile = self._old.pop()  # type: ignore[assignment]

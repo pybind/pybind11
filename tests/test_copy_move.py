@@ -70,12 +70,12 @@ def test_move_and_copy_loads():
 
     assert c_m.copy_assignments + c_m.copy_constructions == 0
     assert c_m.move_assignments == 6
-    assert c_m.move_constructions == 9
+    assert c_m.move_constructions == 21
     assert c_mc.copy_assignments + c_mc.copy_constructions == 0
     assert c_mc.move_assignments == 5
-    assert c_mc.move_constructions == 8
+    assert c_mc.move_constructions == 18
     assert c_c.copy_assignments == 4
-    assert c_c.copy_constructions == 6
+    assert c_c.copy_constructions == 14
     assert c_m.alive() + c_mc.alive() + c_c.alive() == 0
 
 
@@ -103,12 +103,12 @@ def test_move_and_copy_load_optional():
 
     assert c_m.copy_assignments + c_m.copy_constructions == 0
     assert c_m.move_assignments == 2
-    assert c_m.move_constructions == 5
+    assert c_m.move_constructions == 9
     assert c_mc.copy_assignments + c_mc.copy_constructions == 0
     assert c_mc.move_assignments == 2
-    assert c_mc.move_constructions == 5
+    assert c_mc.move_constructions == 9
     assert c_c.copy_assignments == 2
-    assert c_c.copy_constructions == 5
+    assert c_c.copy_constructions == 9
     assert c_m.alive() + c_mc.alive() + c_c.alive() == 0
 
 
@@ -142,3 +142,15 @@ def test_unusual_op_ref():
     # Merely to test that this still exists and built successfully.
     assert m.CallCastUnusualOpRefConstRef().__class__.__name__ == "UnusualOpRef"
     assert m.CallCastUnusualOpRefMovable().__class__.__name__ == "UnusualOpRef"
+
+
+@pytest.mark.skipif(
+    not hasattr(m, "get_copy_only_deleted_move"),
+    reason="requires guaranteed copy elision",
+)
+def test_copy_only_deleted_move():
+    """#6142: a copyable type with a deleted move constructor can be returned by value
+
+    This is primarily a compile-time regression test.
+    """
+    assert m.get_copy_only_deleted_move().value == 42

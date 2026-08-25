@@ -27,7 +27,7 @@ struct format_descriptor<std::complex<T>, detail::enable_if_t<std::is_floating_p
     static std::string format() { return std::string(value); }
 };
 
-#ifndef PYBIND11_CPP17
+#if !defined(__cpp_inline_variables) || __cpp_inline_variables < 201606L
 
 template <typename T>
 constexpr const char
@@ -51,7 +51,9 @@ public:
         if (!src) {
             return false;
         }
-        if (!convert && !PyComplex_Check(src.ptr())) {
+        if (!convert
+            && !(PyComplex_Check(src.ptr()) || PyFloat_Check(src.ptr())
+                 || PYBIND11_LONG_CHECK(src.ptr()))) {
             return false;
         }
         handle src_or_index = src;
@@ -84,9 +86,11 @@ public:
         return PyComplex_FromDoubles((double) src.real(), (double) src.imag());
     }
 
+    // `complex` does not satisfy `typing.SupportsComplex` in typeshed for Python <= 3.10.
+    // Keep it explicit so generated stubs targeting those versions accept complex values.
     PYBIND11_TYPE_CASTER(
         std::complex<T>,
-        io_name("typing.SupportsComplex | typing.SupportsFloat | typing.SupportsIndex",
+        io_name("complex | typing.SupportsComplex | typing.SupportsFloat | typing.SupportsIndex",
                 "complex"));
 };
 PYBIND11_NAMESPACE_END(detail)

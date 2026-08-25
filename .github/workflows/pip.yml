@@ -19,19 +19,19 @@ jobs:
   # This builds the sdists and wheels and makes sure the files are exactly as
   # expected.
   test-packaging:
-    name: 🐍 3.8 • 📦 tests • windows-latest
+    name: 🐍 3.9 • 📦 tests • windows-latest
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
-    - name: Setup 🐍 3.8
-      uses: actions/setup-python@v6
+    - name: Setup 🐍 3.9
+      uses: actions/setup-python@v7
       with:
-        python-version: 3.8
+        python-version: 3.9
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v7
+      uses: astral-sh/setup-uv@v9.0.0
 
     - name: Prepare env
       run: uv pip install --system -r tests/requirements.txt
@@ -43,19 +43,19 @@ jobs:
   # This runs the packaging tests and also builds and saves the packages as
   # artifacts.
   packaging:
-    name: 🐍 3.8 • 📦 & 📦 tests • ubuntu-latest
+    name: 🐍 3.9 • 📦 & 📦 tests • ubuntu-latest
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
-    - name: Setup 🐍 3.8
-      uses: actions/setup-python@v6
+    - name: Setup 🐍 3.9
+      uses: actions/setup-python@v7
       with:
-        python-version: 3.8
+        python-version: 3.9
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v7
+      uses: astral-sh/setup-uv@v9.0.0
 
     - name: Prepare env
       run: uv pip install --system -r tests/requirements.txt twine nox
@@ -72,13 +72,13 @@ jobs:
       run: twine check dist/*
 
     - name: Save standard package
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: standard
         path: dist/pybind11-*
 
     - name: Save global package
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: global
         path: dist/*global-*
@@ -100,10 +100,10 @@ jobs:
 
     steps:
     # Downloads all to directories matching the artifact names
-    - uses: actions/download-artifact@v7
+    - uses: actions/download-artifact@v8
 
     - name: Generate artifact attestation for sdist and wheel
-      uses: actions/attest-build-provenance@v3
+      uses: actions/attest-build-provenance@v4
       with:
         subject-path: "*/pybind11*"
 

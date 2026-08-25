@@ -528,7 +528,7 @@ TEST_SUBMODULE(stl, m) {
     m.def("load_variant", [](const variant<int, std::string, double, std::nullptr_t> &v) {
         return py::detail::visit_helper<variant>::call(visitor(), v);
     });
-    m.def("load_variant_2pass", [](variant<double, int> v) {
+    m.def("load_variant_2pass", [](variant<int, double> v) {
         return py::detail::visit_helper<variant>::call(visitor(), v);
     });
     m.def("cast_variant", []() {
@@ -581,6 +581,24 @@ TEST_SUBMODULE(stl, m) {
     m.def("func_with_string_or_vector_string_arg_overload",
           [](const std::list<std::string> &) { return 2; });
     m.def("func_with_string_or_vector_string_arg_overload", [](const std::string &) { return 3; });
+
+#ifdef PYBIND11_HAS_STRING_VIEW
+    m.def("func_with_string_views", [](const std::vector<std::string_view> &svs) {
+        py::list l;
+        for (std::string_view sv : svs) {
+            l.append(sv);
+        }
+        return l;
+    });
+    m.def("string_view_life_support_check",
+          [](const std::vector<std::string_view> &, int, const py::list &destroyed) {
+              return destroyed.size();
+          });
+    m.def("nested_string_view_life_support_check",
+          [](const std::vector<std::vector<std::string_view>> &, int, const py::list &destroyed) {
+              return destroyed.size();
+          });
+#endif
 
     class Placeholder {
     public:

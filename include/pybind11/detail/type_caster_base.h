@@ -86,11 +86,26 @@ public:
         }
     }
 
+    /// Keep `h` alive until the current patient frame is destroyed, if there is one.
+    /// Returns false when called outside a bound function (no frame). Use this, rather
+    /// than `add_patient`, when failing to register is acceptable because the caller
+    /// owns the source's lifetime outside the call framework (e.g. a view that points
+    /// into an existing Python object, as opposed to a freshly created temporary).
+    PYBIND11_NOINLINE static bool try_add_patient(handle h) {
+        loader_life_support *frame = tls_current_frame();
+        if (!frame) {
+            return false;
+        }
+        if (frame->keep_alive.insert(h.ptr()).second) {
+            Py_INCREF(h.ptr());
+        }
+        return true;
+    }
+
     /// This can only be used inside a pybind11-bound function, either by `argument_loader`
     /// at argument preparation time or by `py::cast()` at execution time.
     PYBIND11_NOINLINE static void add_patient(handle h) {
-        loader_life_support *frame = tls_current_frame();
-        if (!frame) {
+        if (!try_add_patient(h)) {
             // NOTE: It would be nice to include the stack frames here, as this indicates
             // use of pybind11::cast<> outside the normal call framework, finding such
             // a location is challenging. Developers could consider printing out
@@ -98,10 +113,6 @@ public:
             throw cast_error("When called outside a bound function, py::cast() cannot "
                              "do Python -> C++ conversions which require the creation "
                              "of temporary values");
-        }
-
-        if (frame->keep_alive.insert(h.ptr()).second) {
-            Py_INCREF(h.ptr());
         }
     }
 
@@ -1115,6 +1126,18 @@ public:
         return result;
     }
 
+    static handle cast_non_owning(const cast_sources &srcs,
+                                  return_value_policy policy,
+                                  handle parent,
+                                  const void *existing_holder = nullptr) {
+        // Reference-like policies alias an existing C++ object instead of creating
+        // a new one, so copy/move constructor callbacks must remain null here.
+        assert(policy == return_value_policy::reference
+               || policy == return_value_policy::reference_internal
+               || policy == return_value_policy::automatic_reference);
+        return cast(srcs, policy, parent, nullptr, nullptr, existing_holder);
+    }
+
     PYBIND11_NOINLINE static handle cast(const cast_sources &srcs,
                                          return_value_policy policy,
                                          handle parent,
@@ -1241,7 +1264,7 @@ public:
             if (type->operator_new) {
                 vptr = type->operator_new(type->type_size);
             } else {
-#if defined(__cpp_aligned_new) && (!defined(_MSC_VER) || _MSC_VER >= 1912)
+#if defined(__cpp_aligned_new)
                 if (type->type_align > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
                     vptr = ::operator new(type->type_size, std::align_val_t(type->type_align));
                 } else {

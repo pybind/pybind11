@@ -13,9 +13,194 @@ Changes will be added here periodically from the "Suggested changelog
 entry" block in pull request descriptions.
 
 
-## Version 3.0.2 (release date TBD)
+## Version 3.1.0 (August 6, 2026)
+
+New Features:
+
+- Support for Python 3.8 was removed. The minimum supported version is now Python 3.9.
+  [#6110](https://github.com/pybind/pybind11/pull/6110)
+
+- Support for MSVC 2017 has been dropped.
+  [#6110](https://github.com/pybind/pybind11/pull/6110)
+
+- Changed strict-mode numeric conversions for PEP 484 compatibility: `float` now accepts `int`, and `complex` now accepts `int` and `float`.
+  [#5879](https://github.com/pybind/pybind11/pull/5879)
+
+- Small extra features added to the pybind11 command line tool based on python-config.
+  [#4272](https://github.com/pybind/pybind11/pull/4272)
+
+- Added `subinterpreter_thread_state`, an RAII wrapper that owns a reusable `PyThreadState` for a sub-interpreter, together with a
+  `subinterpreter_scoped_activate` overload that activates it. This lets an OS thread re-enter one or more sub-interpreters without creating and destroying a
+  `PyThreadState` on every activation.
+  [#6073](https://github.com/pybind/pybind11/pull/6073)
+
+- Add `py::mod_gil_used()` as replacement spelling to `py::mod_gil_not_used(false)`.
+  [#5797](https://github.com/pybind/pybind11/pull/5797)
 
 Bug fixes:
+
+- Fixed a crash in `py::subinterpreter::create()` when called without a current `PyThreadState`, which its documentation explicitly allows — for example from an
+  embedder that ended initialization with `PyEval_SaveThread()`, or from a worker thread that has never touched Python. `error_scope` is now constructed after a
+  thread state has been attached instead of before.
+  [#6127](https://github.com/pybind/pybind11/pull/6127)
+
+- Make `py::print` delegate to the current frame/interpreter built-ins `print` entry,
+  fixing handling of `sys.stdout = None`, following the active runtime's stream, keyword,
+  and error semantics, and remaining a no-op if the entry is unavailable during teardown.
+  [#6121](https://github.com/pybind/pybind11/pull/6121)
+
+- Include the builtin `complex` type in the input annotation of the
+  `std::complex<T>` type caster.
+  [#6113](https://github.com/pybind/pybind11/pull/6113)
+
+- String views (e.g. `std::string_view`) are now kept alive only when loaded from a transient source (such as a generator), fixing both a use-after-free and a
+  regression where casting a view from a durable object outside a bound function would throw.
+  [#6096](https://github.com/pybind/pybind11/pull/6096)
+
+- Drop Python 2 prepend to evaluated source, causing errors to be off by one.
+  [#6089](https://github.com/pybind/pybind11/pull/6089)
+
+- Fix data race on `last_storage_ptr_` cache in `gil_safe_call_once_and_store`.
+  [#6087](https://github.com/pybind/pybind11/pull/6087)
+
+- Allow user defined `__str__` on `enum_`.
+  [#6078](https://github.com/pybind/pybind11/pull/6078)
+
+- Fix generated `Callable` type annotations for Python callbacks passed into C++ by inverting the callback's argument/return I/O context relative to the enclosing
+  function signature.
+  [#6055](https://github.com/pybind/pybind11/pull/6055)
+
+- Correct `__delitem__` for negative-step slices and re-enable contiguous erase fast path.
+  [#6088](https://github.com/pybind/pybind11/pull/6088)
+
+- Do not pass `-fno-fat-lto-objects` to GCC on macOS, which made all LTO probes fail and silently disabled LTO.
+  [#6114](https://github.com/pybind/pybind11/pull/6114)
+
+- Fixed cross-compilation to Emscripten/Pyodide with CMake ≥ 4.1 by no longer overriding an explicitly set `PYBIND11_USE_CROSSCOMPILING` when
+  `CMAKE_CROSSCOMPILING_EMULATOR` is defined.
+  [#6094](https://github.com/pybind/pybind11/pull/6094)
+
+- Unset stale `PYTHON_MODULE_DEBUG_POSTFIX` and correct `USE_PYTHON_INCLUDE_DIR` variable.
+  [#6086](https://github.com/pybind/pybind11/pull/6086)
+
+- Apply `-undefined dynamic_lookup` to all Apple platforms.
+  [#6075](https://github.com/pybind/pybind11/pull/6075)
+
+Internal:
+
+- Improved `py::enum_` operator performance by restoring type-specific implementations.
+  [#5887](https://github.com/pybind/pybind11/pull/5887)
+
+- Optimized internal `std::unordered_map`/`std::unordered_set` hashing paths with `noexcept`.
+  [#5960](https://github.com/pybind/pybind11/pull/5960)
+
+CI:
+
+- Test Python 3.15 in CI.
+  [#6107](https://github.com/pybind/pybind11/pull/6107)
+
+- Updated the CIBW test workflow to cibuildwheel v4.1 and bumped the Pyodide build to 314.
+  [#6095](https://github.com/pybind/pybind11/pull/6095)
+
+
+## Version 3.0.4 (April 18, 2026)
+
+Bug fixes:
+
+- Fixed test builds with installed Eigen 5 by improving `Eigen3` CMake package detection.
+  [#6036](https://github.com/pybind/pybind11/pull/6036)
+
+- Fixed move semantics of `scoped_ostream_redirect` to preserve buffered output and avoid crashes when moved redirects restore stream buffers.
+  [#6033](https://github.com/pybind/pybind11/pull/6033)
+
+- Fixed `py::dynamic_attr()` traversal on Python 3.13+ to correctly propagate `PyObject_VisitManagedDict()` results.
+  [#6032](https://github.com/pybind/pybind11/pull/6032)
+
+- Fixed `std::shared_ptr<T>` fallback casting to avoid unnecessary copy-constructor instantiation in `reference_internal` paths.
+  [#6028](https://github.com/pybind/pybind11/pull/6028)
+
+CI:
+
+- Updated `setup-uv` to the maintained GitHub Action tag scheme.
+  [#6035](https://github.com/pybind/pybind11/pull/6035)
+
+- Updated pre-commit hooks.
+  [#6029](https://github.com/pybind/pybind11/pull/6029)
+
+- Updated GitHub Actions dependencies, including `actions-setup-cmake` and `cibuildwheel`.
+  [#6027](https://github.com/pybind/pybind11/pull/6027)
+
+
+## Version 3.0.3 (March 31, 2026)
+
+Bug fixes:
+
+- Fixed TSS key exhaustion in `implicitly_convertible()` when many implicit conversions are registered across large module sets.
+  [#6020](https://github.com/pybind/pybind11/pull/6020)
+
+- Fixed heap-buffer-overflow in `pythonbuf` with undersized buffers by enforcing a minimum buffer size.
+  [#6019](https://github.com/pybind/pybind11/pull/6019)
+
+- Fixed virtual-inheritance pointer offset crashes when dispatching inherited methods through virtual bases.
+  [#6017](https://github.com/pybind/pybind11/pull/6017)
+
+- Fixed `free(): invalid pointer` crashes during interpreter shutdown with `py::enum_<>` by duplicating late-added `def_property_static` argument strings.
+  [#6015](https://github.com/pybind/pybind11/pull/6015)
+
+- Fixed `function_record` heap-type deallocation to call `PyObject_Free()` and decref the type.
+  [#6010](https://github.com/pybind/pybind11/pull/6010)
+
+- Hardened `PYBIND11_MODULE_PYINIT` and `get_internals()` against module-initialization crashes.
+  [#6018](https://github.com/pybind/pybind11/pull/6018)
+
+- Fixed `static_pointer_cast` build failure with virtual inheritance in `holder_caster_foreign_helpers.h`.
+  [#6014](https://github.com/pybind/pybind11/pull/6014)
+
+- Fixed ambiguous `factory` template specialization that caused compilation failures with nvcc + GCC 14.
+  [#6011](https://github.com/pybind/pybind11/pull/6011)
+
+- Fixed crash in `def_readwrite` for non-smart-holder properties of smart-holder classes.
+  [#6008](https://github.com/pybind/pybind11/pull/6008)
+
+- Fixed memory leak for `py::dynamic_attr()` objects on Python 3.13+ by clearing managed `__dict__` contents during deallocation.
+  [#5999](https://github.com/pybind/pybind11/pull/5999)
+
+- Fixed binding of `noexcept` and ref-qualified (`&`, `&&`) methods inherited from unregistered base classes.
+  [#5992](https://github.com/pybind/pybind11/pull/5992)
+
+Internal:
+
+- Moved `tomlkit` dependency to the dev dependency group.
+  [#5990](https://github.com/pybind/pybind11/pull/5990)
+
+- Switched to newer public CPython APIs (`PyType_GetFlags` and public vectorcall APIs where available).
+  [#6005](https://github.com/pybind/pybind11/pull/6005)
+
+Tests:
+
+- Made an async callback test deterministic by replacing fixed sleep with bounded waiting.
+  [#5986](https://github.com/pybind/pybind11/pull/5986)
+
+CI:
+
+- Re-enabled Android tests in the cibuildwheel workflow.
+  [#6001](https://github.com/pybind/pybind11/pull/6001)
+
+
+## Version 3.0.2 (February 16, 2026)
+
+New Features:
+
+- Added helper functions to `py::array` that return shape and strides as `std::span` when available.
+  [#5974](https://github.com/pybind/pybind11/pull/5974)
+
+Bug fixes:
+
+- Added fallback locking for Python 3.13t where `PyCriticalSection_BeginMutex` is unavailable.
+  [#5981](https://github.com/pybind/pybind11/pull/5981)
+
+- Fixed race condition in `py::make_key_iterator` with free-threaded Python.
+  [#5971](https://github.com/pybind/pybind11/pull/5971)
 
 - MSVC 19.16 and earlier were blocked from using `std::launder` due to internal compiler errors.
   [#5968](https://github.com/pybind/pybind11/pull/5968)
@@ -23,8 +208,9 @@ Bug fixes:
 - Internals destructors were updated to check the owning interpreter before clearing Python objects.
   [#5965](https://github.com/pybind/pybind11/pull/5965)
 
-- pybind11 internals were updated to be deallocated during (sub-)interpreter shutdown to avoid memory leaks.
+- Internals shutdown handling was refined in two iterations before release: an initial finalization-time cleanup was followed by a safety adjustment to avoid late-shutdown `py::cast` segfaults.
   [#5958](https://github.com/pybind/pybind11/pull/5958)
+  [#5972](https://github.com/pybind/pybind11/pull/5972)
 
 - Fixed ambiguous `str(handle)` construction for `object`-derived types like `kwargs` or `dict` by templatizing the constructor with SFINAE.
   [#5949](https://github.com/pybind/pybind11/pull/5949)
@@ -146,6 +332,9 @@ Documentation:
 
 
 Tests:
+
+- Fixed deadlock in a free-threading test by releasing the GIL while waiting on synchronization.
+  [#5973](https://github.com/pybind/pybind11/pull/5973)
 
 - Calls to `env.deprecated_call()` were replaced with direct calls to `pytest.deprecated_call()`.
   [#5893](https://github.com/pybind/pybind11/pull/5893)

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import sys
 import weakref
 
 import pytest
@@ -217,10 +216,6 @@ def test_multiple_registered_instances_for_same_pointee_recursive():
         break  # Comment out for manual leak checking (use `top` command).
 
 
-# As of 2021-07-10 the pybind11 GitHub Actions valgrind build uses Python 3.9.
-WORKAROUND_ENABLING_ROLLBACK_OF_PR3068 = env.LINUX and sys.version_info == (3, 9)
-
-
 def test_std_make_shared_factory():
     class PySftMakeShared(m.Sft):
         def __init__(self, history):
@@ -228,19 +223,10 @@ def test_std_make_shared_factory():
 
     obj = PySftMakeShared("PySftMakeShared")
     assert obj.history == "PySftMakeShared"
-    if WORKAROUND_ENABLING_ROLLBACK_OF_PR3068:
-        try:
-            m.pass_through_shd_ptr(obj)
-        except RuntimeError as e:
-            str_exc_info_value = str(e)
-        else:
-            str_exc_info_value = "RuntimeError NOT RAISED"
-    else:
-        with pytest.raises(RuntimeError) as exc_info:
-            m.pass_through_shd_ptr(obj)
-        str_exc_info_value = str(exc_info.value)
+    with pytest.raises(RuntimeError) as exc_info:
+        m.pass_through_shd_ptr(obj)
     assert (
-        str_exc_info_value
+        str(exc_info.value)
         == "smart_holder_type_casters load_as_shared_ptr failure: not implemented:"
         " trampoline-self-life-support for external shared_ptr to type inheriting"
         " from std::enable_shared_from_this."

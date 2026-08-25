@@ -1,9 +1,12 @@
 #include <pybind11/critical_section.h>
 #include <pybind11/embed.h>
+#include <pybind11/pybind11.h>
 
 // Silence MSVC C++17 deprecation warning from Catch regarding std::uncaught_exceptions (up to
 // catch 2.0.1; this should be fixed in the next catch release after 2.0.1).
 PYBIND11_WARNING_DISABLE_MSVC(4996)
+
+#include "catch_skip.h"
 
 #include <catch.hpp>
 #include <cstdlib>
@@ -45,8 +48,8 @@ private:
 class PyWidget final : public Widget {
     using Widget::Widget;
 
-    int the_answer() const override { PYBIND11_OVERRIDE_PURE(int, Widget, the_answer); }
-    std::string argv0() const override { PYBIND11_OVERRIDE_PURE(std::string, Widget, argv0); }
+    int the_answer() const override { PYBIND11_OVERRIDE_PURE(int, Widget, the_answer, ); }
+    std::string argv0() const override { PYBIND11_OVERRIDE_PURE(std::string, Widget, argv0, ); }
 };
 
 class test_override_cache_helper {
@@ -62,7 +65,7 @@ public:
 };
 
 class test_override_cache_helper_trampoline : public test_override_cache_helper {
-    int func() override { PYBIND11_OVERRIDE(int, test_override_cache_helper, func); }
+    int func() override { PYBIND11_OVERRIDE(int, test_override_cache_helper, func, ); }
 };
 
 PYBIND11_EMBEDDED_MODULE(widget_module, m, py::multiple_interpreters::per_interpreter_gil()) {
@@ -76,7 +79,7 @@ PYBIND11_EMBEDDED_MODULE(widget_module, m, py::multiple_interpreters::per_interp
     sub.def("add", [](int i, int j) { return i + j; });
 }
 
-PYBIND11_EMBEDDED_MODULE(trampoline_module, m) {
+PYBIND11_EMBEDDED_MODULE(trampoline_module, m, py::multiple_interpreters::not_supported()) {
     py::class_<test_override_cache_helper,
                test_override_cache_helper_trampoline,
                std::shared_ptr<test_override_cache_helper>>(m, "test_override_cache_helper")
@@ -84,9 +87,19 @@ PYBIND11_EMBEDDED_MODULE(trampoline_module, m) {
         .def("func", &test_override_cache_helper::func);
 }
 
-PYBIND11_EMBEDDED_MODULE(throw_exception, ) { throw std::runtime_error("C++ Error"); }
+enum class SomeEnum { value1, value2 }; // Added in PR #6015
 
-PYBIND11_EMBEDDED_MODULE(throw_error_already_set, ) {
+PYBIND11_EMBEDDED_MODULE(enum_module, m, py::multiple_interpreters::per_interpreter_gil()) {
+    py::enum_<SomeEnum>(m, "SomeEnum")
+        .value("value1", SomeEnum::value1)
+        .value("value2", SomeEnum::value2);
+}
+
+PYBIND11_EMBEDDED_MODULE(throw_exception, , py::multiple_interpreters::not_supported()) {
+    throw std::runtime_error("C++ Error");
+}
+
+PYBIND11_EMBEDDED_MODULE(throw_error_already_set, , py::multiple_interpreters::not_supported()) {
     auto d = py::dict();
     d["missing"].cast<py::object>();
 }
@@ -185,7 +198,6 @@ TEST_CASE("There can be only one interpreter") {
     py::initialize_interpreter();
 }
 
-#if PY_VERSION_HEX >= PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX
 TEST_CASE("Custom PyConfig") {
     py::finalize_interpreter();
     PyConfig config;
@@ -248,9 +260,8 @@ TEST_CASE("scoped_interpreter with PyConfig_InitPythonConfig and argv") {
     }
     py::initialize_interpreter();
 }
-#endif
 
-TEST_CASE("Add program dir to path pre-PyConfig") {
+TEST_CASE("Add program dir to path without PyConfig") {
     py::finalize_interpreter();
     size_t path_size_add_program_dir_to_path_false = 0;
     {
@@ -264,7 +275,6 @@ TEST_CASE("Add program dir to path pre-PyConfig") {
     py::initialize_interpreter();
 }
 
-#if PY_VERSION_HEX >= PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX
 TEST_CASE("Add program dir to path using PyConfig") {
     py::finalize_interpreter();
     size_t path_size_add_program_dir_to_path_false = 0;
@@ -282,7 +292,6 @@ TEST_CASE("Add program dir to path using PyConfig") {
     }
     py::initialize_interpreter();
 }
-#endif
 
 TEST_CASE("Restart the interpreter") {
     // Verify pre-restart state.
@@ -341,6 +350,24 @@ TEST_CASE("Restart the interpreter") {
     auto py_module = py::module_::import("test_interpreter");
     auto py_widget = py_module.attr("DerivedWidget")("Hello after restart");
     REQUIRE(py_widget.attr("the_message").cast<std::string>() == "Hello after restart");
+}
+
+TEST_CASE("Enum module survives restart") { // Added in PR #6015
+    // Regression test for gh-5976: py::enum_ uses def_property_static, which
+    // calls process_attributes::init after initialize_generic's strdup loop,
+    // leaving arg names as string literals. Without the fix, destruct() would
+    // call free() on those literals during interpreter finalization.
+    PYBIND11_CATCH2_SKIP_IF(PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION == 12,
+                            "Pre-existing crash in enum cleanup during finalize on Python 3.12");
+
+    auto enum_mod = py::module_::import("enum_module");
+    REQUIRE(enum_mod.attr("SomeEnum").attr("value1").attr("name").cast<std::string>() == "value1");
+
+    py::finalize_interpreter();
+    py::initialize_interpreter();
+
+    enum_mod = py::module_::import("enum_module");
+    REQUIRE(enum_mod.attr("SomeEnum").attr("value2").attr("name").cast<std::string>() == "value2");
 }
 
 TEST_CASE("Execution frame") {
@@ -481,3 +508,32 @@ TEST_CASE("make_iterator can be called before then after finalizing an interpret
 
     py::initialize_interpreter();
 }
+
+#ifdef PYBIND11_HAS_STRING_VIEW
+TEST_CASE("Casting to a string_view outside a bound function") {
+    // Regression for PR #6092: view casters add the source to loader_life_support, but
+    // outside a bound function there is no frame. The caller owns the source's lifetime
+    // here, so the cast must succeed rather than throw.
+    py::str unicode("hello");
+    py::bytes bytes_obj("world", 5);
+    auto bytearray_obj
+        = py::reinterpret_steal<py::object>(PyByteArray_FromStringAndSize("bytes", 5));
+
+    REQUIRE(py::cast<std::string_view>(unicode) == "hello");
+    REQUIRE(py::cast<std::string_view>(bytes_obj) == "world");
+    REQUIRE(py::cast<std::string_view>(bytearray_obj) == "bytes");
+
+    // Wide string views require an encoded temporary. With no loader life-support
+    // frame, returning a view into that temporary must fail.
+    REQUIRE_THROWS_AS(py::cast<std::u16string_view>(unicode), py::cast_error);
+    REQUIRE_THROWS_AS(py::cast<std::u32string_view>(unicode), py::cast_error);
+
+    // Bound-function dispatch provides a frame that keeps both temporaries alive.
+    auto accepts_wide_views
+        = py::cpp_function([](std::u16string_view value16, std::u32string_view value32) {
+              return value16 == std::u16string_view(u"hello")
+                     && value32 == std::u32string_view(U"hello");
+          });
+    REQUIRE(accepts_wide_views(unicode, unicode).cast<bool>());
+}
+#endif

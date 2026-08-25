@@ -1,11 +1,19 @@
 from __future__ import annotations
 
+import sys
+
 import pytest
 
 import env  # noqa: F401
 from pybind11_tests import numpy_array as m
 
 np = pytest.importorskip("numpy")
+
+# numpy < 2.4 fails to detect aliasing in ndarray.resize on Python 3.14, so a
+# resize that should raise instead succeeds: numpy/numpy#30265 (fixed in 2.4.0).
+NUMPY_RESIZE_REFCHECK_BROKEN = sys.version_info >= (3, 14) and tuple(
+    int(x) for x in np.__version__.split(".")[:2]
+) < (2, 4)
 
 
 def test_dtypes():
@@ -66,6 +74,45 @@ def test_array_attributes():
     assert m.itemsize(a) == 2
     assert m.nbytes(a) == 12
     assert not m.owndata(a)
+
+
+@pytest.mark.skipif(not hasattr(m, "shape_span"), reason="std::span not available")
+def test_shape_strides_span():
+    # Test 0-dimensional array (scalar)
+    a = np.array(42, "f8")
+    assert m.ndim(a) == 0
+    assert m.shape_span(a) == []
+    assert m.strides_span(a) == []
+
+    # Test 1-dimensional array
+    a = np.array([1, 2, 3, 4], "u2")
+    assert m.ndim(a) == 1
+    assert m.shape_span(a) == [4]
+    assert m.strides_span(a) == [2]
+
+    # Test 2-dimensional array
+    a = np.array([[1, 2, 3], [4, 5, 6]], "u2").view()
+    a.flags.writeable = False
+    assert m.ndim(a) == 2
+    assert m.shape_span(a) == [2, 3]
+    assert m.strides_span(a) == [6, 2]
+
+    # Test 3-dimensional array
+    a = np.array([[[1, 2], [3, 4]], [[5, 6], [7, 8]]], "i4")
+    assert m.ndim(a) == 3
+    assert m.shape_span(a) == [2, 2, 2]
+    # Verify spans match regular shape/strides
+    assert list(m.shape_span(a)) == list(m.shape(a))
+    assert list(m.strides_span(a)) == list(m.strides(a))
+
+    # Test that spans can be used to construct new arrays
+    original = np.array([[1, 2, 3], [4, 5, 6]], "f4")
+    new_array = m.array_from_spans(original)
+    assert new_array.shape == original.shape
+    assert new_array.strides == original.strides
+    assert new_array.dtype == original.dtype
+    # Verify data is shared (since we pass the same data pointer)
+    np.testing.assert_array_equal(new_array, original)
 
 
 @pytest.mark.parametrize(
@@ -446,6 +493,10 @@ def test_initializer_list():
     assert m.array_initializer_list4().shape == (1, 2, 3, 4)
 
 
+@pytest.mark.xfail(
+    NUMPY_RESIZE_REFCHECK_BROKEN,
+    reason="numpy<2.4 resize(refcheck) regression on Python 3.14",
+)
 def test_array_resize():
     a = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9], dtype="float64")
     m.array_reshape2(a)

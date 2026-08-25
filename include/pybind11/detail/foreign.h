@@ -454,7 +454,7 @@ inline int foreign_cb_keep_alive(PyObject *nurse,
                 return 1;
             case pymb_keep_alive_cpp_shared_ptr_void: {
                 auto *given = static_cast<std::shared_ptr<void> *>(payload);
-                capsule patient{new auto{std::move(*given)},
+                capsule patient{new std::shared_ptr<void>{std::move(*given)},
                                 +[](void *p) {
                                     delete static_cast<std::shared_ptr<void> *>(p);
                                 }};

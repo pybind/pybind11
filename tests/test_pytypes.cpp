@@ -625,25 +625,8 @@ TEST_SUBMODULE(pytypes, m) {
         return py::dict("d"_a = d, "l"_a = l);
     });
 
-    // test_print
-    m.def("print_function", []() {
-        py::print("Hello, World!");
-        py::print(1, 2.0, "three", true, std::string("-- multiple args"));
-        auto args = py::make_tuple("and", "a", "custom", "separator");
-        py::print("*args", *args, "sep"_a = "-");
-        py::print("no new line here", "end"_a = " -- ");
-        py::print("next print");
-
-        auto py_stderr = py::module_::import("sys").attr("stderr");
-        py::print("this goes to stderr", "file"_a = py_stderr);
-
-        py::print("flush", "flush"_a = true);
-
-        py::print(
-            "{a} + {b} = {c}"_s.format("a"_a = "py::print", "b"_a = "str.format", "c"_a = "this"));
-    });
-
-    m.def("print_failure", []() { py::print(42, UnregisteredType()); });
+    m.def("print_args",
+          [](const py::args &args, const py::kwargs &kwargs) { py::print(*args, **kwargs); });
 
     m.def("hash_function", [](py::object obj) { return py::hash(std::move(obj)); });
 
@@ -1086,8 +1069,7 @@ TEST_SUBMODULE(pytypes, m) {
     static_class.def(py::init());
     static_class.attr_with_type_hint<py::typing::ClassVar<float>>("x") = 1.0;
     static_class.attr_with_type_hint<py::typing::ClassVar<py::typing::Dict<py::str, int>>>(
-        "dict_str_int")
-        = py::dict();
+        "dict_str_int") = py::dict();
 
     struct Instance {};
     auto instance = py::class_<Instance>(m, "Instance", py::dynamic_attr());

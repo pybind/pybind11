@@ -194,9 +194,8 @@ struct handle_type_name<typing::Callable<Return(Args...)>> {
     using retval_type = conditional_t<std::is_same<Return, void>::value, void_type, Return>;
     static constexpr auto name
         = const_name("collections.abc.Callable[[")
-          + ::pybind11::detail::concat(::pybind11::detail::arg_descr(make_caster<Args>::name)...)
-          + const_name("], ") + ::pybind11::detail::return_descr(make_caster<retval_type>::name)
-          + const_name("]");
+          + ::pybind11::detail::concat(::pybind11::detail::inv_descr(make_caster<Args>::name)...)
+          + const_name("], ") + make_caster<retval_type>::name + const_name("]");
 };
 
 template <typename Return>
@@ -204,8 +203,7 @@ struct handle_type_name<typing::Callable<Return(ellipsis)>> {
     // PEP 484 specifies this syntax for defining only return types of callables
     using retval_type = conditional_t<std::is_same<Return, void>::value, void_type, Return>;
     static constexpr auto name = const_name("collections.abc.Callable[..., ")
-                                 + ::pybind11::detail::return_descr(make_caster<retval_type>::name)
-                                 + const_name("]");
+                                 + make_caster<retval_type>::name + const_name("]");
 };
 
 template <typename T>

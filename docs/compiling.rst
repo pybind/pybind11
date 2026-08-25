@@ -429,7 +429,7 @@ with ``PYTHON_EXECUTABLE``.  For example:
 
 .. code-block:: bash
 
-    cmake -DPYBIND11_PYTHON_VERSION=3.8 ..
+    cmake -DPYBIND11_PYTHON_VERSION=3.9 ..
 
     # Another method:
     cmake -DPYTHON_EXECUTABLE=/path/to/python ..
@@ -495,7 +495,7 @@ FindPython, pybind11 will detect this and use the existing targets instead:
     cmake_minimum_required(VERSION 3.15...4.2)
     project(example LANGUAGES CXX)
 
-    find_package(Python 3.8 COMPONENTS Interpreter Development REQUIRED)
+    find_package(Python 3.9 COMPONENTS Interpreter Development REQUIRED)
     find_package(pybind11 CONFIG REQUIRED)
     # or add_subdirectory(pybind11)
 
@@ -664,6 +664,25 @@ building the module:
 .. code-block:: bash
 
     $ c++ -O3 -Wall -shared -std=c++11 -undefined dynamic_lookup $(python3 -m pybind11 --includes) example.cpp -o example$(python3-config --extension-suffix)
+
+For quick tests, the command line tool can also produce the full set of flags
+for you, based on ``python-config``:
+
+.. code-block:: bash
+
+    $ c++ $(python3 -m pybind11 --cflags) example.cpp $(python3 -m pybind11 --ldflags) -o example$(python3 -m pybind11 --extension-suffix)
+
+Or, shorter still, ``--file`` prints everything after the compiler for a given
+source file, including the output name (add ``--embed`` for a program that
+embeds the interpreter instead of an extension):
+
+.. code-block:: bash
+
+    $ c++ $(python3 -m pybind11 --file=example.cpp)
+
+These helpers target Unix-style compilers (GCC/Clang) and are intended for
+quick tests, not production builds; ``--file`` places the output next to the
+source file.
 
 In general, it is advisable to include several additional build parameters
 that can considerably reduce the size of the created binary. Refer to section

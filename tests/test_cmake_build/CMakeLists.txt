@@ -20,6 +20,15 @@ function(pybind11_add_build_test name)
     list(APPEND build_options "-DCMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD}")
   endif()
 
+  # Forward option-driven defines so the nested projects can verify they propagate
+  # through the pybind11_headers usage requirements.
+  foreach(opt IN ITEMS PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION
+                       PYBIND11_SIMPLE_GIL_MANAGEMENT)
+    if(${opt})
+      list(APPEND build_options "-D${opt}=ON")
+    endif()
+  endforeach()
+
   if(NOT ARG_INSTALL)
     list(APPEND build_options "-Dpybind11_SOURCE_DIR=${pybind11_SOURCE_DIR}")
   else()
