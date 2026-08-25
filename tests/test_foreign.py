@@ -552,13 +552,13 @@ def test_concurrent_access():
 
     def repeatedly_attempt_conversions():
         deadline = time.time() + 1
-        while time.time() < deadline:
-            try:
+        try:
+            while time.time() < deadline:
                 assert t3.check(t3.make(5)) == 5
-            except:
-                nonlocal any_failed
-                any_failed = True
-                raise
+        except:
+            nonlocal any_failed
+            any_failed = True
+            raise
 
     threads = [
         threading.Thread(target=repeatedly_attempt_conversions) for i in range(8)
@@ -608,7 +608,7 @@ def test_concurrent_modification():
         while transitions < limit:
             try:
                 assert t3.check(t3.make(42)) == 42
-            except TypeError:
+            except TypeError:  # noqa: PERF203
                 num_failed += 1
             else:
                 num_successful += 1

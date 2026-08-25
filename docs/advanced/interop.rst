@@ -111,7 +111,7 @@ a standardized interface that other frameworks can use to discover and work with
 its bindings. pybind11 may not directly understand the layout of a Python
 instance whose type was bound in another framework, but it can call into
 that framework to ask it to perform from-Python and to-Python conversions for
-such instances, along with some supporting logic such as keep-alives and
+such instances, along with some supporting logic such as keep-alive and
 exception translation. The APIs exposed by pymetabind are a compromise between
 the different worldviews of different binding libraries, so the support is not
 quite as "native" (or as fast) as it would be if everything were using the same
@@ -307,7 +307,7 @@ to get the Python type object for a C++ type ``T``.) For example:
 
 Disabling automatic import prevents functions bound in this
 extension module from calling into foreign frameworks for type
-conversions by defalt, while still allowing type bindings defined in
+conversions by default, while still allowing type bindings defined in
 this extension module to be used in functions bound by foreign
 frameworks.  You can use ``py::import_foreign()``, described below, to
 make individual foreign types available for interoperability even if

@@ -110,7 +110,7 @@ inline void *foreign_cb_from_python(pymb_binding *binding,
             // The C++ integer enum value is stored as the `value` attribute
             // of the Python enum object. Obtain it as a py::int_ object, then
             // extract the underlying integer. If negative, cast to unsigned
-            // in order to reduce dupliation of code paths; this preserves the
+            // in order to reduce duplication of code paths; this preserves the
             // original bit pattern on any reasonable implementation.
             auto value = handle(pyobj).attr("value");
             uint64_t ival = 0;
