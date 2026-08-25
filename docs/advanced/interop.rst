@@ -149,10 +149,10 @@ find an existing ``shared_ptr`` to share ownership with, so it will create a
 new ``shared_ptr`` control block that owns a reference to the Python object.
 This is usually not a problem, but does mean that
 ``shared_ptr::use_count()`` won't work like you expect, which also means
-``weak_ptr``\s might expire sooner than you intended them to. (If ``T``
-inherits ``std::enable_shared_from_this``, then pybind11 can use that
-to find the existing ``shared_ptr``, and will do so instead; in that case
-the behavior should match that of native bindings.)
+``weak_ptr``\s might expire sooner than you intended them to. However, if ``T``
+inherits from ``std::enable_shared_from_this``, then pybind11 will leverage that
+to find the existing ``shared_ptr`` for reuse; in that case
+the behavior should match that of native bindings.
 
 To-Python conversion of a custom holder type ``Holder<T>`` that uses a foreign
 binding for ``T`` works in a somewhat roundabout fashion: the holder is moved
@@ -218,13 +218,17 @@ of all ABI-compatible pybind11 modules.
 
 When performing C++-to-Python conversion of a type for which
 :ref:`automatic downcasting <inheritance>` is applicable,
-the downcast occurs in the binding library that is originally performing the
-conversion (e.g., the library that bound the function that's returning the
-object), even if the resulting Python object will then be obtained using a
-foreign binding. That means foreign frameworks returning pybind11 types might
-not downcast them in the same way that pybind11 does; they might only be able to
-downcast from a primary base (with no this-pointer adjustment / no multiple
-inheritance), or not downcast at all.
+the downcast occurs in whichever binding library actually constructs the
+Python object from the C++ value. This can create differences of behavior
+in some inheritance scenarios. Suppose that polymorphic type ``Derived``
+inherits from ``Base`` and both are bound using pybind11. A pybind11-bound
+function that returns a ``Base*`` whose referent is actually a ``Derived`` will
+properly produce a Python object that has all the attributes of a ``Derived``.
+If the exact same function is bound using a foreign framework, then the
+downcast might fail if ``Base`` is not the primary (zero-offset) base of
+``Derived``, or might not be possible at all. If the downcast fails, the
+function will return a Python object that only has the attributes of a ``Base``,
+which might be surprising.
 
 pybind11 can interoperate with bindings from frameworks that are not written
 in C++ (as long as you have a C++ type that matches the layout of the native

@@ -638,7 +638,7 @@ PYBIND11_NOINLINE void foreign_internals::register_with_pymetabind(bool autoimpo
 
         autoimport_for_anyone = autoimport;
         self.reset(new pymb_framework{});
-        self->name = "pybind11 " PYBIND11_ABI_TAG;
+        self->name = "pybind11 " PYBIND11_INTERNALS_ABI_ID;
         self->keep_alive_types = ((uint8_t) pymb_keep_alive_callback |
                                   (uint8_t) pymb_keep_alive_pyobject |
                                   (uint8_t) pymb_keep_alive_cpp_shared_ptr_void);

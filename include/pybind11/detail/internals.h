@@ -587,12 +587,12 @@ struct native_enum_record {
     static const char *attribute_name() { return "__pybind11_native_enum__"; }
 };
 
-#define PYBIND11_ABI_TAG                                                                          \
-    "v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                                             \
+#define PYBIND11_INTERNALS_ABI_ID                                              \
+    "v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                          \
         PYBIND11_COMPILER_TYPE_LEADING_UNDERSCORE PYBIND11_PLATFORM_ABI_ID
 
-#define PYBIND11_INTERNALS_ID "__pybind11_internals_" PYBIND11_ABI_TAG "__"
-#define PYBIND11_MODULE_LOCAL_ID "__pybind11_module_local_v" PYBIND11_ABI_TAG "__"
+#define PYBIND11_INTERNALS_ID "__pybind11_internals_" PYBIND11_INTERNALS_ABI_ID "__"
+#define PYBIND11_MODULE_LOCAL_ID "__pybind11_module_local_v" PYBIND11_INTERNALS_ABI_ID "__"
 
 /// We use this to figure out if there are or have been multiple subinterpreters active at any
 /// point. This must never go from true to false while any interpreter may be running in any
