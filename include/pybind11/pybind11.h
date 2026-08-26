@@ -3356,6 +3356,15 @@ PYBIND11_NOINLINE void keep_alive_impl(handle nurse, handle patient) {
 
 PYBIND11_NOINLINE void
 keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret) {
+    // The overload bailed out of `load_args` before running, so `ret` is the
+    // PYBIND11_TRY_NEXT_OVERLOAD sentinel ((PyObject *) 1) rather than an object. There is no
+    // call and therefore no relationship to establish; the dispatcher will try the next
+    // overload. Checked here because the sentinel is neither null nor `Py_None`, so it passes
+    // straight through the guards below and is dereferenced.
+    if (ret.ptr() == PYBIND11_TRY_NEXT_OVERLOAD) {
+        return;
+    }
+
     auto get_arg = [&](size_t n) {
         if (n == 0) {
             return ret;
