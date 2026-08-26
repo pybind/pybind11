@@ -280,6 +280,7 @@ struct SharedFromThisVirt : virtual SharedFromThisVBase {};
 // (virtual inheritance with shared_ptr holder)
 struct SftVirtBase : std::enable_shared_from_this<SftVirtBase> {
     SftVirtBase() = default;
+    SftVirtBase(const SftVirtBase &) = default;
     virtual ~SftVirtBase() = default;
     static std::shared_ptr<SftVirtBase> create() { return std::make_shared<SftVirtBase>(); }
     virtual std::string name() { return "SftVirtBase"; }

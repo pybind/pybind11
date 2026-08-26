@@ -141,13 +141,15 @@ public:
         }
         return m_repr.hvector.vec.size();
     }
+    bool empty() const { return size() == 0; }
 
-    T const *data() const {
+    T *data() {
         if (is_inline()) {
             return m_repr.iarray.arr.data();
         }
         return m_repr.hvector.vec.data();
     }
+    T const *data() const { return const_cast<small_vector *>(this)->data(); }
 
     T &operator[](std::size_t idx) {
         assert(idx < size());
@@ -184,6 +186,35 @@ public:
         }
     }
 
+    T *find(const T &val) {
+        for (T *it = data(), *end = it + size(); it != end; ++it) {
+            if (*it == val) {
+                return it;
+            }
+        }
+        return nullptr;
+    }
+
+    bool erase_one(const T &val) {
+        static_assert(std::is_nothrow_move_constructible<T>::value,
+                      "this operation is not exception safe");
+        static_assert(std::is_nothrow_destructible<T>::value,
+                      "this operation is not exception safe");
+        for (T *it = data(), *end = it + size(); it != end; ++it) {
+            if (*it == val) {
+                std::move(it + 1, end, it);
+                if (is_inline()) {
+                    --m_repr.iarray.size;
+                    end[-1].~T();
+                } else {
+                    m_repr.hvector.vec.pop_back();
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
     void reserve(std::size_t sz) {
         if (is_inline()) {
             if (sz > InlineSize) {
@@ -193,6 +224,9 @@ public:
             reserve_slow_path(sz);
         }
     }
+
+    T *begin() { return data(); }
+    T *end() { return data() + size(); }
 
 private:
     using repr_type = inline_array_or_vector<T, InlineSize>;

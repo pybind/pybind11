@@ -58,7 +58,7 @@ PYBIND11_WARNING_DISABLE_CLANG("-Wgnu-zero-variadic-macro-arguments")
     PYBIND11_MODULE_PYINIT(name, ##__VA_ARGS__)                                                   \
     ::pybind11::detail::embedded_module PYBIND11_CONCAT(pybind11_module_, name)(                  \
         PYBIND11_TOSTRING(name), PYBIND11_CONCAT(PyInit_, name));                                 \
-    PYBIND11_MODULE_EXEC(name, variable)
+    PYBIND11_MODULE_EXEC(name, variable, ##__VA_ARGS__)
 PYBIND11_WARNING_POP
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
@@ -201,10 +201,10 @@ inline void finalize_interpreter() {
 
     Py_Finalize();
 
+    // Internals contain data managed by the current interpreter, so we must
+    // clear them to avoid undefined behaviors when initializing another
+    // interpreter
     detail::get_internals_pp_manager().destroy();
-
-    // Local internals contains data managed by the current interpreter, so we must clear them to
-    // avoid undefined behaviors when initializing another interpreter
     detail::get_local_internals_pp_manager().destroy();
 
     // We know there is no interpreter alive now, so we can reset the multi-flag

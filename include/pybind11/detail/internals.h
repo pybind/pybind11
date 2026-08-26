@@ -14,6 +14,7 @@
 #include <pybind11/pytypes.h>
 #include <pybind11/trampoline_self_life_support.h>
 
+#include "argument_vector.h"
 #include "common.h"
 #include "struct_smart_holder.h"
 
@@ -23,6 +24,10 @@
 #include <limits>
 #include <mutex>
 #include <thread>
+
+struct pymb_binding;
+struct pymb_framework;
+struct pymb_registry;
 
 /// Tracks the `internals` and `type_info` ABI version independent of the main library version.
 ///
@@ -39,6 +44,7 @@
 /// further ABI-incompatible changes may be made before the ABI is officially
 /// changed to the new version.
 #ifndef PYBIND11_INTERNALS_VERSION
+//   REMINDER for next version bump: merge foreign_internals into internals
 #    define PYBIND11_INTERNALS_VERSION 12
 #endif
 
@@ -247,8 +253,7 @@ class pycritical_section {
     PyCriticalSection cs;
 #    endif
 
-public:
-    explicit pycritical_section(pymutex &m) : mutex(m) {
+    void enter() {
         // PyCriticalSection_BeginMutex was added in Python 3.15.0a1 and backported to 3.14.0rc1
 #    if PY_VERSION_HEX >= 0x030E00C1 // 3.14.0rc1
         PyCriticalSection_BeginMutex(&cs, &mutex.mutex);
@@ -257,13 +262,29 @@ public:
         mutex.lock();
 #    endif
     }
-    ~pycritical_section() {
+
+    void leave() {
 #    if PY_VERSION_HEX >= 0x030E00C1 // 3.14.0rc1
         PyCriticalSection_End(&cs);
 #    else
         mutex.unlock();
 #    endif
     }
+
+    struct temporarily_drop_guard {
+        pycritical_section &parent;
+        temporarily_drop_guard(pycritical_section &p) : parent(p) { parent.leave(); }
+        ~temporarily_drop_guard() { parent.enter(); }
+    };
+
+public:
+    explicit pycritical_section(pymutex &m) : mutex(m) { enter(); }
+    ~pycritical_section() { leave(); }
+
+    // Return an RAII guard that temporarily exits the critical section,
+    // re-entering it when the guard is destroyed. You must not have any
+    // other critical section active on top of this one.
+    temporarily_drop_guard temporarily_drop() { return temporarily_drop_guard{*this}; }
 
     // Non-copyable and non-movable to prevent double-unlock
     pycritical_section(const pycritical_section &) = delete;
@@ -374,7 +395,100 @@ struct internals {
     ~internals() = default;
 };
 
-// the internals struct (above) is shared between all the modules. local_internals are only
+using copy_or_move_ctor = void *(*) (const void *);
+
+// Information to support working with types from other binding frameworks or
+// other ABI versions of pybind11, and sharing our types with them. This should
+// logically be part of `internals`, but we want to support it without an ABI
+// version bump. If it gets incorpoprated into `internals` in a later ABI
+// version, it would be good for performance to also add a flag to `type_info`
+// indicating whether any foreign bindings are also known for that C++ type;
+// that way we can avoid an extra lookup when conversion to a native type fails.
+struct foreign_internals {
+    // A vector optimized for the case of storing few elements.
+    // While by far the most common vector length will be 1,
+    // the on-heap alternative stores a std::vector (3 pointers)
+    // so there's nothing saved by reducing the InlineSize below 3.
+    using binding_list = small_vector<pymb_binding *, 3>;
+
+    // Registered pymetabind bindings for each C++ type, including both our
+    // own (exported) and other frameworks' (imported).
+    // Protected by internals::mutex.
+    type_map<binding_list> bindings;
+
+    // For each C++ type with a native binding, store pointers to its
+    // copy and move constructors. These would ideally move inside `type_info`
+    // on an ABI bump. Protected by internals::mutex.
+    type_map<std::pair<copy_or_move_ctor, copy_or_move_ctor>> copy_move_ctors;
+
+    // List of frameworks that provide exception translators.
+    // Protected by internals::exception_translator_mutex.
+    // If this is non-empty, there is a single translator in the penultimate
+    // position of internals::registered_exception_translators that calls the
+    // translate_exception methods of each framework in this list.
+    std::forward_list<pymb_framework *> exc_frameworks;
+
+    // Hooks allowing other frameworks to interact with us.
+    // Constant after construction.
+    std::unique_ptr<pymb_framework> self;
+
+    // Remember the C++ type associated with each binding by
+    // import_foreign(), so we can clean up `bindings` properly.
+    // Protected by internals::mutex.
+    std::unordered_map<pymb_binding *, const std::type_info *> manual_imports;
+
+    // Pointer to `detail::export_to_foreign` in foreign.h. This indirection is
+    // vital to avoid having every compilation unit with a py::class_ pull in the
+    // callback methods in foreign.h. Instead, only the compilation unit that
+    // provides the PYBIND11_MODULE() entrypoint will emit that code.
+    void (*export_to_foreign)(const std::type_info *, PyTypeObject *, type_info *);
+
+    // Pointer to `detail::import_foreign` in foreign.h. This indirection matters
+    // less than the export one; it allows compilation units that explicitly call
+    // py::import_foreign() to avoid pulling in all the callbacks.
+    void (*import_foreign)(const std::type_info *, PyTypeObject *);
+
+    // Does any extension module using these internals desire auto-import?
+    // If so, we will populate `bindings` automatically and expect the modules
+    // that don't want it to apply their own filtering.
+    bool autoimport_for_anyone = false;
+
+    // Are there any entries in `bindings` that don't correspond to our
+    // own types?
+    bool imported_any = false;
+
+    // Number of times the `bindings` map has been modified. Used to detect
+    // cases where the iterator in try_foreign_bindings() may have been
+    // invalidated. Protected by internals::mutex.
+    uint32_t bindings_update_count = 0;
+
+    foreign_internals() = default;
+    inline ~foreign_internals();
+
+    // This should be called immediately after construction. It can't be done in
+    // the constructor because it requires get_foreign_internals() to return this
+    // and requires the internals lock to not be held.
+    void register_with_pymetabind(bool autoimport);
+
+    void enable_autoimport();
+};
+
+// Global pointer to the foreign_internals object, valid only in the DSO that
+// called register_with_pymetabind() (which is the same one that provides
+// the pymetabind callbacks). This is needed because the order in which
+// frameworks are unregistered during interpreter finalization is unspecified.
+// Since the foreign_internals are shared between DSOs but accessed via the
+// local_internals of each DSO, it's possible for a foreign framework to be
+// removed after our own local_internals have been destroyed but at a time
+// when some other DSO's local_internals are still alive. This pointer lets
+// us remove our references to the removed framework, so that that other DSO
+// won't see a dangling pointer.
+static foreign_internals *&foreign_internals_local_cache() {
+    static foreign_internals *cache;
+    return cache;
+}
+
+// The internals struct (above) is shared between all the modules. local_internals are only
 // for a single module. Any changes made to internals may require an update to
 // PYBIND11_INTERNALS_VERSION, breaking backwards compatibility. local_internals is, by design,
 // restricted to a single module. Whether a module has local internals or not should not
@@ -388,6 +502,39 @@ struct local_internals {
 
     std::forward_list<ExceptionTranslator> registered_exception_translators;
     PyTypeObject *function_record_py_type = nullptr;
+
+    // Should we automatically advertise our types to other binding frameworks,
+    // or only when requested via pybind11::export_to_foreign()?
+    // Constant after module initialization.
+    bool foreign_export_all = false;
+
+    // Should we automatically use types advertised by other frameworks as
+    // a fallback when we can't do a cast using pybind11 types, or only when
+    // requested via pybind11::import_foreign()?
+    // Constant after module initialization.
+    bool foreign_import_all = false;
+
+    // Reference to the `foreign_internals`, which are shared between
+    // all ABI-compatible pybind11 modules. This should logically be
+    // part of `internals` but it is kept here to avoid needing an ABI bump
+    // when adding the feature that makes ABI bumps less painful.
+    // May be null if both foreign_export_all and foreign_import_all are false.
+    std::shared_ptr<foreign_internals> foreign;
+
+    // Set of foreign bindings that have been explicitly imported by the current
+    // extension module. This works around the fact that the `foreign_internals`
+    // are shared, to provide the fiction of each module having its own imports
+    // list; in particular, a module that requests no foreign binding use by
+    // default should not be impacted by the existence of bindings it doesn't
+    // request. This map is non-empty only if `foreign_import_all` is false, and
+    // it serves as an additional filter on the `foreign_internals.bindings`.
+    // It logically wants to be a set of pymb_binding*, but those pointers can be
+    // invalidated, so store things that can't be. Note that despite being in
+    // local_internals, this must be a slow type_map because we do lookups in it
+    // using the type_info objects from foreign bindings, which could come from
+    // other DSOs.
+    std::unordered_multimap<std::type_index, pymb_framework *, type_hash, type_equal_to>
+        foreign_local_imports;
 };
 
 enum class holder_enum_t : uint8_t {
@@ -463,13 +610,12 @@ struct native_enum_record {
     static const char *attribute_name() { return "__pybind11_native_enum__"; }
 };
 
-#define PYBIND11_INTERNALS_ID                                                                     \
-    "__pybind11_internals_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                        \
-        PYBIND11_COMPILER_TYPE_LEADING_UNDERSCORE PYBIND11_PLATFORM_ABI_ID "__"
+#define PYBIND11_INTERNALS_ABI_ID                                                                 \
+    "v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                                             \
+        PYBIND11_COMPILER_TYPE_LEADING_UNDERSCORE PYBIND11_PLATFORM_ABI_ID
 
-#define PYBIND11_MODULE_LOCAL_ID                                                                  \
-    "__pybind11_module_local_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                     \
-        PYBIND11_COMPILER_TYPE_LEADING_UNDERSCORE PYBIND11_PLATFORM_ABI_ID "__"
+#define PYBIND11_INTERNALS_ID "__pybind11_internals_" PYBIND11_INTERNALS_ABI_ID "__"
+#define PYBIND11_MODULE_LOCAL_ID "__pybind11_module_local_v" PYBIND11_INTERNALS_ABI_ID "__"
 
 /// We use this to figure out if there are or have been multiple subinterpreters active at any
 /// point. This must never go from true to false while any interpreter may be running in any
@@ -915,16 +1061,6 @@ inline PyObject *get_local_internals_capsule() {
     return dict_getitemstring(state_dict.ptr(), key.c_str());
 }
 
-inline void ensure_internals() {
-    pybind11::detail::get_internals_pp_manager().unref();
-#ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
-    if (PyInterpreterState_Get() != PyInterpreterState_Main()) {
-        has_seen_non_main_interpreter() = true;
-    }
-#endif
-    pybind11::detail::get_internals();
-}
-
 inline internals_pp_manager<local_internals> &get_local_internals_pp_manager() {
     // Use the address of a static variable as part of the key, so that the value is uniquely tied
     // to where the module is loaded in memory
@@ -980,6 +1116,80 @@ inline auto with_exception_translators(const F &cb)
     auto &local_internals = get_local_internals();
     return cb(internals.registered_exception_translators,
               local_internals.registered_exception_translators);
+}
+
+// forward declaration; definitions in foreign.h
+void import_foreign(const std::type_info *cpptype, PyTypeObject *pytype);
+void export_to_foreign(const std::type_info *cpptype, PyTypeObject *pytype, type_info *ti);
+
+// This is normally called at module init time, unless you passed
+// py::foreign_interop::disabled() as a PYBIND11_MODULE() parameter.
+// If you did, it's safe to call it later, modulo the usual private API caveats.
+// It will effectively upgrade the 'disabled' level to 'on_request'.
+inline foreign_internals &ensure_foreign_internals() {
+    auto &local = get_local_internals();
+    if (local.foreign) {
+        return *local.foreign;
+    }
+    with_internals([&](internals &) {
+        if (local.foreign) {
+            return;
+        }
+        auto &wp = *detail::atomic_get_or_create_in_state_dict<std::weak_ptr<foreign_internals>>(
+                        PYBIND11_INTERNALS_ID "foreign")
+                        .first;
+        if (auto sp = wp.lock()) {
+            local.foreign = sp;
+        } else {
+            wp = local.foreign = std::make_shared<foreign_internals>();
+        }
+        local.foreign->import_foreign = import_foreign;
+        local.foreign->export_to_foreign = export_to_foreign;
+    });
+    local.foreign->register_with_pymetabind(local.foreign_import_all);
+    return *local.foreign;
+}
+
+inline foreign_internals *get_foreign_internals() {
+    // Get the local internals if present, but don't create them if they've
+    // already been destroyed (during finalization). A newly created
+    // local_internals will have null foreign_internals anyway.
+    auto &ppmgr = get_local_internals_pp_manager();
+    auto &internals_ptr = *ppmgr.get_pp();
+    return internals_ptr ? internals_ptr->foreign.get() : nullptr;
+}
+
+enum class foreign_interop_level {
+    disabled,    // Fully disable the foreign interop mechanism;
+                 // local_internals::foreign is null
+    on_request,  // All foreign interop must be requested explicitly
+    import_only, // Import others' types by default, only export
+                 // ours when requested
+    export_only, // Export our types by default, only import others'
+                 // when requested
+    full,        // Default: automatically import/export all we can
+};
+
+inline void ensure_internals(foreign_interop_level level) {
+    get_internals_pp_manager().unref();
+#ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
+    if (PyInterpreterState_Get() != PyInterpreterState_Main()) {
+        has_seen_non_main_interpreter() = true;
+    }
+#endif
+    get_internals();
+    if (level != foreign_interop_level::disabled) {
+        auto &local = get_local_internals();
+        const bool auto_any = level != foreign_interop_level::on_request;
+        const bool auto_export = auto_any && level != foreign_interop_level::import_only;
+        const bool auto_import = auto_any && level != foreign_interop_level::export_only;
+        local.foreign_export_all = auto_export;
+        local.foreign_import_all = auto_import;
+        auto &foreign = ensure_foreign_internals();
+        if (auto_import) {
+            foreign.enable_autoimport();
+        }
+    }
 }
 
 inline std::uint64_t mix64(std::uint64_t z) {

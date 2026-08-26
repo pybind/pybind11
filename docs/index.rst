@@ -34,6 +34,7 @@
    advanced/smart_ptrs
    advanced/cast/index
    advanced/pycpp/index
+   advanced/interop
    advanced/embedding
    advanced/misc
    advanced/deprecated

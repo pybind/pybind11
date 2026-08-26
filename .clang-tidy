@@ -81,3 +81,4 @@ CheckOptions:
   value:           true
 
 HeaderFilterRegex: 'pybind11/.*h'
+ExcludeHeaderFilterRegex: 'pybind11/contrib/.*h'

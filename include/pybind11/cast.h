@@ -86,10 +86,7 @@ public:
     bool load(handle src, bool convert) {
         handle native_enum
             = global_internals_native_enum_type_map_get_item(std::type_index(typeid(EnumType)));
-        if (native_enum) {
-            if (!isinstance(src, native_enum)) {
-                return false;
-            }
+        if (native_enum && isinstance(src, native_enum)) {
             type_caster<Underlying> underlying_caster;
             if (!underlying_caster.load(src.attr("value"), convert)) {
                 pybind11_fail("native_enum internal consistency failure.");
@@ -124,7 +121,7 @@ public:
 private:
     EnumType native_value; // if loading a py::native_enum
     bool native_loaded = false;
-    EnumType *legacy_ptr = nullptr; // if loading a py::enum_
+    EnumType *legacy_ptr = nullptr; // if loading a py::enum_ or foreign
 };
 
 template <typename EnumType, typename SFINAE = void>
@@ -1032,7 +1029,8 @@ public:
         }
 
         auto *tinfo = srcs.result.tinfo;
-        if (tinfo != nullptr && tinfo->holder_enum_v == holder_enum_t::std_shared_ptr) {
+        if (tinfo == nullptr /* uses foreign binding */
+            || tinfo->holder_enum_v == holder_enum_t::std_shared_ptr) {
             return type_caster_base<type>::cast_holder(srcs, &src);
         }
 
@@ -1345,8 +1343,8 @@ struct always_construct_holder_value {
     static constexpr bool value = Value;
 };
 
-template <typename T, bool Value = false>
-struct always_construct_holder : always_construct_holder_value<Value> {};
+template <typename T>
+struct always_construct_holder : always_construct_holder_value<> {};
 
 /// Create a specialization for custom holder types (silently ignores std::shared_ptr)
 #define PYBIND11_DECLARE_HOLDER_TYPE(type, holder_type, ...)                                      \
@@ -2431,7 +2429,7 @@ PYBIND11_NAMESPACE_END(detail)
 template <typename T>
 handle type::handle_of() {
     static_assert(std::is_base_of<detail::type_caster_generic, detail::make_caster<T>>::value,
-                  "py::type::of<T> only supports the case where T is a registered C++ types.");
+                  "py::type::of<T> only supports the case where T is a registered C++ type.");
 
     return detail::get_type_handle(typeid(T), true);
 }

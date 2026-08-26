@@ -12,6 +12,7 @@
 #include "detail/class.h"
 #include "detail/dynamic_raw_ptr_cast_if_possible.h"
 #include "detail/exception_translation.h"
+#include "detail/foreign.h"
 #include "detail/function_record_pyobject.h"
 #include "detail/function_ref.h"
 #include "detail/init.h"
@@ -165,11 +166,11 @@ inline std::string generate_function_signature(const char *type_caster_name_fiel
             if (!t) {
                 pybind11_fail("Internal error while parsing type signature (1)");
             }
-            if (auto *tinfo = detail::get_type_info(*t)) {
-                handle th(reinterpret_cast<PyObject *>(tinfo->type));
-                signature += th.attr("__module__").cast<std::string>() + "."
-                             + th.attr("__qualname__").cast<std::string>();
-            } else if (auto th = detail::global_internals_native_enum_type_map_get_item(*t)) {
+            handle th = detail::get_type_handle(*t, false);
+            if (!th) {
+                th = detail::global_internals_native_enum_type_map_get_item(*t);
+            }
+            if (th) {
                 signature += th.attr("__module__").cast<std::string>() + "."
                              + th.attr("__qualname__").cast<std::string>();
             } else if (func_rec->is_new_style_constructor && arg_index == 0) {
@@ -255,12 +256,6 @@ inline std::string generate_type_signature() {
     return generate_function_signature(
         caster_name_field.text, &func_rec, descr_types.data(), type_index, arg_index);
 }
-
-#if defined(_MSC_VER)
-#    define PYBIND11_COMPAT_STRDUP _strdup
-#else
-#    define PYBIND11_COMPAT_STRDUP strdup
-#endif
 
 #define PYBIND11_READABLE_FUNCTION_SIGNATURE_EXPR                                                 \
     detail::const_name("(") + cast_in::arg_names + detail::const_name(") -> ") + cast_out::name
@@ -1502,6 +1497,41 @@ private:
     level level_;
 };
 
+// Module initialization option controlling whether this module will share its
+// types for use by other binding frameworks (export) or will use other binding
+// frameworks' types (import).
+class foreign_interop {
+public:
+    using level = detail::foreign_interop_level;
+
+    // Fully disable the foreign interop mechanism. py::import_foreign() and
+    // py::export_to_foreign() will throw errors.
+    static foreign_interop disabled() { return foreign_interop(level::disabled); }
+
+    // Enable the mechanism but don't import or export anything by default.
+    static foreign_interop on_request() { return foreign_interop(level::on_request); }
+
+    // Enable the mechanism and automatically use foreign-bound types, but
+    // don't export any of our types for other frameworks to use unless
+    // individually requesdted using py::export_to_foreign().
+    static foreign_interop import_only() { return foreign_interop(level::import_only); }
+
+    // Enable the mechanism and automatically export our types for other
+    // frameworks to use, but don't use any foreign-bound types unless
+    // individually requesdted using py::import_foreign().
+    static foreign_interop export_only() { return foreign_interop(level::export_only); }
+
+    // Default behavior: automatically export our own types and use other
+    // frameworks' types.
+    static foreign_interop full() { return foreign_interop(level::full); }
+
+    explicit constexpr foreign_interop(level l) : level_(l) {}
+    level value() const { return level_; }
+
+private:
+    level level_;
+};
+
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 inline bool gil_not_used_option() { return false; }
@@ -1536,6 +1566,16 @@ inline void *multi_interp_slot(F &&, O &&...o) {
     return multi_interp_slot(o...);
 }
 #endif
+
+inline foreign_interop_level foreign_interop_option() { return foreign_interop_level::full; }
+template <typename... O>
+inline foreign_interop_level foreign_interop_option(foreign_interop f, O &&...) {
+    return f.value();
+}
+template <typename F, typename... O>
+inline foreign_interop_level foreign_interop_option(F &&, O &&...o) {
+    return foreign_interop_option(o...);
+}
 
 /*
 Return a borrowed reference to the named module if it has been successfully initialized within this
@@ -1864,6 +1904,11 @@ protected:
 #endif
             internals.registered_types_py[reinterpret_cast<PyTypeObject *>(m_ptr)] = {tinfo};
             PYBIND11_WARNING_POP
+
+            if (local_internals.foreign_export_all) {
+                local_internals.foreign->export_to_foreign(
+                    rec.type, (PyTypeObject *) m_ptr, tinfo);
+            }
         });
 
         if (rec.bases.size() > 1 || rec.multiple_inheritance) {
@@ -2408,8 +2453,13 @@ public:
 
         generic_type::initialize(record);
 
-        if (has_alias) {
-            with_internals([&](internals &internals) {
+        with_internals([&](internals &internals) {
+            auto *foreign_internals = get_foreign_internals();
+            if (foreign_internals) {
+                foreign_internals->copy_move_ctors.emplace(
+                    *record.type, detail::type_caster_base<type_>::copy_and_move_ctors());
+            }
+            if (has_alias) {
                 auto &local_internals = get_local_internals();
                 if (record.module_local) {
                     local_internals.registered_types_cpp[&typeid(type_alias)]
@@ -2422,8 +2472,8 @@ public:
                     internals.registered_types_cpp_fast[&typeid(type_alias)] = val;
 #endif
                 }
-            });
-        }
+            }
+        });
         def("_pybind11_conduit_v1_", cpp_conduit_method);
     }
 
@@ -3333,12 +3383,22 @@ PYBIND11_NOINLINE void keep_alive_impl(handle nurse, handle patient) {
         return; /* Nothing to keep alive or nothing to be kept alive by */
     }
 
-    auto tinfo = all_type_info(Py_TYPE(nurse.ptr()));
+    PyTypeObject *type = Py_TYPE(nurse.ptr());
+    auto tinfo = all_type_info(type);
     if (!tinfo.empty()) {
         /* It's a pybind-registered type, so we can store the patient in the
          * internal list. */
         add_patient(nurse.ptr(), patient.ptr());
     } else {
+        auto *binding = pymb_get_binding((PyObject *) type);
+        if (binding
+            && binding->framework->keep_alive(
+                   nurse.ptr(), pymb_keep_alive_pyobject, patient.ptr(), nullptr)
+                   != 0) {
+            // It's a foreign-registered type and the foreign framework was
+            // able to handle the keep_alive.
+            return;
+        }
         /* Fall back to clever approach based on weak references taken from
          * Boost.Python. This is not used for pybind-registered types because
          * the objects can be destroyed out-of-order in a GC pass. */
@@ -3349,7 +3409,9 @@ PYBIND11_NOINLINE void keep_alive_impl(handle nurse, handle patient) {
 
         weakref wr(nurse, disable_lifesupport);
 
-        patient.inc_ref(); /* reference patient and leak the weak reference */
+        /* Increase reference counts of both patient and weakref; both will
+         * be correspondingly decreased in the disable_lifesupport callback */
+        patient.inc_ref();
         (void) wr.release();
     }
 }

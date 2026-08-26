@@ -220,6 +220,13 @@ inline void native_enum_data::finalize() {
     py_enum.attr(native_enum_record::attribute_name()) = enum_record;
     with_internals([&](internals &internals) {
         internals.native_enum_type_map[enum_type_index] = py_enum.ptr();
+
+        auto &local_internals = get_local_internals();
+        if (local_internals.foreign_export_all) {
+            auto *record = enum_record.get_pointer<native_enum_record>();
+            local_internals.foreign->export_to_foreign(
+                record->cpptype, (PyTypeObject *) py_enum.ptr(), nullptr);
+        }
     });
 }
 

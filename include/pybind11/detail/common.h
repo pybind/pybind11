@@ -226,6 +226,12 @@
 #    define PYBIND11_SIMPLE_GIL_MANAGEMENT
 #endif
 
+#if defined(_MSC_VER)
+#    define PYBIND11_COMPAT_STRDUP _strdup
+#else
+#    define PYBIND11_COMPAT_STRDUP strdup
+#endif
+
 #include <cstddef>
 #include <cstring>
 #include <exception>
@@ -282,6 +288,21 @@
 #    if PYBIND11_HAS_SUBINTERPRETER_SUPPORT == 0
 #        undef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
 #    endif
+#endif
+
+// 3.14 Compatibility
+#if !defined(Py_GIL_DISABLED)
+inline bool is_uniquely_referenced(PyObject *obj) { return Py_REFCNT(obj) == 1; }
+#elif 0x030E0000 <= PY_VERSION_HEX
+inline bool is_uniquely_referenced(PyObject *obj) {
+    return PyUnstable_Object_IsUniquelyReferenced(obj);
+}
+#else // backport for 3.13
+inline bool is_uniquely_referenced(PyObject *obj) {
+    return _Py_IsOwnedByCurrentThread(obj)
+           && _Py_atomic_load_uint32_relaxed(&obj->ob_ref_local) == 1
+           && _Py_atomic_load_ssize_relaxed(&obj->ob_ref_shared) == 0;
+}
 #endif
 
 // 3.13 Compatibility
@@ -368,11 +389,6 @@
 #define PYBIND11_STRINGIFY(x) #x
 #define PYBIND11_TOSTRING(x) PYBIND11_STRINGIFY(x)
 #define PYBIND11_CONCAT(first, second) first##second
-#define PYBIND11_ENSURE_INTERNALS_READY                                                           \
-    {                                                                                             \
-        pybind11::detail::get_internals_pp_manager().unref();                                     \
-        pybind11::detail::get_internals();                                                        \
-    }
 
 #if !defined(GRAALVM_PYTHON)
 #    define PYBIND11_PYCFUNCTION_GET_DOC(func) ((func)->m_ml->ml_doc)
@@ -433,7 +449,7 @@
     static PyObject *pybind11_init();                                                             \
     PYBIND11_PLUGIN_IMPL(name) {                                                                  \
         PYBIND11_CHECK_PYTHON_VERSION                                                             \
-        PYBIND11_ENSURE_INTERNALS_READY                                                           \
+        pybind11::detail::ensure_internals(pybind11::detail::foreign_interop_level::full);        \
         try {                                                                                     \
             return pybind11_init();                                                               \
         }                                                                                         \
@@ -458,7 +474,6 @@ PyModuleDef_Init should be treated like any other PyObject (so not shared across
     PYBIND11_PLUGIN_IMPL(name) {                                                                  \
         PYBIND11_CHECK_PYTHON_VERSION                                                             \
         try {                                                                                     \
-            pybind11::detail::ensure_internals();                                                 \
             static ::pybind11::detail::slots_array mod_def_slots                                  \
                 = ::pybind11::detail::init_slots(&PYBIND11_CONCAT(pybind11_exec_, name),          \
                                                  ##__VA_ARGS__);                                  \
@@ -477,11 +492,12 @@ PyModuleDef_Init should be treated like any other PyObject (so not shared across
         return nullptr;                                                                           \
     }
 
-#define PYBIND11_MODULE_EXEC(name, variable)                                                      \
+#define PYBIND11_MODULE_EXEC(name, variable, ...)                                                 \
     static void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ &);                     \
     int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject * pm) {                                    \
         try {                                                                                     \
-            pybind11::detail::ensure_internals();                                                 \
+            auto foreign_level = pybind11::detail::foreign_interop_option(__VA_ARGS__);           \
+            pybind11::detail::ensure_internals(foreign_level);                                    \
             auto m = pybind11::reinterpret_borrow<::pybind11::module_>(pm);                       \
             if (!pybind11::detail::get_cached_module(m.attr("__spec__").attr("name"))) {          \
                 PYBIND11_CONCAT(pybind11_init_, name)(m);                                         \
@@ -517,12 +533,22 @@ PyModuleDef_Init should be treated like any other PyObject (so not shared across
         }
 
     The third and subsequent macro arguments are optional (available since 2.13.0), and
-    can be used to mark the extension module as supporting various Python features.
+    can be used to mark the extension module as supporting various Python and pybind11
+    features.
 
-    - ``mod_gil_not_used()``
-    - ``multiple_interpreters::per_interpreter_gil()``
-    - ``multiple_interpreters::shared_gil()``
-    - ``multiple_interpreters::not_supported()``
+    - Allow this module to be imported into a free-threaded Python interpreter
+      without forcing a fallback to GIL semantics: ``mod_gil_not_used()``
+    - Allow this module to be imported into a Python interpreter other than the
+      main one (i.e., a subinterpreter) with specified GIL granularity:
+      ``multiple_interpreters::per_interpreter_gil()`` or
+      ``multiple_interpreters::shared_gil()``
+      (or use ``multiple_interpreters::not_supported()`` to explicitly specify
+      the default)
+    - Limit the scope of the otherwise enabled-by-default support for
+      :ref:`interoperability with foreign binding frameworks <interop>`:
+      ``foreign_interop::disabled()``, ``foreign_interop::on_request()``,
+      ``foreign_interop::import_only()``, or ``foreign_interop::export_only()``
+      (or use ``foreign_import::full()`` to explicitly specify the default)
 
     .. code-block:: cpp
 
@@ -536,7 +562,7 @@ PyModuleDef_Init should be treated like any other PyObject (so not shared across
 \endrst */
 #define PYBIND11_MODULE(name, variable, ...)                                                      \
     PYBIND11_MODULE_PYINIT(name, ##__VA_ARGS__)                                                   \
-    PYBIND11_MODULE_EXEC(name, variable)
+    PYBIND11_MODULE_EXEC(name, variable, ##__VA_ARGS__)
 
 // pop gnu-zero-variadic-macro-arguments
 PYBIND11_WARNING_POP
@@ -1414,6 +1440,20 @@ inline void silence_unused_warnings(Args &&...) {}
 #if PY_VERSION_HEX < 0x030B0000 || defined(PYPY_VERSION)
 #    define PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET
 #endif
+
+#if defined(PY_BIG_ENDIAN)
+#    define PYBIND11_BIG_ENDIAN PY_BIG_ENDIAN
+#else // pypy doesn't define PY_BIG_ENDIAN
+#    if defined(_MSC_VER)
+#        define PYBIND11_BIG_ENDIAN 0 // All Windows platforms are little-endian
+#    else                             // GCC and Clang define the following macros
+#        define PYBIND11_BIG_ENDIAN (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+#    endif
+#endif
+
+// Defined in cast.h
+template <typename T>
+struct always_construct_holder;
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
