@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import gc
+import pickle
 import sys
 from unittest import mock
 
@@ -249,6 +250,39 @@ def test_inheritance_init(msg):
         RabbitHamster()
     expected = "m.class_.Hamster.__init__() must be called when overriding __init__"
     assert msg(exc_info.value) == expected
+
+
+def test_new_bypasses_init():
+    """`__new__` allocates the Python object but not the C++ one; using the instance before
+    `__init__` has run must raise instead of segfaulting."""
+    obj = m.NewNoInit.__new__(m.NewNoInit)
+
+    for use in (obj.data, obj.v_data, obj.__getstate__):
+        with pytest.raises(ValueError) as exc_info:
+            use()
+        assert "Python instance is uninitialized" in str(exc_info.value)
+        assert "NewNoInit" in str(exc_info.value)
+
+    # Calling `__init__()` is the sanctioned way to finish an object made with `__new__()`.
+    obj.__init__(42)
+    assert obj.data() == 42
+    assert obj.v_data() == 42
+
+
+def test_new_then_setstate():
+    """`__new__` must not be blocked: pickle relies on it, and `__setstate__` finishes the
+    object off. This walks the protocol by hand, then checks the real thing."""
+    real_obj = m.NewNoInit(42)
+    assert real_obj.data() == 42
+    state = real_obj.__getstate__()
+
+    obj = m.NewNoInit.__new__(m.NewNoInit)  # NEWOBJ
+    obj.__setstate__(state)  # BUILD
+    assert obj.data() == 42
+    assert obj.v_data() == 42
+
+    for protocol in range(2, pickle.HIGHEST_PROTOCOL + 1):
+        assert pickle.loads(pickle.dumps(m.NewNoInit(7), protocol)).v_data() == 7
 
 
 @pytest.mark.parametrize(

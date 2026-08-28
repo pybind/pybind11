@@ -77,6 +77,18 @@ static_assert(!py::detail::is_same_or_base_of<
                   test_class::pr5396_forward_declared_class::ForwardClass>::value,
               "");
 
+// test_new_bypasses_init
+struct NewNoInit {
+    int m_data;
+    explicit NewNoInit(int data) : m_data(data) {}
+    NewNoInit(const NewNoInit &) = default;
+    virtual ~NewNoInit() = default;
+    int data() const { return m_data; }
+    // Virtual on purpose: using a not-yet-constructed instance reads the vtable pointer out of
+    // uninitialized storage, which segfaults rather than merely returning a garbage value.
+    virtual int v_data() const { return m_data; }
+};
+
 TEST_SUBMODULE(class_, m) {
     m.def("obj_class_name", [](py::handle obj) { return py::detail::obj_class_name(obj.ptr()); });
 
@@ -597,6 +609,18 @@ TEST_SUBMODULE(class_, m) {
     m.def("return_universal_recipient", []() -> test_class::ConvertibleFromAnything {
         return test_class::ConvertibleFromAnything{};
     });
+
+    py::class_<NewNoInit>(m, "NewNoInit")
+        .def(py::init<int>())
+        .def("data", &NewNoInit::data)
+        .def("v_data", &NewNoInit::v_data)
+        .def(py::pickle([](const NewNoInit &p) { return py::make_tuple(p.m_data); },
+                        [](const py::tuple &t) {
+                            if (t.size() != 1) {
+                                throw std::runtime_error("Invalid state!");
+                            }
+                            return NewNoInit(t[0].cast<int>());
+                        }));
 }
 
 template <int N>

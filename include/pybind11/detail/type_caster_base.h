@@ -525,6 +525,7 @@ PYBIND11_NOINLINE void instance::allocate_layout() {
             = reinterpret_cast<std::uint8_t *>(&nonsimple.values_and_holders[flags_at]);
     }
     owned = true;
+    construction_in_progress = false;
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const)
@@ -533,6 +534,31 @@ PYBIND11_NOINLINE void instance::deallocate_layout() {
         PyMem_Free(reinterpret_cast<void *>(nonsimple.values_and_holders));
     }
 }
+
+/// RAII helper marking `inst` as "currently being constructed", which is the only situation in
+/// which `type_caster_generic::load_value()` will lazily allocate storage for a C++ value that has
+/// not been constructed yet. Passing `nullptr` makes this a no-op. Nesting is supported: the
+/// previous state is restored, not unconditionally cleared.
+class instance_construction_scope {
+public:
+    explicit instance_construction_scope(instance *inst) : inst_{inst} {
+        if (inst_ != nullptr) {
+            was_in_progress_ = inst_->construction_in_progress;
+            inst_->construction_in_progress = true;
+        }
+    }
+    ~instance_construction_scope() {
+        if (inst_ != nullptr) {
+            inst_->construction_in_progress = was_in_progress_;
+        }
+    }
+    instance_construction_scope(const instance_construction_scope &) = delete;
+    instance_construction_scope &operator=(const instance_construction_scope &) = delete;
+
+private:
+    instance *inst_;
+    bool was_in_progress_ = false;
+};
 
 PYBIND11_NOINLINE bool isinstance_generic(handle obj, const std::type_info &tp) {
     handle type = detail::get_type_handle(tp, false);
@@ -1140,6 +1166,20 @@ public:
         auto *&vptr = v_h.value_ptr();
         // Lazy allocation for unallocated values:
         if (vptr == nullptr) {
+            // Lazy allocation exists only to support the deprecated old-style placement-new
+            // `__init__`/`__setstate__` idiom, which is handed a reference to uninitialized
+            // storage and constructs the C++ value into it. In any other context a null value
+            // pointer means the C++ object was never constructed -- e.g. the instance was created
+            // with `__new__()`, bypassing `__init__()` -- and handing out a pointer to
+            // uninitialized memory from here is undefined behavior (typically a segfault on the
+            // first virtual call). Fail loudly instead.
+            if (!v_h.inst->construction_in_progress) {
+                throw value_error("Missing value for wrapped C++ type `"
+                                  + clean_type_id(cpptype->name())
+                                  + "`: Python instance is uninitialized: the C++ object was "
+                                    "never constructed (`__init__()` was bypassed, e.g. by "
+                                    "calling `__new__()` directly).");
+            }
             const auto *type = v_h.type ? v_h.type : typeinfo;
             if (type->operator_new) {
                 vptr = type->operator_new(type->type_size);

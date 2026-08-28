@@ -1427,4 +1427,12 @@ You can do that using ``py::custom_type_setup``:
    cls.def("size", &ContainerOwnsPythonObjects::size);
    cls.def("clear", &ContainerOwnsPythonObjects::clear);
 
+.. note::
+
+   The ``py::detail::is_holder_constructed()`` guards above are required. During garbage
+   collection, ``tp_traverse`` and ``tp_clear`` may be handed an instance whose C++ value has
+   not been constructed yet -- for example one created with ``__new__`` before ``__init__``
+   has run. Casting such an instance raises ``ValueError``, and an exception must not be
+   allowed to escape either of these slots.
+
 .. versionadded:: 2.8

@@ -1001,6 +1001,14 @@ protected:
             }
         }
 
+        // While a constructor runs, `type_caster_generic::load_value()` is permitted to lazily
+        // allocate storage for the C++ value that the constructor is about to construct (the
+        // deprecated old-style placement-new `__init__`/`__setstate__` idiom relies on this).
+        // Outside this scope, loading a not-yet-constructed instance is an error.
+        detail::instance_construction_scope construction_scope(
+            overloads->is_constructor ? reinterpret_cast<detail::instance *>(parent.ptr())
+                                      : nullptr);
+
         try {
             // We do this in two passes: in the first pass, we load arguments with `convert=false`;
             // in the second, we allow conversion (except for arguments with an explicit
