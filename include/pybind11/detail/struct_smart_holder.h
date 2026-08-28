@@ -73,12 +73,6 @@ auto type_has_shared_from_this(const T *ptr)
     return true;
 }
 
-// Inaccessible base → substitution failure → fallback overload selected
-template <typename T>
-static constexpr bool type_has_shared_from_this(const void *) {
-    return false;
-}
-
 struct guarded_delete {
     // NOTE: PYBIND11_INTERNALS_VERSION needs to be bumped if changes are made to this struct.
     std::weak_ptr<void> released_ptr;    // Trick to keep the smart_holder memory footprint small.
