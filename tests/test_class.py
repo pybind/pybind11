@@ -285,6 +285,46 @@ def test_new_then_setstate():
         assert pickle.loads(pickle.dumps(m.NewNoInit(7), protocol)).v_data() == 7
 
 
+def test_failed_old_style_init_does_not_leave_lazy_storage():
+    """If an old-style placement-new `__init__` throws before constructing the value, the
+    lazily allocated storage must not linger: later use must still raise, not segfault."""
+    obj = m.OldStyleInit.__new__(m.OldStyleInit)
+    with pytest.raises(RuntimeError, match="negative data"):
+        obj.__init__(-1)
+
+    # The failed __init__ already lazily allocated storage for `self`, so without cleanup the
+    # uninitialized-instance guard never fires again and this reads a garbage vtable pointer.
+    with pytest.raises(ValueError, match="uninitialized"):
+        obj.v_data()
+
+    # A successful retry is still allowed.
+    obj.__init__(42)
+    assert obj.v_data() == 42
+
+
+def test_reentrant_load_during_new_style_init():
+    """New-style constructors never need lazy allocation, so passing the half-built instance
+    to another bound function while `__init__` runs must raise, not hand out garbage."""
+    obj = m.NewNoInit.__new__(m.NewNoInit)
+    seen = {}
+
+    class Evil:
+        def __index__(self):
+            # Runs during int conversion of the constructor argument, while
+            # construction_in_progress is set on `obj` and its C++ value is unconstructed.
+            try:
+                seen["data"] = obj.data()
+            except ValueError as exc:
+                seen["error"] = exc
+            raise TypeError("stop the constructor")
+
+    with pytest.raises(TypeError):
+        obj.__init__(Evil())
+
+    assert "data" not in seen, f"handed out uninitialized storage: {seen['data']!r}"
+    assert "error" in seen
+
+
 @pytest.mark.parametrize(
     "mock_return_value", [None, (1, 2, 3), m.Pet("Polly", "parrot"), m.Dog("Molly")]
 )

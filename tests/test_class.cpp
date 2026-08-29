@@ -89,6 +89,15 @@ struct NewNoInit {
     virtual int v_data() const { return m_data; }
 };
 
+// test_failed_old_style_init_does_not_leave_lazy_storage
+struct OldStyleInit {
+    int m_data;
+    explicit OldStyleInit(int data) : m_data(data) {}
+    virtual ~OldStyleInit() = default;
+    int data() const { return m_data; }
+    virtual int v_data() const { return m_data; }
+};
+
 TEST_SUBMODULE(class_, m) {
     m.def("obj_class_name", [](py::handle obj) { return py::detail::obj_class_name(obj.ptr()); });
 
@@ -621,6 +630,17 @@ TEST_SUBMODULE(class_, m) {
                             }
                             return NewNoInit(t[0].cast<int>());
                         }));
+
+    py::class_<OldStyleInit>(m, "OldStyleInit")
+        .def("__init__",
+             [](OldStyleInit &self, int x) {
+                 if (x < 0) {
+                     throw std::runtime_error("negative data");
+                 }
+                 new (&self) OldStyleInit(x);
+             })
+        .def("data", &OldStyleInit::data)
+        .def("v_data", &OldStyleInit::v_data);
 }
 
 template <int N>

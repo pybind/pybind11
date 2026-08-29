@@ -535,29 +535,38 @@ PYBIND11_NOINLINE void instance::deallocate_layout() {
     }
 }
 
-/// RAII helper marking `inst` as "currently being constructed", which is the only situation in
-/// which `type_caster_generic::load_value()` will lazily allocate storage for a C++ value that has
-/// not been constructed yet. Passing `nullptr` makes this a no-op. Nesting is supported: the
-/// previous state is restored, not unconditionally cleared.
+/// RAII helper marking the instance behind `v_h` as "currently being constructed", which is the
+/// only situation in which `type_caster_generic::load_value()` will lazily allocate storage for a
+/// C++ value that has not been constructed yet. Passing `nullptr` makes this a no-op. Nesting is
+/// supported: the previous state is restored, not unconditionally cleared.
+///
+/// If construction fails (the holder was never constructed) after storage was lazily allocated
+/// inside this scope, the destructor frees that storage and resets the value pointer, so that the
+/// uninitialized-value guard in `load_value()` stays effective for later uses of the instance.
 class instance_construction_scope {
 public:
-    explicit instance_construction_scope(instance *inst) : inst_{inst} {
-        if (inst_ != nullptr) {
-            was_in_progress_ = inst_->construction_in_progress;
-            inst_->construction_in_progress = true;
+    explicit instance_construction_scope(value_and_holder *v_h) : v_h_{v_h} {
+        if (v_h_ != nullptr) {
+            was_in_progress_ = v_h_->inst->construction_in_progress;
+            value_was_null_ = v_h_->value_ptr() == nullptr;
+            v_h_->inst->construction_in_progress = true;
         }
     }
     ~instance_construction_scope() {
-        if (inst_ != nullptr) {
-            inst_->construction_in_progress = was_in_progress_;
+        if (v_h_ != nullptr) {
+            v_h_->inst->construction_in_progress = was_in_progress_;
+            if (value_was_null_ && !v_h_->holder_constructed() && v_h_->value_ptr() != nullptr) {
+                v_h_->type->dealloc(*v_h_); // Frees the storage and nulls the value pointer.
+            }
         }
     }
     instance_construction_scope(const instance_construction_scope &) = delete;
     instance_construction_scope &operator=(const instance_construction_scope &) = delete;
 
 private:
-    instance *inst_;
+    value_and_holder *v_h_;
     bool was_in_progress_ = false;
+    bool value_was_null_ = false;
 };
 
 PYBIND11_NOINLINE bool isinstance_generic(handle obj, const std::type_info &tp) {

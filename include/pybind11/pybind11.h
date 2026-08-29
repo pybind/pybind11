@@ -1001,13 +1001,23 @@ protected:
             }
         }
 
-        // While a constructor runs, `type_caster_generic::load_value()` is permitted to lazily
-        // allocate storage for the C++ value that the constructor is about to construct (the
-        // deprecated old-style placement-new `__init__`/`__setstate__` idiom relies on this).
-        // Outside this scope, loading a not-yet-constructed instance is an error.
-        detail::instance_construction_scope construction_scope(
-            overloads->is_constructor ? reinterpret_cast<detail::instance *>(parent.ptr())
-                                      : nullptr);
+        // While an old-style placement-new `__init__`/`__setstate__` runs,
+        // `type_caster_generic::load_value()` is permitted to lazily allocate storage for the C++
+        // value that the constructor is about to construct into. New-style constructors never load
+        // `self` through a type caster (it is injected directly below), so the scope stays
+        // disarmed for chains that contain only new-style constructors and loading a
+        // not-yet-constructed instance remains an error even while they run. The scope also frees
+        // storage that was lazily allocated by a constructor call that then failed.
+        detail::value_and_holder *lazily_allocatable_v_h = nullptr;
+        if (overloads->is_constructor) {
+            for (const function_record *fr = overloads; fr != nullptr; fr = fr->next) {
+                if (!fr->is_new_style_constructor) {
+                    lazily_allocatable_v_h = &self_value_and_holder;
+                    break;
+                }
+            }
+        }
+        detail::instance_construction_scope construction_scope(lazily_allocatable_v_h);
 
         try {
             // We do this in two passes: in the first pass, we load arguments with `convert=false`;
