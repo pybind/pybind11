@@ -52,6 +52,24 @@ def get_include(user: bool = False) -> str:  # noqa: ARG001
     return installed_path if os.path.exists(installed_path) else source_path
 
 
+def get_source_dir() -> str:
+    """
+    Return the path to the pybind11 library sources, for the optional
+    precompiled mode. Compile ``pybind11_combined.cpp`` (or the individual
+    ``.cpp`` files) with ``PYBIND11_PRECOMPILED`` defined, and define that
+    macro for every translation unit that includes pybind11.
+    """
+    installed_path = os.path.join(DIR, "share", "pybind11", "src")
+    source_path = os.path.join(os.path.dirname(DIR), "src")
+    if os.path.exists(installed_path):
+        return installed_path
+    if os.path.exists(source_path):
+        return source_path
+
+    msg = "pybind11 library sources not found (pybind11 not installed?)"
+    raise ImportError(msg)
+
+
 def get_cmake_dir() -> str:
     """
     Return the path to the pybind11 CMake module directory.
