@@ -101,3 +101,7 @@ jobs:
         run: |
           uv pip install --python=python --system setuptools
           pytest tests/extra_setuptools
+
+      # This tests ABI compatibility
+      - name: ABI test
+        run: pytest tests/extra_abi
