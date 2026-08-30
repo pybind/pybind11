@@ -279,7 +279,7 @@ jobs:
             container_suffix: "-bullseye"
           - clang: 18
             std: 20
-            cxx_flags: "-Werror -Wall -Wextra -Wwrite-strings -Wunreachable-code -Wpointer-arith -Wredundant-decls"
+            cxx_flags: "-Werror -Wall -Wextra -Wwrite-strings -Wunreachable-code -Wpointer-arith -Wredundant-decls -Wunused-template"
             container_suffix: "-bookworm"
 
     name: "🐍 3 • Clang ${{ matrix.clang }} • C++${{ matrix.std }} • x64${{ matrix.cxx_flags && ' • cxx_flags' || '' }}"
