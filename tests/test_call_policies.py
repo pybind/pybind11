@@ -257,13 +257,34 @@ def test_call_guard():
 
 
 def test_keep_alive_failed_overload():
-    """A keep_alive on an overload that fails argument conversion must not fire.
-
-    The dispatcher invokes postcall unconditionally, so a keep_alive<0, N> on the
-    overload that bails out of load_args was handed the PYBIND11_TRY_NEXT_OVERLOAD
-    sentinel as its return value and dereferenced it. Calling the second overload is
-    what makes the first one fail first.
-    """
+    """keep_alive on an overload that fails argument conversion must not fire."""
     obj = m.KeepAliveOverload()
-    assert m.keep_alive_overload(obj, 1) is obj
-    assert m.keep_alive_overload(obj, "x") is obj
+    # Calling with a str rejects the first overload (and crashed before the fix).
+    assert isinstance(m.keep_alive_overload(obj, 1), m.KeepAliveOverload)
+    assert isinstance(m.keep_alive_overload(obj, "x"), m.KeepAliveOverload)
+    assert isinstance(m.keep_alive_overload_reverse(obj, 1), m.KeepAliveOverload)
+    assert isinstance(m.keep_alive_overload_reverse(obj, "x"), m.KeepAliveOverload)
+
+
+@pytest.mark.xfail("env.PYPY", reason="sometimes comes out 1 off on PyPy", strict=False)
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
+def test_keep_alive_failed_overload_args():
+    """An argument-to-argument keep_alive must not fire for a rejected overload either."""
+    n_inst = ConstructorStats.detail_reg_inst()
+    p, c = m.Parent(), m.Child()
+    assert ConstructorStats.detail_reg_inst() == n_inst + 2
+    # A str rejects the first overload; its keep_alive<1, 2> must not retain c.
+    m.keep_alive_overload_args(p, c, "x")
+    del c
+    assert ConstructorStats.detail_reg_inst() == n_inst + 1
+    # The successful overload still keeps its child alive.
+    m.keep_alive_overload_args(p, m.Child(), 1)
+    assert ConstructorStats.detail_reg_inst() == n_inst + 2
+    del p
+    assert ConstructorStats.detail_reg_inst() == n_inst
+
+
+def test_keep_alive_failed_return_conversion():
+    """A failed return-value conversion must raise its own error, not a keep_alive one."""
+    with pytest.raises(TypeError, match="Unable to convert function return value"):
+        m.keep_alive_unregistered_return(m.KeepAliveOverload())

@@ -34,7 +34,8 @@ bool DependentGuard::enabled = false;
 TEST_SUBMODULE(call_policies, m) {
     // Parent/Child are used in:
     // test_keep_alive_argument, test_keep_alive_return_value, test_alive_gc_derived,
-    // test_alive_gc_multi_derived, test_return_none, test_keep_alive_constructor
+    // test_alive_gc_multi_derived, test_return_none, test_keep_alive_constructor,
+    // test_keep_alive_failed_overload
     class Child {
     public:
         Child() { py::print("Allocating child."); }
@@ -113,18 +114,41 @@ TEST_SUBMODULE(call_policies, m) {
     m.def("without_gil", report_gil_status, py::call_guard<py::gil_scoped_release>());
 #endif
 
-    // A keep_alive whose nurse or patient is the return value runs in postcall, which
-    // the dispatcher invokes even when the overload bailed out of load_args. `ret` is then the
-    // PYBIND11_TRY_NEXT_OVERLOAD sentinel rather than an object, and dereferencing it crashed.
-    // Reaching the SECOND overload is what exercises the failed first attempt.
+    // test_keep_alive_failed_overload
+    // In each overload pair, the first overload rejects the second argument when the second
+    // overload is called; its keep_alive must not fire (see keep_alive_impl in pybind11.h).
     struct KeepAliveOverload {};
     py::class_<KeepAliveOverload>(m, "KeepAliveOverload").def(py::init<>());
+    // Return value as nurse.
     m.def(
         "keep_alive_overload",
-        [](KeepAliveOverload *self, int) { return self; },
+        [](const KeepAliveOverload &, int) { return KeepAliveOverload(); },
         py::keep_alive<0, 1>());
     m.def(
         "keep_alive_overload",
-        [](KeepAliveOverload *self, const std::string &) { return self; },
+        [](const KeepAliveOverload &, const std::string &) { return KeepAliveOverload(); },
         py::keep_alive<0, 1>());
+    // Return value as patient.
+    m.def(
+        "keep_alive_overload_reverse",
+        [](const KeepAliveOverload &, int) { return KeepAliveOverload(); },
+        py::keep_alive<1, 0>());
+    m.def(
+        "keep_alive_overload_reverse",
+        [](const KeepAliveOverload &, const std::string &) { return KeepAliveOverload(); },
+        py::keep_alive<1, 0>());
+    // Argument-to-argument.
+    m.def("keep_alive_overload_args", [](Parent *, Child *, int) {}, py::keep_alive<1, 2>());
+    m.def("keep_alive_overload_args", [](Parent *, Child *, const std::string &) {});
+
+    // test_keep_alive_failed_return_conversion
+    struct UnregisteredType {};
+    m.def(
+        "keep_alive_unregistered_return",
+        [](const KeepAliveOverload &) {
+            static UnregisteredType unregistered;
+            return &unregistered;
+        },
+        py::keep_alive<0, 1>(),
+        py::return_value_policy::reference);
 }

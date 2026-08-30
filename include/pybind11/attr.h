@@ -410,6 +410,8 @@ struct process_attribute_default {
     static void init(const T &, function_record *) {}
     static void init(const T &, type_record *) {}
     static void precall(function_call &) {}
+    /// The handle is not always a valid object: it is the PYBIND11_TRY_NEXT_OVERLOAD sentinel
+    /// if argument conversion failed, and null if the call or return-value conversion failed.
     static void postcall(function_call &, handle) {}
 };
 
@@ -650,21 +652,12 @@ struct process_attribute<call_guard<Ts...>> : process_attribute_default<call_gua
 
 /**
  * Process a keep_alive call policy -- invokes keep_alive_impl during the
- * pre-call handler if both Nurse, Patient != 0 and use the post-call handler
- * otherwise
+ * post-call handler so that it only runs after a successful call, never for an
+ * overload that failed argument conversion or a call that raised.
  */
 template <size_t Nurse, size_t Patient>
 struct process_attribute<keep_alive<Nurse, Patient>>
     : public process_attribute_default<keep_alive<Nurse, Patient>> {
-    template <size_t N = Nurse, size_t P = Patient, enable_if_t<N != 0 && P != 0, int> = 0>
-    static void precall(function_call &call) {
-        keep_alive_impl(Nurse, Patient, call, handle());
-    }
-    template <size_t N = Nurse, size_t P = Patient, enable_if_t<N != 0 && P != 0, int> = 0>
-    static void postcall(function_call &, handle) {}
-    template <size_t N = Nurse, size_t P = Patient, enable_if_t<N == 0 || P == 0, int> = 0>
-    static void precall(function_call &) {}
-    template <size_t N = Nurse, size_t P = Patient, enable_if_t<N == 0 || P == 0, int> = 0>
     static void postcall(function_call &call, handle ret) {
         keep_alive_impl(Nurse, Patient, call, ret);
     }
