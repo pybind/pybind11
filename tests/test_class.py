@@ -441,6 +441,7 @@ def test_old_style_init_does_not_authorize_another_python_mi_base():
         m.accept_new_no_init(obj)
 
 
+@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
 def test_old_style_init_does_not_authorize_another_thread():
     """While one thread is converting a later constructor argument, another thread must not load
     the reserved storage. Events make the interleaving bounded and deterministic with or without
