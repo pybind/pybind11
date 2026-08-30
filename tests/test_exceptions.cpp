@@ -268,6 +268,19 @@ TEST_SUBMODULE(exceptions, m) {
         return false;
     });
 
+    m.def("modulenotfound_exception_matches_base_string", []() {
+        try {
+            // On Python >= 3.6, this raises a ModuleNotFoundError, a subclass of ImportError
+            py::module_::import(std::string("nonexistent"));
+        } catch (py::error_already_set &ex) {
+            if (!ex.matches(PyExc_ImportError)) {
+                throw;
+            }
+            return true;
+        }
+        return false;
+    });
+
     m.def("throw_already_set", [](bool err) {
         if (err) {
             py::set_error(PyExc_ValueError, "foo");
