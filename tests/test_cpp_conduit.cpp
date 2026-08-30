@@ -16,6 +16,8 @@ TEST_SUBMODULE(cpp_conduit, m) {
 
     wrap_traveler(m);
     wrap_lonely_traveler(m);
+
+    py::class_<B>(m, "B", "class B").def(py::init<>()).def_readonly("a", &B::a);
 }
 
 } // namespace test_cpp_conduit
