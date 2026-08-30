@@ -10,8 +10,19 @@
 #pragma once
 
 #include "pybind11.h"
+#include "detail/common.h"
+#include "detail/descr.h"
+#include "detail/function_record_pyobject.h"
+#include "detail/internals.h"
+#include "attr.h"
+#include "cast.h"
+#include "gil.h"
+#include "pytypes.h"
 
 #include <functional>
+#include <type_traits>
+#include <typeinfo>
+#include <utility>
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)

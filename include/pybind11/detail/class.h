@@ -12,7 +12,29 @@
 #include <pybind11/attr.h>
 #include <pybind11/options.h>
 
+#include "../buffer_info.h"
+#include "../cast.h"
+#include "../pytypes.h"
+#include "../trampoline_self_life_support.h"
+#include "common.h"
+#include "cpp_conduit.h"
 #include "exception_translation.h"
+#include "internals.h"
+#include "type_caster_base.h"
+#include "value_and_holder.h"
+
+#include <cassert>
+#include <cstddef>
+#include <cstring>
+#include <forward_list>
+#include <memory>
+#include <string>
+#include <typeindex>
+#include <typeinfo>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <vector>
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)

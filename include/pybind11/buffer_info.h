@@ -11,6 +11,11 @@
 
 #include "detail/common.h"
 
+#include <string>
+#include <type_traits>
+#include <utility>
+#include <vector>
+
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 PYBIND11_NAMESPACE_BEGIN(detail)

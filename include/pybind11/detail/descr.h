@@ -11,6 +11,11 @@
 
 #include "common.h"
 
+#include <array>
+#include <type_traits>
+#include <typeinfo>
+#include <utility>
+
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 

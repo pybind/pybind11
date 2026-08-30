@@ -13,7 +13,12 @@
 #include "detail/common.h"
 #include "detail/descr.h"
 #include "detail/type_caster_base.h"
+#include "cast.h"
+#include "pytypes.h"
 
+#include <array>
+#include <cassert>
+#include <cstring>
 #include <deque>
 #include <initializer_list>
 #include <list>
@@ -21,9 +26,13 @@
 #include <memory>
 #include <ostream>
 #include <set>
+#include <string_view>
+#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <valarray>
+#include <vector>
 
 // See `detail/common.h` for implementation of these guards.
 #if defined(PYBIND11_HAS_OPTIONAL)
