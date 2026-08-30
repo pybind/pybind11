@@ -3,6 +3,7 @@ from __future__ import annotations
 import gc
 import pickle
 import sys
+import threading
 from unittest import mock
 
 import pytest
@@ -252,21 +253,36 @@ def test_inheritance_init(msg):
     assert msg(exc_info.value) == expected
 
 
+def _record_uninitialized_load(seen, function, obj):
+    try:
+        seen["accepted"] = function(obj)
+    except ValueError as exc:
+        seen["error"] = exc
+
+
+def _assert_uninitialized_load_rejected(seen):
+    assert "accepted" not in seen, "type caster accepted unconstructed storage"
+    assert isinstance(seen.get("error"), ValueError)
+
+
 def test_new_bypasses_init():
     """`__new__` allocates the Python object but not the C++ one; using the instance before
     `__init__` has run must raise instead of segfaulting."""
-    obj = m.NewNoInit.__new__(m.NewNoInit)
 
-    for use in (obj.data, obj.v_data, obj.__getstate__):
+    class PythonDerived(m.NewNoInit):
+        pass
+
+    for cls in (m.NewNoInit, PythonDerived):
+        obj = cls.__new__(cls)
         with pytest.raises(ValueError) as exc_info:
-            use()
+            m.accept_new_no_init(obj)
         assert "Python instance is uninitialized" in str(exc_info.value)
         assert "NewNoInit" in str(exc_info.value)
 
-    # Calling `__init__()` is the sanctioned way to finish an object made with `__new__()`.
-    obj.__init__(42)
-    assert obj.data() == 42
-    assert obj.v_data() == 42
+        # Calling `__init__()` is the sanctioned way to finish an object made with `__new__()`.
+        obj.__init__(42)
+        assert obj.data() == 42
+        assert obj.v_data() == 42
 
 
 def test_new_then_setstate():
@@ -292,10 +308,10 @@ def test_failed_old_style_init_does_not_leave_lazy_storage():
     with pytest.raises(RuntimeError, match="negative data"):
         obj.__init__(-1)
 
-    # The failed __init__ already lazily allocated storage for `self`, so without cleanup the
-    # uninitialized-instance guard never fires again and this reads a garbage vtable pointer.
+    # The failed __init__ already reserved storage for `self`. Without cleanup, a later load can
+    # mistake that storage for a constructed C++ object.
     with pytest.raises(ValueError, match="uninitialized"):
-        obj.v_data()
+        m.accept_old_style_init(obj)
 
     # A successful retry is still allowed.
     obj.__init__(42)
@@ -310,19 +326,160 @@ def test_reentrant_load_during_new_style_init():
 
     class Evil:
         def __index__(self):
-            # Runs during int conversion of the constructor argument, while
-            # construction_in_progress is set on `obj` and its C++ value is unconstructed.
-            try:
-                seen["data"] = obj.data()
-            except ValueError as exc:
-                seen["error"] = exc
+            # Runs during int conversion of the constructor argument while the C++ value is
+            # unconstructed. A new-style constructor never authorizes lazy allocation for it.
+            _record_uninitialized_load(seen, m.accept_new_no_init, obj)
             raise TypeError("stop the constructor")
 
     with pytest.raises(TypeError):
         obj.__init__(Evil())
 
-    assert "data" not in seen, f"handed out uninitialized storage: {seen['data']!r}"
-    assert "error" in seen
+    _assert_uninitialized_load_rejected(seen)
+
+
+def test_reentrant_load_during_old_style_init_argument_conversion():
+    """Only the old-style constructor's own `self` load may reserve storage. Python called while
+    converting a later argument must not be able to load that storage as a C++ object."""
+    obj = m.OldStyleInit.__new__(m.OldStyleInit)
+    seen = {}
+
+    class ReenterThenFail:
+        def __index__(self):
+            _record_uninitialized_load(seen, m.accept_old_style_init, obj)
+            raise TypeError("stop the constructor")
+
+    with pytest.raises(TypeError):
+        obj.__init__(ReenterThenFail())
+
+    _assert_uninitialized_load_rejected(seen)
+    with pytest.raises(ValueError):
+        m.accept_old_style_init(obj)
+
+    # Failed conversion must release the reservation and leave a successful retry possible.
+    obj.__init__(42)
+    assert obj.data() == 42
+
+
+def test_reentrant_load_during_mixed_style_init():
+    """An old-style overload must not authorize loads while a new-style candidate in the same
+    overload chain is being tried."""
+    obj = m.MixedStyleInit.__new__(m.MixedStyleInit)
+    seen = {}
+
+    class Reenter:
+        def __index__(self):
+            _record_uninitialized_load(seen, m.accept_mixed_style_init, obj)
+            return 42
+
+    obj.__init__(Reenter())
+    _assert_uninitialized_load_rejected(seen)
+    assert obj.data() == 42
+
+    # Also retain coverage that the old-style overload itself remains usable.
+    assert m.MixedStyleInit("four").data() == 4
+
+
+def test_reentrant_load_during_old_style_setstate():
+    """Old-style `__setstate__` may reserve storage for `self`, but Python executed inside its
+    callback before placement-new must still see the instance as unconstructed."""
+    obj = m.OldStyleInit.__new__(m.OldStyleInit)
+    seen = {}
+
+    class Reenter:
+        def __index__(self):
+            _record_uninitialized_load(seen, m.accept_old_style_init, obj)
+            return 43
+
+    obj.__setstate__(Reenter())
+    _assert_uninitialized_load_rejected(seen)
+    assert obj.data() == 43
+
+
+def test_nested_old_style_init_is_rejected():
+    """A nested initializer for the same reserved value must be rejected before its placement-new
+    callback runs; the outer initializer can then complete normally."""
+    obj = m.OldStyleInit.__new__(m.OldStyleInit)
+    seen = {}
+
+    class Reenter:
+        def __index__(self):
+            try:
+                obj.__init__(-1)
+            except Exception as exc:
+                seen["error"] = exc
+            else:
+                seen["accepted"] = True
+            return 44
+
+    obj.__init__(Reenter())
+    assert "accepted" not in seen
+    assert isinstance(seen.get("error"), ValueError)
+    assert obj.data() == 44
+
+
+def test_old_style_init_does_not_authorize_another_python_mi_base():
+    """Construction permission is for one exact value-and-holder, not every C++ base slot in the
+    same Python multiple-inheritance instance."""
+
+    class PythonMI(m.OldStyleInit, m.NewNoInit):
+        pass
+
+    obj = PythonMI.__new__(PythonMI)
+    seen = {}
+
+    class Reenter:
+        def __index__(self):
+            _record_uninitialized_load(seen, m.accept_new_no_init, obj)
+            return 45
+
+    m.OldStyleInit.__init__(obj, Reenter())
+    _assert_uninitialized_load_rejected(seen)
+    assert obj.data() == 45
+
+    # Loading the unrelated base must remain rejected after the first base finishes construction.
+    with pytest.raises(ValueError):
+        m.accept_new_no_init(obj)
+
+
+def test_old_style_init_does_not_authorize_another_thread():
+    """While one thread is converting a later constructor argument, another thread must not load
+    the reserved storage. Events make the interleaving bounded and deterministic with or without
+    the GIL."""
+    obj = m.OldStyleInit.__new__(m.OldStyleInit)
+    conversion_entered = threading.Event()
+    allow_conversion_to_finish = threading.Event()
+    thread_errors = []
+
+    class BlockingIndex:
+        def __index__(self):
+            conversion_entered.set()
+            if not allow_conversion_to_finish.wait(timeout=10):
+                raise RuntimeError("timed out waiting to finish conversion")
+            return 46
+
+    def initialize():
+        try:
+            obj.__init__(BlockingIndex())
+        except BaseException as exc:
+            thread_errors.append(exc)
+
+    thread = threading.Thread(target=initialize)
+    thread.start()
+    try:
+        assert conversion_entered.wait(timeout=10), (
+            "constructor did not enter conversion"
+        )
+        with pytest.raises(ValueError):
+            m.accept_old_style_init(obj)
+        with pytest.raises(ValueError):
+            obj.__init__(47)
+    finally:
+        allow_conversion_to_finish.set()
+        thread.join(timeout=10)
+
+    assert not thread.is_alive(), "constructor thread did not finish"
+    assert not thread_errors
+    assert obj.data() == 46
 
 
 @pytest.mark.parametrize(

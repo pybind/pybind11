@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include <pybind11/critical_section.h>
 #include <pybind11/gil.h>
 #include <pybind11/pytypes.h>
 #include <pybind11/trampoline_self_life_support.h>
@@ -61,9 +62,37 @@ private:
     loader_life_support *parent = nullptr;
     std::unordered_set<PyObject *> keep_alive;
 
+    // Old-style placement-new constructors need raw storage while loading their `self`
+    // argument. Keep it private to the exact overload candidate until its C++ callable returns.
+    value_and_holder *old_style_init_self = nullptr;
+    void *old_style_init_storage = nullptr;
+    bool old_style_init_self_load_allowed = false;
+    bool old_style_init_self_load_claimed = false;
+
+    static bool is_same_value_and_holder(const value_and_holder &lhs,
+                                         const value_and_holder &rhs) {
+        return lhs.inst == rhs.inst && lhs.vh == rhs.vh;
+    }
+
+    void cleanup_old_style_init_storage() {
+        if (old_style_init_storage == nullptr) {
+            return;
+        }
+        auto v_h = *old_style_init_self;
+        scoped_critical_section lock(
+            handle(reinterpret_cast<PyObject *>(old_style_init_self->inst)));
+        if (v_h.value_ptr() != nullptr) {
+            pybind11_fail("loader_life_support: old-style constructor storage collision");
+        }
+        v_h.value_ptr() = old_style_init_storage;
+        old_style_init_storage = nullptr;
+        v_h.type->dealloc(v_h); // Frees the storage and nulls the value pointer.
+    }
+
 public:
     /// A new patient frame is created when a function is entered
-    loader_life_support() {
+    explicit loader_life_support(value_and_holder *old_style_init_self = nullptr)
+        : old_style_init_self(old_style_init_self) {
         auto &frame = tls_current_frame();
         parent = frame;
         frame = this;
@@ -76,9 +105,116 @@ public:
             pybind11_fail("loader_life_support: internal error");
         }
         frame = parent;
+        cleanup_old_style_init_storage();
         for (auto *item : keep_alive) {
             Py_DECREF(item);
         }
+    }
+
+    /// Restricts the special old-style constructor permission to argument zero of the current
+    /// candidate. A nested bound call has its own loader frame and cannot inherit this permission.
+    class argument_load_guard {
+    public:
+        explicit argument_load_guard(bool is_first_argument) {
+            auto *current = tls_current_frame();
+            if (is_first_argument && current != nullptr && current->old_style_init_self != nullptr
+                && !current->old_style_init_self_load_claimed) {
+                frame = current;
+                frame->old_style_init_self_load_allowed = true;
+            }
+        }
+        ~argument_load_guard() {
+            if (frame != nullptr) {
+                frame->old_style_init_self_load_allowed = false;
+            }
+        }
+        argument_load_guard(const argument_load_guard &) = delete;
+        argument_load_guard &operator=(const argument_load_guard &) = delete;
+
+    private:
+        loader_life_support *frame = nullptr;
+    };
+
+    /// Some legacy `__setstate__` implementations accept `self` as `py::object` and perform the
+    /// typed cast inside the C++ callable. At that point all other arguments have finished
+    /// loading, so granting the same exact, one-shot permission is safe. Reentrant bound calls
+    /// still get a separate loader frame.
+    class old_style_init_call_guard {
+    public:
+        old_style_init_call_guard() {
+            auto *current = tls_current_frame();
+            if (current != nullptr && current->old_style_init_self != nullptr
+                && !current->old_style_init_self_load_claimed) {
+                frame = current;
+                frame->old_style_init_self_load_allowed = true;
+            }
+        }
+        ~old_style_init_call_guard() {
+            if (frame != nullptr) {
+                frame->old_style_init_self_load_allowed = false;
+            }
+        }
+        old_style_init_call_guard(const old_style_init_call_guard &) = delete;
+        old_style_init_call_guard &operator=(const old_style_init_call_guard &) = delete;
+
+    private:
+        loader_life_support *frame = nullptr;
+    };
+
+    /// Claims and allocates the private storage for the exact old-style constructor `self` load.
+    /// The permission is consumed before invoking a potentially user-defined operator new.
+    static bool try_reserve_old_style_init_storage(value_and_holder &v_h,
+                                                   const type_info *type,
+                                                   void *&value) {
+        auto *frame = tls_current_frame();
+        if (frame == nullptr || !frame->old_style_init_self_load_allowed
+            || frame->old_style_init_self_load_claimed || frame->old_style_init_self == nullptr
+            || !is_same_value_and_holder(v_h, *frame->old_style_init_self)
+            || v_h.value_ptr() != nullptr) {
+            return false;
+        }
+
+        frame->old_style_init_self_load_claimed = true;
+        frame->old_style_init_self_load_allowed = false;
+        if (type->operator_new) {
+            frame->old_style_init_storage = type->operator_new(type->type_size);
+        } else {
+#if defined(__cpp_aligned_new)
+            if (type->type_align > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
+                frame->old_style_init_storage
+                    = ::operator new(type->type_size, std::align_val_t(type->type_align));
+            } else {
+                frame->old_style_init_storage = ::operator new(type->type_size);
+            }
+#else
+            frame->old_style_init_storage = ::operator new(type->type_size);
+#endif
+        }
+        if (frame->old_style_init_storage == nullptr) {
+            throw std::bad_alloc();
+        }
+        value = frame->old_style_init_storage;
+        return true;
+    }
+
+    /// Publishes a successfully placement-constructed value and immediately finalizes its holder.
+    /// This runs after the C++ callable, but before return-value conversion and post-call
+    /// policies.
+    static void complete_old_style_init() {
+        auto *frame = tls_current_frame();
+        if (frame == nullptr || frame->old_style_init_storage == nullptr) {
+            return;
+        }
+
+        auto v_h = *frame->old_style_init_self;
+        scoped_critical_section lock(handle(reinterpret_cast<PyObject *>(v_h.inst)));
+        if (!v_h.value_constructing() || v_h.value_ptr() != nullptr) {
+            pybind11_fail("loader_life_support: invalid old-style constructor commit");
+        }
+        v_h.value_ptr() = frame->old_style_init_storage;
+        frame->old_style_init_storage = nullptr;
+        v_h.type->init_instance(v_h.inst, nullptr);
+        v_h.set_value_constructing(false);
     }
 
     /// Keep `h` alive until the current patient frame is destroyed, if there is one.
@@ -525,7 +661,7 @@ PYBIND11_NOINLINE void instance::allocate_layout() {
             = reinterpret_cast<std::uint8_t *>(&nonsimple.values_and_holders[flags_at]);
     }
     owned = true;
-    construction_in_progress = false;
+    simple_value_constructing = false;
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const)
@@ -535,37 +671,56 @@ PYBIND11_NOINLINE void instance::deallocate_layout() {
     }
 }
 
-/// RAII helper marking the instance behind `v_h` as "currently being constructed", which is the
-/// only situation in which `type_caster_generic::load_value()` will lazily allocate storage for a
-/// C++ value that has not been constructed yet. Passing `nullptr` makes this a no-op. Nesting is
-/// supported: the previous state is restored, not unconditionally cleared.
-///
-/// If construction fails (the holder was never constructed) after storage was lazily allocated
-/// inside this scope, the destructor frees that storage and resets the value pointer, so that the
-/// uninitialized-value guard in `load_value()` stays effective for later uses of the instance.
+/// Marks the exact value slot targeted by a constructor. This state is never permission to load
+/// the value: every load is rejected until construction finishes, apart from the one-shot
+/// old-style constructor `self` permission maintained by `loader_life_support`.
 class instance_construction_scope {
 public:
-    explicit instance_construction_scope(value_and_holder *v_h) : v_h_{v_h} {
-        if (v_h_ != nullptr) {
-            was_in_progress_ = v_h_->inst->construction_in_progress;
-            value_was_null_ = v_h_->value_ptr() == nullptr;
-            v_h_->inst->construction_in_progress = true;
+    explicit instance_construction_scope(value_and_holder *v_h) {
+        if (v_h == nullptr) {
+            return;
         }
+        v_h_ = *v_h;
+        started_ = false;
+        scoped_critical_section lock(handle(reinterpret_cast<PyObject *>(v_h_.inst)));
+        if (v_h_.value_constructing()) {
+            return;
+        }
+        if (v_h_.instance_registered()) {
+            already_registered_ = true;
+            return;
+        }
+        value_was_null_ = v_h_.value_ptr() == nullptr;
+        v_h_.set_value_constructing();
+        started_ = true;
     }
     ~instance_construction_scope() {
-        if (v_h_ != nullptr) {
-            v_h_->inst->construction_in_progress = was_in_progress_;
-            if (value_was_null_ && !v_h_->holder_constructed() && v_h_->value_ptr() != nullptr) {
-                v_h_->type->dealloc(*v_h_); // Frees the storage and nulls the value pointer.
-            }
+        if (!started_ || v_h_.inst == nullptr) {
+            return;
         }
+
+        scoped_critical_section lock(handle(reinterpret_cast<PyObject *>(v_h_.inst)));
+        // A failed new-style constructor can have published a value without completing its
+        // holder. Preserve the existing cleanup guarantee for that case.
+        if (value_was_null_ && !v_h_.holder_constructed() && v_h_.value_ptr() != nullptr) {
+            if (v_h_.instance_registered()) {
+                deregister_instance(v_h_.inst, v_h_.value_ptr(), v_h_.type);
+                v_h_.set_instance_registered(false);
+            }
+            v_h_.type->dealloc(v_h_);
+        }
+        v_h_.set_value_constructing(false);
     }
     instance_construction_scope(const instance_construction_scope &) = delete;
     instance_construction_scope &operator=(const instance_construction_scope &) = delete;
 
+    bool started() const { return started_; }
+    bool already_registered() const { return already_registered_; }
+
 private:
-    value_and_holder *v_h_;
-    bool was_in_progress_ = false;
+    value_and_holder v_h_;
+    bool started_ = true;
+    bool already_registered_ = false;
     bool value_was_null_ = false;
 };
 
@@ -1163,6 +1318,25 @@ public:
 
     // Base methods for generic caster; there are overridden in copyable_holder_caster
     void load_value(value_and_holder &&v_h) {
+        scoped_critical_section lock(handle(reinterpret_cast<PyObject *>(v_h.inst)));
+
+        // A non-null value pointer is not sufficient while a constructor is running: old-style
+        // placement-new storage may exist before the C++ object's lifetime has begun. Only the
+        // exact argument-zero load of the current old-style constructor may access private raw
+        // storage; reentrant, cross-base, nested, and cross-thread loads must all fail.
+        if (v_h.value_constructing()) {
+            void *reserved_value = nullptr;
+            const auto *type = v_h.type ? v_h.type : typeinfo;
+            if (loader_life_support::try_reserve_old_style_init_storage(
+                    v_h, type, reserved_value)) {
+                value = reserved_value;
+                return;
+            }
+            throw value_error("Missing value for wrapped C++ type `"
+                              + clean_type_id(cpptype->name())
+                              + "`: Python instance is still being constructed.");
+        }
+
         if (typeinfo->holder_enum_v == detail::holder_enum_t::smart_holder) {
             smart_holder_type_caster_support::value_and_holder_helper v_h_helper;
             v_h_helper.loaded_v_h = v_h;
@@ -1173,36 +1347,12 @@ public:
             }
         }
         auto *&vptr = v_h.value_ptr();
-        // Lazy allocation for unallocated values:
         if (vptr == nullptr) {
-            // Lazy allocation exists only to support the deprecated old-style placement-new
-            // `__init__`/`__setstate__` idiom, which is handed a reference to uninitialized
-            // storage and constructs the C++ value into it. In any other context a null value
-            // pointer means the C++ object was never constructed -- e.g. the instance was created
-            // with `__new__()`, bypassing `__init__()` -- and handing out a pointer to
-            // uninitialized memory from here is undefined behavior (typically a segfault on the
-            // first virtual call). Fail loudly instead.
-            if (!v_h.inst->construction_in_progress) {
-                throw value_error("Missing value for wrapped C++ type `"
-                                  + clean_type_id(cpptype->name())
-                                  + "`: Python instance is uninitialized: the C++ object was "
-                                    "never constructed (`__init__()` was bypassed, e.g. by "
-                                    "calling `__new__()` directly).");
-            }
-            const auto *type = v_h.type ? v_h.type : typeinfo;
-            if (type->operator_new) {
-                vptr = type->operator_new(type->type_size);
-            } else {
-#if defined(__cpp_aligned_new)
-                if (type->type_align > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
-                    vptr = ::operator new(type->type_size, std::align_val_t(type->type_align));
-                } else {
-                    vptr = ::operator new(type->type_size);
-                }
-#else
-                vptr = ::operator new(type->type_size);
-#endif
-            }
+            throw value_error("Missing value for wrapped C++ type `"
+                              + clean_type_id(cpptype->name())
+                              + "`: Python instance is uninitialized: the C++ object was "
+                                "never constructed (`__init__()` was bypassed, e.g. by "
+                                "calling `__new__()` directly).");
         }
         value = vptr;
     }

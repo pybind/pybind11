@@ -74,6 +74,22 @@ struct value_and_holder {
                 &= static_cast<std::uint8_t>(~instance::status_instance_registered);
         }
     }
+    bool value_constructing() const {
+        return inst->simple_layout
+                   ? inst->simple_value_constructing
+                   : ((inst->nonsimple.status[index] & instance::status_value_constructing) != 0);
+    }
+    // NOLINTNEXTLINE(readability-make-member-function-const)
+    void set_value_constructing(bool v = true) {
+        if (inst->simple_layout) {
+            inst->simple_value_constructing = v;
+        } else if (v) {
+            inst->nonsimple.status[index] |= instance::status_value_constructing;
+        } else {
+            inst->nonsimple.status[index]
+                &= static_cast<std::uint8_t>(~instance::status_value_constructing);
+        }
+    }
 };
 
 // This is a semi-public API to check if the corresponding instance has been constructed with a

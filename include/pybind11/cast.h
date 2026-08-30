@@ -2179,6 +2179,12 @@ public:
 private:
     static bool load_impl_sequence(function_call &, index_sequence<>) { return true; }
 
+    template <size_t I>
+    bool load_one(function_call &call) {
+        loader_life_support::argument_load_guard guard(I == 0);
+        return std::get<I>(argcasters).load(call.args[I], call.args_convert[I]);
+    }
+
     template <size_t... Is>
     bool load_impl_sequence(function_call &call, index_sequence<Is...>) {
         PYBIND11_WARNING_PUSH
@@ -2187,11 +2193,11 @@ private:
         PYBIND11_WARNING_DISABLE_GCC("-Warray-bounds")
 #endif
 #ifdef __cpp_fold_expressions
-        if ((... || !std::get<Is>(argcasters).load(call.args[Is], call.args_convert[Is]))) {
+        if ((... || !load_one<Is>(call))) {
             return false;
         }
 #else
-        for (bool r : {std::get<Is>(argcasters).load(call.args[Is], call.args_convert[Is])...}) {
+        for (bool r : {load_one<Is>(call)...}) {
             if (!r) {
                 return false;
             }
@@ -2203,6 +2209,7 @@ private:
 
     template <typename Return, typename Func, size_t... Is, typename Guard>
     Return call_impl(Func &&f, index_sequence<Is...>, Guard &&) && {
+        loader_life_support::old_style_init_call_guard old_style_init_guard;
         return std::forward<Func>(f)(cast_op<Args>(std::move(std::get<Is>(argcasters)))...);
     }
 

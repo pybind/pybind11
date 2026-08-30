@@ -98,6 +98,14 @@ struct OldStyleInit {
     virtual int v_data() const { return m_data; }
 };
 
+// test_reentrant_load_during_mixed_style_init
+struct MixedStyleInit {
+    int m_data;
+    explicit MixedStyleInit(int data) : m_data(data) {}
+    explicit MixedStyleInit(const std::string &data) : m_data(static_cast<int>(data.size())) {}
+    int data() const { return m_data; }
+};
+
 TEST_SUBMODULE(class_, m) {
     m.def("obj_class_name", [](py::handle obj) { return py::detail::obj_class_name(obj.ptr()); });
 
@@ -631,16 +639,42 @@ TEST_SUBMODULE(class_, m) {
                             return NewNoInit(t[0].cast<int>());
                         }));
 
-    py::class_<OldStyleInit>(m, "OldStyleInit")
-        .def("__init__",
-             [](OldStyleInit &self, int x) {
-                 if (x < 0) {
-                     throw std::runtime_error("negative data");
-                 }
-                 new (&self) OldStyleInit(x);
-             })
-        .def("data", &OldStyleInit::data)
-        .def("v_data", &OldStyleInit::v_data);
+    py::class_<OldStyleInit> old_style_init(m, "OldStyleInit");
+    ignoreOldStyleInitWarnings([&old_style_init]() {
+        old_style_init
+            .def("__init__",
+                 [](OldStyleInit &self, int x) {
+                     if (x < 0) {
+                         throw std::runtime_error("negative data");
+                     }
+                     new (&self) OldStyleInit(x);
+                 })
+            .def("__setstate__", [](const py::object &self_obj, const py::object &state) {
+                // Old-style callbacks taking a Python self perform the one authorized self cast
+                // inside the callable. Keep state conversion ahead of placement-new: Python
+                // executed by that cast must not be able to load the reserved storage again.
+                auto &self = self_obj.cast<OldStyleInit &>();
+                int x = state.cast<int>();
+                new (&self) OldStyleInit(x);
+            });
+    });
+    old_style_init.def("data", &OldStyleInit::data).def("v_data", &OldStyleInit::v_data);
+
+    py::class_<MixedStyleInit> mixed_style_init(m, "MixedStyleInit");
+    mixed_style_init.def(py::init<int>());
+    ignoreOldStyleInitWarnings([&mixed_style_init]() {
+        mixed_style_init.def("__init__", [](MixedStyleInit &self, const std::string &value) {
+            new (&self) MixedStyleInit(value);
+        });
+    });
+    mixed_style_init.def("data", &MixedStyleInit::data);
+
+    // These functions intentionally do not dereference their arguments. They let the Python
+    // tests probe whether a type caster accepted reserved or uninitialized storage without
+    // invoking undefined behavior when testing a broken implementation.
+    m.def("accept_new_no_init", [](NewNoInit *value) { return value != nullptr; });
+    m.def("accept_old_style_init", [](OldStyleInit *value) { return value != nullptr; });
+    m.def("accept_mixed_style_init", [](MixedStyleInit *value) { return value != nullptr; });
 }
 
 template <int N>
