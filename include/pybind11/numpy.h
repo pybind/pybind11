@@ -235,6 +235,7 @@ struct npy_api {
         NPY_STRING_,
         NPY_UNICODE_,
         NPY_VOID_,
+        NPY_HALF_ = 23, // NPY_DATETIME (21) and NPY_TIMEDELTA (22) are not mirrored
         // Platform-dependent normalization
         NPY_INT8_ = NPY_BYTE_,
         NPY_UINT8_ = NPY_UBYTE_,
