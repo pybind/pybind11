@@ -79,7 +79,12 @@ and the binding code
 How can I reduce the build time?
 ================================
 
-It's good practice to split binding code over multiple files, as in the
+First, consider the opt-in precompiled mode: it compiles the non-template
+part of pybind11 once per project instead of once for each translation unit.
+In CMake, this is one keyword on ``pybind11_add_module``. See
+:ref:`precompile-mode`.
+
+It's also good practice to split binding code over multiple files, as in the
 following example:
 
 :file:`example.cpp`:
