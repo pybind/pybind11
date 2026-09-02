@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import gc
+import os
 import pickle
 import sys
 import threading
@@ -323,9 +324,11 @@ def test_old_style_init_legacy_v12_storage_collision():
     keeps its storage private. For owning default and smart holders, collision rollback must not
     throw from loader_life_support's destructor, leak either allocation, or prevent a retry."""
     env.check_script_success_in_subprocess(
-        """
+        f"""
         import gc
         import sys
+
+        sys.path.insert(0, {os.path.dirname(env.__file__)!r})
 
         import pybind11_cross_module_tests as cm
         from pybind11_tests import class_ as m
@@ -348,7 +351,7 @@ def test_old_style_init_legacy_v12_storage_collision():
         # termination. The same object remains usable.
         m.reset_old_style_init_collision_stats()
         obj = m.OldStyleInitCollision.__new__(m.OldStyleInitCollision)
-        seen = {}
+        seen = {{}}
 
         class ReenterThenFail:
             def __index__(self):
@@ -377,7 +380,7 @@ def test_old_style_init_legacy_v12_storage_collision():
         # the real holder temporarily so that the private C++ value's destructor runs exactly once.
         m.reset_old_style_init_collision_stats()
         obj = m.OldStyleInitCollision.__new__(m.OldStyleInitCollision)
-        seen = {}
+        seen = {{}}
 
         class ReenterThenSucceed:
             def __index__(self):
