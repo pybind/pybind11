@@ -366,16 +366,17 @@ TEST_CASE("Enum module survives restart") { // Added in PR #6015
     // calls process_attributes::init after initialize_generic's strdup loop,
     // leaving arg names as string literals. Without the fix, destruct() would
     // call free() on those literals during interpreter finalization.
-    PYBIND11_CATCH2_SKIP_IF(PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION == 12,
-                            "Pre-existing crash in enum cleanup during finalize on Python 3.12");
-
-    auto enum_mod = py::module_::import("enum_module");
-    REQUIRE(enum_mod.attr("SomeEnum").attr("value1").attr("name").cast<std::string>() == "value1");
+    {
+        // Scoped: the reference must not outlive the interpreter which owns it.
+        auto enum_mod = py::module_::import("enum_module");
+        REQUIRE(enum_mod.attr("SomeEnum").attr("value1").attr("name").cast<std::string>()
+                == "value1");
+    }
 
     py::finalize_interpreter();
     py::initialize_interpreter();
 
-    enum_mod = py::module_::import("enum_module");
+    auto enum_mod = py::module_::import("enum_module");
     REQUIRE(enum_mod.attr("SomeEnum").attr("value2").attr("name").cast<std::string>() == "value2");
 }
 
@@ -409,14 +410,17 @@ TEST_CASE("Exception module survives restart") { // Added for gh-6159
     // Regression test for item 3 of gh-6159: `py::register_exception` stores the Python exception
     // type in a `gil_safe_call_once_and_store`. Without the fix, the stale cache made the second
     // import a no-op, and the module had no `SomeCppException` attribute (use after free).
-    auto exc_mod = py::module_::import("exception_module");
-    REQUIRE(py::hasattr(exc_mod, "SomeCppException"));
-    REQUIRE_THROWS_WITH(exc_mod.attr("raise_it")(), "SomeCppException: C++ Error");
+    {
+        // Scoped: the reference must not outlive the interpreter which owns it.
+        auto exc_mod = py::module_::import("exception_module");
+        REQUIRE(py::hasattr(exc_mod, "SomeCppException"));
+        REQUIRE_THROWS_WITH(exc_mod.attr("raise_it")(), "SomeCppException: C++ Error");
+    }
 
     py::finalize_interpreter();
     py::initialize_interpreter();
 
-    exc_mod = py::module_::import("exception_module");
+    auto exc_mod = py::module_::import("exception_module");
     REQUIRE(py::hasattr(exc_mod, "SomeCppException"));
     REQUIRE_THROWS_WITH(exc_mod.attr("raise_it")(), "SomeCppException: C++ Error");
 }
