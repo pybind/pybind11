@@ -573,14 +573,17 @@ TEST_CASE("Exception module survives restart") { // Added for gh-6159
     // Regression test for item 3 of gh-6159: `py::register_exception` stores the Python exception
     // type in a `gil_safe_call_once_and_store`. Without the fix, the stale cache made the second
     // import a no-op, and the module had no `SomeCppException` attribute (use after free).
-    auto exc_mod = py::module_::import("exception_module");
-    REQUIRE(py::hasattr(exc_mod, "SomeCppException"));
-    REQUIRE_THROWS_WITH(exc_mod.attr("raise_it")(), "SomeCppException: C++ Error");
+    {
+        // Scoped: the reference must not outlive the interpreter which owns it.
+        auto exc_mod = py::module_::import("exception_module");
+        REQUIRE(py::hasattr(exc_mod, "SomeCppException"));
+        REQUIRE_THROWS_WITH(exc_mod.attr("raise_it")(), "SomeCppException: C++ Error");
+    }
 
     py::finalize_interpreter();
     py::initialize_interpreter();
 
-    exc_mod = py::module_::import("exception_module");
+    auto exc_mod = py::module_::import("exception_module");
     REQUIRE(py::hasattr(exc_mod, "SomeCppException"));
     REQUIRE_THROWS_WITH(exc_mod.attr("raise_it")(), "SomeCppException: C++ Error");
 }
