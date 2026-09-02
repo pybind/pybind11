@@ -86,6 +86,9 @@ struct EigenConformable {
     EigenIndex rows = 0, cols = 0;
     EigenDStride stride{0, 0};    // Only valid if negativestrides is false!
     bool negativestrides = false; // If true, do not use stride!
+    // A numpy stride that is not a whole number of scalars (e.g. a field of a packed structured
+    // array) cannot be written as an Eigen stride. If true, do not use stride!
+    bool badstrides = false;
 
     // NOLINTNEXTLINE(google-explicit-constructor)
     EigenConformable(bool fits = false) : conformable{fits} {}
@@ -114,6 +117,9 @@ struct EigenConformable {
         }
         if (rows == 0 || cols == 0) {
             return true;
+        }
+        if (badstrides) {
+            return false;
         }
         return (props::inner_stride == Eigen::Dynamic || props::inner_stride == stride.inner()
                 || (EigenRowMajor ? cols : rows) == 1)
@@ -185,19 +191,28 @@ struct EigenProps {
                 return false;
             }
 
-            return {np_rows, np_cols, np_rstride, np_cstride};
+            EigenConformable<row_major> result{np_rows, np_cols, np_rstride, np_cstride};
+            result.badstrides = !whole_scalars(a.strides(0)) || !whole_scalars(a.strides(1));
+            return result;
         }
 
         // Otherwise we're storing an n-vector.  Only one of the strides will be used, but
         // whichever is used, we want the (single) numpy stride value.
         const EigenIndex n = a.shape(0),
                          stride = a.strides(0) / static_cast<ssize_t>(sizeof(Scalar));
+        const bool bad = !whole_scalars(a.strides(0));
+
+        auto make = [bad](EigenIndex r, EigenIndex c, EigenIndex s) {
+            EigenConformable<row_major> result{r, c, s};
+            result.badstrides = bad;
+            return result;
+        };
 
         if (vector) { // Eigen type is a compile-time vector
             if (fixed && size != n) {
                 return false; // Vector size mismatch
             }
-            return {rows == 1 ? 1 : n, cols == 1 ? 1 : n, stride};
+            return make(rows == 1 ? 1 : n, cols == 1 ? 1 : n, stride);
         }
         if (fixed) {
             // The type has a fixed size, but is not a vector: abort
@@ -209,12 +224,18 @@ struct EigenProps {
             if (cols != n) {
                 return false;
             }
-            return {1, n, stride};
+            return make(1, n, stride);
         } // Otherwise it's either fully dynamic, or column dynamic; both become a column vector
         if (fixed_rows && rows != n) {
             return false;
         }
-        return {n, 1, stride};
+        return make(n, 1, stride);
+    }
+
+    // True if a numpy byte stride is a whole number of scalars, and can therefore become an Eigen
+    // stride.
+    static bool whole_scalars(ssize_t byte_stride) {
+        return byte_stride % static_cast<ssize_t>(sizeof(Scalar)) == 0;
     }
 
     static constexpr bool show_writeable
