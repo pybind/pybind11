@@ -205,6 +205,13 @@ def test_dtype(simple_dtype):
     assert (m.test_dtype_switch(arr.astype("longdouble")) == arr + 1).all()
 
 
+def test_half_dtype():
+    assert m.half_dtype_num() == np.dtype("float16").num
+
+    result = m.half_roundtrip(np.array([1.5, 2.25, -3.0], dtype=np.float16))
+    assert result.dtype == np.float16
+
+
 def test_templated_dtype():
     """A type spelled with a comma needs PYBIND11_TYPE here."""
     plain, renamed = m.templated_dtypes()

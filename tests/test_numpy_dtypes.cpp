@@ -318,6 +318,21 @@ py::array_t<T> dispatch_array_increment(const py::array_t<T> &arr) {
 struct A {};
 struct B {};
 
+struct UserHalf {
+    uint16_t bits;
+};
+
+PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+PYBIND11_NAMESPACE_BEGIN(detail)
+template <>
+struct npy_format_descriptor<UserHalf> {
+    static constexpr auto name = const_name("numpy.float16");
+    static constexpr int value = npy_api::NPY_HALF_;
+    static pybind11::dtype dtype() { return pybind11::dtype(/*typenum*/ value); }
+};
+PYBIND11_NAMESPACE_END(detail)
+PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
+
 TEST_SUBMODULE(numpy_dtypes, m) {
     try {
         py::module_::import("numpy");
@@ -645,6 +660,10 @@ TEST_SUBMODULE(numpy_dtypes, m) {
     };
     PYBIND11_NUMPY_DTYPE(TrailingPaddingStruct, a, b);
     m.def("trailing_padding_dtype", []() { return py::dtype::of<TrailingPaddingStruct>(); });
+
+    // test_half_dtype (issue #4061)
+    m.def("half_dtype_num", []() { return py::dtype::num_of<UserHalf>(); });
+    m.def("half_roundtrip", [](const py::array_t<UserHalf> &arr) { return arr; });
 
     // test_string_array
     m.def("create_string_array", [](bool non_empty) {
