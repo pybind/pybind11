@@ -102,12 +102,19 @@ option(PYBIND11_SIMPLE_GIL_MANAGEMENT
 set(PYBIND11_INTERNALS_VERSION
     ""
     CACHE STRING "Override the ABI version, may be used to enable the unstable ABI.")
-# Record whether the project set this before option() supplies its OFF default, so
-# pybind11Common.cmake can apply its CMP0190-aware default without clobbering an explicit value.
-if(NOT DEFINED PYBIND11_USE_CROSSCOMPILING)
-  set(_PYBIND11_USE_CROSSCOMPILING_DEFAULTED ON)
+# CMP0190 prohibits calling FindPython with both Interpreter and Development components
+# when cross-compiling, unless CMAKE_CROSSCOMPILING_EMULATOR is defined. Compute the default
+# here, before option() caches it, so that a reconfigure keeps it (pybind11Common.cmake applies
+# the same default for find_package() consumers, where the option does not exist).
+set(_pybind11_use_crosscompiling_default OFF)
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "4.1" AND NOT DEFINED CMAKE_CROSSCOMPILING_EMULATOR)
+  cmake_policy(GET CMP0190 _pybind11_cmp0190)
+  if(_pybind11_cmp0190 STREQUAL "NEW")
+    set(_pybind11_use_crosscompiling_default ON)
+  endif()
 endif()
-option(PYBIND11_USE_CROSSCOMPILING "Respect CMAKE_CROSSCOMPILING" OFF)
+option(PYBIND11_USE_CROSSCOMPILING "Respect CMAKE_CROSSCOMPILING"
+       ${_pybind11_use_crosscompiling_default})
 
 cmake_dependent_option(
   USE_PYTHON_INCLUDE_DIR
@@ -377,17 +384,14 @@ if(PYBIND11_INSTALL)
     if(IS_ABSOLUTE "${CMAKE_INSTALL_DATAROOTDIR}")
       set(prefix_for_pc_file "${CMAKE_INSTALL_PREFIX}")
     else()
+      # Go up from the pkgconfig directory, then once more for each component of
+      # CMAKE_INSTALL_DATAROOTDIR, to get back to CMAKE_INSTALL_PREFIX.
       set(pc_datarootdir "${CMAKE_INSTALL_DATAROOTDIR}")
-      if(CMAKE_VERSION VERSION_LESS 3.20)
-        set(prefix_for_pc_file "\${pcfiledir}/..")
-        while(pc_datarootdir)
-          get_filename_component(pc_datarootdir "${pc_datarootdir}" DIRECTORY)
-          string(APPEND prefix_for_pc_file "/..")
-        endwhile()
-      else()
-        cmake_path(RELATIVE_PATH CMAKE_INSTALL_PREFIX BASE_DIRECTORY CMAKE_INSTALL_DATAROOTDIR
-                   OUTPUT_VARIABLE prefix_for_pc_file)
-      endif()
+      set(prefix_for_pc_file "\${pcfiledir}/..")
+      while(pc_datarootdir)
+        get_filename_component(pc_datarootdir "${pc_datarootdir}" DIRECTORY)
+        string(APPEND prefix_for_pc_file "/..")
+      endwhile()
     endif()
   endif()
   join_paths(includedir_for_pc_file "\${prefix}" "${CMAKE_INSTALL_INCLUDEDIR}")
