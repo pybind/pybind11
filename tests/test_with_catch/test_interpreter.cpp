@@ -95,6 +95,15 @@ PYBIND11_EMBEDDED_MODULE(enum_module, m, py::multiple_interpreters::per_interpre
         .value("value2", SomeEnum::value2);
 }
 
+class SomeCppException : public std::runtime_error { // Added for gh-6159
+    using std::runtime_error::runtime_error;
+};
+
+PYBIND11_EMBEDDED_MODULE(exception_module, m, py::multiple_interpreters::per_interpreter_gil()) {
+    py::register_exception<SomeCppException>(m, "SomeCppException");
+    m.def("raise_it", []() { throw SomeCppException("C++ Error"); });
+}
+
 PYBIND11_EMBEDDED_MODULE(throw_exception, , py::multiple_interpreters::not_supported()) {
     throw std::runtime_error("C++ Error");
 }
@@ -357,18 +366,65 @@ TEST_CASE("Enum module survives restart") { // Added in PR #6015
     // calls process_attributes::init after initialize_generic's strdup loop,
     // leaving arg names as string literals. Without the fix, destruct() would
     // call free() on those literals during interpreter finalization.
-    PYBIND11_CATCH2_SKIP_IF(PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION == 12,
-                            "Pre-existing crash in enum cleanup during finalize on Python 3.12");
-
-    auto enum_mod = py::module_::import("enum_module");
-    REQUIRE(enum_mod.attr("SomeEnum").attr("value1").attr("name").cast<std::string>() == "value1");
+    {
+        // Scoped: the reference must not outlive the interpreter which owns it.
+        auto enum_mod = py::module_::import("enum_module");
+        REQUIRE(enum_mod.attr("SomeEnum").attr("value1").attr("name").cast<std::string>()
+                == "value1");
+    }
 
     py::finalize_interpreter();
     py::initialize_interpreter();
 
-    enum_mod = py::module_::import("enum_module");
+    auto enum_mod = py::module_::import("enum_module");
     REQUIRE(enum_mod.attr("SomeEnum").attr("value2").attr("name").cast<std::string>() == "value2");
 }
+
+#ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
+// Added for gh-6159: the per-interpreter storage is destroyed with the interpreter, therefore the
+// fast-path cache in `gil_safe_call_once_and_store` must be reset, too.
+PYBIND11_CONSTINIT static py::gil_safe_call_once_and_store<py::object> restart_test_storage;
+static int restart_test_call_count = 0;
+
+TEST_CASE("gil_safe_call_once_and_store survives restart") { // Added for gh-6159
+    auto import_sys_modules = []() {
+        restart_test_call_count++;
+        return py::module_::import("sys").attr("modules");
+    };
+
+    auto &first = restart_test_storage.call_once_and_store_result(import_sys_modules).get_stored();
+    REQUIRE(restart_test_call_count == 1);
+    REQUIRE(first.ptr() == py::module_::import("sys").attr("modules").ptr());
+
+    py::finalize_interpreter();
+    py::initialize_interpreter();
+
+    auto &second
+        = restart_test_storage.call_once_and_store_result(import_sys_modules).get_stored();
+    // The stored value belongs to the finalized interpreter, therefore it must be stored again.
+    REQUIRE(restart_test_call_count == 2);
+    REQUIRE(second.ptr() == py::module_::import("sys").attr("modules").ptr());
+}
+
+TEST_CASE("Exception module survives restart") { // Added for gh-6159
+    // Regression test for item 3 of gh-6159: `py::register_exception` stores the Python exception
+    // type in a `gil_safe_call_once_and_store`. Without the fix, the stale cache made the second
+    // import a no-op, and the module had no `SomeCppException` attribute (use after free).
+    {
+        // Scoped: the reference must not outlive the interpreter which owns it.
+        auto exc_mod = py::module_::import("exception_module");
+        REQUIRE(py::hasattr(exc_mod, "SomeCppException"));
+        REQUIRE_THROWS_WITH(exc_mod.attr("raise_it")(), "SomeCppException: C++ Error");
+    }
+
+    py::finalize_interpreter();
+    py::initialize_interpreter();
+
+    auto exc_mod = py::module_::import("exception_module");
+    REQUIRE(py::hasattr(exc_mod, "SomeCppException"));
+    REQUIRE_THROWS_WITH(exc_mod.attr("raise_it")(), "SomeCppException: C++ Error");
+}
+#endif
 
 TEST_CASE("Execution frame") {
     // When the interpreter is embedded, there is no execution frame, but `py::exec`
