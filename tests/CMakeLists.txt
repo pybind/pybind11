@@ -243,7 +243,7 @@ list(SORT PYBIND11_PYTEST_FILES)
 # built; if none of these are built (i.e. because TEST_OVERRIDE is used and
 # doesn't include them) the second module doesn't get built.
 tests_extra_targets(
-  "test_class_cross_module_use_after_one_module_dealloc.py;test_exceptions.py;test_local_bindings.py;test_stl.py;test_stl_binders.py"
+  "test_class.py;test_class_cross_module_use_after_one_module_dealloc.py;test_exceptions.py;test_local_bindings.py;test_stl.py;test_stl_binders.py"
   "pybind11_cross_module_tests")
 
 # And add additional targets for other tests.

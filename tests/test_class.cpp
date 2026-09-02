@@ -98,6 +98,43 @@ struct OldStyleInit {
     virtual int v_data() const { return m_data; }
 };
 
+// test_old_style_init_legacy_v12_storage_collision
+struct OldStyleInitCollisionStats {
+    int allocations = 0;
+    int deallocations = 0;
+    int constructions = 0;
+    int destructions = 0;
+};
+
+OldStyleInitCollisionStats &old_style_init_collision_stats() {
+    static OldStyleInitCollisionStats stats;
+    return stats;
+}
+
+struct OldStyleInitCollision {
+    int m_data;
+
+    explicit OldStyleInitCollision(int data) : m_data(data) {
+        ++old_style_init_collision_stats().constructions;
+    }
+    ~OldStyleInitCollision() { ++old_style_init_collision_stats().destructions; }
+
+    static void *operator new(size_t size) {
+        ++old_style_init_collision_stats().allocations;
+        return ::operator new(size);
+    }
+    static void operator delete(void *ptr) noexcept {
+        ++old_style_init_collision_stats().deallocations;
+        ::operator delete(ptr);
+    }
+
+    int data() const { return m_data; }
+};
+
+struct OldStyleInitCollisionSmart : OldStyleInitCollision {
+    explicit OldStyleInitCollisionSmart(int data) : OldStyleInitCollision(data) {}
+};
+
 // test_reentrant_load_during_mixed_style_init
 struct MixedStyleInit {
     int m_data;
@@ -659,6 +696,29 @@ TEST_SUBMODULE(class_, m) {
             });
     });
     old_style_init.def("data", &OldStyleInit::data).def("v_data", &OldStyleInit::v_data);
+
+    py::class_<OldStyleInitCollision> old_style_init_collision(m, "OldStyleInitCollision");
+    ignoreOldStyleInitWarnings([&old_style_init_collision]() {
+        old_style_init_collision.def("__init__", [](OldStyleInitCollision &self, int x) {
+            ::new (static_cast<void *>(&self)) OldStyleInitCollision(x);
+        });
+    });
+    old_style_init_collision.def("data", &OldStyleInitCollision::data);
+    py::class_<OldStyleInitCollisionSmart, py::smart_holder> old_style_init_collision_smart(
+        m, "OldStyleInitCollisionSmart");
+    ignoreOldStyleInitWarnings([&old_style_init_collision_smart]() {
+        old_style_init_collision_smart.def(
+            "__init__", [](OldStyleInitCollisionSmart &self, int x) {
+                ::new (static_cast<void *>(&self)) OldStyleInitCollisionSmart(x);
+            });
+    });
+    old_style_init_collision_smart.def("data", &OldStyleInitCollisionSmart::data);
+    m.def("reset_old_style_init_collision_stats", []() { old_style_init_collision_stats() = {}; });
+    m.def("old_style_init_collision_stats", []() {
+        const auto &stats = old_style_init_collision_stats();
+        return py::make_tuple(
+            stats.allocations, stats.deallocations, stats.constructions, stats.destructions);
+    });
 
     py::class_<MixedStyleInit> mixed_style_init(m, "MixedStyleInit");
     mixed_style_init.def(py::init<int>());

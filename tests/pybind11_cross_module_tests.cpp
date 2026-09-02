@@ -13,6 +13,8 @@
 #include "pybind11_tests.h"
 #include "test_exceptions.h"
 
+#include <cstdint>
+#include <new>
 #include <numeric>
 #include <utility>
 
@@ -25,8 +27,57 @@ public:
 
 CrossDSOClass::~CrossDSOClass() = default;
 
+// Emulates the relevant lazy-publication fragment of stale inline type-caster code in an
+// extension compiled with pybind11 v3.1 before PR #6157 (f90c430c). Such a module shares internals
+// v12, but does not know about value_constructing and publishes raw storage when the value pointer
+// is null.
+class LegacyV12TypeCasterGeneric : public py::detail::type_caster_generic {
+public:
+    using type_caster_generic::type_caster_generic;
+
+    bool load(py::handle src, bool convert) {
+        return load_impl<LegacyV12TypeCasterGeneric>(src, convert);
+    }
+
+    void load_value(py::detail::value_and_holder &&v_h) {
+        auto *&vptr = v_h.value_ptr();
+        if (vptr == nullptr) {
+            const auto *type = v_h.type != nullptr ? v_h.type : typeinfo;
+            if (type->operator_new != nullptr) {
+                vptr = type->operator_new(type->type_size);
+            } else {
+#if defined(__cpp_aligned_new)
+                if (type->type_align > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
+                    vptr = ::operator new(type->type_size, std::align_val_t(type->type_align));
+                } else {
+                    vptr = ::operator new(type->type_size);
+                }
+#else
+                vptr = ::operator new(type->type_size);
+#endif
+            }
+        }
+        value = vptr;
+    }
+};
+
 PYBIND11_MODULE(pybind11_cross_module_tests, m, py::mod_gil_not_used()) {
     m.doc() = "pybind11 cross-module test module";
+
+    // test_old_style_init_legacy_v12_storage_collision
+    m.def("legacy_v12_pointer_only_load", [](py::handle src) {
+        // Deliberately resolve the registration by Python type rather than this DSO's typeid: the
+        // regression targets the historical shared-instance storage protocol, not RTTI lookup.
+        auto *tinfo = py::detail::get_type_info(Py_TYPE(src.ptr()));
+        if (tinfo == nullptr) {
+            throw py::type_error("No pybind11 type registration found");
+        }
+        LegacyV12TypeCasterGeneric caster(tinfo);
+        if (!caster.load(src, false)) {
+            throw py::type_error("Legacy v12 type caster rejected the object");
+        }
+        return reinterpret_cast<std::uintptr_t>(caster.value);
+    });
 
     // test_local_bindings.py tests:
     //

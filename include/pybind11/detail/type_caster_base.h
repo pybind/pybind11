@@ -74,19 +74,86 @@ private:
         return lhs.inst == rhs.inst && lhs.vh == rhs.vh;
     }
 
-    void cleanup_old_style_init_storage() {
-        if (old_style_init_storage == nullptr) {
+    static void report_cleanup_error(const char *message, PyObject *context) noexcept {
+        error_scope scope;
+        PyErr_SetString(PyExc_RuntimeError, message);
+        PyErr_WriteUnraisable(context);
+    }
+
+    // Invoke the deallocator selected by the DSO which registered `type` without exposing the
+    // private pointer through the real Python instance. In particular, this preserves matching
+    // class-specific and aligned operator new/delete behavior.
+    static void deallocate_unconstructed_storage(const type_info *type, void *storage) {
+        instance storage_instance{};
+        storage_instance.owned = true;
+        storage_instance.simple_layout = true;
+        storage_instance.simple_holder_constructed = false;
+        storage_instance.simple_value_holder[0] = storage;
+        value_and_holder storage_v_h(&storage_instance, type, 0, 0);
+        type->dealloc(storage_v_h);
+    }
+
+    static void deallocate_instance_value(value_and_holder &v_h) {
+        if (v_h.instance_registered()) {
+            if (!deregister_instance(v_h.inst, v_h.value_ptr(), v_h.type)) {
+                pybind11_fail("loader_life_support: could not deregister colliding storage");
+            }
+            v_h.set_instance_registered(false);
+        }
+        v_h.type->dealloc(v_h);
+    }
+
+    void cleanup_old_style_init_storage() noexcept {
+        void *const storage = old_style_init_storage;
+        if (storage == nullptr) {
             return;
         }
-        auto v_h = *old_style_init_self;
-        scoped_critical_section lock(
-            handle(reinterpret_cast<PyObject *>(old_style_init_self->inst)));
-        if (v_h.value_ptr() != nullptr) {
-            pybind11_fail("loader_life_support: old-style constructor storage collision");
-        }
-        v_h.value_ptr() = old_style_init_storage;
         old_style_init_storage = nullptr;
-        v_h.type->dealloc(v_h); // Frees the storage and nulls the value pointer.
+
+        auto v_h = *old_style_init_self;
+        bool colliding_storage_cleanup_failed = false;
+        bool private_storage_is_published = false;
+        {
+            scoped_critical_section lock(handle(reinterpret_cast<PyObject *>(v_h.inst)));
+            if (v_h.value_ptr() != nullptr) {
+                private_storage_is_published = v_h.value_ptr() == storage;
+                try {
+                    // Roll back storage published by stale inline caster code before another
+                    // overload candidate is attempted. If the private reservation itself was
+                    // published, deallocate that allocation only once.
+                    deallocate_instance_value(v_h);
+                } catch (...) {
+                    // A throwing deallocator cannot be retried safely: it may already have partly
+                    // destroyed the holder or released the allocation. Abandon the slot so that
+                    // construction-scope or instance cleanup does not invoke it a second time.
+                    v_h.set_holder_constructed(false);
+                    v_h.set_instance_registered(false);
+                    v_h.value_ptr() = nullptr;
+                    colliding_storage_cleanup_failed = true;
+                }
+            }
+        }
+
+        bool private_storage_cleanup_failed = false;
+        if (!private_storage_is_published) {
+            try {
+                deallocate_unconstructed_storage(v_h.type, storage);
+            } catch (...) {
+                private_storage_cleanup_failed = true;
+            }
+        }
+
+        // PyErr_WriteUnraisable() can invoke user Python code. Keep it separate from the cleanup
+        // state mutation above.
+        auto *const context = reinterpret_cast<PyObject *>(v_h.inst);
+        if (colliding_storage_cleanup_failed) {
+            report_cleanup_error(
+                "loader_life_support: failed to clean up colliding constructor storage", context);
+        }
+        if (private_storage_cleanup_failed) {
+            report_cleanup_error(
+                "loader_life_support: failed to clean up private constructor storage", context);
+        }
     }
 
 public:
@@ -208,9 +275,30 @@ public:
 
         auto v_h = *frame->old_style_init_self;
         scoped_critical_section lock(handle(reinterpret_cast<PyObject *>(v_h.inst)));
-        if (!v_h.value_constructing() || v_h.value_ptr() != nullptr) {
+        if (!v_h.value_constructing()) {
             pybind11_fail("loader_life_support: invalid old-style constructor commit");
         }
+
+        if (v_h.value_ptr() != nullptr) {
+            // A stale v12 caster can publish a second allocation while the updated constructor's
+            // storage is private. Roll the whole constructor transaction back, using the
+            // registered holder/deallocator to clean up the successfully placement-constructed
+            // private value just as it would clean up a normal instance.
+            void *const private_storage = frame->old_style_init_storage;
+            // From here onward the private value has been constructed. Do not let loader cleanup
+            // mistake it for raw storage if one of the rollback operations throws.
+            frame->old_style_init_storage = nullptr;
+            if (v_h.value_ptr() != private_storage) {
+                deallocate_instance_value(v_h);
+                v_h.value_ptr() = private_storage;
+            }
+            if (!v_h.holder_constructed()) {
+                v_h.type->init_instance(v_h.inst, nullptr);
+            }
+            deallocate_instance_value(v_h);
+            pybind11_fail("loader_life_support: old-style constructor storage collision");
+        }
+
         v_h.value_ptr() = frame->old_style_init_storage;
         frame->old_style_init_storage = nullptr;
         v_h.type->init_instance(v_h.inst, nullptr);
