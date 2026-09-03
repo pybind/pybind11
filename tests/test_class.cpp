@@ -77,6 +77,72 @@ static_assert(!py::detail::is_same_or_base_of<
                   test_class::pr5396_forward_declared_class::ForwardClass>::value,
               "");
 
+// test_new_bypasses_init
+struct NewNoInit {
+    int m_data;
+    explicit NewNoInit(int data) : m_data(data) {}
+    NewNoInit(const NewNoInit &) = default;
+    virtual ~NewNoInit() = default;
+    int data() const { return m_data; }
+    // Virtual on purpose: using a not-yet-constructed instance reads the vtable pointer out of
+    // uninitialized storage, which segfaults rather than merely returning a garbage value.
+    virtual int v_data() const { return m_data; }
+};
+
+// test_failed_old_style_init_does_not_leave_lazy_storage
+struct OldStyleInit {
+    int m_data;
+    explicit OldStyleInit(int data) : m_data(data) {}
+    virtual ~OldStyleInit() = default;
+    int data() const { return m_data; }
+    virtual int v_data() const { return m_data; }
+};
+
+// test_old_style_init_legacy_v12_storage_collision
+struct OldStyleInitCollisionStats {
+    int allocations = 0;
+    int deallocations = 0;
+    int constructions = 0;
+    int destructions = 0;
+};
+
+OldStyleInitCollisionStats &old_style_init_collision_stats() {
+    static OldStyleInitCollisionStats stats;
+    return stats;
+}
+
+struct OldStyleInitCollision {
+    int m_data;
+
+    explicit OldStyleInitCollision(int data) : m_data(data) {
+        ++old_style_init_collision_stats().constructions;
+    }
+    ~OldStyleInitCollision() { ++old_style_init_collision_stats().destructions; }
+
+    static void *operator new(size_t size) {
+        ++old_style_init_collision_stats().allocations;
+        return ::operator new(size);
+    }
+    static void operator delete(void *ptr) noexcept {
+        ++old_style_init_collision_stats().deallocations;
+        ::operator delete(ptr);
+    }
+
+    int data() const { return m_data; }
+};
+
+struct OldStyleInitCollisionSmart : OldStyleInitCollision {
+    explicit OldStyleInitCollisionSmart(int data) : OldStyleInitCollision(data) {}
+};
+
+// test_reentrant_load_during_mixed_style_init
+struct MixedStyleInit {
+    int m_data;
+    explicit MixedStyleInit(int data) : m_data(data) {}
+    explicit MixedStyleInit(const std::string &data) : m_data(static_cast<int>(data.size())) {}
+    int data() const { return m_data; }
+};
+
 TEST_SUBMODULE(class_, m) {
     m.def("obj_class_name", [](py::handle obj) { return py::detail::obj_class_name(obj.ptr()); });
 
@@ -597,6 +663,86 @@ TEST_SUBMODULE(class_, m) {
     m.def("return_universal_recipient", []() -> test_class::ConvertibleFromAnything {
         return test_class::ConvertibleFromAnything{};
     });
+
+    py::class_<NewNoInit>(m, "NewNoInit")
+        .def(py::init<int>())
+        .def("data", &NewNoInit::data)
+        .def("v_data", &NewNoInit::v_data)
+        .def(py::pickle([](const NewNoInit &p) { return py::make_tuple(p.m_data); },
+                        [](const py::tuple &t) {
+                            if (t.size() != 1) {
+                                throw std::runtime_error("Invalid state!");
+                            }
+                            return NewNoInit(t[0].cast<int>());
+                        }));
+
+    py::class_<OldStyleInit> old_style_init(m, "OldStyleInit");
+    ignoreOldStyleInitWarnings([&old_style_init]() {
+        old_style_init
+            .def("__init__",
+                 [](OldStyleInit &self, int x) {
+                     if (x < 0) {
+                         throw std::runtime_error("negative data");
+                     }
+                     new (&self) OldStyleInit(x);
+                 })
+            .def("__setstate__", [](const py::object &self_obj, const py::object &state) {
+                // Old-style callbacks taking a Python self perform the one authorized self cast
+                // inside the callable. Keep state conversion ahead of placement-new: Python
+                // executed by that cast must not be able to load the reserved storage again.
+                auto &self = self_obj.cast<OldStyleInit &>();
+                int x = state.cast<int>();
+                new (&self) OldStyleInit(x);
+            });
+        old_style_init.def(
+            "__init__", [](const py::object &, const OldStyleInit &, py::list entered) {
+                // Reaching this callback means that the later argument was exposed as a C++
+                // reference before an OldStyleInit object's lifetime began. Do not inspect that
+                // reference: keep the regression test itself free of undefined behavior.
+                entered.append("entered");
+                throw std::runtime_error("later-alias constructor callback entered");
+            });
+    });
+    old_style_init.def("data", &OldStyleInit::data).def("v_data", &OldStyleInit::v_data);
+
+    py::class_<OldStyleInitCollision> old_style_init_collision(m, "OldStyleInitCollision");
+    ignoreOldStyleInitWarnings([&old_style_init_collision]() {
+        old_style_init_collision.def("__init__", [](OldStyleInitCollision &self, int x) {
+            ::new (static_cast<void *>(&self)) OldStyleInitCollision(x);
+        });
+    });
+    old_style_init_collision.def("data", &OldStyleInitCollision::data);
+    py::class_<OldStyleInitCollisionSmart, py::smart_holder> old_style_init_collision_smart(
+        m, "OldStyleInitCollisionSmart");
+    ignoreOldStyleInitWarnings([&old_style_init_collision_smart]() {
+        old_style_init_collision_smart.def(
+            "__init__", [](OldStyleInitCollisionSmart &self, int x) {
+                ::new (static_cast<void *>(&self)) OldStyleInitCollisionSmart(x);
+            });
+    });
+    old_style_init_collision_smart.def("data", &OldStyleInitCollisionSmart::data);
+    m.def("reset_old_style_init_collision_stats", []() { old_style_init_collision_stats() = {}; });
+    m.def("old_style_init_collision_stats", []() {
+        const auto &stats = old_style_init_collision_stats();
+        return py::make_tuple(
+            stats.allocations, stats.deallocations, stats.constructions, stats.destructions);
+    });
+
+    py::class_<MixedStyleInit> mixed_style_init(m, "MixedStyleInit");
+    mixed_style_init.def(py::init<int>());
+    ignoreOldStyleInitWarnings([&mixed_style_init]() {
+        mixed_style_init.def("__init__", [](MixedStyleInit &self, const std::string &value) {
+            new (&self) MixedStyleInit(value);
+        });
+    });
+    mixed_style_init.def("data", &MixedStyleInit::data);
+
+    // These functions intentionally do not dereference their arguments. They let the Python
+    // tests probe whether a type caster accepted reserved or uninitialized storage without
+    // invoking undefined behavior when testing a broken implementation.
+    m.def("accept_new_no_init", [](NewNoInit *value) { return value != nullptr; });
+    m.def("accept_old_style_init", [](OldStyleInit *value) { return value != nullptr; });
+    m.def("accept_mixed_style_init", [](MixedStyleInit *value) { return value != nullptr; });
 }
 
 template <int N>

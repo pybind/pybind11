@@ -676,6 +676,8 @@ struct instance {
     bool has_patients : 1;
     /// If true, this Python object needs to be kept alive for the lifetime of the C++ value.
     bool is_alias : 1;
+    /// For simple layout, tracks whether a constructor is currently constructing the C++ value.
+    bool simple_value_constructing : 1;
 
     /// Initializes all of the above type/values/holders data (but not the instance values
     /// themselves)
@@ -693,6 +695,7 @@ struct instance {
     /// Bit values for the non-simple status flags
     static constexpr uint8_t status_holder_constructed = 1;
     static constexpr uint8_t status_instance_registered = 2;
+    static constexpr uint8_t status_value_constructing = 4;
 };
 
 static_assert(std::is_standard_layout<instance>::value,
