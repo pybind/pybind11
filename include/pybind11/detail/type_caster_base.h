@@ -39,6 +39,18 @@
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+/// Discards a value that was published in `v_h` but whose construction did not complete.
+inline void deallocate_instance_value(value_and_holder &v_h) {
+    if (v_h.instance_registered()) {
+        if (!deregister_instance(v_h.inst, v_h.value_ptr(), v_h.type)) {
+            pybind11_fail(
+                "deallocate_instance_value(): Tried to deallocate unregistered instance!");
+        }
+        v_h.set_instance_registered(false);
+    }
+    v_h.type->dealloc(v_h);
+}
+
 /// A life support system for temporary objects created by `type_caster::load()`.
 /// Adding a patient will keep it alive up until the enclosing function returns.
 class loader_life_support {
@@ -64,10 +76,10 @@ private:
 
     // Old-style placement-new constructors need raw storage while loading their `self`
     // argument. Keep it private to the exact overload candidate until its C++ callable returns.
+    // The dispatcher holds the instance critical section for the lifetime of such a frame.
     value_and_holder *old_style_init_self = nullptr;
     void *old_style_init_storage = nullptr;
-    bool old_style_init_self_load_allowed = false;
-    bool old_style_init_self_load_claimed = false;
+    bool old_style_init_self_claimed = false;
 
     static bool is_same_value_and_holder(const value_and_holder &lhs,
                                          const value_and_holder &rhs) {
@@ -93,66 +105,41 @@ private:
         type->dealloc(storage_v_h);
     }
 
-    static void deallocate_instance_value(value_and_holder &v_h) {
-        if (v_h.instance_registered()) {
-            if (!deregister_instance(v_h.inst, v_h.value_ptr(), v_h.type)) {
-                pybind11_fail("loader_life_support: could not deregister colliding storage");
-            }
-            v_h.set_instance_registered(false);
-        }
-        v_h.type->dealloc(v_h);
-    }
-
-    void cleanup_old_style_init_storage() noexcept {
+    PYBIND11_NOINLINE void cleanup_old_style_init_storage() noexcept {
         void *const storage = old_style_init_storage;
-        if (storage == nullptr) {
-            return;
-        }
         old_style_init_storage = nullptr;
 
         auto v_h = *old_style_init_self;
-        bool colliding_storage_cleanup_failed = false;
+        auto *const context = reinterpret_cast<PyObject *>(v_h.inst);
         bool private_storage_is_published = false;
-        {
-            scoped_critical_section lock(handle(reinterpret_cast<PyObject *>(v_h.inst)));
-            if (v_h.value_ptr() != nullptr) {
-                private_storage_is_published = v_h.value_ptr() == storage;
-                try {
-                    // Roll back storage published by stale inline caster code before another
-                    // overload candidate is attempted. If the private reservation itself was
-                    // published, deallocate that allocation only once.
-                    deallocate_instance_value(v_h);
-                } catch (...) {
-                    // A throwing deallocator cannot be retried safely: it may already have partly
-                    // destroyed the holder or released the allocation. Abandon the slot so that
-                    // construction-scope or instance cleanup does not invoke it a second time.
-                    v_h.set_holder_constructed(false);
-                    v_h.set_instance_registered(false);
-                    v_h.value_ptr() = nullptr;
-                    colliding_storage_cleanup_failed = true;
-                }
+        if (v_h.value_ptr() != nullptr) {
+            private_storage_is_published = v_h.value_ptr() == storage;
+            try {
+                // Roll back storage published by stale inline caster code before another
+                // overload candidate is attempted. If the private reservation itself was
+                // published, deallocate that allocation only once.
+                deallocate_instance_value(v_h);
+            } catch (...) {
+                // A throwing deallocator cannot be retried safely: it may already have partly
+                // destroyed the holder or released the allocation. Abandon the slot so that
+                // construction-scope or instance cleanup does not invoke it a second time.
+                // Reset the slot before PyErr_WriteUnraisable() can run user Python code.
+                v_h.set_holder_constructed(false);
+                v_h.set_instance_registered(false);
+                v_h.value_ptr() = nullptr;
+                report_cleanup_error(
+                    "loader_life_support: failed to clean up colliding constructor storage",
+                    context);
             }
         }
-
-        bool private_storage_cleanup_failed = false;
         if (!private_storage_is_published) {
             try {
                 deallocate_unconstructed_storage(v_h.type, storage);
             } catch (...) {
-                private_storage_cleanup_failed = true;
+                report_cleanup_error(
+                    "loader_life_support: failed to clean up private constructor storage",
+                    context);
             }
-        }
-
-        // PyErr_WriteUnraisable() can invoke user Python code. Keep it separate from the cleanup
-        // state mutation above.
-        auto *const context = reinterpret_cast<PyObject *>(v_h.inst);
-        if (colliding_storage_cleanup_failed) {
-            report_cleanup_error(
-                "loader_life_support: failed to clean up colliding constructor storage", context);
-        }
-        if (private_storage_cleanup_failed) {
-            report_cleanup_error(
-                "loader_life_support: failed to clean up private constructor storage", context);
         }
     }
 
@@ -172,77 +159,29 @@ public:
             pybind11_fail("loader_life_support: internal error");
         }
         frame = parent;
-        cleanup_old_style_init_storage();
+        if (old_style_init_storage != nullptr) {
+            cleanup_old_style_init_storage();
+        }
         for (auto *item : keep_alive) {
             Py_DECREF(item);
         }
     }
 
-    /// Restricts the special old-style constructor permission to argument zero of the current
-    /// candidate. A nested bound call has its own loader frame and cannot inherit this permission.
-    class argument_load_guard {
-    public:
-        explicit argument_load_guard(bool is_first_argument) {
-            auto *current = tls_current_frame();
-            if (is_first_argument && current != nullptr && current->old_style_init_self != nullptr
-                && !current->old_style_init_self_load_claimed) {
-                frame = current;
-                frame->old_style_init_self_load_allowed = true;
-            }
-        }
-        ~argument_load_guard() {
-            if (frame != nullptr) {
-                frame->old_style_init_self_load_allowed = false;
-            }
-        }
-        argument_load_guard(const argument_load_guard &) = delete;
-        argument_load_guard &operator=(const argument_load_guard &) = delete;
-
-    private:
-        loader_life_support *frame = nullptr;
-    };
-
-    /// Some legacy `__setstate__` implementations accept `self` as `py::object` and perform the
-    /// typed cast inside the C++ callable. At that point all other arguments have finished
-    /// loading, so granting the same exact, one-shot permission is safe. Reentrant bound calls
-    /// still get a separate loader frame.
-    class old_style_init_call_guard {
-    public:
-        old_style_init_call_guard() {
-            auto *current = tls_current_frame();
-            if (current != nullptr && current->old_style_init_self != nullptr
-                && !current->old_style_init_self_load_claimed) {
-                frame = current;
-                frame->old_style_init_self_load_allowed = true;
-            }
-        }
-        ~old_style_init_call_guard() {
-            if (frame != nullptr) {
-                frame->old_style_init_self_load_allowed = false;
-            }
-        }
-        old_style_init_call_guard(const old_style_init_call_guard &) = delete;
-        old_style_init_call_guard &operator=(const old_style_init_call_guard &) = delete;
-
-    private:
-        loader_life_support *frame = nullptr;
-    };
-
-    /// Claims and allocates the private storage for the exact old-style constructor `self` load.
+    /// Claims and allocates the private storage for the one old-style constructor `self` load of
+    /// the current frame; returns nullptr for every other load. `self` is loaded first, or cast
+    /// inside a legacy `py::object` callback after all arguments were loaded. Nested bound calls
+    /// and other threads have their own frames and never qualify.
     /// The permission is consumed before invoking a potentially user-defined operator new.
-    static bool try_reserve_old_style_init_storage(value_and_holder &v_h,
-                                                   const type_info *type,
-                                                   void *&value) {
+    static void *try_reserve_old_style_init_storage(value_and_holder &v_h, const type_info *type) {
         auto *frame = tls_current_frame();
-        if (frame == nullptr || !frame->old_style_init_self_load_allowed
-            || frame->old_style_init_self_load_claimed || frame->old_style_init_self == nullptr
+        if (frame == nullptr || frame->old_style_init_self == nullptr
+            || frame->old_style_init_self_claimed
             || !is_same_value_and_holder(v_h, *frame->old_style_init_self)
             || v_h.value_ptr() != nullptr) {
-            return false;
+            return nullptr;
         }
 
-        frame->old_style_init_self_load_claimed = true;
-        frame->old_style_init_self_load_allowed = false;
+        frame->old_style_init_self_claimed = true;
         if (type->operator_new) {
             frame->old_style_init_storage = type->operator_new(type->type_size);
         } else {
@@ -260,8 +199,7 @@ public:
         if (frame->old_style_init_storage == nullptr) {
             throw std::bad_alloc();
         }
-        value = frame->old_style_init_storage;
-        return true;
+        return frame->old_style_init_storage;
     }
 
     /// Publishes a successfully placement-constructed value and immediately finalizes its holder.
@@ -274,7 +212,6 @@ public:
         }
 
         auto v_h = *frame->old_style_init_self;
-        scoped_critical_section lock(handle(reinterpret_cast<PyObject *>(v_h.inst)));
         if (!v_h.value_constructing()) {
             pybind11_fail("loader_life_support: invalid old-style constructor commit");
         }
@@ -762,15 +699,28 @@ PYBIND11_NOINLINE void instance::deallocate_layout() {
 /// Marks the exact value slot targeted by a constructor. This state is never permission to load
 /// the value: every load is rejected until construction finishes, apart from the one-shot
 /// old-style constructor `self` permission maintained by `loader_life_support`.
+/// The dispatcher creates and destroys this scope while holding the instance critical section.
 class instance_construction_scope {
 public:
     explicit instance_construction_scope(value_and_holder *v_h) {
-        if (v_h == nullptr) {
-            return;
+        if (v_h != nullptr) {
+            start(*v_h);
         }
-        v_h_ = *v_h;
-        started_ = false;
-        scoped_critical_section lock(handle(reinterpret_cast<PyObject *>(v_h_.inst)));
+    }
+    ~instance_construction_scope() {
+        if (started_) {
+            finish();
+        }
+    }
+    instance_construction_scope(const instance_construction_scope &) = delete;
+    instance_construction_scope &operator=(const instance_construction_scope &) = delete;
+
+    bool started() const { return started_; }
+    bool already_registered() const { return already_registered_; }
+
+private:
+    PYBIND11_NOINLINE void start(const value_and_holder &v_h) {
+        v_h_ = v_h;
         if (v_h_.value_constructing()) {
             return;
         }
@@ -782,32 +732,17 @@ public:
         v_h_.set_value_constructing();
         started_ = true;
     }
-    ~instance_construction_scope() {
-        if (!started_ || v_h_.inst == nullptr) {
-            return;
-        }
-
-        scoped_critical_section lock(handle(reinterpret_cast<PyObject *>(v_h_.inst)));
+    PYBIND11_NOINLINE void finish() {
         // A failed new-style constructor can have published a value without completing its
         // holder. Preserve the existing cleanup guarantee for that case.
         if (value_was_null_ && !v_h_.holder_constructed() && v_h_.value_ptr() != nullptr) {
-            if (v_h_.instance_registered()) {
-                deregister_instance(v_h_.inst, v_h_.value_ptr(), v_h_.type);
-                v_h_.set_instance_registered(false);
-            }
-            v_h_.type->dealloc(v_h_);
+            deallocate_instance_value(v_h_);
         }
         v_h_.set_value_constructing(false);
     }
-    instance_construction_scope(const instance_construction_scope &) = delete;
-    instance_construction_scope &operator=(const instance_construction_scope &) = delete;
 
-    bool started() const { return started_; }
-    bool already_registered() const { return already_registered_; }
-
-private:
     value_and_holder v_h_;
-    bool started_ = true;
+    bool started_ = false;
     bool already_registered_ = false;
     bool value_was_null_ = false;
 };
@@ -1410,14 +1345,13 @@ public:
 
         // A non-null value pointer is not sufficient while a constructor is running: old-style
         // placement-new storage may exist before the C++ object's lifetime has begun. Only the
-        // exact argument-zero load of the current old-style constructor may access private raw
+        // one `self` load of the current old-style constructor candidate may access private raw
         // storage; reentrant, cross-base, nested, and cross-thread loads must all fail.
         if (v_h.value_constructing()) {
-            void *reserved_value = nullptr;
             const auto *type = v_h.type ? v_h.type : typeinfo;
-            if (loader_life_support::try_reserve_old_style_init_storage(
-                    v_h, type, reserved_value)) {
-                value = reserved_value;
+            if (void *reserved
+                = loader_life_support::try_reserve_old_style_init_storage(v_h, type)) {
+                value = reserved;
                 return;
             }
             throw value_error("Missing value for wrapped C++ type `"

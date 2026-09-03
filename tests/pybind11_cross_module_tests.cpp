@@ -42,20 +42,10 @@ public:
     void load_value(py::detail::value_and_holder &&v_h) {
         auto *&vptr = v_h.value_ptr();
         if (vptr == nullptr) {
+            // The stale code also has an over-aligned fallback, which the test types never reach.
             const auto *type = v_h.type != nullptr ? v_h.type : typeinfo;
-            if (type->operator_new != nullptr) {
-                vptr = type->operator_new(type->type_size);
-            } else {
-#if defined(__cpp_aligned_new)
-                if (type->type_align > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
-                    vptr = ::operator new(type->type_size, std::align_val_t(type->type_align));
-                } else {
-                    vptr = ::operator new(type->type_size);
-                }
-#else
-                vptr = ::operator new(type->type_size);
-#endif
-            }
+            vptr = type->operator_new != nullptr ? type->operator_new(type->type_size)
+                                                 : ::operator new(type->type_size);
         }
         value = vptr;
     }

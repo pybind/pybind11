@@ -266,6 +266,23 @@ def _assert_uninitialized_load_rejected(seen):
     assert isinstance(seen.get("error"), ValueError)
 
 
+class _LoadOnIndex:
+    """Constructor argument whose int conversion runs `function(obj)` while the C++ value is
+    still unconstructed, then returns `result` or, if that is None, aborts the constructor."""
+
+    def __init__(self, seen, function, obj, result=None):
+        self.seen = seen
+        self.function = function
+        self.obj = obj
+        self.result = result
+
+    def __index__(self):
+        _record_uninitialized_load(self.seen, self.function, self.obj)
+        if self.result is None:
+            raise TypeError("stop the constructor")
+        return self.result
+
+
 def test_new_bypasses_init():
     """`__new__` allocates the Python object but not the C++ one; using the instance before
     `__init__` has run must raise instead of segfaulting."""
@@ -319,114 +336,78 @@ def test_failed_old_style_init_does_not_leave_lazy_storage():
     assert obj.v_data() == 42
 
 
+def _check_legacy_v12_storage_collision():
+    """Body of test_old_style_init_legacy_v12_storage_collision, run in a subprocess."""
+    import pybind11_cross_module_tests as cm
+
+    unraisable = []
+    sys.unraisablehook = lambda args: unraisable.append(str(args.exc_value))
+
+    class LegacyLoadOnIndex:
+        """Loads `obj` through the stale caster during argument conversion."""
+
+        def __init__(self, obj, seen, result):
+            self.obj = obj
+            self.seen = seen
+            self.result = result
+
+        def __index__(self):
+            self.seen["address"] = cm.legacy_v12_pointer_only_load(self.obj)
+            if self.result is None:
+                raise TypeError("stop the constructor")
+            return self.result
+
+    def stats():
+        return m.old_style_init_collision_stats()
+
+    for cls, result, exc, constructed in [
+        # Conversion fails after the stale caster publishes storage: both raw allocations are
+        # rolled back without replacing the conversion failure with a cleanup error.
+        (m.OldStyleInitCollision, None, TypeError, 0),
+        # The C++ callback completed before the collision is detected: rollback constructs the
+        # real holder temporarily so that the private value's destructor runs exactly once.
+        (m.OldStyleInitCollision, 42, RuntimeError, 1),
+        # smart_holder ownership must be initialized before a constructed private value is retired.
+        (m.OldStyleInitCollisionSmart, 44, RuntimeError, 1),
+    ]:
+        m.reset_old_style_init_collision_stats()
+        obj = cls.__new__(cls)
+        seen = {}
+        # A failing `__index__` surfaces as the generic overload-resolution TypeError.
+        match = "storage collision" if exc is RuntimeError else None
+        with pytest.raises(exc, match=match):
+            obj.__init__(LegacyLoadOnIndex(obj, seen, result))
+        # Rollback invalidates the stale address; observing the integer proves only that the
+        # legacy publication path ran. Arbitrary escaped v12 pointers cannot be made safe here.
+        assert isinstance(seen.get("address"), int)
+        assert stats() == (2, 2, constructed, constructed)
+
+        # The same object remains usable.
+        obj.__init__(43)
+        assert obj.data() == 43
+        assert stats() == (3, 2, constructed + 1, constructed)
+        del obj
+        gc.collect()
+        gc.collect()
+        assert stats() == (3, 3, constructed + 1, constructed + 1)
+
+    assert unraisable == []
+
+
 def test_old_style_init_legacy_v12_storage_collision():
     """A stale v12 caster can publish competing storage while an updated old-style constructor
     keeps its storage private. For owning default and smart holders, collision rollback must not
-    throw from loader_life_support's destructor, leak either allocation, or prevent a retry."""
+    throw from loader_life_support's destructor, leak either allocation, or prevent a retry.
+    A regression can terminate the process, so the checks run in a subprocess."""
     env.check_script_success_in_subprocess(
         f"""
-        import gc
         import sys
 
         sys.path.insert(0, {os.path.dirname(env.__file__)!r})
 
-        import pybind11_cross_module_tests as cm
-        from pybind11_tests import class_ as m
+        import test_class
 
-
-        def counts():
-            return m.old_style_init_collision_stats()
-
-
-        def collect():
-            gc.collect()
-            gc.collect()
-
-
-        unraisable = []
-        sys.unraisablehook = lambda args: unraisable.append(str(args.exc_value))
-
-        # If conversion fails after the stale caster publishes storage, both raw allocations are
-        # rolled back without replacing normal conversion failure with a cleanup error or process
-        # termination. The same object remains usable.
-        m.reset_old_style_init_collision_stats()
-        obj = m.OldStyleInitCollision.__new__(m.OldStyleInitCollision)
-        seen = {{}}
-
-        class ReenterThenFail:
-            def __index__(self):
-                seen["address"] = cm.legacy_v12_pointer_only_load(obj)
-                raise TypeError("stop the constructor")
-
-        try:
-            obj.__init__(ReenterThenFail())
-        except TypeError:
-            pass
-        else:
-            raise AssertionError("argument conversion unexpectedly succeeded")
-        # Rollback invalidates the stale address; observing the integer proves only that the
-        # legacy publication path ran. Arbitrary escaped v12 pointers cannot be made safe here.
-        assert isinstance(seen.get("address"), int)
-        assert counts() == (2, 2, 0, 0)
-
-        obj.__init__(41)
-        assert obj.data() == 41
-        assert counts() == (3, 2, 1, 0)
-        del obj
-        collect()
-        assert counts() == (3, 3, 1, 1)
-
-        # If the C++ callback completed before the collision is detected, rollback must construct
-        # the real holder temporarily so that the private C++ value's destructor runs exactly once.
-        m.reset_old_style_init_collision_stats()
-        obj = m.OldStyleInitCollision.__new__(m.OldStyleInitCollision)
-        seen = {{}}
-
-        class ReenterThenSucceed:
-            def __index__(self):
-                seen["address"] = cm.legacy_v12_pointer_only_load(obj)
-                return 42
-
-        try:
-            obj.__init__(ReenterThenSucceed())
-        except RuntimeError as exc:
-            assert "old-style constructor storage collision" in str(exc)
-        else:
-            raise AssertionError("storage collision unexpectedly committed")
-        assert isinstance(seen.get("address"), int)
-        assert counts() == (2, 2, 1, 1)
-
-        obj.__init__(43)
-        assert obj.data() == 43
-        assert counts() == (3, 2, 2, 1)
-        del obj
-        collect()
-        assert counts() == (3, 3, 2, 2)
-
-        # Exercise the same rollback through smart_holder, whose ownership machinery differs from
-        # the default holder and must be initialized before a constructed private value is retired.
-        m.reset_old_style_init_collision_stats()
-        obj = m.OldStyleInitCollisionSmart.__new__(m.OldStyleInitCollisionSmart)
-
-        class ReenterSmart:
-            def __index__(self):
-                cm.legacy_v12_pointer_only_load(obj)
-                return 44
-
-        try:
-            obj.__init__(ReenterSmart())
-        except RuntimeError as exc:
-            assert "old-style constructor storage collision" in str(exc)
-        else:
-            raise AssertionError("smart-holder storage collision unexpectedly committed")
-        assert counts() == (2, 2, 1, 1)
-
-        obj.__init__(45)
-        assert obj.data() == 45
-        del obj
-        collect()
-        assert counts() == (3, 3, 2, 2)
-        assert unraisable == []
+        test_class._check_legacy_v12_storage_collision()
         """,
         rerun=1,
     )
@@ -437,17 +418,8 @@ def test_reentrant_load_during_new_style_init():
     to another bound function while `__init__` runs must raise, not hand out garbage."""
     obj = m.NewNoInit.__new__(m.NewNoInit)
     seen = {}
-
-    class Evil:
-        def __index__(self):
-            # Runs during int conversion of the constructor argument while the C++ value is
-            # unconstructed. A new-style constructor never authorizes lazy allocation for it.
-            _record_uninitialized_load(seen, m.accept_new_no_init, obj)
-            raise TypeError("stop the constructor")
-
     with pytest.raises(TypeError):
-        obj.__init__(Evil())
-
+        obj.__init__(_LoadOnIndex(seen, m.accept_new_no_init, obj))
     _assert_uninitialized_load_rejected(seen)
 
 
@@ -456,15 +428,8 @@ def test_reentrant_load_during_old_style_init_argument_conversion():
     converting a later argument must not be able to load that storage as a C++ object."""
     obj = m.OldStyleInit.__new__(m.OldStyleInit)
     seen = {}
-
-    class ReenterThenFail:
-        def __index__(self):
-            _record_uninitialized_load(seen, m.accept_old_style_init, obj)
-            raise TypeError("stop the constructor")
-
     with pytest.raises(TypeError):
-        obj.__init__(ReenterThenFail())
-
+        obj.__init__(_LoadOnIndex(seen, m.accept_old_style_init, obj))
     _assert_uninitialized_load_rejected(seen)
     with pytest.raises(ValueError):
         m.accept_old_style_init(obj)
@@ -479,13 +444,7 @@ def test_reentrant_load_during_mixed_style_init():
     overload chain is being tried."""
     obj = m.MixedStyleInit.__new__(m.MixedStyleInit)
     seen = {}
-
-    class Reenter:
-        def __index__(self):
-            _record_uninitialized_load(seen, m.accept_mixed_style_init, obj)
-            return 42
-
-    obj.__init__(Reenter())
+    obj.__init__(_LoadOnIndex(seen, m.accept_mixed_style_init, obj, 42))
     _assert_uninitialized_load_rejected(seen)
     assert obj.data() == 42
 
@@ -498,13 +457,7 @@ def test_reentrant_load_during_old_style_setstate():
     callback before placement-new must still see the instance as unconstructed."""
     obj = m.OldStyleInit.__new__(m.OldStyleInit)
     seen = {}
-
-    class Reenter:
-        def __index__(self):
-            _record_uninitialized_load(seen, m.accept_old_style_init, obj)
-            return 43
-
-    obj.__setstate__(Reenter())
+    obj.__setstate__(_LoadOnIndex(seen, m.accept_old_style_init, obj, 43))
     _assert_uninitialized_load_rejected(seen)
     assert obj.data() == 43
 
@@ -540,13 +493,7 @@ def test_old_style_init_does_not_authorize_another_python_mi_base():
 
     obj = PythonMI.__new__(PythonMI)
     seen = {}
-
-    class Reenter:
-        def __index__(self):
-            _record_uninitialized_load(seen, m.accept_new_no_init, obj)
-            return 45
-
-    m.OldStyleInit.__init__(obj, Reenter())
+    m.OldStyleInit.__init__(obj, _LoadOnIndex(seen, m.accept_new_no_init, obj, 45))
     _assert_uninitialized_load_rejected(seen)
     assert obj.data() == 45
 
