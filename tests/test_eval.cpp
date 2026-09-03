@@ -103,7 +103,8 @@ TEST_SUBMODULE(eval_, m) {
             throw std::runtime_error("py::exec did not raise RuntimeError");
         } catch (py::error_already_set &e) {
             py::object tb = e.trace();
-            for (py::object next = tb.attr("tb_next"); !next.is_none(); next = tb.attr("tb_next")) {
+            for (py::object next = tb.attr("tb_next"); !next.is_none();
+                 next = tb.attr("tb_next")) {
                 tb = std::move(next);
             }
             traceback_lineno = tb.attr("tb_lineno").cast<int>();
