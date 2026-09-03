@@ -295,8 +295,8 @@ if(NOT TARGET pybind11_headers)
   target_include_directories(
     pybind11_headers ${pybind11_system} INTERFACE $<BUILD_INTERFACE:${pybind11_INCLUDE_DIR}>
                                                   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
-  set_property(
-    TARGET pybind11_headers PROPERTY PYBIND11_USE_SYSTEM_HEADERS "${PYBIND11_USE_SYSTEM_HEADERS}")
+  set_property(TARGET pybind11_headers PROPERTY PYBIND11_USE_SYSTEM_HEADERS
+                                                "${PYBIND11_USE_SYSTEM_HEADERS}")
 
   target_compile_features(pybind11_headers INTERFACE cxx_inheriting_constructors cxx_user_literals
                                                      cxx_right_angle_brackets)
