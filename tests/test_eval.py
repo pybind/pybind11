@@ -27,6 +27,10 @@ def test_eval_file():
     assert m.test_eval_file_failure()
 
 
+def test_eval_line_numbers():
+    assert m.test_eval_line_numbers() == (2, 2)
+
+
 def test_eval_empty_globals():
     assert "__builtins__" in m.eval_empty_globals(None)
 
