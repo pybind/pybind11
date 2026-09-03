@@ -694,6 +694,14 @@ TEST_SUBMODULE(class_, m) {
                 int x = state.cast<int>();
                 new (&self) OldStyleInit(x);
             });
+        old_style_init.def(
+            "__init__", [](const py::object &, const OldStyleInit &, py::list entered) {
+                // Reaching this callback means that the later argument was exposed as a C++
+                // reference before an OldStyleInit object's lifetime began. Do not inspect that
+                // reference: keep the regression test itself free of undefined behavior.
+                entered.append("entered");
+                throw std::runtime_error("later-alias constructor callback entered");
+            });
     });
     old_style_init.def("data", &OldStyleInit::data).def("v_data", &OldStyleInit::v_data);
 

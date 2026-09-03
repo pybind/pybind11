@@ -336,6 +336,25 @@ def test_failed_old_style_init_does_not_leave_lazy_storage():
     assert obj.v_data() == 42
 
 
+def test_old_style_init_does_not_authorize_later_self_alias():
+    """A later typed argument that aliases a Python-typed `self` must not claim the old-style
+    constructor's private storage and reach C++ before the object's lifetime has begun."""
+    obj = m.OldStyleInit.__new__(m.OldStyleInit)
+    entered = []
+
+    with pytest.raises((ValueError, RuntimeError)) as exc_info:
+        obj.__init__(obj, entered)
+
+    # This is the decisive assertion: the callback's typed argument would refer to raw storage.
+    assert entered == []
+    assert isinstance(exc_info.value, ValueError)
+    assert "still being constructed" in str(exc_info.value)
+
+    # Rejection must leave the object retryable.
+    obj.__init__(42)
+    assert obj.data() == 42
+
+
 def _check_legacy_v12_storage_collision():
     """Body of test_old_style_init_legacy_v12_storage_collision, run in a subprocess."""
     import pybind11_cross_module_tests as cm
