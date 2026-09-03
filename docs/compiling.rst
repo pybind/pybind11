@@ -506,6 +506,12 @@ You can also use the targets (as listed below) with FindPython. If you define
 (mostly useful when building pybind11's own tests, or as a way to change search
 algorithms from the CMake invocation, with ``-DPYBIND11_FINDPYTHON=ON``.
 
+When adding pybind11 as a subdirectory, its headers are marked as system headers
+by default. If a parent project globally adds a prefix containing another
+pybind11 installation, add ``set(PYBIND11_USE_SYSTEM_HEADERS OFF)`` before
+``add_subdirectory(pybind11)``. ``pybind11_add_module()`` then prioritizes the
+subdirectory's headers over the parent include path.
+
 .. warning::
 
     If you use FindPython to multi-target Python versions, use the individual

@@ -160,6 +160,13 @@ function(pybind11_add_module target_name)
 
   target_link_libraries(${target_name} PRIVATE pybind11::module)
 
+  get_property(
+    _pybind11_use_system_headers TARGET pybind11_headers PROPERTY PYBIND11_USE_SYSTEM_HEADERS)
+  if(NOT _pybind11_use_system_headers)
+    set_property(TARGET pybind11_headers PROPERTY INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "")
+    target_include_directories(${target_name} BEFORE PRIVATE "${pybind11_INCLUDE_DIR}")
+  endif()
+
   if(ARG_SYSTEM)
     message(
       STATUS
