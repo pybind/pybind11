@@ -118,40 +118,6 @@ def test_nested_acquire():
 
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
 @pytest.mark.skipif(
-    env.PY_GIL_DISABLED,
-    reason="On free-threaded builds gil_scoped_release detaches the thread state, which "
-    "the constructor machinery is not safe against (pre-existing limitation); the "
-    "instance map is mutex-protected there, so there is nothing to test.",
-)
-def test_init_factory_gil_released_concurrent_construction():
-    """Concurrent construction via a factory `py::init` with `call_guard<gil_scoped_release>`.
-
-    `init_instance` runs while the GIL is released and must internally re-acquire the GIL
-    before touching the instance map. Without that fix this aborts with
-    "pybind11_object_dealloc(): Tried to deallocate unregistered instance!" (races on
-    `internals.registered_instances`, which is unguarded on GIL builds).
-    """
-    if env.PY_GIL_DISABLED:
-        # The skipif marker above does not apply when this function is invoked directly
-        # by the _run_in_process / _run_in_threads parametrizations below.
-        return
-    num_threads = 8
-    iterations = 100
-
-    def construct_many():
-        for _ in range(iterations):
-            instance = m.SlowInit(0)
-            del instance  # Destructor runs with the GIL held (deregistration).
-
-    threads = [threading.Thread(target=construct_many) for _ in range(num_threads)]
-    for thread in threads:
-        thread.start()
-    for thread in threads:
-        thread.join()
-
-
-@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
-@pytest.mark.skipif(
     env.GRAALPY and sys.platform == "darwin",
     reason="Transiently crashes on GraalPy on OS X",
 )
@@ -181,7 +147,6 @@ ALL_BASIC_TESTS = (
     test_release_acquire,
     test_nested_acquire,
     test_multi_acquire_release_cross_module,
-    test_init_factory_gil_released_concurrent_construction,
 )
 
 
@@ -193,6 +158,40 @@ def test_all_basic_tests_completeness():
         assert value in ALL_BASIC_TESTS
         num_found += 1
     assert len(ALL_BASIC_TESTS) == num_found
+
+
+# Defined after ALL_BASIC_TESTS on purpose: this test is a data-race regression for
+# GIL builds, not a deadlock check, so it should not run in the _run_in_process
+# parametrizations above (whose subprocesses impose a 10s timeout; on Windows this
+# test is much slower there due to sleep timer granularity and GIL handoff costs).
+@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
+@pytest.mark.skipif(
+    env.PY_GIL_DISABLED,
+    reason="On free-threaded builds gil_scoped_release detaches the thread state, which "
+    "the constructor machinery is not safe against (pre-existing limitation); the "
+    "instance map is mutex-protected there, so there is nothing to test.",
+)
+def test_init_factory_gil_released_concurrent_construction():
+    """Concurrent construction via a factory `py::init` with `call_guard<gil_scoped_release>`.
+
+    `init_instance` runs while the GIL is released and must internally re-acquire the GIL
+    before touching the instance map. Without that fix this aborts with
+    "pybind11_object_dealloc(): Tried to deallocate unregistered instance!" (races on
+    `internals.registered_instances`, which is unguarded on GIL builds).
+    """
+    num_threads = 8
+    iterations = 100
+
+    def construct_many():
+        for _ in range(iterations):
+            instance = m.SlowInit(0)
+            del instance  # Destructor runs with the GIL held (deregistration).
+
+    threads = [threading.Thread(target=construct_many) for _ in range(num_threads)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
 
 
 def _intentional_deadlock():
