@@ -63,7 +63,7 @@ TEST_SUBMODULE(gil_scoped, m) {
                  // released by the call_guard, making the instance-map race (without the
                  // `init_instance` GIL-acquire fix) much more likely to surface.
                  std::this_thread::sleep_for(std::chrono::milliseconds(1));
-                 return std::make_unique<SlowInit>(state);
+                 return std::unique_ptr<SlowInit>(new SlowInit(state));
              }),
              py::call_guard<py::gil_scoped_release>());
 
