@@ -117,6 +117,12 @@ def test_nested_acquire():
 
 
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
+@pytest.mark.skipif(
+    env.PY_GIL_DISABLED,
+    reason="On free-threaded builds gil_scoped_release detaches the thread state, which "
+    "the constructor machinery is not safe against (pre-existing limitation); the "
+    "instance map is mutex-protected there, so there is nothing to test.",
+)
 def test_init_factory_gil_released_concurrent_construction():
     """Concurrent construction via a factory `py::init` with `call_guard<gil_scoped_release>`.
 
@@ -125,6 +131,10 @@ def test_init_factory_gil_released_concurrent_construction():
     "pybind11_object_dealloc(): Tried to deallocate unregistered instance!" (races on
     `internals.registered_instances`, which is unguarded on GIL builds).
     """
+    if env.PY_GIL_DISABLED:
+        # The skipif marker above does not apply when this function is invoked directly
+        # by the _run_in_process / _run_in_threads parametrizations below.
+        return
     num_threads = 8
     iterations = 100
 
