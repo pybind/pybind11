@@ -51,7 +51,7 @@ void bind_ConstructorStats(py::module_ &m) {
         .def_readwrite("copy_constructions", &ConstructorStats::copy_constructions)
         .def_readwrite("move_constructions", &ConstructorStats::move_constructions)
         .def_static("get",
-                    (ConstructorStats & (*) (py::object)) & ConstructorStats::get,
+                    (ConstructorStats & (*)(py::object)) & ConstructorStats::get,
                     py::return_value_policy::reference_internal)
 
         // Not exactly ConstructorStats, but related: expose the internal pybind number of

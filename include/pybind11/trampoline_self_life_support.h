@@ -59,7 +59,7 @@ struct trampoline_self_life_support {
 };
 
 PYBIND11_NAMESPACE_BEGIN(detail)
-using get_trampoline_self_life_support_fn = trampoline_self_life_support *(*) (void *);
+using get_trampoline_self_life_support_fn = trampoline_self_life_support *(*)(void *);
 PYBIND11_NAMESPACE_END(detail)
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

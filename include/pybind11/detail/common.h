@@ -460,8 +460,8 @@ PyModuleDef_Init should be treated like any other PyObject (so not shared across
         try {                                                                                     \
             pybind11::detail::ensure_internals();                                                 \
             static ::pybind11::detail::slots_array mod_def_slots                                  \
-                = ::pybind11::detail::init_slots(&PYBIND11_CONCAT(pybind11_exec_, name),          \
-                                                 ##__VA_ARGS__);                                  \
+                = ::pybind11::detail::init_slots(                                                 \
+                    &PYBIND11_CONCAT(pybind11_exec_, name), ##__VA_ARGS__);                       \
             static PyModuleDef def{/* m_base */ PyModuleDef_HEAD_INIT,                            \
                                    /* m_name */ PYBIND11_TOSTRING(name),                          \
                                    /* m_doc */ nullptr,                                           \
