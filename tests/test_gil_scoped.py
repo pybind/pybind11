@@ -160,17 +160,12 @@ def test_all_basic_tests_completeness():
     assert len(ALL_BASIC_TESTS) == num_found
 
 
-# Defined after ALL_BASIC_TESTS on purpose: this test is a data-race regression for
-# GIL builds, not a deadlock check, so it should not run in the _run_in_process
-# parametrizations above (whose subprocesses impose a 10s timeout; on Windows this
-# test is much slower there due to sleep timer granularity and GIL handoff costs).
+# Defined after ALL_BASIC_TESTS on purpose: this test is a regression for the
+# `gil_scoped_release` + factory `py::init` path, not a deadlock check, so it should not
+# run in the _run_in_process parametrizations above (whose subprocesses impose a 10s
+# timeout; on Windows this test is much slower there due to sleep timer granularity and
+# GIL handoff costs).
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
-@pytest.mark.skipif(
-    env.PY_GIL_DISABLED,
-    reason="On free-threaded builds gil_scoped_release detaches the thread state, which "
-    "the constructor machinery is not safe against (pre-existing limitation); the "
-    "instance map is mutex-protected there, so there is nothing to test.",
-)
 def test_init_factory_gil_released_concurrent_construction():
     """Concurrent construction via a factory `py::init` with `call_guard<gil_scoped_release>`.
 
