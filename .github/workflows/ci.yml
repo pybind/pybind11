@@ -272,24 +272,40 @@ jobs:
         include:
           - clang: 5
             std: 14
+            container: "silkeh/clang:5@sha256:68f994994d0c12563f4ce6bf34d78a19dc503e8e48778e4af33cf49abcd27133"
+            use_bullseye_snapshot: true
           - clang: 11
             std: 20
+            container: "silkeh/clang:11-bullseye@sha256:5d4e67f5a2de1b26f632b88343dc63b894c8ddc9b068114894cc56de8e888b61"
+            use_bullseye_snapshot: true
           - clang: 16
             std: 20
-            container_suffix: "-bullseye"
+            container: "silkeh/clang:16-bookworm"
           - clang: 18
             std: 20
             cxx_flags: "-Werror -Wall -Wextra -Wwrite-strings -Wunreachable-code -Wpointer-arith -Wredundant-decls -Wunused-template"
-            container_suffix: "-bookworm"
+            container: "silkeh/clang:18-bookworm"
 
     name: "🐍 3 • Clang ${{ matrix.clang }} • C++${{ matrix.std }} • x64${{ matrix.cxx_flags && ' • cxx_flags' || '' }}"
-    container: "silkeh/clang:${{ matrix.clang }}${{ matrix.container_suffix }}"
+    container: "${{ matrix.container }}"
     timeout-minutes: 90
 
     steps:
     - uses: actions/checkout@v7
 
-    - name: Add wget and python3
+    - name: Use the pinned Debian snapshot for legacy Clang — see PR 6175
+      if: matrix.use_bullseye_snapshot
+      run: |
+        # Clang 5 and 11 have no Bookworm images. Keep their Bullseye package
+        # set coherent after the end of Bullseye LTS by using its final snapshot.
+        rm -f /etc/apt/sources.list.d/*
+        printf '%s\n' \
+          'deb [check-valid-until=no] https://snapshot.debian.org/archive/debian/20260831T000000Z/ bullseye main' \
+          'deb [check-valid-until=no] https://snapshot.debian.org/archive/debian/20260831T000000Z/ bullseye-updates main' \
+          'deb [check-valid-until=no] https://snapshot.debian.org/archive/debian-security/20260831T000000Z/ bullseye-security main' \
+          > /etc/apt/sources.list
+
+    - name: Install Python 3 and test dependencies
       run: apt-get update && apt-get install -y python3-dev python3-numpy python3-pytest libeigen3-dev
 
     - name: Configure
@@ -458,16 +474,37 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { gcc: 9, std: 20 }
-          - { gcc: 10, std: 17 }
-          - { gcc: 13, std: 20, cxx_flags: "-Wall -Wextra -Wwrite-strings -Wunreachable-code -Wpointer-arith -Wredundant-decls" }
+          - gcc: 9
+            std: 20
+            container: "gcc:9-bullseye@sha256:a9aba821155db99d0800920f27bf3a94ead6f9dedf330a2e2ce38da73f5370e3"
+            use_bullseye_snapshot: true
+          - gcc: 10
+            std: 17
+            container: "gcc:10-bullseye@sha256:19b31d0b2b263047b173e4e253d91f199d99c082973f13604d2913252c13309e"
+            use_bullseye_snapshot: true
+          - gcc: 13
+            std: 20
+            container: "gcc:13"
+            cxx_flags: "-Wall -Wextra -Wwrite-strings -Wunreachable-code -Wpointer-arith -Wredundant-decls"
 
     name: "🐍 3 • GCC ${{ matrix.gcc }} • C++${{ matrix.std }} • x64${{ matrix.cxx_flags && ' • cxx_flags' || '' }}"
-    container: "gcc:${{ matrix.gcc }}"
+    container: "${{ matrix.container }}"
     timeout-minutes: 90
 
     steps:
     - uses: actions/checkout@v7
+
+    - name: Use the pinned Debian snapshot for legacy GCC — see PR 6175
+      if: matrix.use_bullseye_snapshot
+      run: |
+        # The GCC 9 and 10 Bookworm images cannot run Bookworm's apt with
+        # their older libstdc++. Keep the coherent Bullseye userspace instead.
+        rm -f /etc/apt/sources.list.d/*
+        printf '%s\n' \
+          'deb [check-valid-until=no] https://snapshot.debian.org/archive/debian/20260831T000000Z/ bullseye main' \
+          'deb [check-valid-until=no] https://snapshot.debian.org/archive/debian/20260831T000000Z/ bullseye-updates main' \
+          'deb [check-valid-until=no] https://snapshot.debian.org/archive/debian-security/20260831T000000Z/ bullseye-security main' \
+          > /etc/apt/sources.list
 
     - name: Add Python 3
       run: apt-get update; apt-get install -y python3-dev python3-numpy python3-pytest python3-pip libeigen3-dev
@@ -682,9 +719,9 @@ jobs:
   # This tests an "install" with the CMake tools
   install-classic:
     if: github.event.pull_request.draft == false
-    name: "🐍 3.9 • Debian • x86 •  Install"
+    name: "🐍 3.11 • Debian • x86 •  Install"
     runs-on: ubuntu-latest
-    container: i386/debian:bullseye
+    container: i386/debian:bookworm
     timeout-minutes: 90
 
     steps:
@@ -694,8 +731,7 @@ jobs:
     - name: Install requirements
       run: |
         apt-get update
-        apt-get install -y git make cmake g++ libeigen3-dev python3-dev python3-pip
-        pip3 install "pytest==6.*"
+        apt-get install -y git make cmake g++ libeigen3-dev python3-dev python3-pytest
 
     - name: Configure for install
       run: >
