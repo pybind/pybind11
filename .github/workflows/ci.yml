@@ -54,6 +54,9 @@ jobs:
             python-version: 'graalpy-25.0'
             cmake-args: -DCMAKE_CXX_STANDARD=20
           - runs-on: ubuntu-latest
+            python-version: 'graalpy-25.3'
+            cmake-args: -DCMAKE_CXX_STANDARD=20
+          - runs-on: ubuntu-latest
             python-version: '3.15'
             cmake-args: -DCMAKE_CXX_STANDARD=20
           - runs-on: macos-latest
@@ -113,6 +116,8 @@ jobs:
             python-version: 'pypy-3.11-v7.3.23'
           - runs-on: macos-latest
             python-version: 'graalpy-25.0'
+          - runs-on: macos-latest
+            python-version: 'graalpy-25.3'
 
           - runs-on: windows-latest
             python-version: '3.9'
