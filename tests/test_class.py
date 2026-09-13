@@ -313,26 +313,27 @@ def test_old_style_setstate_remains_supported():
     assert obj.data() == 43
 
 
-def test_old_style_init_reentrant_load_is_out_of_scope():
-    """The minimal fix retains the historical broad lazy-allocation window while an old-style
-    constructor chain is active. It does not promise to reject reentrant loads in that window."""
+def test_old_style_init_reentrant_load_current_limitation():
+    """The historical broad lazy-allocation window retained during an old-style constructor
+    chain can expose a pointer to unconstructed storage through a reentrant load."""
     obj = m.OldStyleInit.__new__(m.OldStyleInit)
     seen = {}
 
     class LoadOnIndex:
         def __index__(self):
-            seen["accepted"] = m.accept_old_style_init(obj)
+            # This pointer-only probe deliberately does not inspect or dereference the storage.
+            seen["exposed"] = m.expose_old_style_init_pointer(obj)
             raise TypeError("stop the constructor")
 
     with pytest.raises(TypeError):
         obj.__init__(LoadOnIndex())
 
-    assert seen == {"accepted": True}
+    assert seen == {"exposed": True}
 
     # Failure cleanup removes the raw storage, so subsequent ordinary loads are rejected and a
     # normal initialization retry remains possible.
     with pytest.raises(ValueError, match="uninitialized"):
-        m.accept_old_style_init(obj)
+        m.expose_old_style_init_pointer(obj)
     obj.__init__(44)
     assert obj.data() == 44
 
