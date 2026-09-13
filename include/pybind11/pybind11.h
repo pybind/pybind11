@@ -2804,9 +2804,7 @@ private:
         // only thread-safe while the GIL is held, but `init_instance` runs with the GIL
         // released when a factory-based `py::init` is combined with
         // `py::call_guard<py::gil_scoped_release>`. No-op if the GIL is already held.
-#if !defined(Py_GIL_DISABLED)
         gil_scoped_acquire gil;
-#endif
         auto v_h = inst->get_value_and_holder(detail::get_type_info(typeid(type)));
         if (!v_h.instance_registered()) {
             register_instance(inst, v_h.value_ptr(), v_h.type);
@@ -2848,9 +2846,7 @@ private:
         auto *holder_void_ptr = const_cast<void *>(holder_const_void_ptr);
 
         // See the comment in the non-smart_holder `init_instance` above.
-#if !defined(Py_GIL_DISABLED)
         gil_scoped_acquire gil;
-#endif
 
         auto v_h = inst->get_value_and_holder(detail::get_type_info(typeid(type)));
         if (!v_h.instance_registered()) {
