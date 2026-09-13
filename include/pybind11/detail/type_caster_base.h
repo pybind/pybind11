@@ -537,8 +537,13 @@ PYBIND11_NOINLINE void instance::deallocate_layout() {
 
 /// RAII helper preserving lazy value allocation for a constructor chain containing a deprecated
 /// old-style placement-new `__init__`/`__setstate__`. Passing `nullptr` makes this a no-op. The
-/// compatibility window covers the whole chain; it does not attempt to distinguish the old-style
-/// `self` load from reentrant or later-argument loads. Nesting restores the previous state.
+/// compatibility window covers the whole chain and all value slots in the Python instance; it does
+/// not attempt to distinguish the old-style `self` load from reentrant, later-argument,
+/// cross-base, nested, or concurrent loads. Nesting restores the previous state but is not made
+/// safe by this scope.
+/// Before narrowing this window, review `old_style_placement_new` in `docs/upgrade.rst` and its
+/// reference from `docs/advanced/classes.rst`: the broad scope preserves historical behavior,
+/// with documented reentrancy, multiple-inheritance, nesting, and concurrency limitations.
 ///
 /// If construction fails (the holder was never constructed) after storage was lazily allocated
 /// inside this scope, the destructor frees that storage and resets the value pointer, so that the
