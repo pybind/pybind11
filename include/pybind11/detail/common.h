@@ -664,10 +664,8 @@ struct instance {
      * the [bb...] block (but not independently allocated).
      *
      * Status bits indicate whether the associated holder is constructed (&
-     * status_holder_constructed), whether the value pointer is registered (&
-     * status_instance_registered) in `registered_instances`, and whether a constructor is
-     * currently constructing the C++ value in that slot (& status_value_constructing), during
-     * which the value pointer must not be treated as denoting a live C++ object.
+     * status_holder_constructed) and whether the value pointer is registered (&
+     * status_instance_registered) in `registered_instances`.
      */
     bool simple_layout : 1;
     /// For simple layout, tracks whether the holder has been constructed
@@ -678,8 +676,10 @@ struct instance {
     bool has_patients : 1;
     /// If true, this Python object needs to be kept alive for the lifetime of the C++ value.
     bool is_alias : 1;
-    /// For simple layout, tracks whether a constructor is currently constructing the C++ value.
-    bool simple_value_constructing : 1;
+    /// If true, this instance is being dispatched through a constructor chain containing a
+    /// deprecated old-style placement-new `__init__`/`__setstate__`. Such chains retain the
+    /// historical ability to lazily allocate C++ value storage; see `old_style_init_scope`.
+    bool old_style_init_active : 1;
 
     /// Initializes all of the above type/values/holders data (but not the instance values
     /// themselves)
@@ -697,7 +697,6 @@ struct instance {
     /// Bit values for the non-simple status flags
     static constexpr uint8_t status_holder_constructed = 1;
     static constexpr uint8_t status_instance_registered = 2;
-    static constexpr uint8_t status_value_constructing = 4;
 };
 
 static_assert(std::is_standard_layout<instance>::value,

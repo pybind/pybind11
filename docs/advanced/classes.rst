@@ -875,6 +875,16 @@ The ``__setstate__`` part of the ``py::pickle()`` definition follows the same
 rules as the single-argument version of ``py::init()``. The return type can be
 a value, pointer or holder type. See :ref:`custom_constructors` for details.
 
+Calling ``__new__`` directly creates the Python wrapper without constructing its C++ value.
+Passing such an uninitialized wrapper to bound C++ code raises ``ValueError``. Calling its
+``__init__`` or a pickle-generated ``__setstate__`` can still finish construction normally.
+
+Deprecated placement-new ``__init__`` and ``__setstate__`` bindings retain their historical
+lazy-allocation behavior for compatibility. The exception covers their complete constructor
+overload chain and is not a general construction-safety boundary: reentrant loads while such a
+chain is active remain the responsibility of the binding author. Prefer ``py::init()`` factories
+and ``py::pickle()``, which return a constructed value, pointer, or holder.
+
 An instance can now be pickled as follows:
 
 .. code-block:: python

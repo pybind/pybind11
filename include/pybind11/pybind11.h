@@ -501,18 +501,8 @@ private:
             = make_caster<conditional_t<std::is_void<Return>::value, void_type, Return>>;
 
         ArgsConverter args_converter;
-        // Only an old-style constructor candidate has a frame that can hand out storage for a
-        // not-yet-constructed value; the loader needs to know which argument is `self`.
-        auto *old_style_init_frame = call.func.is_constructor
-                                         ? loader_life_support::current_old_style_init_frame()
-                                         : nullptr;
-        if (!args_converter.load_args(call, old_style_init_frame)) {
+        if (!args_converter.load_args(call)) {
             return PYBIND11_TRY_NEXT_OVERLOAD;
-        }
-        if (old_style_init_frame != nullptr) {
-            // Argument loading is over: from here on, only the C++ callable itself may perform
-            // the one authorized `self` cast of a legacy `py::object`-self old-style constructor.
-            old_style_init_frame->finish_argument_loading();
         }
 
         /* Override policy for rvalues -- usually to enforce rvp::move on an rvalue */
@@ -520,16 +510,16 @@ private:
             = return_value_policy_override<Return>::policy(call.func.policy);
 
         /* Perform the function call */
-        auto &&cpp_result = std::move(args_converter).template call<Return, Guard>(f);
-        if (call.func.is_constructor) {
-            // Publish old-style constructor storage before return-value conversion can observe
-            // the instance.
-            loader_life_support::complete_old_style_init();
-        }
+        handle result;
         if (call.func.is_setter) {
-            return none().release();
+            (void) std::move(args_converter).template call<Return, Guard>(f);
+            result = none().release();
+        } else {
+            result = cast_out::cast(
+                std::move(args_converter).template call<Return, Guard>(f), policy, call.parent);
         }
-        return cast_out::cast(std::forward<decltype(cpp_result)>(cpp_result), policy, call.parent);
+
+        return result;
     }
 
 protected:
@@ -1003,35 +993,32 @@ protected:
                 = get_type_info(reinterpret_cast<PyTypeObject *>(overloads->scope.ptr()));
             auto *const pi = reinterpret_cast<instance *>(parent.ptr());
             self_value_and_holder = pi->get_value_and_holder(tinfo, true);
-        }
 
-        // On free-threaded Python, serialize the complete constructor transaction. Python
-        // critical sections are suspended around blocking operations, allowing another thread to
-        // enter, observe `value_constructing`, and reject access without racing status-byte
-        // updates.
-        scoped_critical_section constructor_lock(overloads->is_constructor ? parent : handle{});
-
-        detail::instance_construction_scope construction_scope(
-            overloads->is_constructor ? &self_value_and_holder : nullptr);
-        if (overloads->is_constructor) {
             // If this value is already registered it must mean __init__ is invoked multiple times;
             // we really can't support that in C++, so just ignore the second __init__.
-            if (construction_scope.already_registered()) {
+            if (self_value_and_holder.instance_registered()) {
                 return none().release().ptr();
-            }
-            if (!construction_scope.started()) {
-                set_error(PyExc_ValueError,
-                          "Cannot initialize a wrapped C++ value while it is already being "
-                          "constructed");
-                return nullptr;
             }
         }
 
-        // Old-style constructors reserve private `self` storage through their loader frame.
-        auto old_style_init_self = [&](const function_record &f) -> value_and_holder * {
-            return f.is_constructor && !f.is_new_style_constructor ? &self_value_and_holder
-                                                                   : nullptr;
-        };
+        // While a constructor chain containing an old-style placement-new
+        // `__init__`/`__setstate__` runs, `type_caster_generic::load_value()` is permitted to
+        // lazily allocate storage for the C++ value that the constructor is about to construct
+        // into. New-style constructors never load `self` through a type caster (it is injected
+        // directly below), so the scope stays disarmed for chains that contain only new-style
+        // constructors and loading a not-yet-constructed instance remains an error even while they
+        // run. The scope also frees storage that was lazily allocated by a constructor call that
+        // then failed.
+        detail::value_and_holder *lazily_allocatable_v_h = nullptr;
+        if (overloads->is_constructor) {
+            for (const function_record *fr = overloads; fr != nullptr; fr = fr->next) {
+                if (!fr->is_new_style_constructor) {
+                    lazily_allocatable_v_h = &self_value_and_holder;
+                    break;
+                }
+            }
+        }
+        detail::old_style_init_scope old_style_init_guard(lazily_allocatable_v_h);
 
         try {
             // We do this in two passes: in the first pass, we load arguments with `convert=false`;
@@ -1092,9 +1079,8 @@ protected:
 
                 // 0. Inject new-style `self` argument
                 if (func.is_new_style_constructor) {
-                    // Retain cleanup for a value partially published by a preceding failed
-                    // new-style candidate. Old-style reservations are private and are cleaned up
-                    // with their loader frame before another candidate is tried.
+                    // The `value` may have been preallocated by an old-style `__init__`
+                    // if it was a preceding candidate for overload resolution.
                     if (self_value_and_holder) {
                         self_value_and_holder.type->dealloc(self_value_and_holder);
                     }
@@ -1265,7 +1251,7 @@ protected:
 
                 // 6. Call the function.
                 try {
-                    loader_life_support guard{old_style_init_self(func)};
+                    loader_life_support guard{};
                     result = func.impl(call);
                 } catch (reference_cast_error &) {
                     result = PYBIND11_TRY_NEXT_OVERLOAD;
@@ -1296,7 +1282,7 @@ protected:
                 // allowed
                 for (auto &call : second_pass) {
                     try {
-                        loader_life_support guard{old_style_init_self(call.func)};
+                        loader_life_support guard{};
                         result = call.func.impl(call);
                     } catch (reference_cast_error &) {
                         result = PYBIND11_TRY_NEXT_OVERLOAD;

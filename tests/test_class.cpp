@@ -98,113 +98,6 @@ struct OldStyleInit {
     virtual int v_data() const { return m_data; }
 };
 
-// test_old_style_init_legacy_v12_storage_collision
-struct OldStyleInitCollisionStats {
-    int allocations = 0;
-    int deallocations = 0;
-    int constructions = 0;
-    int destructions = 0;
-};
-
-OldStyleInitCollisionStats &old_style_init_collision_stats() {
-    static OldStyleInitCollisionStats stats;
-    return stats;
-}
-
-struct OldStyleInitCollision {
-    int m_data;
-
-    explicit OldStyleInitCollision(int data) : m_data(data) {
-        ++old_style_init_collision_stats().constructions;
-    }
-    ~OldStyleInitCollision() { ++old_style_init_collision_stats().destructions; }
-
-    static void *operator new(size_t size) {
-        ++old_style_init_collision_stats().allocations;
-        return ::operator new(size);
-    }
-    static void operator delete(void *ptr) noexcept {
-        ++old_style_init_collision_stats().deallocations;
-        ::operator delete(ptr);
-    }
-
-    int data() const { return m_data; }
-};
-
-struct OldStyleInitCollisionSmart : OldStyleInitCollision {
-    explicit OldStyleInitCollisionSmart(int data) : OldStyleInitCollision(data) {}
-};
-
-// test_reentrant_load_during_mixed_style_init
-struct MixedStyleInit {
-    int m_data;
-    explicit MixedStyleInit(int data) : m_data(data) {}
-    explicit MixedStyleInit(const std::string &data) : m_data(static_cast<int>(data.size())) {}
-    int data() const { return m_data; }
-};
-
-// test_old_style_init_does_not_authorize_base_typed_later_alias
-// The value slot of a single-inheritance instance is shared by base and derived, so a later
-// argument typed as a base of the class under construction matches the same `value_and_holder`.
-// Reserving storage for it sizes the allocation from the *base*, which is smaller.
-struct AliasStealBase {
-    std::int32_t marker = 0;
-    virtual ~AliasStealBase() = default;
-    static std::size_t &reservations() {
-        static std::size_t n = 0;
-        return n;
-    }
-    static void *operator new(std::size_t n) {
-        if (n == sizeof(AliasStealBase)) {
-            ++reservations();
-        }
-        return ::operator new(n);
-    }
-    static void operator delete(void *p) { ::operator delete(p); }
-};
-
-struct AliasStealDerived : AliasStealBase {
-    std::int64_t payload[16]{};
-    explicit AliasStealDerived(int x) { marker = x; }
-    int data() const { return marker; }
-};
-
-// test_old_style_init_value_error_hides_later_overload
-// Two old-style candidates that both match a two-argument call. The first one's *later*
-// argument is the alias that the construction guard rejects; the second would construct
-// normally. Documents which of the two the dispatcher reaches today.
-struct OverloadFallthrough {
-    int m_data;
-    explicit OverloadFallthrough(int data) : m_data(data) {}
-    int data() const { return m_data; }
-};
-
-// test_old_style_init_callable_phase_grant_is_not_self_specific
-struct CallablePhaseGrant {
-    int m_data;
-    explicit CallablePhaseGrant(int data) : m_data(data) {}
-    int data() const { return m_data; }
-};
-
-// test_old_style_init_does_not_authorize_self_alias_inside_container
-// Deliberately trivially destructible: on a build where the guard has regressed the element
-// caster copy-constructs from raw storage and the never-constructed value is then committed, so
-// the test must report an assertion failure rather than crash during teardown.
-struct ContainerAliasItem {
-    int value{-1};
-    explicit ContainerAliasItem(int v) : value(v) {}
-    // Does not read `other`: the regression test must not itself perform the uninitialized
-    // read. That this runs at all proves the copy constructor was invoked with `other` bound to
-    // storage whose lifetime had not begun.
-    ContainerAliasItem(const ContainerAliasItem &) { ++copies_from_source(); }
-    ContainerAliasItem &operator=(const ContainerAliasItem &) = delete;
-    static std::size_t &copies_from_source() {
-        static std::size_t n = 0;
-        return n;
-    }
-    int data() const { return value; }
-};
-
 TEST_SUBMODULE(class_, m) {
     m.def("obj_class_name", [](py::handle obj) { return py::detail::obj_class_name(obj.ptr()); });
 
@@ -738,28 +631,6 @@ TEST_SUBMODULE(class_, m) {
                             return NewNoInit(t[0].cast<int>());
                         }));
 
-    py::class_<AliasStealBase>(m, "AliasStealBase");
-    py::class_<AliasStealDerived, AliasStealBase> alias_steal(m, "AliasStealDerived");
-    ignoreOldStyleInitWarnings([&alias_steal]() {
-        alias_steal
-            .def("__init__",
-                 [](AliasStealDerived &self, int x) {
-                     ::new (static_cast<void *>(&self)) AliasStealDerived(x);
-                 })
-            .def("__init__", [](const py::object &, const AliasStealBase &, py::list entered) {
-                // Reaching this callback means a base-typed later argument was exposed as a
-                // C++ reference over storage sized for the base, not the derived class.
-                // Do not inspect that reference: keep the test itself free of UB.
-                entered.append("entered");
-                throw std::runtime_error("base-typed later-alias callback entered");
-            });
-    });
-    alias_steal.def("data", &AliasStealDerived::data);
-    m.def("alias_steal_sizes",
-          []() { return py::make_tuple(sizeof(AliasStealBase), sizeof(AliasStealDerived)); });
-    m.def("alias_steal_reservations", []() { return AliasStealBase::reservations(); });
-    m.def("alias_steal_reset", []() { AliasStealBase::reservations() = 0; });
-
     py::class_<OldStyleInit> old_style_init(m, "OldStyleInit");
     ignoreOldStyleInitWarnings([&old_style_init]() {
         old_style_init
@@ -770,145 +641,15 @@ TEST_SUBMODULE(class_, m) {
                      }
                      new (&self) OldStyleInit(x);
                  })
-            .def("__setstate__", [](const py::object &self_obj, const py::object &state) {
-                // Old-style callbacks taking a Python self perform the one authorized self cast
-                // inside the callable. Keep state conversion ahead of placement-new: Python
-                // executed by that cast must not be able to load the reserved storage again.
-                auto &self = self_obj.cast<OldStyleInit &>();
-                int x = state.cast<int>();
-                new (&self) OldStyleInit(x);
-            });
-        // A later argument that is a DIFFERENT, fully constructed instance of the same class
-        // must keep working: the guard only rejects loads of the still-unconstructed `self`.
-        old_style_init.def("__init__", [](OldStyleInit &self, const OldStyleInit &other) {
-            new (&self) OldStyleInit(other.data() * 10);
-        });
-        old_style_init.def(
-            "__init__", [](const py::object &, const OldStyleInit &, py::list entered) {
-                // Reaching this callback means that the later argument was exposed as a C++
-                // reference before an OldStyleInit object's lifetime began. Do not inspect that
-                // reference: keep the regression test itself free of undefined behavior.
-                entered.append("entered");
-                throw std::runtime_error("later-alias constructor callback entered");
+            .def("__setstate__", [](const py::object &self, int x) {
+                auto &typed_self = self.cast<OldStyleInit &>();
+                new (&typed_self) OldStyleInit(x);
             });
     });
     old_style_init.def("data", &OldStyleInit::data).def("v_data", &OldStyleInit::v_data);
-
-    py::class_<OverloadFallthrough> overload_fallthrough(m, "OverloadFallthrough");
-    ignoreOldStyleInitWarnings([&overload_fallthrough]() {
-        // First candidate. Its `self` is Python-typed, so argument 0 loads harmlessly; the
-        // alias that the construction guard rejects is argument 1, and the argument that
-        // would have rejected this candidate on its own (a py::int_ given a list) comes after
-        // it. Before the guard existed, the alias load succeeded, the py::int_ conversion then
-        // failed, and overload resolution moved on to the next candidate.
-        // Both candidates must take the same number of Python arguments, or the first is
-        // skipped on arity alone and the fall-through says nothing about the guard.
-        overload_fallthrough.def(
-            "__init__", [](const py::object &, const OverloadFallthrough &, const py::int_ &) {
-                // Reaching this callback would mean the alias was exposed as
-                // a C++ reference before the object's lifetime began. Do not
-                // inspect it; the distinctive exception message is how the
-                // test detects that it ran.
-                throw std::runtime_error("first candidate entered");
-            });
-        // Second candidate. Matches the same call and constructs normally.
-        overload_fallthrough.def(
-            "__init__", [](OverloadFallthrough &self, const py::object &, py::list entered) {
-                entered.append("second candidate entered");
-                ::new (static_cast<void *>(&self)) OverloadFallthrough(99);
-            });
-    });
-    overload_fallthrough.def("data", &OverloadFallthrough::data);
-
-    py::class_<CallablePhaseGrant> callable_phase_grant(m, "CallablePhaseGrant");
-    ignoreOldStyleInitWarnings([&callable_phase_grant]() {
-        callable_phase_grant
-            .def("__init__",
-                 [](CallablePhaseGrant &self, int v) {
-                     ::new (static_cast<void *>(&self)) CallablePhaseGrant(v);
-                 })
-            .def("__init__", [](const py::object &self, const py::list &stash, py::list entered) {
-                // The callable-phase grant is keyed on the value slot, not on the `self`
-                // handle. `stash[0]` is the very same Python object as `self`, so this cast is
-                // indistinguishable from the sanctioned one and consumes the one-shot
-                // reservation. Do not inspect the reference it returns: it denotes storage
-                // whose lifetime has not begun.
-                try {
-                    stash[0].cast<CallablePhaseGrant &>();
-                    entered.append("stash cast claimed the reservation");
-                } catch (const std::exception &e) {
-                    entered.append(std::string("stash cast rejected: ") + e.what());
-                }
-                // The genuine `self` cast now finds the permission already spent.
-                auto &self_ref = self.cast<CallablePhaseGrant &>();
-                ::new (static_cast<void *>(&self_ref)) CallablePhaseGrant(7);
-                entered.append("self cast succeeded");
-            });
-    });
-    callable_phase_grant.def("data", &CallablePhaseGrant::data);
-
-    py::class_<ContainerAliasItem> container_alias(m, "ContainerAliasItem");
-    ignoreOldStyleInitWarnings([&container_alias]() {
-        container_alias
-            .def("__init__",
-                 [](ContainerAliasItem &self, int v) {
-                     ::new (static_cast<void *>(&self)) ContainerAliasItem(v);
-                 })
-            .def("__init__",
-                 [](const py::object &,
-                    const std::vector<ContainerAliasItem> &loaded,
-                    py::list entered) {
-                     // Reaching this callback means the element caster copy-constructed from
-                     // storage whose lifetime had not begun. Unlike a bare reference argument,
-                     // the binding author cannot avoid that read: it happens inside the
-                     // container caster itself.
-                     entered.append("entered");
-                     entered.append(py::int_(static_cast<int>(loaded.size())));
-                     throw std::runtime_error("container-alias constructor callback entered");
-                 });
-    });
-    container_alias.def("data", &ContainerAliasItem::data);
-    m.def("container_alias_copies", []() { return ContainerAliasItem::copies_from_source(); });
-    m.def("container_alias_reset", []() { ContainerAliasItem::copies_from_source() = 0; });
-
-    py::class_<OldStyleInitCollision> old_style_init_collision(m, "OldStyleInitCollision");
-    ignoreOldStyleInitWarnings([&old_style_init_collision]() {
-        old_style_init_collision.def("__init__", [](OldStyleInitCollision &self, int x) {
-            ::new (static_cast<void *>(&self)) OldStyleInitCollision(x);
-        });
-    });
-    old_style_init_collision.def("data", &OldStyleInitCollision::data);
-    py::class_<OldStyleInitCollisionSmart, py::smart_holder> old_style_init_collision_smart(
-        m, "OldStyleInitCollisionSmart");
-    ignoreOldStyleInitWarnings([&old_style_init_collision_smart]() {
-        old_style_init_collision_smart.def(
-            "__init__", [](OldStyleInitCollisionSmart &self, int x) {
-                ::new (static_cast<void *>(&self)) OldStyleInitCollisionSmart(x);
-            });
-    });
-    old_style_init_collision_smart.def("data", &OldStyleInitCollisionSmart::data);
-    m.def("reset_old_style_init_collision_stats", []() { old_style_init_collision_stats() = {}; });
-    m.def("old_style_init_collision_stats", []() {
-        const auto &stats = old_style_init_collision_stats();
-        return py::make_tuple(
-            stats.allocations, stats.deallocations, stats.constructions, stats.destructions);
-    });
-
-    py::class_<MixedStyleInit> mixed_style_init(m, "MixedStyleInit");
-    mixed_style_init.def(py::init<int>());
-    ignoreOldStyleInitWarnings([&mixed_style_init]() {
-        mixed_style_init.def("__init__", [](MixedStyleInit &self, const std::string &value) {
-            new (&self) MixedStyleInit(value);
-        });
-    });
-    mixed_style_init.def("data", &MixedStyleInit::data);
-
-    // These functions intentionally do not dereference their arguments. They let the Python
-    // tests probe whether a type caster accepted reserved or uninitialized storage without
-    // invoking undefined behavior when testing a broken implementation.
-    m.def("accept_new_no_init", [](NewNoInit *value) { return value != nullptr; });
+    // This probe intentionally does not dereference the pointer. It documents the narrow scope of
+    // this fix without itself reading storage before an OldStyleInit lifetime has begun.
     m.def("accept_old_style_init", [](OldStyleInit *value) { return value != nullptr; });
-    m.def("accept_mixed_style_init", [](MixedStyleInit *value) { return value != nullptr; });
 }
 
 template <int N>

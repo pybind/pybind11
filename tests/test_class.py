@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import gc
-import os
 import pickle
 import sys
-import threading
 from unittest import mock
 
 import pytest
@@ -254,35 +252,6 @@ def test_inheritance_init(msg):
     assert msg(exc_info.value) == expected
 
 
-def _record_uninitialized_load(seen, function, obj):
-    try:
-        seen["accepted"] = function(obj)
-    except ValueError as exc:
-        seen["error"] = exc
-
-
-def _assert_uninitialized_load_rejected(seen):
-    assert "accepted" not in seen, "type caster accepted unconstructed storage"
-    assert isinstance(seen.get("error"), ValueError)
-
-
-class _LoadOnIndex:
-    """Constructor argument whose int conversion runs `function(obj)` while the C++ value is
-    still unconstructed, then returns `result` or, if that is None, aborts the constructor."""
-
-    def __init__(self, seen, function, obj, result=None):
-        self.seen = seen
-        self.function = function
-        self.obj = obj
-        self.result = result
-
-    def __index__(self):
-        _record_uninitialized_load(self.seen, self.function, self.obj)
-        if self.result is None:
-            raise TypeError("stop the constructor")
-        return self.result
-
-
 def test_new_bypasses_init():
     """`__new__` allocates the Python object but not the C++ one; using the instance before
     `__init__` has run must raise instead of segfaulting."""
@@ -292,10 +261,11 @@ def test_new_bypasses_init():
 
     for cls in (m.NewNoInit, PythonDerived):
         obj = cls.__new__(cls)
-        with pytest.raises(ValueError) as exc_info:
-            m.accept_new_no_init(obj)
-        assert "Python instance is uninitialized" in str(exc_info.value)
-        assert "NewNoInit" in str(exc_info.value)
+        for use in (obj.data, obj.v_data, obj.__getstate__):
+            with pytest.raises(ValueError) as exc_info:
+                use()
+            assert "Python instance is uninitialized" in str(exc_info.value)
+            assert "NewNoInit" in str(exc_info.value)
 
         # Calling `__init__()` is the sanctioned way to finish an object made with `__new__()`.
         obj.__init__(42)
@@ -326,236 +296,45 @@ def test_failed_old_style_init_does_not_leave_lazy_storage():
     with pytest.raises(RuntimeError, match="negative data"):
         obj.__init__(-1)
 
-    # The failed __init__ already reserved storage for `self`. Without cleanup, a later load can
-    # mistake that storage for a constructed C++ object.
+    # The failed __init__ already lazily allocated storage for `self`, so without cleanup the
+    # uninitialized-instance guard never fires again and this reads a garbage vtable pointer.
     with pytest.raises(ValueError, match="uninitialized"):
-        m.accept_old_style_init(obj)
+        obj.v_data()
 
     # A successful retry is still allowed.
     obj.__init__(42)
     assert obj.v_data() == 42
 
 
-def test_old_style_init_accepts_later_distinct_instance_of_same_class():
-    """A later argument that is a different, already-constructed instance must still load."""
-    src = m.OldStyleInit(7)
-    dst = m.OldStyleInit.__new__(m.OldStyleInit)
-    dst.__init__(src)
-    assert dst.data() == 70
-
-
-def test_old_style_init_does_not_authorize_later_self_alias():
-    """A later typed argument that aliases a Python-typed `self` must not claim the old-style
-    constructor's private storage and reach C++ before the object's lifetime has begun."""
+def test_old_style_setstate_remains_supported():
+    """Deprecated placement-new `__setstate__` may still obtain storage inside its callback."""
     obj = m.OldStyleInit.__new__(m.OldStyleInit)
-    entered = []
-
-    with pytest.raises((ValueError, RuntimeError)) as exc_info:
-        obj.__init__(obj, entered)
-
-    # This is the decisive assertion: the callback's typed argument would refer to raw storage.
-    assert entered == []
-    assert isinstance(exc_info.value, ValueError)
-    assert "still being constructed" in str(exc_info.value)
-
-    # Rejection must leave the object retryable.
-    obj.__init__(42)
-    assert obj.data() == 42
+    obj.__setstate__(43)
+    assert obj.data() == 43
 
 
-def test_old_style_init_does_not_authorize_base_typed_later_alias():
-    """A later argument typed as a *base* of the class under construction shares the same value
-    slot, so it must not be able to claim the old-style constructor's storage: the reservation
-    would be sized from the base, and the constructor's own placement-new would overflow it."""
-    base_size, derived_size = m.alias_steal_sizes()
-    assert base_size < derived_size  # an undersized reservation is actually observable
+def test_old_style_init_reentrant_load_is_out_of_scope():
+    """The minimal fix retains the historical broad lazy-allocation window while an old-style
+    constructor chain is active. It does not promise to reject reentrant loads in that window."""
+    obj = m.OldStyleInit.__new__(m.OldStyleInit)
+    seen = {}
 
-    m.alias_steal_reset()
-    obj = m.AliasStealDerived.__new__(m.AliasStealDerived)
-    entered = []
-
-    with pytest.raises((ValueError, RuntimeError)) as exc_info:
-        obj.__init__(obj, entered)
-
-    assert entered == []
-    assert isinstance(exc_info.value, ValueError)
-    assert "still being constructed" in str(exc_info.value)
-    # No storage was reserved at the base's (too small) size.
-    assert m.alias_steal_reservations() == 0
-
-    # Rejection must leave the object retryable.
-    obj.__init__(42)
-    assert obj.data() == 42
-
-
-def test_old_style_init_value_error_hides_later_overload():
-    """Documents a behavior change: rejecting an alias aborts overload resolution.
-
-    The construction guard reports rejection by throwing `value_error`. Only
-    `reference_cast_error` is translated into `PYBIND11_TRY_NEXT_OVERLOAD`, so the throw
-    escapes the whole overload loop and a later candidate that would have matched is never
-    reached. Before the guard existed, the first candidate's alias argument loaded
-    successfully, its *next* argument then failed to convert, and resolution moved on to the
-    second candidate, which constructed the object.
-
-    This is not a behavior introduced by the construction guard as such: casters on `master`
-    already throw `value_error` from load paths with the same non-fallthrough consequence.
-    The guard adds a new trigger for it. Pinning the current outcome here so that a
-    deliberate decision to make the guard fall through instead shows up as a test change.
-    """
-    obj = m.OverloadFallthrough.__new__(m.OverloadFallthrough)
-    entered = []
-
-    # Both candidates take two Python arguments, so the first is not skipped on arity: it is
-    # reached, and its argument 1 is the alias the guard rejects.
-    with pytest.raises(ValueError, match="still being constructed"):
-        obj.__init__(obj, entered)
-
-    # Neither candidate ran: the first was rejected by the guard before its callback (which
-    # would have raised RuntimeError("first candidate entered")), and the second - which
-    # matches this call and would have constructed the object - was never attempted.
-    assert entered == []
-
-    # The rejection still leaves the object retryable through the second candidate.
-    obj.__init__(None, entered)
-    assert entered == ["second candidate entered"]
-    assert obj.data() == 99
-
-
-def test_old_style_init_callable_phase_grant_is_not_self_specific():
-    """Documents a known limitation: inside the callable, the one-shot grant is not tied to
-    the `self` handle.
-
-    While the C++ callable runs, any load of the slot under construction may claim the
-    reservation, not only a cast of `self`. Narrowing the grant to "a cast of the `self`
-    object" would not close this: the claiming cast below targets `stash[0]`, which *is* the
-    same Python object as `self`, so the two are indistinguishable at cast time. Supporting
-    the legacy `py::object`-self pattern requires the permission to stay live for the whole
-    callable phase, and the callable body is user code.
-
-    The consequence is bounded. The grant is one-shot, so the genuine `self` cast then fails
-    and the constructor raises; nothing is published, and the object stays retryable. The
-    reference only reaches raw storage because the callback explicitly asked to cast it.
-    """
-    obj = m.CallablePhaseGrant.__new__(m.CallablePhaseGrant)
-    entered = []
-
-    with pytest.raises(ValueError, match="still being constructed"):
-        obj.__init__([obj], entered)
-
-    # The non-`self` cast consumed the reservation; the sanctioned one then found it spent.
-    assert entered == ["stash cast claimed the reservation"]
-
-    # No storage escaped and no state is stuck: the object still constructs normally.
-    obj.__init__(42)
-    assert obj.data() == 42
-
-
-def test_old_style_init_does_not_authorize_self_alias_inside_container():
-    """The still-unconstructed `self` reached through a container argument must be rejected too.
-
-    This is stricter than a bare reference argument: `stl.h`'s element caster copy-constructs the
-    value, so the read of uninitialized storage happens inside pybind11 rather than in the
-    callback, and no binding author can guard against it.
-    """
-    m.container_alias_reset()
-    obj = m.ContainerAliasItem.__new__(m.ContainerAliasItem)
-    entered = []
-
-    with pytest.raises((ValueError, RuntimeError)) as exc_info:
-        obj.__init__([obj], entered)
-
-    assert entered == []
-    # The decisive assertion: no copy constructor ran with its source over raw storage.
-    assert m.container_alias_copies() == 0
-    assert isinstance(exc_info.value, ValueError)
-    assert "still being constructed" in str(exc_info.value)
-
-    # Rejection must leave the object retryable.
-    obj.__init__(42)
-    assert obj.data() == 42
-
-
-def _check_legacy_v12_storage_collision():
-    """Body of test_old_style_init_legacy_v12_storage_collision, run in a subprocess."""
-    import pybind11_cross_module_tests as cm
-
-    unraisable = []
-    sys.unraisablehook = lambda args: unraisable.append(str(args.exc_value))
-
-    class LegacyLoadOnIndex:
-        """Loads `obj` through the stale caster during argument conversion."""
-
-        def __init__(self, obj, seen, result):
-            self.obj = obj
-            self.seen = seen
-            self.result = result
-
+    class LoadOnIndex:
         def __index__(self):
-            self.seen["address"] = cm.legacy_v12_pointer_only_load(self.obj)
-            if self.result is None:
-                raise TypeError("stop the constructor")
-            return self.result
+            seen["accepted"] = m.accept_old_style_init(obj)
+            raise TypeError("stop the constructor")
 
-    def stats():
-        return m.old_style_init_collision_stats()
+    with pytest.raises(TypeError):
+        obj.__init__(LoadOnIndex())
 
-    for cls, result, exc, constructed in [
-        # Conversion fails after the stale caster publishes storage: both raw allocations are
-        # rolled back without replacing the conversion failure with a cleanup error.
-        (m.OldStyleInitCollision, None, TypeError, 0),
-        # The C++ callback completed before the collision is detected: rollback constructs the
-        # real holder temporarily so that the private value's destructor runs exactly once.
-        (m.OldStyleInitCollision, 42, RuntimeError, 1),
-        # smart_holder ownership must be initialized before a constructed private value is retired.
-        (m.OldStyleInitCollisionSmart, 44, RuntimeError, 1),
-    ]:
-        m.reset_old_style_init_collision_stats()
-        obj = cls.__new__(cls)
-        seen = {}
-        # A failing `__index__` surfaces as the generic overload-resolution TypeError.
-        match = "storage collision" if exc is RuntimeError else None
-        with pytest.raises(exc, match=match):
-            obj.__init__(LegacyLoadOnIndex(obj, seen, result))
-        # Rollback invalidates the stale address; observing the integer proves only that the
-        # legacy publication path ran. Arbitrary escaped v12 pointers cannot be made safe here.
-        assert isinstance(seen.get("address"), int)
-        assert stats() == (2, 2, constructed, constructed)
+    assert seen == {"accepted": True}
 
-        # The same object remains usable.
-        obj.__init__(43)
-        assert obj.data() == 43
-        assert stats() == (3, 2, constructed + 1, constructed)
-        del obj
-        if not env.GRAALPY:  # Cannot reliably trigger GC.
-            # Only ordinary teardown of the live retry object is checked here. The rollback
-            # properties this test exists for are pinned by the assertions above, which run
-            # everywhere: no leaked collision storage, and no early or double destruction of
-            # the private value.
-            gc.collect()
-            gc.collect()
-            assert stats() == (3, 3, constructed + 1, constructed + 1)
-
-    assert unraisable == []
-
-
-def test_old_style_init_legacy_v12_storage_collision():
-    """A stale v12 caster can publish competing storage while an updated old-style constructor
-    keeps its storage private. For owning default and smart holders, collision rollback must not
-    throw from loader_life_support's destructor, leak either allocation, or prevent a retry.
-    A regression can terminate the process, so the checks run in a subprocess."""
-    env.check_script_success_in_subprocess(
-        f"""
-        import sys
-
-        sys.path.insert(0, {os.path.dirname(env.__file__)!r})
-
-        import test_class
-
-        test_class._check_legacy_v12_storage_collision()
-        """,
-        rerun=1,
-    )
+    # Failure cleanup removes the raw storage, so subsequent ordinary loads are rejected and a
+    # normal initialization retry remains possible.
+    with pytest.raises(ValueError, match="uninitialized"):
+        m.accept_old_style_init(obj)
+    obj.__init__(44)
+    assert obj.data() == 44
 
 
 def test_reentrant_load_during_new_style_init():
@@ -563,130 +342,22 @@ def test_reentrant_load_during_new_style_init():
     to another bound function while `__init__` runs must raise, not hand out garbage."""
     obj = m.NewNoInit.__new__(m.NewNoInit)
     seen = {}
-    with pytest.raises(TypeError):
-        obj.__init__(_LoadOnIndex(seen, m.accept_new_no_init, obj))
-    _assert_uninitialized_load_rejected(seen)
 
-
-def test_reentrant_load_during_old_style_init_argument_conversion():
-    """Only the old-style constructor's own `self` load may reserve storage. Python called while
-    converting a later argument must not be able to load that storage as a C++ object."""
-    obj = m.OldStyleInit.__new__(m.OldStyleInit)
-    seen = {}
-    with pytest.raises(TypeError):
-        obj.__init__(_LoadOnIndex(seen, m.accept_old_style_init, obj))
-    _assert_uninitialized_load_rejected(seen)
-    with pytest.raises(ValueError):
-        m.accept_old_style_init(obj)
-
-    # Failed conversion must release the reservation and leave a successful retry possible.
-    obj.__init__(42)
-    assert obj.data() == 42
-
-
-def test_reentrant_load_during_mixed_style_init():
-    """An old-style overload must not authorize loads while a new-style candidate in the same
-    overload chain is being tried."""
-    obj = m.MixedStyleInit.__new__(m.MixedStyleInit)
-    seen = {}
-    obj.__init__(_LoadOnIndex(seen, m.accept_mixed_style_init, obj, 42))
-    _assert_uninitialized_load_rejected(seen)
-    assert obj.data() == 42
-
-    # Also retain coverage that the old-style overload itself remains usable.
-    assert m.MixedStyleInit("four").data() == 4
-
-
-def test_reentrant_load_during_old_style_setstate():
-    """Old-style `__setstate__` may reserve storage for `self`, but Python executed inside its
-    callback before placement-new must still see the instance as unconstructed."""
-    obj = m.OldStyleInit.__new__(m.OldStyleInit)
-    seen = {}
-    obj.__setstate__(_LoadOnIndex(seen, m.accept_old_style_init, obj, 43))
-    _assert_uninitialized_load_rejected(seen)
-    assert obj.data() == 43
-
-
-def test_nested_old_style_init_is_rejected():
-    """A nested initializer for the same reserved value must be rejected before its placement-new
-    callback runs; the outer initializer can then complete normally."""
-    obj = m.OldStyleInit.__new__(m.OldStyleInit)
-    seen = {}
-
-    class Reenter:
+    class Evil:
         def __index__(self):
+            # Runs during int conversion of a pure new-style constructor. Its chain has no
+            # compatibility window for lazy allocation.
             try:
-                obj.__init__(-1)
-            except Exception as exc:
+                seen["data"] = obj.data()
+            except ValueError as exc:
                 seen["error"] = exc
-            else:
-                seen["accepted"] = True
-            return 44
+            raise TypeError("stop the constructor")
 
-    obj.__init__(Reenter())
-    assert "accepted" not in seen
-    assert isinstance(seen.get("error"), ValueError)
-    assert obj.data() == 44
+    with pytest.raises(TypeError):
+        obj.__init__(Evil())
 
-
-def test_old_style_init_does_not_authorize_another_python_mi_base():
-    """Construction permission is for one exact value-and-holder, not every C++ base slot in the
-    same Python multiple-inheritance instance."""
-
-    class PythonMI(m.OldStyleInit, m.NewNoInit):
-        pass
-
-    obj = PythonMI.__new__(PythonMI)
-    seen = {}
-    m.OldStyleInit.__init__(obj, _LoadOnIndex(seen, m.accept_new_no_init, obj, 45))
-    _assert_uninitialized_load_rejected(seen)
-    assert obj.data() == 45
-
-    # Loading the unrelated base must remain rejected after the first base finishes construction.
-    with pytest.raises(ValueError):
-        m.accept_new_no_init(obj)
-
-
-@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
-def test_old_style_init_does_not_authorize_another_thread():
-    """While one thread is converting a later constructor argument, another thread must not load
-    the reserved storage. Events make the interleaving bounded and deterministic with or without
-    the GIL."""
-    obj = m.OldStyleInit.__new__(m.OldStyleInit)
-    conversion_entered = threading.Event()
-    allow_conversion_to_finish = threading.Event()
-    thread_errors = []
-
-    class BlockingIndex:
-        def __index__(self):
-            conversion_entered.set()
-            if not allow_conversion_to_finish.wait(timeout=10):
-                raise RuntimeError("timed out waiting to finish conversion")
-            return 46
-
-    def initialize():
-        try:
-            obj.__init__(BlockingIndex())
-        except BaseException as exc:
-            thread_errors.append(exc)
-
-    thread = threading.Thread(target=initialize)
-    thread.start()
-    try:
-        assert conversion_entered.wait(timeout=10), (
-            "constructor did not enter conversion"
-        )
-        with pytest.raises(ValueError):
-            m.accept_old_style_init(obj)
-        with pytest.raises(ValueError):
-            obj.__init__(47)
-    finally:
-        allow_conversion_to_finish.set()
-        thread.join(timeout=10)
-
-    assert not thread.is_alive(), "constructor thread did not finish"
-    assert not thread_errors
-    assert obj.data() == 46
+    assert "data" not in seen, f"handed out uninitialized storage: {seen['data']!r}"
+    assert "error" in seen
 
 
 @pytest.mark.parametrize(
