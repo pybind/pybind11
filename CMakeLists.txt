@@ -94,6 +94,9 @@ endif()
 # Options
 option(PYBIND11_INSTALL "Install pybind11 header files?" ${PYBIND11_MASTER_PROJECT})
 option(PYBIND11_TEST "Build pybind11 test suite?" ${PYBIND11_MASTER_PROJECT})
+option(PYBIND11_USE_SYSTEM_HEADERS
+       "Mark pybind11 headers as system headers in add_subdirectory mode" ON)
+set_property(GLOBAL PROPERTY PYBIND11_USE_SYSTEM_HEADERS "${PYBIND11_USE_SYSTEM_HEADERS}")
 option(PYBIND11_NOPYTHON "Disable search for Python" OFF)
 option(PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION
        "To enforce that a handle_type_name<> specialization exists" OFF)
@@ -293,7 +296,6 @@ if(NOT TARGET pybind11_headers)
   target_include_directories(
     pybind11_headers ${pybind11_system} INTERFACE $<BUILD_INTERFACE:${pybind11_INCLUDE_DIR}>
                                                   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
-
   target_compile_features(pybind11_headers INTERFACE cxx_inheriting_constructors cxx_user_literals
                                                      cxx_right_angle_brackets)
   if(NOT "${PYBIND11_INTERNALS_VERSION}" STREQUAL "")

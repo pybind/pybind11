@@ -68,6 +68,7 @@ endif()
 possibly_uninitialized(PYTHON_MODULE_EXTENSION Python_INTERPRETER_ID)
 
 pybind11_add_build_test(subdirectory_function)
+pybind11_add_build_test(subdirectory_system_headers)
 pybind11_add_build_test(subdirectory_target)
 if("${PYTHON_MODULE_EXTENSION}" MATCHES "pypy"
    OR "${Python_INTERPRETER_ID}" STREQUAL "PyPy"
