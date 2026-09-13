@@ -413,8 +413,8 @@ struct type_info {
     memory::get_guarded_delete_fn get_memory_guarded_delete = memory::get_guarded_delete;
     get_trampoline_self_life_support_fn get_trampoline_self_life_support = nullptr;
 
-    std::vector<PyObject *(*) (PyObject *, PyTypeObject *)> implicit_conversions;
-    std::vector<std::pair<const std::type_info *, void *(*) (void *)>> implicit_casts;
+    std::vector<PyObject *(*)(PyObject *, PyTypeObject *)> implicit_conversions;
+    std::vector<std::pair<const std::type_info *, void *(*)(void *)>> implicit_casts;
     std::vector<bool (*)(PyObject *, void *&)> *direct_conversions;
     buffer_info *(*get_buffer)(PyObject *, void *) = nullptr;
     void *get_buffer_data = nullptr;

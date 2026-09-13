@@ -100,7 +100,7 @@ inline guarded_delete *get_guarded_delete(const std::shared_ptr<void> &ptr) {
     return std::get_deleter<guarded_delete>(ptr);
 }
 
-using get_guarded_delete_fn = guarded_delete *(*) (const std::shared_ptr<void> &);
+using get_guarded_delete_fn = guarded_delete *(*)(const std::shared_ptr<void> &);
 
 template <typename T, typename std::enable_if<std::is_destructible<T>::value, int>::type = 0>
 inline void std_default_delete_if_destructible(void *raw_ptr) {

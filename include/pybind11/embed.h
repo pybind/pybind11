@@ -66,7 +66,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 
 /// Python 2.7/3.x compatible version of `PyImport_AppendInittab` and error checks.
 struct embedded_module {
-    using init_t = PyObject *(*) ();
+    using init_t = PyObject *(*)();
     embedded_module(const char *name, init_t init) {
         if (Py_IsInitialized() != 0) {
             pybind11_fail("Can't add new modules after the interpreter has been initialized");

@@ -29,7 +29,7 @@ TEST_SUBMODULE(opaque_types, m) {
         .def("pop_back", &StringList::pop_back)
         /* There are multiple versions of push_back(), etc. Select the right ones. */
         .def("push_back", (void (StringList::*)(const std::string &)) &StringList::push_back)
-        .def("back", (std::string & (StringList::*) ()) & StringList::back)
+        .def("back", (std::string & (StringList::*)()) & StringList::back)
         .def("__len__", [](const StringList &v) { return v.size(); })
         .def(
             "__iter__",

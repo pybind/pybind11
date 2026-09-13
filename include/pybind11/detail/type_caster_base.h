@@ -1694,7 +1694,7 @@ public:
     }
 
 protected:
-    using Constructor = void *(*) (const void *);
+    using Constructor = void *(*)(const void *);
 
     /* Only enabled when the types are {copy,move}-constructible *and* when the type
        does not have a private operator new implementation. A comma operator is used in the
