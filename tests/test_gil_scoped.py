@@ -169,10 +169,12 @@ def test_all_basic_tests_completeness():
 def test_init_factory_gil_released_concurrent_construction():
     """Concurrent construction via a factory `py::init` with `call_guard<gil_scoped_release>`.
 
-    `init_instance` runs while the GIL is released and must internally re-acquire the GIL
+    `init_instance` runs while the GIL is released and must internally acquire the GIL
     before touching the instance map. Without that fix this aborts with
     "pybind11_object_dealloc(): Tried to deallocate unregistered instance!" (races on
-    `internals.registered_instances`, which is unguarded on GIL builds).
+    `internals.registered_instances`, which is unguarded on GIL builds). On free-threaded
+    builds the detached thread state instead segfaults in `PyCriticalSection_BeginMutex`
+    (via `get_type_info`), even without concurrency.
     """
     num_threads = 8
     iterations = 100
