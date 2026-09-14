@@ -12,6 +12,7 @@
 
 #include "common.h"
 
+#include <cassert>
 #include <cstring>
 #include <utility>
 
@@ -102,6 +103,14 @@ inline PyTypeObject *get_function_record_PyTypeObject() {
     return py_type_obj;
 }
 
+// This works across extension modules, and does not need the internals lock.
+// Note that tp_name is versioned.
+inline bool function_record_PyTypeObject_name_matches(PyTypeObject *obj_type) {
+    return strcmp(obj_type->tp_name, function_record_PyTypeObject_methods::tp_qualname_impl) == 0
+           || strcmp(obj_type->tp_name, function_record_PyTypeObject_methods::tp_plainname_impl)
+                  == 0;
+}
+
 inline bool is_function_record_PyObject(PyObject *obj) {
     if (PyType_Check(obj) != 0) {
         return false;
@@ -114,13 +123,7 @@ inline bool is_function_record_PyObject(PyObject *obj) {
     if (obj_type == frtype) {
         return true;
     }
-    // This works across extension modules. Note that tp_name is versioned.
-    if (strcmp(obj_type->tp_name, function_record_PyTypeObject_methods::tp_qualname_impl) == 0
-        || strcmp(obj_type->tp_name, function_record_PyTypeObject_methods::tp_plainname_impl)
-               == 0) {
-        return true;
-    }
-    return false;
+    return function_record_PyTypeObject_name_matches(obj_type);
 }
 
 inline function_record *function_record_ptr_from_PyObject(PyObject *obj) {
@@ -128,6 +131,17 @@ inline function_record *function_record_ptr_from_PyObject(PyObject *obj) {
         return (reinterpret_cast<detail::function_record_PyObject *>(obj))->cpp_func_rec;
     }
     return nullptr;
+}
+
+// The `self` of cpp_function::dispatcher() is always the function_record_PyObject that was
+// created for that dispatcher in cpp_function::initialize_generic(), so the type check can be
+// skipped. is_function_record_PyObject() is deliberately not used here: it calls
+// get_function_record_PyTypeObject(), which acquires the internals lock on every call.
+inline function_record *function_record_ptr_from_dispatcher_self(PyObject *self) {
+    assert(self != nullptr);
+    assert(PyType_Check(self) == 0);
+    assert(function_record_PyTypeObject_name_matches(Py_TYPE(self)));
+    return (reinterpret_cast<function_record_PyObject *>(self))->cpp_func_rec;
 }
 
 inline object function_record_PyObject_New() {
