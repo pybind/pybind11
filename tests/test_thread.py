@@ -101,6 +101,7 @@ def test_dispatch_does_not_need_internals_lock():
         f"""
         import sys
 
+        sys.path.insert(0, {os.path.dirname(env.__file__)!r})
         sys.path.insert(0, {os.path.dirname(pybind11_tests.__file__)!r})
 
         from pybind11_tests import thread as m
