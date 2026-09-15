@@ -11,6 +11,7 @@
 #include <pybind11/pytypes.h>
 
 #include <string>
+#include <type_traits>
 
 #if defined(PYBIND11_HAS_FILESYSTEM)
 #    include <filesystem>

@@ -9,7 +9,20 @@
 
 #include <pybind11/numpy.h>
 
+#include "../detail/common.h"
+#include "../detail/descr.h"
+#include "../detail/type_caster_base.h"
+#include "../cast.h"
+#include "../pytypes.h"
 #include "common.h"
+
+#include <cstddef>
+#include <memory>
+#include <type_traits>
+#include <utility>
+#include <vector>
+
+#include <Eigen/Core>
 
 #if defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
 static_assert(__GNUC__ > 5, "Eigen Tensor support in pybind11 requires GCC > 5.0");

@@ -10,7 +10,9 @@
 #include <pybind11/conduit/pybind11_platform_abi_id.h>
 #include <pybind11/pytypes.h>
 
+#include "../cast.h"
 #include "common.h"
+#include "internals.h"
 
 #include <cstring>
 #include <utility>

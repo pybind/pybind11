@@ -4,6 +4,7 @@
 
 #include <pybind11/pytypes.h>
 
+#include "../conduit/pybind11_platform_abi_id.h"
 #include "common.h"
 #include "internals.h"
 

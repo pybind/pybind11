@@ -9,8 +9,20 @@
 
 #pragma once
 
-#include "class.h"
+#include "../attr.h"
+#include "../cast.h"
+#include "../pytypes.h"
+#include "common.h"
+#include "descr.h"
+#include "internals.h"
+#include "struct_smart_holder.h"
+#include "type_caster_base.h"
 #include "using_smart_holder.h"
+#include "value_and_holder.h"
+
+#include <memory>
+#include <type_traits>
+#include <utility>
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
