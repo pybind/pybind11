@@ -13,6 +13,14 @@ if(DEFINED PYTHON_EXECUTABLE AND NOT DEFINED Python_EXECUTABLE)
   set(Python_EXECUTABLE "${PYTHON_EXECUTABLE}")
 endif()
 
+# pybind11 must complete a partial FindPython from a parent project
+if(PYBIND11_FINDPYTHON AND NOT PYBIND11_FINDPYTHON STREQUAL "COMPAT")
+  find_package(
+    Python
+    COMPONENTS Interpreter
+    REQUIRED)
+endif()
+
 add_subdirectory("${pybind11_SOURCE_DIR}" pybind11)
 
 # Test basic target functionality
