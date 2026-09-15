@@ -69,6 +69,7 @@ possibly_uninitialized(PYTHON_MODULE_EXTENSION Python_INTERPRETER_ID)
 
 pybind11_add_build_test(subdirectory_function)
 pybind11_add_build_test(subdirectory_target)
+pybind11_add_build_test(subdirectory_precompile)
 if("${PYTHON_MODULE_EXTENSION}" MATCHES "pypy"
    OR "${Python_INTERPRETER_ID}" STREQUAL "PyPy"
    OR "${PYTHON_MODULE_EXTENSION}" MATCHES "graalpy")
@@ -86,6 +87,7 @@ if(PYBIND11_INSTALL)
     pybind11_add_build_test(installed_function INSTALL)
   endif()
   pybind11_add_build_test(installed_target INSTALL)
+  pybind11_add_build_test(installed_precompile INSTALL)
   if(NOT
      ("${PYTHON_MODULE_EXTENSION}" MATCHES "pypy"
       OR "${Python_INTERPRETER_ID}" STREQUAL "PyPy"
