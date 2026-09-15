@@ -1156,6 +1156,7 @@ protected:
                         // replaced later
                         if (func.has_args && call.args.size() == func.nargs_pos) {
                             call.args.push_back(none());
+                            call.args_convert.push_back(false);
                         }
 
                         call.args.push_back(value);
@@ -1187,10 +1188,11 @@ protected:
                     }
                     if (call.args.size() <= func.nargs_pos) {
                         call.args.push_back(call.args_ref);
+                        call.args_convert.push_back(false);
                     } else {
+                        // The stub pushed in step 2 already has its convert flag.
                         call.args[func.nargs_pos] = call.args_ref;
                     }
-                    call.args_convert.push_back(false);
                 }
 
                 // 4b. If we have a py::kwargs, pass on any remaining kwargs
@@ -1246,7 +1248,8 @@ protected:
                     // The (overloaded) call failed; if the call has at least one argument that
                     // permits conversion (i.e. it hasn't been explicitly specified `.noconvert()`)
                     // then add this call to the list of second pass overloads to try.
-                    for (size_t i = func.is_method ? 1 : 0; i < pos_args; i++) {
+                    // Keyword-only arguments count too, so scan all of the flags.
+                    for (size_t i = func.is_method ? 1 : 0; i < second_pass_convert.size(); i++) {
                         if (second_pass_convert[i]) {
                             // Found one: swap the converting flags back in and store the call for
                             // the second pass.
