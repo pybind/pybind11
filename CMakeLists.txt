@@ -190,20 +190,25 @@ endif()
 
 set(PYBIND11_HEADERS
     include/pybind11/detail/argument_vector.h
+    include/pybind11/detail/class-inl.h
     include/pybind11/detail/class.h
+    include/pybind11/detail/common-inl.h
     include/pybind11/detail/common.h
     include/pybind11/detail/cpp_conduit.h
     include/pybind11/detail/descr.h
     include/pybind11/detail/dynamic_raw_ptr_cast_if_possible.h
+    include/pybind11/detail/exception_translation-inl.h
     include/pybind11/detail/exception_translation.h
     include/pybind11/detail/function_record_pyobject.h
     include/pybind11/detail/function_ref.h
     include/pybind11/detail/holder_caster_foreign_helpers.h
     include/pybind11/detail/init.h
+    include/pybind11/detail/internals-inl.h
     include/pybind11/detail/internals.h
     include/pybind11/detail/native_enum_data.h
     include/pybind11/detail/pybind11_namespace_macros.h
     include/pybind11/detail/struct_smart_holder.h
+    include/pybind11/detail/type_caster_base-inl.h
     include/pybind11/detail/type_caster_base.h
     include/pybind11/detail/typeid.h
     include/pybind11/detail/using_smart_holder.h
@@ -233,7 +238,9 @@ set(PYBIND11_HEADERS
     include/pybind11/native_enum.h
     include/pybind11/numpy.h
     include/pybind11/operators.h
+    include/pybind11/pybind11-inl.h
     include/pybind11/pybind11.h
+    include/pybind11/pytypes-inl.h
     include/pybind11/pytypes.h
     include/pybind11/subinterpreter.h
     include/pybind11/stl.h
@@ -264,6 +271,11 @@ if(PYBIND11_MASTER_PROJECT)
 endif()
 
 list(TRANSFORM PYBIND11_HEADERS PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")
+
+# Library sources for the opt-in precompiled mode (pybind11_precompile()).
+set(pybind11_SRC_DIR
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    CACHE INTERNAL "Directory containing the pybind11 library sources")
 
 # Cache variable so this can be used in parent projects
 set(pybind11_INCLUDE_DIR
@@ -331,6 +343,8 @@ if(PYBIND11_INSTALL)
     install(DIRECTORY ${pybind11_INCLUDE_DIR}/pybind11 DESTINATION "${SKBUILD_HEADERS_DIR}")
   endif()
   install(DIRECTORY ${pybind11_INCLUDE_DIR}/pybind11 DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+  set(pybind11_install_srcdir "${CMAKE_INSTALL_DATAROOTDIR}/pybind11/src")
+  install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/ DESTINATION "${pybind11_install_srcdir}")
   set(PYBIND11_CMAKECONFIG_INSTALL_DIR
       "${CMAKE_INSTALL_DATAROOTDIR}/cmake/${PROJECT_NAME}"
       CACHE STRING "install path for pybind11Config.cmake")
@@ -339,6 +353,11 @@ if(PYBIND11_INSTALL)
     set(pybind11_INCLUDEDIR "${CMAKE_INSTALL_FULL_INCLUDEDIR}")
   else()
     set(pybind11_INCLUDEDIR "\$\{PACKAGE_PREFIX_DIR\}/${CMAKE_INSTALL_INCLUDEDIR}")
+  endif()
+  if(IS_ABSOLUTE "${CMAKE_INSTALL_DATAROOTDIR}")
+    set(pybind11_SRCDIR "${pybind11_install_srcdir}")
+  else()
+    set(pybind11_SRCDIR "\$\{PACKAGE_PREFIX_DIR\}/${pybind11_install_srcdir}")
   endif()
 
   configure_package_config_file(
@@ -391,6 +410,7 @@ if(PYBIND11_INSTALL)
     endif()
   endif()
   join_paths(includedir_for_pc_file "\${prefix}" "${CMAKE_INSTALL_INCLUDEDIR}")
+  join_paths(srcdir_for_pc_file "\${prefix}" "${pybind11_install_srcdir}")
   configure_file("${CMAKE_CURRENT_SOURCE_DIR}/tools/pybind11.pc.in"
                  "${CMAKE_CURRENT_BINARY_DIR}/pybind11.pc" @ONLY)
   install(FILES "${CMAKE_CURRENT_BINARY_DIR}/pybind11.pc"

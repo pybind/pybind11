@@ -348,7 +348,8 @@ function with the following signature:
 .. code-block:: cmake
 
     pybind11_add_module(<name> [MODULE | SHARED] [EXCLUDE_FROM_ALL]
-                        [NO_EXTRAS] [THIN_LTO] [OPT_SIZE] source1 [source2 ...])
+                        [NO_EXTRAS] [THIN_LTO] [OPT_SIZE] [PRECOMPILE | NO_PRECOMPILE]
+                        source1 [source2 ...])
 
 This function behaves very much like CMake's builtin ``add_library`` (in fact,
 it's a wrapper function around that command). It will add a library target
@@ -403,6 +404,98 @@ a per-target level and takes precedence over the global CMake build type
 optimizations remain disabled.
 
 .. _ThinLTO: http://clang.llvm.org/docs/ThinLTO.html
+
+.. _precompile-mode:
+
+Pre-compiling part of pybind11
+------------------------------
+
+pybind11 is header-only by default: every translation unit compiles its own
+copy of the non-template implementation. The opt-in *precompiled* mode
+compiles that implementation once, into a static library built inside your
+own project with your own flags. This reduces the build time, most of all for
+projects with many translation units or many modules in one build.
+
+.. code-block:: cmake
+
+    pybind11_add_module(example PRECOMPILE example.cpp)
+
+The first ``PRECOMPILE`` target creates the library target
+``pybind11::precompiled``; further targets reuse it. Set the CMake variable
+``PYBIND11_PRECOMPILE`` to make it the default for all
+``pybind11_add_module`` calls; use ``NO_PRECOMPILE`` on a target to opt back
+out. For targets you create yourself, call the ``pybind11_precompile()``
+function and link ``pybind11::precompiled`` PRIVATE; the target carries the
+required ``PYBIND11_PRECOMPILED`` compile definition PUBLIC, so your sources
+also get it.
+
+Requirements and caveats:
+
+* The library and every module linking it must agree on the configuration
+  macros ``PYBIND11_INTERNALS_VERSION``, ``Py_GIL_DISABLED``,
+  ``PYBIND11_SIMPLE_GIL_MANAGEMENT``,
+  ``PYBIND11_DETAILED_ERROR_MESSAGES`` (defaults on in debug builds),
+  ``PYBIND11_HAS_SUBINTERPRETER_SUPPORT``, and
+  ``PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET``. A mismatch produces one
+  readable undefined symbol at link time referencing
+  ``pybind11_precompiled_config``.
+* Configuration macros that only change code inside the library (for example
+  ``PYBIND11_DISABLE_NEW_STYLE_INIT_WARNING``) must be defined when the
+  library is compiled; a definition only on your module has no effect.
+* The library picks up your directory-level flags and C++ standard when it is
+  first created, so set those before the first ``PRECOMPILE`` target. A
+  status message reports the directory that created the library.
+* The library is not compiled with link-time optimization, and the per-target
+  ``THIN_LTO`` and ``OPT_SIZE`` options of ``pybind11_add_module`` do not
+  apply to it. To change this, call ``pybind11_precompile()`` yourself and
+  set the properties on the created target, ``pybind11_precompiled`` (the
+  real target behind the ``pybind11::precompiled`` alias; CMake does not let
+  you set properties through an alias):
+
+  .. code-block:: cmake
+
+      pybind11_precompile()
+      set_target_properties(pybind11_precompiled PROPERTIES
+                            INTERPROCEDURAL_OPTIMIZATION ON)
+
+* The library is static and per-build-tree; it is never installed or shared
+  between projects. Each extension module links its own copy, which keeps
+  pybind11's per-module state the same as in header-only mode.
+* Not available with ``PYBIND11_NOPYTHON`` (the library needs Python
+  headers).
+
+For build systems other than CMake, the same sources ship with the pybind11
+package: compile ``pybind11_combined.cpp`` from the directory reported by
+``python -m pybind11 --srcdir`` (also available as
+``pybind11.get_source_dir()`` and the ``srcdir`` pkg-config variable) into
+a static library or into your extension, and define
+``PYBIND11_PRECOMPILED`` for every translation unit.
+
+With Meson, build the library once per build tree and link it into each
+extension module, the same as the CMake path:
+
+.. code-block:: meson
+
+    pybind11_dep = dependency('pybind11')
+    pybind11_src = run_command(py, ['-m', 'pybind11', '--srcdir'],
+                               check : true).stdout().strip()
+
+    pybind11_precompiled = static_library('pybind11_precompiled',
+        pybind11_src / 'pybind11_combined.cpp',
+        cpp_args : ['-DPYBIND11_PRECOMPILED'],
+        gnu_symbol_visibility : 'hidden',
+        dependencies : [pybind11_dep, py.dependency()])
+
+    py.extension_module('example', 'example.cpp',
+        cpp_args : ['-DPYBIND11_PRECOMPILED'],
+        link_with : pybind11_precompiled,
+        dependencies : [pybind11_dep])
+
+The configuration-macro rules above apply here too: the static library and
+every module that links it must be compiled with the same configuration
+macros, and ``-DPYBIND11_PRECOMPILED`` must appear in both ``cpp_args``
+lists. (``pybind11_dep.get_variable('srcdir')`` also reports the source
+directory when Meson finds pybind11 through pkg-config.)
 
 Configuration variables
 -----------------------
