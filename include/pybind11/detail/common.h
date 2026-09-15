@@ -1161,14 +1161,8 @@ PYBIND11_RUNTIME_EXCEPTION(cast_error, PyExc_RuntimeError) /// Thrown when pybin
                                                            /// casting error
 PYBIND11_RUNTIME_EXCEPTION(reference_cast_error, PyExc_RuntimeError) /// Used internally
 
-[[noreturn]] PYBIND11_NOINLINE void pybind11_fail(const char *reason) {
-    assert(!PyErr_Occurred());
-    throw std::runtime_error(reason);
-}
-[[noreturn]] PYBIND11_NOINLINE void pybind11_fail(const std::string &reason) {
-    assert(!PyErr_Occurred());
-    throw std::runtime_error(reason);
-}
+[[noreturn]] void pybind11_fail(const char *reason);
+[[noreturn]] void pybind11_fail(const std::string &reason);
 
 template <typename T, typename SFINAE = void>
 struct format_descriptor {};
@@ -1430,3 +1424,7 @@ inline void silence_unused_warnings(Args &&...) {}
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
+
+#ifndef PYBIND11_PRECOMPILED
+#    include "common-inl.h" // IWYU pragma: export
+#endif
