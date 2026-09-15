@@ -360,13 +360,17 @@ TEST_CASE("Enum module survives restart") { // Added in PR #6015
     PYBIND11_CATCH2_SKIP_IF(PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION == 12,
                             "Pre-existing crash in enum cleanup during finalize on Python 3.12");
 
-    auto enum_mod = py::module_::import("enum_module");
-    REQUIRE(enum_mod.attr("SomeEnum").attr("value1").attr("name").cast<std::string>() == "value1");
+    {
+        // Scoped so that no reference to the old interpreter's module survives the restart.
+        auto enum_mod = py::module_::import("enum_module");
+        REQUIRE(enum_mod.attr("SomeEnum").attr("value1").attr("name").cast<std::string>()
+                == "value1");
+    }
 
     py::finalize_interpreter();
     py::initialize_interpreter();
 
-    enum_mod = py::module_::import("enum_module");
+    auto enum_mod = py::module_::import("enum_module");
     REQUIRE(enum_mod.attr("SomeEnum").attr("value2").attr("name").cast<std::string>() == "value2");
 }
 
