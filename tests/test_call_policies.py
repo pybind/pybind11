@@ -254,3 +254,16 @@ def test_call_guard():
     if hasattr(m, "with_gil"):
         assert m.with_gil() == "GIL held"
         assert m.without_gil() == "GIL released"
+
+
+def test_keep_alive_failed_overload():
+    """A keep_alive on an overload that fails argument conversion must not fire.
+
+    The dispatcher invokes postcall unconditionally, so a keep_alive<0, N> on the
+    overload that bails out of load_args was handed the PYBIND11_TRY_NEXT_OVERLOAD
+    sentinel as its return value and dereferenced it. Calling the second overload is
+    what makes the first one fail first.
+    """
+    obj = m.KeepAliveOverload()
+    assert m.keep_alive_overload(obj, 1) is obj
+    assert m.keep_alive_overload(obj, "x") is obj

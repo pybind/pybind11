@@ -9,6 +9,8 @@
 
 #include "pybind11_tests.h"
 
+#include <string>
+
 struct CustomGuard {
     static bool enabled;
 
@@ -110,4 +112,19 @@ TEST_SUBMODULE(call_policies, m) {
     m.def("with_gil", report_gil_status);
     m.def("without_gil", report_gil_status, py::call_guard<py::gil_scoped_release>());
 #endif
+
+    // A keep_alive whose nurse or patient is the return value runs in postcall, which
+    // the dispatcher invokes even when the overload bailed out of load_args. `ret` is then the
+    // PYBIND11_TRY_NEXT_OVERLOAD sentinel rather than an object, and dereferencing it crashed.
+    // Reaching the SECOND overload is what exercises the failed first attempt.
+    struct KeepAliveOverload {};
+    py::class_<KeepAliveOverload>(m, "KeepAliveOverload").def(py::init<>());
+    m.def(
+        "keep_alive_overload",
+        [](KeepAliveOverload *self, int) { return self; },
+        py::keep_alive<0, 1>());
+    m.def(
+        "keep_alive_overload",
+        [](KeepAliveOverload *self, const std::string &) { return self; },
+        py::keep_alive<0, 1>());
 }
