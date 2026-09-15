@@ -238,6 +238,7 @@ set(PYBIND11_HEADERS
     include/pybind11/native_enum.h
     include/pybind11/numpy.h
     include/pybind11/operators.h
+    include/pybind11/pybind11-inl.h
     include/pybind11/pybind11.h
     include/pybind11/pytypes-inl.h
     include/pybind11/pytypes.h
