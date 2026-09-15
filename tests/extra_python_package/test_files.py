@@ -33,6 +33,7 @@ UV_ARGS = ["--installer=uv"] if HAS_UV else []
 PKGCONFIG = """\
 prefix=${{pcfiledir}}/../../
 includedir=${{prefix}}/include
+srcdir=${{prefix}}/share/pybind11/src
 
 Name: pybind11
 Description: Seamless operability between C++11 and Python
