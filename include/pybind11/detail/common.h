@@ -676,6 +676,14 @@ struct instance {
     bool has_patients : 1;
     /// If true, this Python object needs to be kept alive for the lifetime of the C++ value.
     bool is_alias : 1;
+    /// If true, this instance is being dispatched through a constructor chain containing a
+    /// deprecated old-style placement-new `__init__`/`__setstate__`. Such chains retain the
+    /// historical ability to lazily allocate C++ value storage. This is an instance-wide
+    /// compatibility marker, not per-value construction state or a synchronization mechanism.
+    /// Its intentionally retained safety limitations are documented under
+    /// `old_style_placement_new` in `docs/upgrade.rst` and referenced from
+    /// `docs/advanced/classes.rst`.
+    bool old_style_init_active : 1;
 
     /// Initializes all of the above type/values/holders data (but not the instance values
     /// themselves)

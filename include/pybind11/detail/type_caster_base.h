@@ -525,6 +525,7 @@ PYBIND11_NOINLINE void instance::allocate_layout() {
             = reinterpret_cast<std::uint8_t *>(&nonsimple.values_and_holders[flags_at]);
     }
     owned = true;
+    old_style_init_active = false;
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const)
@@ -533,6 +534,45 @@ PYBIND11_NOINLINE void instance::deallocate_layout() {
         PyMem_Free(reinterpret_cast<void *>(nonsimple.values_and_holders));
     }
 }
+
+/// RAII helper preserving lazy value allocation for a constructor chain containing a deprecated
+/// old-style placement-new `__init__`/`__setstate__`. Passing `nullptr` makes this a no-op. The
+/// compatibility window covers the whole chain and all value slots in the Python instance; it does
+/// not attempt to distinguish the old-style `self` load from reentrant, later-argument,
+/// cross-base, nested, or concurrent loads. Nesting restores the previous state but is not made
+/// safe by this scope.
+/// Before narrowing this window, review `old_style_placement_new` in `docs/upgrade.rst` and its
+/// reference from `docs/advanced/classes.rst`: the broad scope preserves historical behavior,
+/// with documented reentrancy, multiple-inheritance, nesting, and concurrency limitations.
+///
+/// If construction fails (the holder was never constructed) after storage was lazily allocated
+/// inside this scope, the destructor frees that storage and resets the value pointer, so that the
+/// uninitialized-value guard in `load_value()` stays effective for later uses of the instance.
+class old_style_init_scope {
+public:
+    explicit old_style_init_scope(value_and_holder *v_h) : v_h_{v_h} {
+        if (v_h_ != nullptr) {
+            was_active_ = v_h_->inst->old_style_init_active;
+            value_was_null_ = v_h_->value_ptr() == nullptr;
+            v_h_->inst->old_style_init_active = true;
+        }
+    }
+    ~old_style_init_scope() {
+        if (v_h_ != nullptr) {
+            v_h_->inst->old_style_init_active = was_active_;
+            if (value_was_null_ && !v_h_->holder_constructed() && v_h_->value_ptr() != nullptr) {
+                v_h_->type->dealloc(*v_h_); // Frees the storage and nulls the value pointer.
+            }
+        }
+    }
+    old_style_init_scope(const old_style_init_scope &) = delete;
+    old_style_init_scope &operator=(const old_style_init_scope &) = delete;
+
+private:
+    value_and_holder *v_h_;
+    bool was_active_ = false;
+    bool value_was_null_ = false;
+};
 
 PYBIND11_NOINLINE bool isinstance_generic(handle obj, const std::type_info &tp) {
     handle type = detail::get_type_handle(tp, false);
@@ -1140,6 +1180,20 @@ public:
         auto *&vptr = v_h.value_ptr();
         // Lazy allocation for unallocated values:
         if (vptr == nullptr) {
+            // Lazy allocation exists only to support the deprecated old-style placement-new
+            // `__init__`/`__setstate__` idiom, which is handed a reference to uninitialized
+            // storage and constructs the C++ value into it. In any other context a null value
+            // pointer means the C++ object was never constructed -- e.g. the instance was created
+            // with `__new__()`, bypassing `__init__()` -- and handing out a pointer to
+            // uninitialized memory from here is undefined behavior (typically a segfault on the
+            // first virtual call). Fail loudly instead.
+            if (!v_h.inst->old_style_init_active) {
+                throw value_error("Missing value for wrapped C++ type `"
+                                  + clean_type_id(cpptype->name())
+                                  + "`: Python instance is uninitialized: the C++ object was "
+                                    "never constructed (`__init__()` was bypassed, e.g. by "
+                                    "calling `__new__()` directly).");
+            }
             const auto *type = v_h.type ? v_h.type : typeinfo;
             if (type->operator_new) {
                 vptr = type->operator_new(type->type_size);
