@@ -42,7 +42,9 @@ struct trampoline_self_life_support {
                 v_h.value_ptr() = nullptr;
                 v_h.holder<smart_holder>().release_disowned();
                 detail::deregister_instance(v_h.inst, value_void_ptr, v_h.type);
-                Py_DECREF((PyObject *) v_h.inst); // Must be after deregister.
+                Py_DECREF(
+                    (PyObject *)
+                        v_h.inst); // Must be after deregister. // decref in C++ dtor: always safe?
                 PyGILState_Release(threadstate);
             }
         }
