@@ -7,6 +7,7 @@ import pytest
 import env
 from pybind11_tests import ConstructorStats
 from pybind11_tests import modules as m
+from pybind11_tests.modules import submodule_string as mstr
 from pybind11_tests.modules import subsubmodule as ms
 
 
@@ -24,6 +25,14 @@ def test_nested_modules():
     assert m.__file__ == ms.__file__
 
     assert ms.submodule_func() == "submodule_func()"
+
+    assert (
+        pybind11_tests.modules.submodule_string.__name__
+        == "pybind11_tests.modules.submodule_string"
+    )
+
+    assert mstr.submodule_string_func() == "submodule_string_func()"
+    assert mstr.submodule_string_func_with_arg(x=2) == 3
 
 
 def test_reference_internal():
