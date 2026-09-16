@@ -650,6 +650,7 @@ TEST_SUBMODULE(class_, m) {
     // This probe intentionally does not dereference the pointer. It documents the narrow scope of
     // this fix without itself reading storage before an OldStyleInit lifetime has begun.
     m.def("expose_old_style_init_pointer", [](OldStyleInit *value) { return value != nullptr; });
+    m.def("expose_new_no_init_pointer", [](NewNoInit *value) { return value != nullptr; });
 }
 
 template <int N>

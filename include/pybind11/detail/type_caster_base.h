@@ -545,23 +545,33 @@ PYBIND11_NOINLINE void instance::deallocate_layout() {
 /// reference from `docs/advanced/classes.rst`: the broad scope preserves historical behavior,
 /// with documented reentrancy, multiple-inheritance, nesting, and concurrency limitations.
 ///
-/// If construction fails (the holder was never constructed) after storage was lazily allocated
-/// inside this scope, the destructor frees that storage and resets the value pointer, so that the
-/// uninitialized-value guard in `load_value()` stays effective for later uses of the instance.
+/// When the scope exits, the destructor frees storage that was lazily allocated in any value slot
+/// that was empty on entry and whose holder was never constructed. This keeps the uninitialized-
+/// value guard in `load_value()` effective for later uses of the instance, including sibling slots
+/// in a Python multiple-inheritance layout.
 class old_style_init_scope {
 public:
-    explicit old_style_init_scope(value_and_holder *v_h) : v_h_{v_h} {
-        if (v_h_ != nullptr) {
-            was_active_ = v_h_->inst->old_style_init_active;
-            value_was_null_ = v_h_->value_ptr() == nullptr;
-            v_h_->inst->old_style_init_active = true;
+    explicit old_style_init_scope(value_and_holder *v_h)
+        : inst_{v_h != nullptr ? v_h->inst : nullptr} {
+        if (inst_ != nullptr) {
+            values_and_holders vhs(inst_);
+            empty_slots_.reserve(vhs.size());
+            for (auto &slot : vhs) {
+                if (slot.value_ptr() == nullptr) {
+                    empty_slots_.push_back(slot);
+                }
+            }
+            was_active_ = inst_->old_style_init_active;
+            inst_->old_style_init_active = true;
         }
     }
     ~old_style_init_scope() {
-        if (v_h_ != nullptr) {
-            v_h_->inst->old_style_init_active = was_active_;
-            if (value_was_null_ && !v_h_->holder_constructed() && v_h_->value_ptr() != nullptr) {
-                v_h_->type->dealloc(*v_h_); // Frees the storage and nulls the value pointer.
+        if (inst_ != nullptr) {
+            inst_->old_style_init_active = was_active_;
+            for (auto &slot : empty_slots_) {
+                if (!slot.holder_constructed() && slot.value_ptr() != nullptr) {
+                    slot.type->dealloc(slot); // Frees the storage and nulls the value pointer.
+                }
             }
         }
     }
@@ -569,9 +579,9 @@ public:
     old_style_init_scope &operator=(const old_style_init_scope &) = delete;
 
 private:
-    value_and_holder *v_h_;
+    instance *inst_;
+    std::vector<value_and_holder> empty_slots_;
     bool was_active_ = false;
-    bool value_was_null_ = false;
 };
 
 PYBIND11_NOINLINE bool isinstance_generic(handle obj, const std::type_info &tp) {

@@ -420,14 +420,14 @@ constructors prevent such mistakes. See :ref:`custom_constructors` for details.
    though no C++ object has been constructed there yet. Accessing the storage through such
    a pointer as though it contained a live C++ object results in undefined behavior.
 
-   Consequently, until placement-new completes, the binding must not otherwise load or inspect
-   the instance as a C++ object. Unsafe access can occur through reentrant argument conversion
-   or callback code, nested initialization, another C++ base in a Python multiple-inheritance
-   instance, or concurrent access. Mixing old- and new-style constructor overloads does not
-   narrow the window. Such access may treat unconstructed storage as a live object and result
-   in undefined behavior. To avoid these hazards, use ``py::init()`` factories and
-   ``py::pickle()`` for new bindings, and migrate existing placement-new callbacks wherever
-   practical.
+   Consequently, while such a constructor overload chain is active, the binding must not otherwise
+   load or inspect an unconstructed value slot as a C++ object. Unsafe access can occur through
+   reentrant argument conversion or callback code, nested initialization, another C++ base in a
+   Python multiple-inheritance instance, or concurrent access. Mixing old- and new-style
+   constructor overloads does not narrow the window. Such access may treat unconstructed storage
+   as a live object and result in undefined behavior. To avoid these hazards, use ``py::init()``
+   factories and ``py::pickle()`` for new bindings, and migrate existing placement-new callbacks
+   wherever practical.
 
 Mirroring the custom constructor changes, ``py::pickle()`` is now the preferred
 way to get and set object state. See :ref:`pickling` for details.

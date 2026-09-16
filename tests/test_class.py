@@ -338,6 +338,35 @@ def test_old_style_init_reentrant_load_current_limitation():
     assert obj.data() == 44
 
 
+def test_old_style_init_cleans_multiple_inheritance_sibling_storage():
+    """The old-style compatibility window is instance-wide, so a reentrant load can lazily
+    allocate an unconstructed sibling base slot. Scope cleanup must reset that slot too."""
+
+    class Derived(m.OldStyleInit, m.NewNoInit):
+        pass
+
+    obj = Derived.__new__(Derived)
+    seen = {}
+
+    class LoadSiblingOnIndex:
+        def __index__(self):
+            # Deliberately obtain but do not dereference the sibling's unconstructed storage.
+            seen["exposed"] = m.expose_new_no_init_pointer(obj)
+            return 45
+
+    m.OldStyleInit.__init__(obj, LoadSiblingOnIndex())
+
+    assert seen == {"exposed": True}
+    assert m.OldStyleInit.data(obj) == 45
+    with pytest.raises(ValueError, match="uninitialized"):
+        m.expose_new_no_init_pointer(obj)
+
+    # The sibling slot remains usable after the old-style constructor returns.
+    m.NewNoInit.__init__(obj, 46)
+    assert m.OldStyleInit.data(obj) == 45
+    assert m.NewNoInit.data(obj) == 46
+
+
 def test_reentrant_load_during_new_style_init():
     """New-style constructors never need lazy allocation, so passing the half-built instance
     to another bound function while `__init__` runs must raise, not hand out garbage."""
