@@ -12,6 +12,7 @@
 #include <sstream>
 #include <string>
 #include <typeindex>
+#include <unordered_map>
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)

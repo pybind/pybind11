@@ -12,7 +12,11 @@
 
 #include <pybind11/gil.h>
 
+#include "../pytypes.h"
 #include "common.h"
+
+#include <memory>
+#include <utility>
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)

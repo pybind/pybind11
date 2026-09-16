@@ -9,14 +9,28 @@
 
 #pragma once
 
+#include "pybind11.h"
 #include "detail/common.h"
+#include "detail/descr.h"
+#include "detail/internals.h"
 #include "detail/type_caster_base.h"
+#include "attr.h"
+#include "buffer_info.h"
 #include "cast.h"
 #include "operators.h"
+#include "pytypes.h"
 
 #include <algorithm>
+#include <exception>
+#include <iterator>
+#include <memory>
+#include <optional>
 #include <sstream>
+#include <stdexcept>
+#include <string>
 #include <type_traits>
+#include <utility>
+#include <vector>
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)

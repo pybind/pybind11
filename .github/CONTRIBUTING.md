@@ -280,11 +280,30 @@ To run include what you use, install (`brew install include-what-you-use` on
 macOS), then run:
 
 ```bash
-cmake -S . -B build-iwyu -DCMAKE_CXX_INCLUDE_WHAT_YOU_USE=$(which include-what-you-use)
-cmake --build build-iwyu
+cmake --preset iwyu
+cmake --build --preset iwyu
 ```
 
-The report is sent to stderr; you can pipe it into a file if you wish.
+The build always succeeds and IWYU writes its advice to stderr; pipe the build
+output into a file if you wish. Nothing enforces the result, so read the
+report and apply what is correct, with these cautions:
+
+- The same header is reported once per translation unit that includes it, so
+  deduplicate before acting.
+- Only act on a removal that both standard libraries (macOS and Linux) agree
+  on; take an addition from either.
+- `<Python.h>` must stay the first include (via `detail/common.h`); do not let
+  a reorder suggestion move it.
+- Ignore "should add" lines for `<math>` and other headers that are not real
+  public headers; a mapping for `<math>` makes IWYU abort.
+
+Two support files drive the analysis. `tools/iwyu.sh` wraps
+`include-what-you-use` and asks it to also check every pybind11 header, except
+`pybind11.h` and `cast.h`, which crash IWYU 0.26. `tools/iwyu.imp` maps the
+headers a suggestion must not name to the one pybind11 should use: CPython
+internals to `<Python.h>`, libc++ detail headers and the C headers of
+libstdc++ to the standard C++ header. Read the comment at its top before you
+add an entry.
 
 ### Build recipes
 

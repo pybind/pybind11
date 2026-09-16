@@ -12,7 +12,12 @@
 #pragma once
 
 #include "pybind11.h"
+#include "detail/common.h"
+#include "cast.h"
+#include "pytypes.h"
 
+#include <cstdio>
+#include <string>
 #include <utility>
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
