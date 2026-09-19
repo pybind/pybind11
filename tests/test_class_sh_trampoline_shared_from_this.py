@@ -162,6 +162,28 @@ def test_pure_cpp_sft_raw_ptr(make_f):
     assert obj.history == "PureCppSft_Stash1AddSharedFromThis"
 
 
+def test_unique_ptr_factory_and_stash_via_shared_from_this():
+    # Exercises that the smart_holder vptr stays invisible to the shared_from_this
+    # mechanism, also for a trampoline made by a unique_ptr factory.
+    class PySftUniquePtr(m.Sft):
+        def __init__(self, history):
+            super().__init__(history, "unique_ptr")
+
+    obj = PySftUniquePtr("PySftUniquePtr")
+    assert obj.history == "PySftUniquePtr"
+    stash1 = m.SftSharedPtrStash(1)
+    with pytest.raises(RuntimeError) as exc_info:
+        stash1.AddSharedFromThis(obj)
+    assert str(exc_info.value) == "bad_weak_ptr"
+    stash1.Add(obj)
+    assert obj.history == "PySftUniquePtr_Stash1Add"
+    assert stash1.use_count(0) == 1
+    stash1.AddSharedFromThis(obj)
+    assert obj.history == "PySftUniquePtr_Stash1Add_Stash1AddSharedFromThis"
+    assert stash1.use_count(0) == 2
+    assert stash1.use_count(1) == 2
+
+
 def test_multiple_registered_instances_for_same_pointee():
     obj0 = PySft("PySft")
     obj0.attachment_in_dict = "Obj0"
