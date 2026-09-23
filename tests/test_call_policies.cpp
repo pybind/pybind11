@@ -35,7 +35,7 @@ TEST_SUBMODULE(call_policies, m) {
     // Parent/Child are used in:
     // test_keep_alive_argument, test_keep_alive_return_value, test_alive_gc_derived,
     // test_alive_gc_multi_derived, test_return_none, test_keep_alive_constructor,
-    // test_keep_alive_failed_overload
+    // test_keep_alive_failed_overload, test_keep_alive_error
     class Child {
     public:
         Child() { py::print("Allocating child."); }
@@ -67,6 +67,19 @@ TEST_SUBMODULE(call_policies, m) {
         .def_static("staticFunction", &Parent::staticFunction, py::keep_alive<1, 0>());
 
     m.def("free_function", [](Parent *, Child *) {}, py::keep_alive<1, 2>());
+
+    // test_keep_alive_error
+    static int keep_alive_error_calls = 0;
+    m.def(
+        "keep_alive_error_args",
+        [](const py::object &, Child *) { ++keep_alive_error_calls; },
+        py::keep_alive<1, 2>());
+    m.def("keep_alive_error_calls", [] { return keep_alive_error_calls; });
+    m.def(
+        "keep_alive_error_return",
+        [](const py::object &) { return new Child(); },
+        py::keep_alive<1, 0>());
+
     m.def("invalid_arg_index", [] {}, py::keep_alive<0, 1>());
 
 #if !defined(PYPY_VERSION)

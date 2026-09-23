@@ -288,3 +288,21 @@ def test_keep_alive_failed_return_conversion():
     """A failed return-value conversion must raise its own error, not a keep_alive one."""
     with pytest.raises(TypeError, match="Unable to convert function return value"):
         m.keep_alive_unregistered_return(m.KeepAliveOverload())
+
+
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
+def test_keep_alive_error(capture):
+    """A keep_alive error must not leave side effects or leak the return value."""
+    n_inst = ConstructorStats.detail_reg_inst()
+    c = m.Child()
+    # An int nurse cannot hold a weak reference, so keep_alive<1, 2> fails.
+    with pytest.raises(TypeError, match="weak reference"):
+        m.keep_alive_error_args(1, c)
+    assert m.keep_alive_error_calls() == 0
+    del c
+    with capture:
+        with pytest.raises(TypeError, match="weak reference"):
+            m.keep_alive_error_return(1)
+        pytest.gc_collect()
+    assert capture == "Allocating child.\nReleasing child."
+    assert ConstructorStats.detail_reg_inst() == n_inst
