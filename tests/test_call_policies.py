@@ -300,6 +300,7 @@ def test_keep_alive_error(capture):
         m.keep_alive_error_args(1, c)
     assert m.keep_alive_error_calls() == 0
     del c
+    pytest.gc_collect()
     with capture:
         with pytest.raises(TypeError, match="weak reference"):
             m.keep_alive_error_return(1)
