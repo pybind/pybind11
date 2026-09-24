@@ -148,6 +148,23 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
         "j"_a = 3.14159,
         "z"_a = 42);
 
+    // test_args_kwonly_noconvert
+    m.def(
+        "args_kwonly_noconvert",
+        [](const py::args &args, bool x, bool y) { return py::make_tuple(args, x, y); },
+        py::arg("x").noconvert(),
+        py::arg("y"));
+
+    // test_args_kwonly_second_pass
+    m.def(
+        "args_kwonly_second_pass",
+        [](const py::args &, const std::string &s) { return "str: " + s; },
+        "s"_a);
+    m.def(
+        "args_kwonly_second_pass",
+        [](const py::args &, bool b) { return std::string(b ? "bool: True" : "bool: False"); },
+        "b"_a);
+
 // test_args_refcount
 // PyPy needs a garbage collection to get the reference count values to match CPython's behaviour
 // PyPy uses the top few bits for REFCNT_FROM_PYPY & REFCNT_FROM_PYPY_LIGHT, so truncate
