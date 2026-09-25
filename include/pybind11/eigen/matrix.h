@@ -11,7 +11,17 @@
 
 #include <pybind11/numpy.h>
 
+#include "../pybind11.h"
+#include "../detail/common.h"
+#include "../detail/descr.h"
+#include "../detail/type_caster_base.h"
+#include "../cast.h"
+#include "../pytypes.h"
 #include "common.h"
+
+#include <memory>
+#include <type_traits>
+#include <utility>
 
 /* HINT: To suppress warnings originating from the Eigen headers, use -isystem.
    See also:

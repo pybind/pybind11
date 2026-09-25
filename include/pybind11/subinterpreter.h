@@ -12,8 +12,12 @@
 #include "detail/common.h"
 #include "detail/internals.h"
 #include "gil.h"
+#include "pytypes.h"
 
+#include <cstdint>
+#include <cstring>
 #include <stdexcept>
+#include <utility>
 
 #ifndef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
 #    error "This platform does not support subinterpreters, do not include this file."

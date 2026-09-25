@@ -11,27 +11,32 @@
 
 #include <pybind11/gil.h>
 #include <pybind11/pytypes.h>
-#include <pybind11/trampoline_self_life_support.h>
 
+#include "../conduit/pybind11_platform_abi_id.h"
 #include "common.h"
 #include "cpp_conduit.h"
 #include "descr.h"
-#include "dynamic_raw_ptr_cast_if_possible.h"
 #include "internals.h"
+#include "struct_smart_holder.h"
 #include "typeid.h"
 #include "using_smart_holder.h"
 #include "value_and_holder.h"
 
+#include <cassert>
 #include <cstdint>
 #include <cstring>
+#include <forward_list>
 #include <iterator>
+#include <memory>
 #include <new>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <typeindex>
 #include <typeinfo>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 

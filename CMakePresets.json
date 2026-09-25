@@ -38,6 +38,18 @@
         "CMAKE_CXX_CLANG_TIDY": "clang-tidy;--use-color;--warnings-as-errors=*",
         "CMAKE_CXX_STANDARD": "17"
       }
+    },
+    {
+      "name": "iwyu",
+      "displayName": "Include-what-you-use",
+      "inherits": "venv",
+      "binaryDir": "build-iwyu",
+      "cacheVariables": {
+        "CMAKE_CXX_INCLUDE_WHAT_YOU_USE": "${sourceDir}/tools/iwyu.sh",
+        "CMAKE_CXX_STANDARD": "17",
+        "CMAKE_OSX_SYSROOT": "macosx",
+        "PYBIND11_WERROR": false
+      }
     }
   ],
   "buildPresets": [
@@ -56,6 +68,11 @@
       "displayName": "Clang-tidy Build",
       "configurePreset": "tidy",
       "nativeToolOptions": ["-k0"]
+    },
+    {
+      "name": "iwyu",
+      "displayName": "Include-what-you-use Build",
+      "configurePreset": "iwyu"
     },
     {
       "name": "tests",

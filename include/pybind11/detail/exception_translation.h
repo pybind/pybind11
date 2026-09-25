@@ -9,8 +9,12 @@
 
 #pragma once
 
+#include "../pytypes.h"
 #include "common.h"
 #include "internals.h"
+
+#include <exception>
+#include <forward_list>
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)

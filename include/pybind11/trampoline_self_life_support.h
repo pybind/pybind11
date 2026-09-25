@@ -5,6 +5,7 @@
 #pragma once
 
 #include "detail/common.h"
+#include "detail/struct_smart_holder.h"
 #include "detail/using_smart_holder.h"
 #include "detail/value_and_holder.h"
 

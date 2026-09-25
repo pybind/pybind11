@@ -11,10 +11,12 @@
 #pragma once
 
 #include "detail/common.h"
+#include "detail/descr.h"
 #include "cast.h"
 #include "pytypes.h"
 
 #include <algorithm>
+#include <type_traits>
 
 #if defined(__cpp_nontype_template_args) && __cpp_nontype_template_args >= 201911L
 #    define PYBIND11_TYPING_H_HAS_STRING_LITERAL

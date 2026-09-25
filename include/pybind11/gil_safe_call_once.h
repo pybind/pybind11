@@ -14,7 +14,6 @@
 #endif
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
 #    include <cstdint>
-#    include <memory>
 #    include <string>
 #endif
 

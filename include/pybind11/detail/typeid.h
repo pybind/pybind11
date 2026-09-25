@@ -9,8 +9,10 @@
 
 #pragma once
 
-#include <cstdio>
 #include <cstdlib>
+#include <memory>
+#include <string>
+#include <typeinfo>
 
 #if defined(__GNUG__)
 #    if !defined(__has_include)
