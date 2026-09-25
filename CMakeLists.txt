@@ -200,6 +200,7 @@ set(PYBIND11_HEADERS
     include/pybind11/detail/function_ref.h
     include/pybind11/detail/holder_caster_foreign_helpers.h
     include/pybind11/detail/init.h
+    include/pybind11/detail/internals-inl.h
     include/pybind11/detail/internals.h
     include/pybind11/detail/native_enum_data.h
     include/pybind11/detail/pybind11_namespace_macros.h
@@ -234,6 +235,7 @@ set(PYBIND11_HEADERS
     include/pybind11/numpy.h
     include/pybind11/operators.h
     include/pybind11/pybind11.h
+    include/pybind11/pytypes-inl.h
     include/pybind11/pytypes.h
     include/pybind11/subinterpreter.h
     include/pybind11/stl.h
@@ -264,6 +266,11 @@ if(PYBIND11_MASTER_PROJECT)
 endif()
 
 list(TRANSFORM PYBIND11_HEADERS PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")
+
+# Library sources for the opt-in precompiled mode (pybind11_precompile()).
+set(pybind11_SRC_DIR
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    CACHE INTERNAL "Directory containing the pybind11 library sources")
 
 # Cache variable so this can be used in parent projects
 set(pybind11_INCLUDE_DIR
@@ -331,6 +338,8 @@ if(PYBIND11_INSTALL)
     install(DIRECTORY ${pybind11_INCLUDE_DIR}/pybind11 DESTINATION "${SKBUILD_HEADERS_DIR}")
   endif()
   install(DIRECTORY ${pybind11_INCLUDE_DIR}/pybind11 DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+  install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/
+          DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/pybind11/src")
   set(PYBIND11_CMAKECONFIG_INSTALL_DIR
       "${CMAKE_INSTALL_DATAROOTDIR}/cmake/${PROJECT_NAME}"
       CACHE STRING "install path for pybind11Config.cmake")
@@ -339,6 +348,11 @@ if(PYBIND11_INSTALL)
     set(pybind11_INCLUDEDIR "${CMAKE_INSTALL_FULL_INCLUDEDIR}")
   else()
     set(pybind11_INCLUDEDIR "\$\{PACKAGE_PREFIX_DIR\}/${CMAKE_INSTALL_INCLUDEDIR}")
+  endif()
+  if(IS_ABSOLUTE "${CMAKE_INSTALL_DATAROOTDIR}")
+    set(pybind11_SRCDIR "${CMAKE_INSTALL_DATAROOTDIR}/pybind11/src")
+  else()
+    set(pybind11_SRCDIR "\$\{PACKAGE_PREFIX_DIR\}/${CMAKE_INSTALL_DATAROOTDIR}/pybind11/src")
   endif()
 
   configure_package_config_file(
