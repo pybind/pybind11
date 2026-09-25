@@ -160,11 +160,22 @@
 // In contrast, FORWARD DECLARATIONS should never use this macro:
 // https://stackoverflow.com/questions/9317473/forward-declaration-of-inline-functions
 #if defined(PYBIND11_NOINLINE_DISABLED) // Option for maximum portability and experimentation.
-#    define PYBIND11_NOINLINE inline
+#    define PYBIND11_NOINLINE_ATTR
 #elif defined(_MSC_VER)
-#    define PYBIND11_NOINLINE __declspec(noinline) inline
+#    define PYBIND11_NOINLINE_ATTR __declspec(noinline)
 #else
-#    define PYBIND11_NOINLINE __attribute__((noinline)) inline
+#    define PYBIND11_NOINLINE_ATTR __attribute__((noinline))
+#endif
+#define PYBIND11_NOINLINE PYBIND11_NOINLINE_ATTR inline
+
+// PYBIND11_INLINE marks function definitions that live in a `-inl.h` file. It is `inline` in
+// the default header-only mode. Defining PYBIND11_PRECOMPILED makes it empty: the definitions
+// are then compiled once (into a static library linked into each extension module) and the
+// headers only provide declarations.
+#if defined(PYBIND11_PRECOMPILED)
+#    define PYBIND11_INLINE
+#else
+#    define PYBIND11_INLINE inline
 #endif
 
 #if defined(_MSC_VER)
