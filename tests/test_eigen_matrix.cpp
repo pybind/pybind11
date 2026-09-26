@@ -268,6 +268,19 @@ TEST_SUBMODULE(eigen_matrix, m) {
         }
     };
     using rvp = py::return_value_policy;
+    auto null_matrix = m.def_submodule("null_matrix");
+    for (const auto &policy : {std::make_pair("automatic", rvp::automatic),
+                               std::make_pair("automatic_reference", rvp::automatic_reference),
+                               std::make_pair("take_ownership", rvp::take_ownership),
+                               std::make_pair("copy", rvp::copy),
+                               std::make_pair("move", rvp::move),
+                               std::make_pair("reference", rvp::reference),
+                               std::make_pair("reference_internal", rvp::reference_internal)}) {
+        auto policy_module = null_matrix.def_submodule(policy.first);
+        policy_module.def("matrix", []() -> Eigen::MatrixXd * { return nullptr; }, policy.second);
+        policy_module.def(
+            "const_matrix", []() -> const Eigen::MatrixXd * { return nullptr; }, policy.second);
+    }
     py::class_<ReturnTester>(m, "ReturnTester")
         .def(py::init<>())
         .def_static("create", &ReturnTester::create)
