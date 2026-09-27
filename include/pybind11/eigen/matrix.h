@@ -685,14 +685,15 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
             return false;
         }
 
+        // The map is only used to copy the data, but Eigen < 3.3 requires mutable pointers.
         value = EigenMapSparseMatrix<Scalar,
                                      Type::Flags &(Eigen::RowMajor | Eigen::ColMajor),
                                      StorageIndex>(shape[0].cast<Index>(),
                                                    shape[1].cast<Index>(),
                                                    std::move(nnz),
-                                                   outerIndices.mutable_data(),
-                                                   innerIndices.mutable_data(),
-                                                   values.mutable_data());
+                                                   const_cast<StorageIndex *>(outerIndices.data()),
+                                                   const_cast<StorageIndex *>(innerIndices.data()),
+                                                   const_cast<Scalar *>(values.data()));
 
         return true;
     }
