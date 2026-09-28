@@ -441,7 +441,10 @@ Requirements and caveats:
   ``pybind11_precompiled_config``.
 * Configuration macros that only change code inside the library (for example
   ``PYBIND11_DISABLE_NEW_STYLE_INIT_WARNING``) must be defined when the
-  library is compiled; a definition only on your module has no effect.
+  library is compiled; a definition only on your module has no effect. This
+  also applies to a custom ``PYBIND11_NAMESPACE`` visibility attribute: set
+  it at the directory level (``add_compile_definitions``) so that the library
+  gets it too.
 * The library picks up your directory-level flags and C++ standard when it is
   first created, so set those before the first ``PRECOMPILE`` target. A
   status message reports the directory that created the library.

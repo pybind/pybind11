@@ -52,7 +52,8 @@
 // the library and the modules linking it. PYBIND11_MODULE calls it, so a mismatch (or a
 // missing library) surfaces as one readable undefined symbol at link time instead of many
 // unrelated ones at run time. If you add a configuration macro that changes the code in the
-// -inl.h files, encode it here and add it to the list in docs/compiling.rst.
+// -inl.h files, encode it here, add it to the list in docs/compiling.rst, and add it to
+// tools/check_inl_headers.py.
 #    if defined(Py_GIL_DISABLED)
 #        define PYBIND11_PRECOMPILED_CFG_GD 1
 #    else

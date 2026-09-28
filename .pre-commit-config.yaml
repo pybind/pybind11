@@ -141,6 +141,11 @@ repos:
     language: pygrep
     entry: PyBind|\bNumpy\b|Cmake|CCache|PyTest
     exclude: ^\.pre-commit-config.yaml$
+  - id: check-inl-headers
+    name: Check -inl.h files for the precompiled mode
+    language: python
+    entry: python tools/check_inl_headers.py
+    files: -inl\.h$
 
 # PyLint has native support - not always usable, but works for us
 - repo: https://github.com/PyCQA/pylint
