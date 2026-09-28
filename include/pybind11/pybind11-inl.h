@@ -408,6 +408,10 @@ PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void print(const tuple &args, const dict 
 }
 
 PYBIND11_NAMESPACE_END(detail)
+PYBIND11_INLINE error_already_set::error_already_set()
+    : m_fetched_error{new detail::error_fetch_and_normalize("pybind11::error_already_set"),
+                      m_fetched_error_deleter} {}
+
 PYBIND11_INLINE void
 error_already_set::m_fetched_error_deleter(detail::error_fetch_and_normalize *raw_ptr) {
     gil_scoped_acquire gil;
@@ -1489,4 +1493,98 @@ PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void enum_base::export_values() {
 }
 
 PYBIND11_NAMESPACE_END(detail)
+PYBIND11_INLINE module_ module_::def_submodule(const char *name, const char *doc) {
+    const char *this_name = PyModule_GetName(m_ptr);
+    if (this_name == nullptr) {
+        throw error_already_set();
+    }
+    std::string full_name = std::string(this_name) + '.' + name;
+    handle submodule = PyImport_AddModule(full_name.c_str());
+    if (!submodule) {
+        throw error_already_set();
+    }
+    auto result = reinterpret_borrow<module_>(submodule);
+    if (doc && options::show_user_defined_docstrings()) {
+        result.attr("__doc__") = pybind11::str(doc);
+    }
+
+#if defined(GRAALVM_PYTHON) && (!defined(GRAALPY_VERSION_NUM) || GRAALPY_VERSION_NUM < 0x190000)
+    // GraalPy doesn't support PyModule_GetFilenameObject,
+    // so getting by attribute (see PR #5584)
+    handle this_module = m_ptr;
+    if (object this_file = getattr(this_module, "__file__", none())) {
+        result.attr("__file__") = this_file;
+    }
+#else
+    handle this_file = PyModule_GetFilenameObject(m_ptr);
+    if (this_file) {
+        result.attr("__file__") = this_file;
+    } else if (PyErr_ExceptionMatches(PyExc_SystemError) != 0) {
+        PyErr_Clear();
+    } else {
+        throw error_already_set();
+    }
+#endif
+    attr(name) = result;
+    return result;
+}
+
+PYBIND11_INLINE module_ module_::import(const char *name) {
+    PyObject *obj = PyImport_ImportModule(name);
+    if (!obj) {
+        throw error_already_set();
+    }
+    return reinterpret_steal<module_>(obj);
+}
+
+PYBIND11_INLINE void module_::reload() {
+    PyObject *obj = PyImport_ReloadModule(ptr());
+    if (!obj) {
+        throw error_already_set();
+    }
+    *this = reinterpret_steal<module_>(obj);
+}
+
+PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void
+module_::add_object(const char *name, handle obj, bool overwrite) {
+    if (!overwrite && hasattr(*this, name)) {
+        pybind11_fail("Error during initialization: multiple incompatible definitions with name \""
+                      + std::string(name) + "\"");
+    }
+
+    PyModule_AddObject(ptr(), name, obj.inc_ref().ptr() /* steals a reference */);
+}
+
+PYBIND11_INLINE module_ module_::create_extension_module(const char *name,
+                                                         const char *doc,
+                                                         PyModuleDef *def,
+                                                         mod_gil_not_used gil_not_used) {
+    // Placement new (not an allocation).
+    new (def) PyModuleDef{/* m_base */ PyModuleDef_HEAD_INIT,
+                          /* m_name */ name,
+                          /* m_doc */ options::show_user_defined_docstrings() ? doc : nullptr,
+                          /* m_size */ -1,
+                          /* m_methods */ nullptr,
+                          /* m_slots */ nullptr,
+                          /* m_traverse */ nullptr,
+                          /* m_clear */ nullptr,
+                          /* m_free */ nullptr};
+    auto *m = PyModule_Create(def);
+    if (m == nullptr) {
+        if (PyErr_Occurred()) {
+            throw error_already_set();
+        }
+        pybind11_fail("Internal error in module_::create_extension_module()");
+    }
+    if (gil_not_used.flag()) {
+#ifdef Py_GIL_DISABLED
+        PyUnstable_Module_SetGIL(m, Py_MOD_GIL_NOT_USED);
+#endif
+    }
+    // TODO: Should be reinterpret_steal for Python 3, but Python also steals it again when
+    //       returned from PyInit_...
+    //       For Python 2, reinterpret_borrow was correct.
+    return reinterpret_borrow<module_>(m);
+}
+
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

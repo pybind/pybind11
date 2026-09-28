@@ -256,4 +256,19 @@ PYBIND11_INLINE void PYBIND11_PRECOMPILED_CONFIG_CHECK() {}
 #endif
 
 PYBIND11_NAMESPACE_END(detail)
+
+PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void *get_shared_data(const std::string &name) {
+    return detail::with_internals([&](detail::internals &internals) {
+        auto it = internals.shared_data.find(name);
+        return it != internals.shared_data.end() ? it->second : nullptr;
+    });
+}
+
+PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void *set_shared_data(const std::string &name, void *data) {
+    return detail::with_internals([&](detail::internals &internals) {
+        internals.shared_data[name] = data;
+        return data;
+    });
+}
+
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
