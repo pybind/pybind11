@@ -260,26 +260,6 @@ PYBIND11_INLINE dict globals() {
 }
 
 PYBIND11_NAMESPACE_BEGIN(detail)
-PYBIND11_INLINE void call_operator_delete(void *p, size_t s, size_t a) {
-    (void) s;
-    (void) a;
-#if defined(__cpp_aligned_new)
-    if (a > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
-#    ifdef __cpp_sized_deallocation
-        ::operator delete(p, s, std::align_val_t(a));
-#    else
-        ::operator delete(p, std::align_val_t(a));
-#    endif
-        return;
-    }
-#endif
-#ifdef __cpp_sized_deallocation
-    ::operator delete(p, s);
-#else
-    ::operator delete(p);
-#endif
-}
-
 PYBIND11_INLINE void add_class_method(object &cls, const char *name_, const cpp_function &cf) {
     cls.attr(cf.name()) = cf;
     if (std::strcmp(name_, "__eq__") == 0 && !cls.attr("__dict__").contains("__hash__")) {

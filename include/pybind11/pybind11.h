@@ -958,7 +958,27 @@ void call_operator_delete(T *p, size_t s, size_t) {
     T::operator delete(p, s);
 }
 
-void call_operator_delete(void *p, size_t s, size_t a);
+// Stays inline: it depends on the C++ standard (aligned and sized deallocation), which can
+// differ between the precompiled library and the module that allocated the object.
+inline void call_operator_delete(void *p, size_t s, size_t a) {
+    (void) s;
+    (void) a;
+#if defined(__cpp_aligned_new)
+    if (a > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
+#    ifdef __cpp_sized_deallocation
+        ::operator delete(p, s, std::align_val_t(a));
+#    else
+        ::operator delete(p, std::align_val_t(a));
+#    endif
+        return;
+    }
+#endif
+#ifdef __cpp_sized_deallocation
+    ::operator delete(p, s);
+#else
+    ::operator delete(p);
+#endif
+}
 
 void add_class_method(object &cls, const char *name_, const cpp_function &cf);
 
