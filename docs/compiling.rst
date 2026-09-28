@@ -450,7 +450,10 @@ Requirements and caveats:
   status message reports the directory that created the library.
 * The library is not compiled with link-time optimization, and the per-target
   ``THIN_LTO`` and ``OPT_SIZE`` options of ``pybind11_add_module`` do not
-  apply to it. To change this, call ``pybind11_precompile()`` yourself and
+  apply to it. In a Release build this adds a few nanoseconds to each call of
+  a bound function (up to about 10% for a function that does nothing,
+  depending on the compiler; a few percent with LTO on the library). To change this, call ``pybind11_precompile()``
+  yourself and
   set the properties on the created target, ``pybind11_precompiled`` (the
   real target behind the ``pybind11::precompiled`` alias; CMake does not let
   you set properties through an alias):
