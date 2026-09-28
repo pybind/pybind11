@@ -264,6 +264,8 @@ def test_keep_alive_failed_overload():
     assert isinstance(m.keep_alive_overload(obj, "x"), m.KeepAliveOverload)
     assert isinstance(m.keep_alive_overload_reverse(obj, 1), m.KeepAliveOverload)
     assert isinstance(m.keep_alive_overload_reverse(obj, "x"), m.KeepAliveOverload)
+    with pytest.raises(TypeError):
+        m.keep_alive_single(obj, "x")
 
 
 @pytest.mark.xfail("env.PYPY", reason="sometimes comes out 1 off on PyPy", strict=False)

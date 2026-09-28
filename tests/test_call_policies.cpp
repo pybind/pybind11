@@ -129,7 +129,7 @@ TEST_SUBMODULE(call_policies, m) {
 
     // test_keep_alive_failed_overload
     // In each overload pair, the first overload rejects the second argument when the second
-    // overload is called; its keep_alive must not fire (see keep_alive_impl in pybind11.h).
+    // overload is called; its keep_alive must not fire.
     struct KeepAliveOverload {};
     py::class_<KeepAliveOverload>(m, "KeepAliveOverload").def(py::init<>());
     // Return value as nurse.
@@ -150,6 +150,11 @@ TEST_SUBMODULE(call_policies, m) {
         "keep_alive_overload_reverse",
         [](const KeepAliveOverload &, const std::string &) { return KeepAliveOverload(); },
         py::keep_alive<1, 0>());
+    // Sole candidate.
+    m.def(
+        "keep_alive_single",
+        [](const KeepAliveOverload &, int) { return KeepAliveOverload(); },
+        py::keep_alive<0, 1>());
     // Argument-to-argument.
     m.def("keep_alive_overload_args", [](Parent *, Child *, int) {}, py::keep_alive<1, 2>());
     m.def("keep_alive_overload_args", [](Parent *, Child *, const std::string &) {});

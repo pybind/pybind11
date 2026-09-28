@@ -411,8 +411,7 @@ struct process_attribute_default {
     static void init(const T &, type_record *) {}
     /// Runs after argument conversion succeeded, before the call.
     static void precall(function_call &) {}
-    /// The handle is not always a valid object: it is the PYBIND11_TRY_NEXT_OVERLOAD sentinel
-    /// if argument conversion failed, and null if the call or return-value conversion failed.
+    /// Runs after the call succeeded. The handle is null if return-value conversion failed.
     static void postcall(function_call &, handle) {}
 };
 

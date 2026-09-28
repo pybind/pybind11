@@ -603,8 +603,10 @@ protected:
                                              detail::function_ref<Return(Args...)>(cap->f),
                                              &process_attributes<Extra...>::precall);
 
-            /* Invoke call policy post-call hook */
-            process_attributes<Extra...>::postcall(call, result);
+            /* Invoke call policy post-call hook, only for the overload that matched */
+            if (result.ptr() != PYBIND11_TRY_NEXT_OVERLOAD) {
+                process_attributes<Extra...>::postcall(call, result);
+            }
 
             return result;
         };
@@ -3391,14 +3393,11 @@ PYBIND11_NOINLINE void keep_alive_impl(handle nurse, handle patient) {
 
 PYBIND11_NOINLINE void
 keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret) {
-    // With index 0, this runs in postcall, which the dispatcher runs even when the overload
-    // produced no value: `ret` is the PYBIND11_TRY_NEXT_OVERLOAD sentinel ((PyObject *) 1) if
-    // the overload bailed out of `load_args`, and null if the return-value conversion failed
-    // (with the real error already set). There is no relationship to establish then. The
-    // sentinel would pass the guards below and be dereferenced, and a null `ret` would be
-    // reported as "Could not activate keep_alive!", masking the real error.
+    // With index 0, this runs in postcall, where a null `ret` means the return-value conversion
+    // failed with the real error already set. Report that error, not "Could not activate
+    // keep_alive!". Without index 0, this runs in precall, where `ret` is always null.
     const bool uses_ret = Nurse == 0 || Patient == 0;
-    if (uses_ret && (!ret || ret.ptr() == PYBIND11_TRY_NEXT_OVERLOAD)) {
+    if (uses_ret && !ret) {
         return;
     }
 
