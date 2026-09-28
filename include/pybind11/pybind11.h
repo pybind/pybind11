@@ -489,7 +489,9 @@ private:
     // actual function lambda so that we can get code reuse for
     // functions with the same Return, Args, and Guard.
     template <typename Return, typename Guard, typename ArgsConverter, typename... Args>
-    static handle call_impl(detail::function_call &call, detail::function_ref<Return(Args...)> f) {
+    static handle call_impl(detail::function_call &call,
+                            detail::function_ref<Return(Args...)> f,
+                            void (*precall)(detail::function_call &)) {
         using namespace detail;
         // Static assertion: function_ref must be trivially copyable to ensure safe pass-by-value.
         // Lifetime safety: The function_ref is created from cap->f which lives in the capture
@@ -504,6 +506,9 @@ private:
         if (!args_converter.load_args(call)) {
             return PYBIND11_TRY_NEXT_OVERLOAD;
         }
+
+        /* Invoke call policy pre-call hook, only for the overload that matched */
+        precall(call);
 
         /* Override policy for rvalues -- usually to enforce rvp::move on an rvalue */
         return_value_policy policy
@@ -585,9 +590,6 @@ protected:
 
         /* Dispatch code which converts function arguments and performs the actual function call */
         rec->impl = [](function_call &call) -> handle {
-            /* Invoke call policy pre-call hook */
-            process_attributes<Extra...>::precall(call);
-
             /* Get a pointer to the capture object */
             const auto *data = (sizeof(capture) <= sizeof(call.func.data) ? &call.func.data
                                                                           : call.func.data[0]);
@@ -597,10 +599,14 @@ protected:
                                     /* Function scope guard -- defaults to the compile-to-nothing
                                        `void_type` */
                                     extract_guard_t<Extra...>,
-                                    cast_in>(call, detail::function_ref<Return(Args...)>(cap->f));
+                                    cast_in>(call,
+                                             detail::function_ref<Return(Args...)>(cap->f),
+                                             &process_attributes<Extra...>::precall);
 
-            /* Invoke call policy post-call hook */
-            process_attributes<Extra...>::postcall(call, result);
+            /* Invoke call policy post-call hook, only for the overload that matched */
+            if (result.ptr() != PYBIND11_TRY_NEXT_OVERLOAD) {
+                process_attributes<Extra...>::postcall(call, result);
+            }
 
             return result;
         };
@@ -3387,6 +3393,14 @@ PYBIND11_NOINLINE void keep_alive_impl(handle nurse, handle patient) {
 
 PYBIND11_NOINLINE void
 keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret) {
+    // With index 0, this runs in postcall, where a null `ret` means the return-value conversion
+    // failed with the real error already set. Report that error, not "Could not activate
+    // keep_alive!". Without index 0, this runs in precall, where `ret` is always null.
+    const bool uses_ret = Nurse == 0 || Patient == 0;
+    if (uses_ret && !ret) {
+        return;
+    }
+
     auto get_arg = [&](size_t n) {
         if (n == 0) {
             return ret;
@@ -3400,7 +3414,15 @@ keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret) {
         return handle();
     };
 
-    keep_alive_impl(get_arg(Nurse), get_arg(Patient));
+    try {
+        keep_alive_impl(get_arg(Nurse), get_arg(Patient));
+    } catch (...) {
+        // The dispatcher drops `ret` when postcall throws, so release it here.
+        if (uses_ret) {
+            ret.dec_ref();
+        }
+        throw;
+    }
 }
 
 inline std::pair<decltype(internals::registered_types_py)::iterator, bool>
