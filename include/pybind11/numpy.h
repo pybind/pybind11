@@ -1158,7 +1158,7 @@ public:
 
     /// Dimension along a given axis
     ssize_t shape(ssize_t dim) const {
-        if (dim >= ndim()) {
+        if (dim < 0 || dim >= ndim()) {
             fail_dim_check(dim, "invalid axis");
         }
         return shape()[dim];
@@ -1176,7 +1176,7 @@ public:
 
     /// Stride along a given axis
     ssize_t strides(ssize_t dim) const {
-        if (dim >= ndim()) {
+        if (dim < 0 || dim >= ndim()) {
             fail_dim_check(dim, "invalid axis");
         }
         return strides()[dim];
@@ -1356,7 +1356,7 @@ protected:
 
     template <typename... Ix>
     void check_dimensions_impl(ssize_t axis, const ssize_t *shape, ssize_t i, Ix... index) const {
-        if (i >= *shape) {
+        if (i < 0 || i >= *shape) {
             throw index_error(std::string("index ") + std::to_string(i)
                               + " is out of bounds for axis " + std::to_string(axis)
                               + " with size " + std::to_string(*shape));
