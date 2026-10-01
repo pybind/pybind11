@@ -69,6 +69,12 @@ def test_array_attributes():
     with pytest.raises(IndexError) as excinfo:
         m.strides(a, 2)
     assert str(excinfo.value) == "invalid axis: 2 (ndim = 2)"
+    with pytest.raises(IndexError) as excinfo:
+        m.shape(a, -1)
+    assert str(excinfo.value) == "invalid axis: -1 (ndim = 2)"
+    with pytest.raises(IndexError) as excinfo:
+        m.strides(a, -1)
+    assert str(excinfo.value) == "invalid axis: -1 (ndim = 2)"
     assert not m.writeable(a)
     assert m.size(a) == 6
     assert m.itemsize(a) == 2
@@ -217,6 +223,14 @@ def test_bounds_check(arr):
         with pytest.raises(IndexError) as excinfo:
             func(arr, 0, 4)
         assert str(excinfo.value) == "index 4 is out of bounds for axis 1 with size 3"
+        # Negative indices are out of bounds too (they would address memory
+        # before the start of the buffer).
+        with pytest.raises(IndexError) as excinfo:
+            func(arr, -1, 0)
+        assert str(excinfo.value) == "index -1 is out of bounds for axis 0 with size 2"
+        with pytest.raises(IndexError) as excinfo:
+            func(arr, 0, -1)
+        assert str(excinfo.value) == "index -1 is out of bounds for axis 1 with size 3"
 
 
 def test_make_c_f_array():
