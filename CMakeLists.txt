@@ -343,8 +343,8 @@ if(PYBIND11_INSTALL)
     install(DIRECTORY ${pybind11_INCLUDE_DIR}/pybind11 DESTINATION "${SKBUILD_HEADERS_DIR}")
   endif()
   install(DIRECTORY ${pybind11_INCLUDE_DIR}/pybind11 DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-  install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/
-          DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/pybind11/src")
+  set(pybind11_install_srcdir "${CMAKE_INSTALL_DATAROOTDIR}/pybind11/src")
+  install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/ DESTINATION "${pybind11_install_srcdir}")
   set(PYBIND11_CMAKECONFIG_INSTALL_DIR
       "${CMAKE_INSTALL_DATAROOTDIR}/cmake/${PROJECT_NAME}"
       CACHE STRING "install path for pybind11Config.cmake")
@@ -355,9 +355,9 @@ if(PYBIND11_INSTALL)
     set(pybind11_INCLUDEDIR "\$\{PACKAGE_PREFIX_DIR\}/${CMAKE_INSTALL_INCLUDEDIR}")
   endif()
   if(IS_ABSOLUTE "${CMAKE_INSTALL_DATAROOTDIR}")
-    set(pybind11_SRCDIR "${CMAKE_INSTALL_DATAROOTDIR}/pybind11/src")
+    set(pybind11_SRCDIR "${pybind11_install_srcdir}")
   else()
-    set(pybind11_SRCDIR "\$\{PACKAGE_PREFIX_DIR\}/${CMAKE_INSTALL_DATAROOTDIR}/pybind11/src")
+    set(pybind11_SRCDIR "\$\{PACKAGE_PREFIX_DIR\}/${pybind11_install_srcdir}")
   endif()
 
   configure_package_config_file(
@@ -410,6 +410,7 @@ if(PYBIND11_INSTALL)
     endif()
   endif()
   join_paths(includedir_for_pc_file "\${prefix}" "${CMAKE_INSTALL_INCLUDEDIR}")
+  join_paths(srcdir_for_pc_file "\${prefix}" "${pybind11_install_srcdir}")
   configure_file("${CMAKE_CURRENT_SOURCE_DIR}/tools/pybind11.pc.in"
                  "${CMAKE_CURRENT_BINARY_DIR}/pybind11.pc" @ONLY)
   install(FILES "${CMAKE_CURRENT_BINARY_DIR}/pybind11.pc"

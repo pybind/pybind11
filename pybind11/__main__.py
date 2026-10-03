@@ -17,6 +17,7 @@ from .commands import (
     get_include_dirs,
     get_ldflags,
     get_pkgconfig_dir,
+    get_source_dir,
 )
 
 
@@ -49,6 +50,12 @@ def main() -> None:
         "--pkgconfigdir",
         action="store_true",
         help="Print the pkgconfig directory, ideal for setting $PKG_CONFIG_PATH.",
+    )
+    parser.add_argument(
+        "--srcdir",
+        action="store_true",
+        help="Print the directory containing the library sources for the optional"
+        " precompiled mode.",
     )
     parser.add_argument(
         "--extension-suffix",
@@ -101,6 +108,8 @@ def main() -> None:
         print(quote(get_cmake_dir()))
     if args.pkgconfigdir:
         print(quote(get_pkgconfig_dir()))
+    if args.srcdir:
+        print(quote(get_source_dir()))
     if args.extension_suffix:
         print(ext_suffix)
 
