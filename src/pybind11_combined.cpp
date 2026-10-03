@@ -13,5 +13,6 @@
 
 #include <pybind11/detail/class-inl.h>
 #include <pybind11/detail/internals-inl.h>
+#include <pybind11/detail/type_caster_base-inl.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/pytypes-inl.h>
