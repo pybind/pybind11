@@ -266,7 +266,13 @@ function(pybind11_add_module target_name)
     set(lib_type MODULE)
   endif()
 
-  if("${_Python}" STREQUAL "Python")
+  if(lib_type STREQUAL "SHARED")
+    # Bypass python_add_library, which links SHARED libraries against libpython.
+    # An extension module must not link libpython on macOS; with a statically
+    # linked interpreter (e.g. python-build-standalone) that loads a second
+    # Python runtime and aborts on import. Matches classic pybind11Tools.cmake.
+    add_library(${target_name} SHARED ${ARG_UNPARSED_ARGUMENTS})
+  elseif("${_Python}" STREQUAL "Python")
     python_add_library(${target_name} ${lib_type} ${ARG_UNPARSED_ARGUMENTS})
   elseif("${_Python}" STREQUAL "Python3")
     python3_add_library(${target_name} ${lib_type} ${ARG_UNPARSED_ARGUMENTS})
@@ -276,10 +282,10 @@ function(pybind11_add_module target_name)
 
   target_link_libraries(${target_name} PRIVATE pybind11::headers)
 
-  if(lib_type STREQUAL "MODULE")
-    target_link_libraries(${target_name} PRIVATE pybind11::module)
-  else()
+  if(lib_type STREQUAL "STATIC")
     target_link_libraries(${target_name} PRIVATE pybind11::embed)
+  else()
+    target_link_libraries(${target_name} PRIVATE pybind11::module)
   endif()
 
   # -fvisibility=hidden is required to allow multiple modules compiled against
