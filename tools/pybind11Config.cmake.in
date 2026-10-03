@@ -18,6 +18,9 @@ This module sets the following variables in your project:
   Directories where pybind11 and python headers are located.
 ``pybind11_INCLUDE_DIR``
   Directory where pybind11 headers are located.
+``pybind11_SRC_DIR``
+  Directory where the library sources for the opt-in precompiled mode are
+  located (used by ``pybind11_precompile``).
 ``pybind11_DEFINITIONS``
   Definitions necessary to use pybind11, namely USING_pybind11.
 ``pybind11_LIBRARIES``
@@ -147,6 +150,7 @@ This module defines the following commands to assist with creating Python module
   pybind11_add_module(<target>
     [STATIC|SHARED|MODULE]
     [THIN_LTO] [OPT_SIZE] [NO_EXTRAS] [WITHOUT_SOABI]
+    [PRECOMPILE|NO_PRECOMPILE]
     <files>...
     )
 
@@ -162,6 +166,22 @@ default is ``MODULE``. There are several options:
   Disable the SOABI component (``PYBIND11_FINDPYTHON`` mode only).
 ``NO_EXTRAS``
   Disable all extras, exit immediately after making the module.
+``PRECOMPILE``
+  Link the target against the ``pybind11::precompiled`` static library
+  (created on first use); ``NO_PRECOMPILE`` opts a target out when the
+  ``PYBIND11_PRECOMPILE`` variable enables it globally.
+
+pybind11_precompile
+^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: cmake
+
+  pybind11_precompile()
+
+Create the ``pybind11::precompiled`` static library from the shipped sources
+(once per build tree). ``pybind11_add_module(... PRECOMPILE)`` calls this for
+you; call it directly to link ``pybind11::precompiled`` into your own
+targets.
 
 pybind11_strip
 ^^^^^^^^^^^^^^
