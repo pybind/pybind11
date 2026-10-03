@@ -61,6 +61,16 @@ def tests_packaging(session: nox.Session) -> None:
     session.run("pytest", "tests/extra_python_package", *session.posargs)
 
 
+@nox.session
+def tests_abi(session: nox.Session) -> None:
+    """
+    Run the cross-version ABI check.
+    """
+
+    session.install("pytest")
+    session.run("pytest", "tests/extra_abi", *session.posargs)
+
+
 @nox.session(reuse_venv=True, default=False)
 def docs(session: nox.Session) -> None:
     """
