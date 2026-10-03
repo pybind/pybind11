@@ -82,6 +82,7 @@ conduit_headers = {
 
 detail_headers = {
     "include/pybind11/detail/argument_vector.h",
+    "include/pybind11/detail/class-inl.h",
     "include/pybind11/detail/class.h",
     "include/pybind11/detail/common.h",
     "include/pybind11/detail/cpp_conduit.h",
@@ -129,6 +130,7 @@ pkgconfig_files = {
 }
 
 sdist_src_files = {
+    "src/class.cpp",
     "src/internals.cpp",
     "src/pybind11_combined.cpp",
     "src/pytypes.cpp",
