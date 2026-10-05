@@ -191,7 +191,9 @@ def test_unique_ptr_factory_and_stash_via_shared_from_this(factory_args):
     assert obj_ref().history == "PySftUniquePtr_Stash1Add_Stash1AddSharedFromThis"
     stash1.Clear()
     pytest.gc_collect()
-    assert obj_ref() is None
+    # As in the lifetime tests below, only CPython guarantees prompt destruction.
+    if not env.PYPY and not env.GRAALPY:
+        assert obj_ref() is None
 
 
 def test_multiple_registered_instances_for_same_pointee():
