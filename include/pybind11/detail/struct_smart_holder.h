@@ -43,7 +43,10 @@ Details:
 
 * The `void_cast_raw_ptr` option is needed to make the `smart_holder` `vptr`
   member invisible to the `shared_from_this` mechanism, in case the lifetime
-  of a `PyObject` is tied to the pointee.
+  of a `PyObject` is tied to the pointee. This control block cannot itself keep
+  the Python object alive: that would create a reference cycle through the
+  object's own holder that Python's garbage collector cannot detect.
+  See https://github.com/pybind/pybind11/pull/3023 for the original rationale.
 */
 
 #pragma once
@@ -347,11 +350,12 @@ struct smart_holder {
         // Critical: construct owner with pointer we intend to delete
         std::shared_ptr<void> owner;
         if (void_cast_raw_ptr) {
-            // A `shared_ptr<T>` would connect the `std::enable_shared_from_this<T>` machinery
-            // to this control block. That must be avoided if the lifetime of a `PyObject` is
-            // tied to the pointee (see the `void_cast_raw_ptr` comment near the top of this
-            // file). Passing a `void *` keeps the control block invisible to
-            // `shared_from_this()`.
+            // Passing a `T *` to the `shared_ptr` constructor would connect the
+            // `std::enable_shared_from_this` machinery to this control block, even for
+            // a `shared_ptr<void>`. For trampolines, this control block must stay invisible
+            // (see the `void_cast_raw_ptr` comment near the top of this file).
+            // Cast the raw pointer to `void *` before construction; converting the resulting
+            // `shared_ptr` to `shared_ptr<void>` afterwards would be too late.
             owner = std::shared_ptr<void>(static_cast<void *>(unq_ptr.get()), std::move(gd));
         } else {
             owner
