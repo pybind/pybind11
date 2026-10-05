@@ -650,8 +650,11 @@ public:
                 if (!tstate) {
                     tstate = get_thread_state_unchecked();
                 }
+                // Update the cache only on success; a stale interp with a null pp would make
+                // later calls return nullptr.
+                auto *pp = get_or_create_pp_in_state_dict();
                 last_istate_tls() = tstate->interp;
-                internals_p_tls() = get_or_create_pp_in_state_dict();
+                internals_p_tls() = pp;
             }
             return internals_p_tls();
         }
