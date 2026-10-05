@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import gc
+import pickle
 import sys
 from unittest import mock
 
@@ -249,6 +250,144 @@ def test_inheritance_init(msg):
         RabbitHamster()
     expected = "m.class_.Hamster.__init__() must be called when overriding __init__"
     assert msg(exc_info.value) == expected
+
+
+def test_new_bypasses_init():
+    """`__new__` allocates the Python object but not the C++ one; using the instance before
+    `__init__` has run must raise instead of segfaulting."""
+
+    class PythonDerived(m.NewNoInit):
+        pass
+
+    for cls in (m.NewNoInit, PythonDerived):
+        obj = cls.__new__(cls)
+        for use in (obj.data, obj.v_data, obj.__getstate__):
+            with pytest.raises(ValueError) as exc_info:
+                use()
+            assert "Python instance is uninitialized" in str(exc_info.value)
+            assert "NewNoInit" in str(exc_info.value)
+
+        # Calling `__init__()` is the sanctioned way to finish an object made with `__new__()`.
+        obj.__init__(42)
+        assert obj.data() == 42
+        assert obj.v_data() == 42
+
+
+def test_new_then_setstate():
+    """`__new__` must not be blocked: pickle relies on it, and `__setstate__` finishes the
+    object off. This walks the protocol by hand, then checks the real thing."""
+    real_obj = m.NewNoInit(42)
+    assert real_obj.data() == 42
+    state = real_obj.__getstate__()
+
+    obj = m.NewNoInit.__new__(m.NewNoInit)  # NEWOBJ
+    obj.__setstate__(state)  # BUILD
+    assert obj.data() == 42
+    assert obj.v_data() == 42
+
+    for protocol in range(2, pickle.HIGHEST_PROTOCOL + 1):
+        assert pickle.loads(pickle.dumps(m.NewNoInit(7), protocol)).v_data() == 7
+
+
+def test_failed_old_style_init_does_not_leave_lazy_storage():
+    """If an old-style placement-new `__init__` throws before constructing the value, the
+    lazily allocated storage must not linger: later use must still raise, not segfault."""
+    obj = m.OldStyleInit.__new__(m.OldStyleInit)
+    with pytest.raises(RuntimeError, match="negative data"):
+        obj.__init__(-1)
+
+    # The failed __init__ already lazily allocated storage for `self`, so without cleanup the
+    # uninitialized-instance guard never fires again and this reads a garbage vtable pointer.
+    with pytest.raises(ValueError, match="uninitialized"):
+        obj.v_data()
+
+    # A successful retry is still allowed.
+    obj.__init__(42)
+    assert obj.v_data() == 42
+
+
+def test_old_style_setstate_remains_supported():
+    """Deprecated placement-new `__setstate__` may still obtain storage inside its callback."""
+    obj = m.OldStyleInit.__new__(m.OldStyleInit)
+    obj.__setstate__(43)
+    assert obj.data() == 43
+
+
+def test_old_style_init_reentrant_load_current_limitation():
+    """The historical broad lazy-allocation window retained during an old-style constructor
+    chain can expose a pointer to unconstructed storage through a reentrant load."""
+    obj = m.OldStyleInit.__new__(m.OldStyleInit)
+    seen = {}
+
+    class LoadOnIndex:
+        def __index__(self):
+            # This pointer-only probe deliberately does not inspect or dereference the storage.
+            seen["exposed"] = m.expose_old_style_init_pointer(obj)
+            raise TypeError("stop the constructor")
+
+    with pytest.raises(TypeError):
+        obj.__init__(LoadOnIndex())
+
+    assert seen == {"exposed": True}
+
+    # Failure cleanup removes the raw storage, so subsequent ordinary loads are rejected and a
+    # normal initialization retry remains possible.
+    with pytest.raises(ValueError, match="uninitialized"):
+        m.expose_old_style_init_pointer(obj)
+    obj.__init__(44)
+    assert obj.data() == 44
+
+
+def test_old_style_init_cleans_multiple_inheritance_sibling_storage():
+    """The old-style compatibility window is instance-wide, so a reentrant load can lazily
+    allocate an unconstructed sibling base slot. Scope cleanup must reset that slot too."""
+
+    class Derived(m.OldStyleInit, m.NewNoInit):
+        pass
+
+    obj = Derived.__new__(Derived)
+    seen = {}
+
+    class LoadSiblingOnIndex:
+        def __index__(self):
+            # Deliberately obtain but do not dereference the sibling's unconstructed storage.
+            seen["exposed"] = m.expose_new_no_init_pointer(obj)
+            return 45
+
+    m.OldStyleInit.__init__(obj, LoadSiblingOnIndex())
+
+    assert seen == {"exposed": True}
+    assert m.OldStyleInit.data(obj) == 45
+    with pytest.raises(ValueError, match="uninitialized"):
+        m.expose_new_no_init_pointer(obj)
+
+    # The sibling slot remains usable after the old-style constructor returns.
+    m.NewNoInit.__init__(obj, 46)
+    assert m.OldStyleInit.data(obj) == 45
+    assert m.NewNoInit.data(obj) == 46
+
+
+def test_reentrant_load_during_new_style_init():
+    """New-style constructors never need lazy allocation, so passing the half-built instance
+    to another bound function while `__init__` runs must raise, not hand out garbage."""
+    obj = m.NewNoInit.__new__(m.NewNoInit)
+    seen = {}
+
+    class Evil:
+        def __index__(self):
+            # Runs during int conversion of a pure new-style constructor. Its chain has no
+            # compatibility window for lazy allocation.
+            try:
+                seen["data"] = obj.data()
+            except ValueError as exc:
+                seen["error"] = exc
+            raise TypeError("stop the constructor")
+
+    with pytest.raises(TypeError):
+        obj.__init__(Evil())
+
+    assert "data" not in seen, f"handed out uninitialized storage: {seen['data']!r}"
+    assert "error" in seen
 
 
 @pytest.mark.parametrize(

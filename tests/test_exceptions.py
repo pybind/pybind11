@@ -205,7 +205,7 @@ def test_custom(msg):
     assert msg(excinfo.value) == "[PythonMyException7]: abc"
 
 
-@pytest.mark.xfail("env.GRAALPY", reason="TODO should get fixed on GraalPy side")
+@pytest.mark.xfail("env.GRAALPY and sys.version_info < (3, 13)")
 def test_nested_throws(capture):
     """Tests nested (e.g. C++ -> Python -> C++) exception handling"""
 

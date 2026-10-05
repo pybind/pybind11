@@ -1,6 +1,7 @@
 PROJECT_NAME           = pybind11
 INPUT                  = ../include/pybind11/
 RECURSIVE              = YES
+EXCLUDE_PATTERNS       = *-inl.h
 
 GENERATE_HTML          = NO
 GENERATE_LATEX         = NO

@@ -381,6 +381,8 @@ The old macro emits a compile-time deprecation warning.
     }
 
 
+.. _old_style_placement_new:
+
 New API for defining custom constructors and pickling functions
 ---------------------------------------------------------------
 
@@ -407,6 +409,25 @@ constructors prevent such mistakes. See :ref:`custom_constructors` for details.
             // or: return std::make_unique<Foo>(...); // return by holder
             // or: return Foo(...); // return by value (move constructor)
         }));
+
+.. warning::
+
+   Deprecated placement-new ``__init__`` and ``__setstate__`` callbacks receive access to raw
+   storage before the C++ object's lifetime begins. For compatibility, pybind11 retains this
+   behavior for the complete constructor overload chain whenever the chain contains such a
+   callback. This compatibility feature has important caveats: other loads triggered during
+   argument conversion or callback execution may receive a C++ pointer to the storage even
+   though no C++ object has been constructed there yet. Accessing the storage through such
+   a pointer as though it contained a live C++ object results in undefined behavior.
+
+   Consequently, while such a constructor overload chain is active, the binding must not otherwise
+   load or inspect an unconstructed value slot as a C++ object. Unsafe access can occur through
+   reentrant argument conversion or callback code, nested initialization, another C++ base in a
+   Python multiple-inheritance instance, or concurrent access. Mixing old- and new-style
+   constructor overloads does not narrow the window. Such access may treat unconstructed storage
+   as a live object and result in undefined behavior. To avoid these hazards, use ``py::init()``
+   factories and ``py::pickle()`` for new bindings, and migrate existing placement-new callbacks
+   wherever practical.
 
 Mirroring the custom constructor changes, ``py::pickle()`` is now the preferred
 way to get and set object state. See :ref:`pickling` for details.

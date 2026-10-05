@@ -64,7 +64,7 @@ void mutation_test_with_samples(ActualMutationFunc actual_mutation_func,
 // have to work with C++11, which doesn't have generic lambdas.
 // NOLINTBEGIN(bugprone-macro-parentheses)
 #define MUTATION_LAMBDA(capture, block)                                                           \
-    [capture](argument_vector & vec) block, [capture](std::vector<py::handle> & vec) block
+    [capture](argument_vector &vec) block, [capture](std::vector<py::handle> &vec) block
 // NOLINTEND(bugprone-macro-parentheses)
 
 // For readability, rather than having ugly empty arguments.

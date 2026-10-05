@@ -77,6 +77,27 @@ static_assert(!py::detail::is_same_or_base_of<
                   test_class::pr5396_forward_declared_class::ForwardClass>::value,
               "");
 
+// test_new_bypasses_init
+struct NewNoInit {
+    int m_data;
+    explicit NewNoInit(int data) : m_data(data) {}
+    NewNoInit(const NewNoInit &) = default;
+    virtual ~NewNoInit() = default;
+    int data() const { return m_data; }
+    // Virtual on purpose: using a not-yet-constructed instance reads the vtable pointer out of
+    // uninitialized storage, which segfaults rather than merely returning a garbage value.
+    virtual int v_data() const { return m_data; }
+};
+
+// test_failed_old_style_init_does_not_leave_lazy_storage
+struct OldStyleInit {
+    int m_data;
+    explicit OldStyleInit(int data) : m_data(data) {}
+    virtual ~OldStyleInit() = default;
+    int data() const { return m_data; }
+    virtual int v_data() const { return m_data; }
+};
+
 TEST_SUBMODULE(class_, m) {
     m.def("obj_class_name", [](py::handle obj) { return py::detail::obj_class_name(obj.ptr()); });
 
@@ -597,6 +618,39 @@ TEST_SUBMODULE(class_, m) {
     m.def("return_universal_recipient", []() -> test_class::ConvertibleFromAnything {
         return test_class::ConvertibleFromAnything{};
     });
+
+    py::class_<NewNoInit>(m, "NewNoInit")
+        .def(py::init<int>())
+        .def("data", &NewNoInit::data)
+        .def("v_data", &NewNoInit::v_data)
+        .def(py::pickle([](const NewNoInit &p) { return py::make_tuple(p.m_data); },
+                        [](const py::tuple &t) {
+                            if (t.size() != 1) {
+                                throw std::runtime_error("Invalid state!");
+                            }
+                            return NewNoInit(t[0].cast<int>());
+                        }));
+
+    py::class_<OldStyleInit> old_style_init(m, "OldStyleInit");
+    ignoreOldStyleInitWarnings([&old_style_init]() {
+        old_style_init
+            .def("__init__",
+                 [](OldStyleInit &self, int x) {
+                     if (x < 0) {
+                         throw std::runtime_error("negative data");
+                     }
+                     new (&self) OldStyleInit(x);
+                 })
+            .def("__setstate__", [](const py::object &self, int x) {
+                auto &typed_self = self.cast<OldStyleInit &>();
+                new (&typed_self) OldStyleInit(x);
+            });
+    });
+    old_style_init.def("data", &OldStyleInit::data).def("v_data", &OldStyleInit::v_data);
+    // This probe intentionally does not dereference the pointer. It documents the narrow scope of
+    // this fix without itself reading storage before an OldStyleInit lifetime has begun.
+    m.def("expose_old_style_init_pointer", [](OldStyleInit *value) { return value != nullptr; });
+    m.def("expose_new_no_init_pointer", [](NewNoInit *value) { return value != nullptr; });
 }
 
 template <int N>

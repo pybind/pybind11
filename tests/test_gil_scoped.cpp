@@ -11,6 +11,8 @@
 
 #include "pybind11_tests.h"
 
+#include <chrono>
+#include <memory>
 #include <string>
 #include <thread>
 
@@ -25,6 +27,11 @@ public:
     VirtClass(const VirtClass &) = delete;
     virtual void virtual_func() {}
     virtual void pure_virtual_func() = 0;
+};
+
+class SlowInit {
+public:
+    explicit SlowInit(int) {}
 };
 
 class PyVirtClass : public VirtClass {
@@ -49,6 +56,16 @@ TEST_SUBMODULE(gil_scoped, m) {
         .def(py::init<>())
         .def("virtual_func", &VirtClass::virtual_func)
         .def("pure_virtual_func", &VirtClass::pure_virtual_func);
+
+    py::class_<SlowInit>(m, "SlowInit")
+        .def(py::init([](int state) {
+                 // Sleep to widen the window in which `init_instance` runs with the GIL
+                 // released by the call_guard, making the instance-map race (without the
+                 // `init_instance` GIL-acquire fix) much more likely to surface.
+                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                 return std::unique_ptr<SlowInit>(new SlowInit(state));
+             }),
+             py::call_guard<py::gil_scoped_release>());
 
     m.def("test_callback_py_obj", [](py::object &func) { func(); });
     m.def("test_callback_std_func", [](const std::function<void()> &func) { func(); });

@@ -244,29 +244,30 @@ struct npy_api {
         // `npy_common.h` defines the integer aliases. In order, it checks:
         // NPY_BITSOF_LONG, NPY_BITSOF_LONGLONG, NPY_BITSOF_INT, NPY_BITSOF_SHORT, NPY_BITSOF_CHAR
         // and assigns the alias to the first matching size, so we should check in this order.
-        NPY_INT32_
-        = platform_lookup<std::int32_t, long, int, short>(NPY_LONG_, NPY_INT_, NPY_SHORT_),
+        NPY_INT32_ = platform_lookup<std::int32_t, long, int, short>(
+            NPY_LONG_, NPY_INT_, NPY_SHORT_),
         NPY_UINT32_ = platform_lookup<std::uint32_t, unsigned long, unsigned int, unsigned short>(
             NPY_ULONG_, NPY_UINT_, NPY_USHORT_),
-        NPY_INT64_
-        = platform_lookup<std::int64_t, long, long long, int>(NPY_LONG_, NPY_LONGLONG_, NPY_INT_),
-        NPY_UINT64_
-        = platform_lookup<std::uint64_t, unsigned long, unsigned long long, unsigned int>(
-            NPY_ULONG_, NPY_ULONGLONG_, NPY_UINT_),
+        NPY_INT64_ = platform_lookup<std::int64_t, long, long long, int>(
+            NPY_LONG_, NPY_LONGLONG_, NPY_INT_),
+        NPY_UINT64_ = platform_lookup<std::uint64_t,
+                                      unsigned long,
+                                      unsigned long long,
+                                      unsigned int>(NPY_ULONG_, NPY_ULONGLONG_, NPY_UINT_),
         NPY_FLOAT32_ = platform_lookup<float, double, float, long double>(
             NPY_DOUBLE_, NPY_FLOAT_, NPY_LONGDOUBLE_),
         NPY_FLOAT64_ = platform_lookup<double, double, float, long double>(
             NPY_DOUBLE_, NPY_FLOAT_, NPY_LONGDOUBLE_),
-        NPY_COMPLEX64_
-        = platform_lookup<std::complex<float>,
-                          std::complex<double>,
-                          std::complex<float>,
-                          std::complex<long double>>(NPY_DOUBLE_, NPY_FLOAT_, NPY_LONGDOUBLE_),
-        NPY_COMPLEX128_
-        = platform_lookup<std::complex<double>,
-                          std::complex<double>,
-                          std::complex<float>,
-                          std::complex<long double>>(NPY_DOUBLE_, NPY_FLOAT_, NPY_LONGDOUBLE_),
+        NPY_COMPLEX64_ = platform_lookup<std::complex<float>,
+                                         std::complex<double>,
+                                         std::complex<float>,
+                                         std::complex<long double>>(
+            NPY_DOUBLE_, NPY_FLOAT_, NPY_LONGDOUBLE_),
+        NPY_COMPLEX128_ = platform_lookup<std::complex<double>,
+                                          std::complex<double>,
+                                          std::complex<float>,
+                                          std::complex<long double>>(
+            NPY_DOUBLE_, NPY_FLOAT_, NPY_LONGDOUBLE_),
         NPY_CHAR_ = std::is_signed<char>::value ? NPY_BYTE_ : NPY_UBYTE_,
     };
 

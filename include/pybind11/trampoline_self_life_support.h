@@ -12,7 +12,7 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 // PYBIND11:REMINDER: Needs refactoring of existing pybind11 code.
-inline bool deregister_instance(instance *self, void *valptr, const type_info *tinfo);
+bool deregister_instance(instance *self, void *valptr, const type_info *tinfo);
 PYBIND11_NAMESPACE_END(detail)
 
 // The original core idea for this struct goes back to PyCLIF:
@@ -59,7 +59,7 @@ struct trampoline_self_life_support {
 };
 
 PYBIND11_NAMESPACE_BEGIN(detail)
-using get_trampoline_self_life_support_fn = trampoline_self_life_support *(*) (void *);
+using get_trampoline_self_life_support_fn = trampoline_self_life_support *(*)(void *);
 PYBIND11_NAMESPACE_END(detail)
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
