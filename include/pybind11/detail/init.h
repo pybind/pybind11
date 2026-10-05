@@ -206,8 +206,8 @@ void construct(value_and_holder &v_h, Alias<Class> &&result, bool) {
 template <typename T, typename D>
 smart_holder init_smart_holder_from_unique_ptr(std::unique_ptr<T, D> &&unq_ptr,
                                                bool void_cast_raw_ptr) {
-    void *void_ptr = void_cast_raw_ptr ? static_cast<void *>(unq_ptr.get()) : nullptr;
-    return smart_holder::from_unique_ptr(std::move(unq_ptr), void_ptr);
+    return smart_holder::from_unique_ptr(
+        std::move(unq_ptr), /*mi_subobject_ptr*/ nullptr, void_cast_raw_ptr);
 }
 
 template <typename Class,
