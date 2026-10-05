@@ -52,6 +52,16 @@ jobs:
       - name: List wheel to be deployed
         run: ls -lha dist/*.whl
 
+      # A final version would shadow the PyPI release with a master snapshot
+      - name: Require a development version
+        run: |
+          for whl in dist/*.whl; do
+            if ! basename "$whl" | grep -Eq '^[^-]+-[0-9.]+(a|b|rc|\.dev)[0-9]+-'; then
+              echo "::error::$whl is not a prerelease; bump master to a development version"
+              exit 1
+            fi
+          done
+
       - name: Upload wheel to Anaconda Cloud as nightly
         uses: scientific-python/upload-nightly-action@e76cfec8a4611fd02808a801b0ff5a7d7c1b2d99 # 0.6.4
         with:
