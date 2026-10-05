@@ -118,6 +118,9 @@ TEST_SUBMODULE(class_sh_trampoline_shared_from_this, m) {
         .def(py::init([](const std::string &history, const std::string &) {
             return std::unique_ptr<SftTrampoline>(new SftTrampoline(history));
         }))
+        .def(py::init([](const std::string &history, const std::string &, bool) {
+            return std::unique_ptr<Sft>(new SftTrampoline(history));
+        }))
         .def_readonly("history", &Sft::history)
         // This leads to multiple entries in registered_instances:
         .def(py::init([](const std::shared_ptr<Sft> &existing) { return existing; }));
