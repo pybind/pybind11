@@ -221,6 +221,45 @@ def test_negative_stride_from_python(msg):
     )
 
 
+def test_stride_not_multiple_of_scalar_from_python():
+    """A field of a packed structured array has a stride that is not a multiple of the scalar
+    size.  Such an array must not be seen as contiguous (see #6159)."""
+
+    structured = np.zeros(3, dtype=[("a", "f4"), ("b", "i1")])
+    structured["a"] = [1.0, 2.0, 3.0]
+    structured["b"] = [7, 8, 9]
+    field = structured["a"]
+    assert field.strides[0] % field.itemsize != 0
+
+    # By value: the array is copied, the neighbouring field stays unchanged.
+    np.testing.assert_array_equal(m.double_col(field), [2.0, 4.0, 6.0])
+    np.testing.assert_array_equal(structured["a"], [1.0, 2.0, 3.0])
+    np.testing.assert_array_equal(structured["b"], [7, 8, 9])
+
+    # A const Ref is also allowed to copy.
+    wide = np.zeros(6, dtype=[("a", "f8"), ("b", "i1")])
+    wide["a"] = np.arange(6.0)
+    assert m.get_elem_direct(wide["a"]) == 5.0
+
+    # A mutable Ref cannot map this layout, so it must be refused.
+    with pytest.raises(TypeError):
+        m.double_threec(field)
+    np.testing.assert_array_equal(structured["a"], [1.0, 2.0, 3.0])
+    np.testing.assert_array_equal(structured["b"], [7, 8, 9])
+
+    mat = np.zeros((2, 3), dtype=[("a", "f8"), ("b", "i1")])
+    mat["a"] = np.arange(6.0).reshape((2, 3))
+    mat["b"] = 1
+    np.testing.assert_array_equal(
+        m.double_mat_rm(mat["a"]), 2.0 * np.arange(6.0).reshape((2, 3))
+    )
+    np.testing.assert_array_equal(m.diagonal(mat["a"]), [0.0, 4.0])
+    with pytest.raises(TypeError):
+        m.add_rm(mat["a"], 0, 0, 100.0)
+    np.testing.assert_array_equal(mat["a"], np.arange(6.0).reshape((2, 3)))
+    np.testing.assert_array_equal(mat["b"], np.ones((2, 3), dtype="i1"))
+
+
 def test_block_runtime_error_type_caster_eigen_ref_made_a_copy():
     with pytest.raises(RuntimeError) as excinfo:
         m.block(ref, 0, 0, 0, 0)
