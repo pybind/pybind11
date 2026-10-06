@@ -207,12 +207,17 @@ PYBIND11_INLINE PyObject *get_local_internals_capsule() {
 }
 
 PYBIND11_INLINE void ensure_internals() {
-    pybind11::detail::get_internals_pp_manager().unref();
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
     if (PyInterpreterState_Get() != PyInterpreterState_Main()) {
         has_seen_non_main_interpreter() = true;
     }
 #endif
+    /* In an embedded app the main interpreter could be finalized and re-initialized and a pybind11
+     * extension module would hold a pointer to a deleted internals.  The only way to prevent
+     * access to that is to re-fetch everything from the state dict here.  So we first null it out
+     * of our global copy and then fetch it (creating it if it does not already exist). */
+    pybind11::detail::get_internals_pp_manager().unref();
+    pybind11::detail::get_local_internals_pp_manager().unref();
     pybind11::detail::get_internals();
 }
 
