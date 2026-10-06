@@ -13,6 +13,8 @@ PYBIND11_WARNING_DISABLE_MSVC(4996)
 #    include <cstdlib>
 #    include <fstream>
 #    include <functional>
+#    include <memory>
+#    include <new>
 #    include <thread>
 #    include <utility>
 
@@ -40,6 +42,53 @@ void unsafe_reset_internals_for_single_interpreter() {
     // finally, we reload the static global singleton
     py::detail::get_internals();
     py::detail::get_local_internals();
+}
+
+TEST_CASE("Internals cache retries after a failed lookup") {
+    struct test_internals {
+        bool fail_next_fetch = true;
+    };
+    using manager_type = py::detail::internals_pp_manager<test_internals>;
+    constexpr const char *key = "_pybind11_test_internals_cache_lookup_retry";
+    auto &manager = manager_type::get_instance(key, [](test_internals *internals) {
+        if (internals && internals->fail_next_fetch) {
+            internals->fail_next_fetch = false;
+            throw std::bad_alloc();
+        }
+    });
+    struct reset_guard {
+        manager_type &manager;
+        ~reset_guard() {
+            manager.unref();
+            unsafe_reset_internals_for_single_interpreter();
+        }
+    } reset{manager};
+
+    // Creating a subinterpreter enables the per-thread interpreter cache.
+    auto sub = py::subinterpreter::create();
+    manager.unref();
+
+    auto check_failed_lookup = [&]() {
+        py::subinterpreter_scoped_activate activate(sub);
+        // Prepopulate the capsule so that the lookup invokes on_fetch instead of creating it.
+        auto *expected_pp
+            = py::detail::atomic_get_or_create_in_state_dict<std::unique_ptr<test_internals>>(key)
+                  .first;
+        expected_pp->reset(new test_internals());
+        REQUIRE_THROWS_AS(manager.get_pp(), std::bad_alloc);
+
+        // A failed lookup must neither cache nullptr nor retain another interpreter's pointer.
+        REQUIRE(manager.get_pp() == expected_pp);
+    };
+
+    SECTION("Initially empty cache") { check_failed_lookup(); }
+    SECTION("Cached pointer from another interpreter") {
+        auto *main_pp
+            = py::detail::atomic_get_or_create_in_state_dict<std::unique_ptr<test_internals>>(key)
+                  .first;
+        REQUIRE(manager.get_pp() == main_pp);
+        check_failed_lookup();
+    }
 }
 
 py::object &get_dict_type_object() {
