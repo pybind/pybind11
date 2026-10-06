@@ -272,8 +272,9 @@ public:
                 index = reinterpret_steal<object>(PyNumber_Index(src.ptr()));
                 if (!index) {
                     PyErr_Clear();
-                    if (!convert)
+                    if (!convert) {
                         return false;
+                    }
                 } else {
                     src_or_index = index;
                 }
