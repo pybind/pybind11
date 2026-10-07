@@ -2176,6 +2176,20 @@ public:
         return void_type();
     }
 
+    template <typename Return, typename Guard, typename Func, typename Before>
+    // NOLINTNEXTLINE(readability-const-return-type)
+    enable_if_t<!std::is_void<Return>::value, Return> call(Func &&f, Before &&before) && {
+        return std::move(*this).template call_impl_with_pre_call<remove_cv_t<Return>, Guard>(
+            std::forward<Func>(f), std::forward<Before>(before), indices{});
+    }
+
+    template <typename Return, typename Guard, typename Func, typename Before>
+    enable_if_t<std::is_void<Return>::value, void_type> call(Func &&f, Before &&before) && {
+        std::move(*this).template call_impl_with_pre_call<remove_cv_t<Return>, Guard>(
+            std::forward<Func>(f), std::forward<Before>(before), indices{});
+        return void_type();
+    }
+
 private:
     static bool load_impl_sequence(function_call &, index_sequence<>) { return true; }
 
@@ -2204,6 +2218,12 @@ private:
     template <typename Return, typename Func, size_t... Is, typename Guard>
     Return call_impl(Func &&f, index_sequence<Is...>, Guard &&) && {
         return std::forward<Func>(f)(cast_op<Args>(std::move(std::get<Is>(argcasters)))...);
+    }
+
+    template <typename Return, typename Guard, typename Func, typename Before, size_t... Is>
+    Return call_impl_with_pre_call(Func &&f, Before &&before, index_sequence<Is...>) && {
+        return std::forward<Func>(f).template invoke_with_guard<Guard>(
+            std::forward<Before>(before), cast_op<Args>(std::move(std::get<Is>(argcasters)))...);
     }
 
     std::tuple<make_caster<Args>...> argcasters;

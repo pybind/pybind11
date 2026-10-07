@@ -330,15 +330,7 @@ keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret) {
         return handle();
     };
 
-    try {
-        keep_alive_impl(get_arg(Nurse), get_arg(Patient));
-    } catch (...) {
-        // The dispatcher drops `ret` when postcall throws, so release it here.
-        if (uses_ret) {
-            ret.dec_ref();
-        }
-        throw;
-    }
+    keep_alive_impl(get_arg(Nurse), get_arg(Patient));
 }
 
 PYBIND11_INLINE std::pair<decltype(internals::registered_types_py)::iterator, bool>

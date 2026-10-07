@@ -104,6 +104,17 @@ public:
         return callback(callable, std::forward<Params>(params)...);
     }
 
+    template <typename Guard, typename Before>
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
+    Ret invoke_with_guard(Before &&before, Params... params) const {
+        // Keep the same parameter boundary as operator() so prvalue arguments can be elided.
+        // Argument conversion must finish before the hook, which runs before the guard.
+        std::forward<Before>(before)();
+        Guard guard{};
+        (void) guard;
+        return callback(callable, std::forward<Params>(params)...);
+    }
+
     explicit operator bool() const { return callback; }
 
     bool operator==(const function_ref<Ret(Params...)> &Other) const {

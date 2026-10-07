@@ -31,6 +31,28 @@ struct DependentGuard {
 };
 bool DependentGuard::enabled = false;
 
+struct CallPolicyHooks {};
+struct ThrowingCallPolicyPostcall {};
+
+namespace PYBIND11_NAMESPACE {
+namespace detail {
+template <>
+struct process_attribute<CallPolicyHooks> : process_attribute_default<CallPolicyHooks> {
+    static void precall(function_call &call) {
+        reinterpret_borrow<list>(call.args[0]).append("precall");
+    }
+    static void postcall(function_call &call, handle result) {
+        reinterpret_borrow<list>(call.args[0]).append(result ? "postcall" : "postcall:null");
+    }
+};
+template <>
+struct process_attribute<ThrowingCallPolicyPostcall>
+    : process_attribute_default<ThrowingCallPolicyPostcall> {
+    static void postcall(function_call &, handle) { throw std::runtime_error("postcall failed"); }
+};
+} // namespace detail
+} // namespace PYBIND11_NAMESPACE
+
 TEST_SUBMODULE(call_policies, m) {
     // Parent/Child are used in:
     // test_keep_alive_argument, test_keep_alive_return_value, test_alive_gc_derived,
@@ -58,6 +80,8 @@ TEST_SUBMODULE(call_policies, m) {
     py::class_<Parent>(m, "Parent")
         .def(py::init<>())
         .def(py::init([](Child *) { return new Parent(); }), py::keep_alive<1, 2>())
+        .def(py::init([](Child *, int) { return new Parent(); }), py::keep_alive<1, 2>())
+        .def(py::init([](Child *, const std::string &) { return new Parent(); }))
         .def("addChild", &Parent::addChild)
         .def("addChildKeepAlive", &Parent::addChild, py::keep_alive<1, 2>())
         .def("returnChild", &Parent::returnChild)
@@ -69,12 +93,10 @@ TEST_SUBMODULE(call_policies, m) {
     m.def("free_function", [](Parent *, Child *) {}, py::keep_alive<1, 2>());
 
     // test_keep_alive_error
-    static int keep_alive_error_calls = 0;
     m.def(
         "keep_alive_error_args",
-        [](const py::object &, Child *) { ++keep_alive_error_calls; },
+        [](const py::object &, Child *, py::list &events) { events.append("call"); },
         py::keep_alive<1, 2>());
-    m.def("keep_alive_error_calls", [] { return keep_alive_error_calls; });
     m.def(
         "keep_alive_error_return",
         [](const py::object &) { return new Child(); },
@@ -125,6 +147,11 @@ TEST_SUBMODULE(call_policies, m) {
 
     m.def("with_gil", report_gil_status);
     m.def("without_gil", report_gil_status, py::call_guard<py::gil_scoped_release>());
+    m.def(
+        "call_policy_hooks_without_gil",
+        [report_gil_status](const py::list &) { return report_gil_status(); },
+        CallPolicyHooks(),
+        py::call_guard<py::gil_scoped_release>());
 #endif
 
     // test_keep_alive_failed_overload
@@ -158,6 +185,44 @@ TEST_SUBMODULE(call_policies, m) {
     // Argument-to-argument.
     m.def("keep_alive_overload_args", [](Parent *, Child *, int) {}, py::keep_alive<1, 2>());
     m.def("keep_alive_overload_args", [](Parent *, Child *, const std::string &) {});
+    m.def(
+        "keep_alive_overload_args_converting",
+        [](Parent *, Child *, const std::string &) {},
+        py::keep_alive<1, 2>());
+    m.def("keep_alive_overload_args_converting", [](Parent *, Child *, double) {});
+    // None loads into a registered-type caster, but cannot be passed as a C++ reference.
+    m.def(
+        "keep_alive_late_reference_failure",
+        [](Parent *, Child *, KeepAliveOverload &) {},
+        py::keep_alive<1, 2>());
+
+    m.def(
+        "call_policy_hooks",
+        [](py::list &events, const std::string &) { events.append("call"); },
+        CallPolicyHooks());
+    m.def(
+        "call_policy_hooks",
+        [](py::list &events, double) { events.append("call"); },
+        CallPolicyHooks());
+    m.def(
+        "call_policy_hooks_late_reference",
+        [](py::list &events, KeepAliveOverload &) { events.append("call"); },
+        CallPolicyHooks());
+    m.def(
+        "call_policy_hooks_throw",
+        [](py::list &events) {
+            events.append("call");
+            throw std::runtime_error("call failed");
+        },
+        CallPolicyHooks());
+    m.def(
+        "call_policy_hooks_throw_postcall",
+        [](py::list &events) {
+            events.append("call");
+            return new Child();
+        },
+        CallPolicyHooks(),
+        ThrowingCallPolicyPostcall());
 
     // test_keep_alive_failed_return_conversion
     struct UnregisteredType {};
@@ -168,5 +233,22 @@ TEST_SUBMODULE(call_policies, m) {
             return &unregistered;
         },
         py::keep_alive<0, 1>(),
+        py::return_value_policy::reference);
+    m.def(
+        "keep_alive_unregistered_return_reverse",
+        [](const KeepAliveOverload &) {
+            static UnregisteredType unregistered;
+            return &unregistered;
+        },
+        py::keep_alive<1, 0>(),
+        py::return_value_policy::reference);
+    m.def(
+        "call_policy_hooks_unregistered_return",
+        [](py::list &events) {
+            events.append("call");
+            static UnregisteredType unregistered;
+            return &unregistered;
+        },
+        CallPolicyHooks(),
         py::return_value_policy::reference);
 }

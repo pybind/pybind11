@@ -270,13 +270,25 @@ def test_keep_alive_failed_overload():
 
 @pytest.mark.xfail("env.PYPY", reason="sometimes comes out 1 off on PyPy", strict=False)
 @pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
-def test_keep_alive_failed_overload_args():
+@pytest.mark.parametrize(
+    ("function", "value"),
+    [
+        (m.keep_alive_overload_args, "x"),
+        (m.keep_alive_overload_args_converting, 1),
+        (m.keep_alive_late_reference_failure, None),
+    ],
+)
+def test_keep_alive_failed_overload_args(function, value):
     """An argument-to-argument keep_alive must not fire for a rejected overload either."""
     n_inst = ConstructorStats.detail_reg_inst()
     p, c = m.Parent(), m.Child()
     assert ConstructorStats.detail_reg_inst() == n_inst + 2
-    # A str rejects the first overload; its keep_alive<1, 2> must not retain c.
-    m.keep_alive_overload_args(p, c, "x")
+    # Rejected candidates must not retain c, including failures while extracting a reference.
+    if value is None:
+        with pytest.raises(TypeError):
+            function(p, c, value)
+    else:
+        function(p, c, value)
     del c
     assert ConstructorStats.detail_reg_inst() == n_inst + 1
     # The successful overload still keeps its child alive.
@@ -286,10 +298,92 @@ def test_keep_alive_failed_overload_args():
     assert ConstructorStats.detail_reg_inst() == n_inst
 
 
-def test_keep_alive_failed_return_conversion():
+@pytest.mark.parametrize(
+    "function",
+    [m.keep_alive_unregistered_return, m.keep_alive_unregistered_return_reverse],
+)
+def test_keep_alive_failed_return_conversion(function):
     """A failed return-value conversion must raise its own error, not a keep_alive one."""
+    with pytest.raises(
+        TypeError, match="Unable to convert function return value"
+    ) as excinfo:
+        function(m.KeepAliveOverload())
+    assert "Unregistered type" in str(excinfo.value.__cause__)
+
+
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
+@pytest.mark.parametrize("reverse", [False, True])
+@pytest.mark.parametrize("value", [1, "x"])
+def test_keep_alive_overload_retention(reverse, value):
+    n_inst = ConstructorStats.detail_reg_inst()
+    obj = m.KeepAliveOverload()
+    function = m.keep_alive_overload_reverse if reverse else m.keep_alive_overload
+    result = function(obj, value)
+    assert ConstructorStats.detail_reg_inst() == n_inst + 2
+    if reverse:
+        del result
+    else:
+        del obj
+    assert ConstructorStats.detail_reg_inst() == n_inst + 2
+    if reverse:
+        del obj
+    else:
+        del result
+    assert ConstructorStats.detail_reg_inst() == n_inst
+
+
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
+def test_keep_alive_failed_constructor_overload():
+    n_inst = ConstructorStats.detail_reg_inst()
+    child = m.Child()
+    parent = m.Parent(child, "x")
+    del child
+    assert ConstructorStats.detail_reg_inst() == n_inst + 1
+    del parent
+    assert ConstructorStats.detail_reg_inst() == n_inst
+    parent = m.Parent(m.Child(), 1)
+    assert ConstructorStats.detail_reg_inst() == n_inst + 2
+    del parent
+    assert ConstructorStats.detail_reg_inst() == n_inst
+
+
+def test_call_policy_hooks():
+    events = []
+    with pytest.raises(TypeError):
+        m.call_policy_hooks(events, object())
+    assert events == []
+    with pytest.raises(TypeError):
+        m.call_policy_hooks_late_reference(events, None)
+    assert events == []
+    # The int requires conversion to double and therefore the second overload-resolution pass.
+    for value in ("x", 1):
+        m.call_policy_hooks(events, value)
+        assert events == ["precall", "call", "postcall"]
+        events.clear()
+    with pytest.raises(RuntimeError, match="call failed"):
+        m.call_policy_hooks_throw(events)
+    assert events == ["precall", "call"]
+    events.clear()
     with pytest.raises(TypeError, match="Unable to convert function return value"):
-        m.keep_alive_unregistered_return(m.KeepAliveOverload())
+        m.call_policy_hooks_unregistered_return(events)
+    assert events == ["precall", "call", "postcall:null"]
+    if hasattr(m, "call_policy_hooks_without_gil"):
+        events.clear()
+        assert m.call_policy_hooks_without_gil(events) == "GIL released"
+        assert events == ["precall", "postcall"]
+
+
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
+def test_call_policy_postcall_error(capture):
+    n_inst = ConstructorStats.detail_reg_inst()
+    events = []
+    with capture:
+        with pytest.raises(RuntimeError, match="postcall failed"):
+            m.call_policy_hooks_throw_postcall(events)
+        pytest.gc_collect()
+    assert events == ["precall", "call", "postcall"]
+    assert capture == "Allocating child.\nReleasing child."
+    assert ConstructorStats.detail_reg_inst() == n_inst
 
 
 @pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
@@ -297,10 +391,11 @@ def test_keep_alive_error(capture):
     """A keep_alive error must not leave side effects or leak the return value."""
     n_inst = ConstructorStats.detail_reg_inst()
     c = m.Child()
+    events = []
     # An int nurse cannot hold a weak reference, so keep_alive<1, 2> fails.
     with pytest.raises(TypeError, match="weak reference"):
-        m.keep_alive_error_args(1, c)
-    assert m.keep_alive_error_calls() == 0
+        m.keep_alive_error_args(1, c, events)
+    assert events == []
     del c
     pytest.gc_collect()
     with capture:

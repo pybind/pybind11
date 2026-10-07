@@ -337,8 +337,9 @@ private:
             return PYBIND11_TRY_NEXT_OVERLOAD;
         }
 
-        /* Invoke call policy pre-call hook, only for the overload that matched */
-        precall(call);
+        // cast_op can reject an argument after load_args succeeds. Run the hook after those
+        // conversions, but before constructing the guard, which may release the GIL.
+        auto before = [&] { precall(call); };
 
         /* Override policy for rvalues -- usually to enforce rvp::move on an rvalue */
         return_value_policy policy
@@ -347,11 +348,13 @@ private:
         /* Perform the function call */
         handle result;
         if (call.func.is_setter) {
-            (void) std::move(args_converter).template call<Return, Guard>(f);
+            (void) std::move(args_converter).template call<Return, Guard>(f, before);
             result = none().release();
         } else {
-            result = cast_out::cast(
-                std::move(args_converter).template call<Return, Guard>(f), policy, call.parent);
+            result
+                = cast_out::cast(std::move(args_converter).template call<Return, Guard>(f, before),
+                                 policy,
+                                 call.parent);
         }
 
         return result;
@@ -433,12 +436,14 @@ protected:
                                              detail::function_ref<Return(Args...)>(cap->f),
                                              &process_attributes<Extra...>::precall);
 
-            /* Invoke call policy post-call hook, only for the overload that matched */
-            if (result.ptr() != PYBIND11_TRY_NEXT_OVERLOAD) {
-                process_attributes<Extra...>::postcall(call, result);
+            if (result.ptr() == PYBIND11_TRY_NEXT_OVERLOAD) {
+                return result;
             }
 
-            return result;
+            // Own the result while running postcall so any throwing hook releases it.
+            auto result_guard = reinterpret_steal<object>(result);
+            process_attributes<Extra...>::postcall(call, result_guard);
+            return result_guard.release();
         };
 
         rec->nargs_pos = cast_in::args_pos >= 0
