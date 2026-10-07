@@ -43,6 +43,14 @@ PyTypeObject *
 type_from_spec(const char *caller, PyTypeObject *metaclass, PyType_Spec *spec, PyObject *bases);
 #endif
 
+/// Slots of `type` and `property` that pybind11's own types forward to.
+ternaryfunc type_type_call();
+setattrofunc type_type_setattro();
+getattrofunc type_type_getattro();
+destructor type_type_dealloc();
+descrgetfunc property_type_descr_get();
+descrsetfunc property_type_descr_set();
+
 #if !defined(PYPY_VERSION)
 
 /// `pybind11_static_property.__get__()`: Always pass the class instead of the instance.
