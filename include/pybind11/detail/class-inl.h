@@ -281,6 +281,31 @@ extern "C" PYBIND11_INLINE void pybind11_meta_dealloc(PyObject *obj) {
     type_type_dealloc()(obj);
 }
 
+#if defined(PYBIND11_TYPE_CREATION_VIA_SPEC)
+
+PYBIND11_INLINE PyTypeObject *make_default_metaclass() {
+    static PyType_Slot slots[]
+        = {{Py_tp_call, reinterpret_cast<void *>(pybind11_meta_call)},
+           {Py_tp_setattro, reinterpret_cast<void *>(pybind11_meta_setattro)},
+           {Py_tp_getattro, reinterpret_cast<void *>(pybind11_meta_getattro)},
+           {Py_tp_dealloc, reinterpret_cast<void *>(pybind11_meta_dealloc)},
+           {0, nullptr}};
+    static PyType_Spec spec = {PYBIND11_DUMMY_MODULE_NAME ".pybind11_type",
+                               0, // inherit from type
+                               0,
+                               Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+                               slots};
+    PyObject *type = PyType_FromMetaclass(
+        nullptr, nullptr, &spec, reinterpret_cast<PyObject *>(&PyType_Type));
+    if (!type) {
+        pybind11_fail("make_default_metaclass(): failure in PyType_FromMetaclass(): "
+                      + error_string());
+    }
+    return reinterpret_cast<PyTypeObject *>(type);
+}
+
+#else // legacy: fill in a PyHeapTypeObject by hand
+
 PYBIND11_INLINE PyTypeObject *make_default_metaclass() {
     constexpr auto *name = "pybind11_type";
     auto name_obj = reinterpret_steal<object>(PYBIND11_FROM_STRING(name));
@@ -295,9 +320,9 @@ PYBIND11_INLINE PyTypeObject *make_default_metaclass() {
     }
 
     heap_type->ht_name = name_obj.inc_ref().ptr();
-#ifdef PYBIND11_BUILTIN_QUALNAME
+#    ifdef PYBIND11_BUILTIN_QUALNAME
     heap_type->ht_qualname = name_obj.inc_ref().ptr();
-#endif
+#    endif
 
     auto *type = &heap_type->ht_type;
     type->tp_name = name;
@@ -320,6 +345,8 @@ PYBIND11_INLINE PyTypeObject *make_default_metaclass() {
 
     return type;
 }
+
+#endif // PYBIND11_TYPE_CREATION_VIA_SPEC
 
 PYBIND11_INLINE void traverse_offset_bases(void *valueptr,
                                            const detail::type_info *tinfo,
