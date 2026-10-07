@@ -266,9 +266,13 @@ def test_mi_static_properties():
 def test_mi_dynamic_attributes():
     """Mixing bases with and without dynamic attribute support"""
 
-    for d in (m.VanillaDictMix1(), m.VanillaDictMix2()):
+    for cls in (m.VanillaDictMix1, m.VanillaDictMix2):
+        d = cls()
         d.dynamic = 1
         assert d.dynamic == 1
+        del d
+        # The dict must be cleared without crashing (PyPy 3.12)
+        pytest.gc_collect()
 
 
 def test_mi_unaligned_base():

@@ -48,8 +48,11 @@ jobs:
             python-version: '3.14t'
             cmake-args: -DCMAKE_CXX_STANDARD=17 -DPYBIND11_TEST_SMART_HOLDER=ON
           - runs-on: ubuntu-latest
-            python-version: 'pypy-3.11-v7.3.23'
+            python-version: 'pypy-3.11-v8.0.0'
             cmake-args: -DCMAKE_CXX_STANDARD=17
+          - runs-on: ubuntu-latest
+            python-version: 'pypy-3.12-v8.0.0'
+            cmake-args: -DCMAKE_CXX_STANDARD=20
           - runs-on: ubuntu-latest
             python-version: 'graalpy-25.0'
             cmake-args: -DCMAKE_CXX_STANDARD=20
@@ -138,7 +141,7 @@ jobs:
             python-version: '3.15'
             cmake-args: -DCMAKE_CXX_STANDARD=17
           - runs-on: macos-latest
-            python-version: 'pypy-3.11-v7.3.23'
+            python-version: 'pypy-3.12-v8.0.0'
           - runs-on: macos-latest
             python-version: 'graalpy-25.0'
           - runs-on: macos-latest
@@ -172,6 +175,9 @@ jobs:
           - runs-on: windows-latest
             python-version: 'pypy3.11'
             cmake-args: -DCMAKE_CXX_STANDARD=20
+          - runs-on: windows-latest
+            python-version: 'pypy3.12'
+            cmake-args: -DCMAKE_CXX_STANDARD=17
           # The setup-python action currently doesn't have graalpy for windows
           # See https://github.com/actions/setup-python/pull/880
 
