@@ -500,12 +500,21 @@ T reinterpret_steal(handle h) {
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+/// The `tp_name` of a type: `module.Name` for static and pybind11 types, `Name` for Python
+/// heap types.
+inline std::string get_tp_name(PyTypeObject *type) { return type->tp_name; }
+
+/// True if `get_tp_name(type) == name`, without allocating in the common case.
+inline bool tp_name_equals(PyTypeObject *type, const char *name) {
+    return std::strcmp(type->tp_name, name) == 0;
+}
+
 // Equivalent to obj.__class__.__name__ (or obj.__name__ if obj is a class).
-inline const char *obj_class_name(PyObject *obj) {
+inline std::string obj_class_name(PyObject *obj) {
     if (PyType_Check(obj)) {
-        return reinterpret_cast<PyTypeObject *>(obj)->tp_name;
+        return get_tp_name(reinterpret_cast<PyTypeObject *>(obj));
     }
-    return Py_TYPE(obj)->tp_name;
+    return get_tp_name(Py_TYPE(obj));
 }
 
 std::string error_string();
