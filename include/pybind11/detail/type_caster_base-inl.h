@@ -286,7 +286,8 @@ find_registered_python_instance(void *src, const detail::type_info *tinfo) {
     return with_instance_map(src, [&](instance_map &instances) {
         auto it_instances = instances.equal_range(src);
         for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
-            for (auto *instance_type : detail::all_type_info(Py_TYPE(it_i->second))) {
+            for (auto *instance_type :
+                 detail::all_type_info(Py_TYPE(reinterpret_cast<PyObject *>(it_i->second)))) {
                 if (instance_type && same_type(*instance_type->cpptype, *tinfo->cpptype)) {
                     auto *wrapper = reinterpret_cast<PyObject *>(it_i->second);
                     if (try_incref(wrapper)) {
@@ -303,7 +304,7 @@ PYBIND11_NOINLINE_ATTR PYBIND11_INLINE value_and_holder
 instance::get_value_and_holder(const type_info *find_type /*= nullptr default in common.h*/,
                                bool throw_if_missing /*= true in common.h*/) {
     // Optimize common case:
-    if (!find_type || Py_TYPE(this) == find_type->type) {
+    if (!find_type || Py_TYPE(reinterpret_cast<PyObject *>(this)) == find_type->type) {
         return value_and_holder(this, find_type, 0, 0);
     }
 
@@ -318,10 +319,10 @@ instance::get_value_and_holder(const type_info *find_type /*= nullptr default in
     }
 
 #if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
-    pybind11_fail("pybind11::detail::instance::get_value_and_holder: `"
-                  + get_fully_qualified_tp_name(find_type->type)
-                  + "' is not a pybind11 base of the given `"
-                  + get_fully_qualified_tp_name(Py_TYPE(this)) + "' instance");
+    pybind11_fail(
+        "pybind11::detail::instance::get_value_and_holder: `"
+        + get_fully_qualified_tp_name(find_type->type) + "' is not a pybind11 base of the given `"
+        + get_fully_qualified_tp_name(Py_TYPE(reinterpret_cast<PyObject *>(this))) + "' instance");
 #else
     pybind11_fail(
         "pybind11::detail::instance::get_value_and_holder: "
@@ -331,7 +332,7 @@ instance::get_value_and_holder(const type_info *find_type /*= nullptr default in
 }
 
 PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void instance::allocate_layout() {
-    const auto &tinfo = all_type_info(Py_TYPE(this));
+    const auto &tinfo = all_type_info(Py_TYPE(reinterpret_cast<PyObject *>(this)));
 
     const size_t n_types = tinfo.size();
 

@@ -221,6 +221,9 @@ def test_static_cls():
     instance.static_cls = check_self
 
 
+@pytest.mark.skipif(
+    "env.LIMITED_API", reason="PyType_FromMetaclass picks the most derived metaclass"
+)
 def test_metaclass_override():
     """Overriding pybind11's default metaclass changes the behavior of `static_property`"""
 

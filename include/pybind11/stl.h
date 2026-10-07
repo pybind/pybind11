@@ -93,9 +93,14 @@ inline bool object_is_convertible_to_std_vector(const handle &src) {
         return !PyUnicode_Check(src.ptr()) && !PyBytes_Check(src.ptr());
     }
     // Allow generators, set/frozenset and several common iterable types.
-    return (PyGen_Check(src.ptr()) != 0) || (PyAnySet_Check(src.ptr()) != 0)
+#if !defined(Py_LIMITED_API)
+    if (PyGen_Check(src.ptr()) != 0) {
+        return true;
+    }
+#endif
+    return (PyAnySet_Check(src.ptr()) != 0)
            || object_is_instance_with_one_of_tp_names(
-               src.ptr(), {"dict_keys", "dict_values", "dict_items", "map", "zip"});
+               src.ptr(), {"generator", "dict_keys", "dict_values", "dict_items", "map", "zip"});
 }
 
 inline bool object_is_convertible_to_std_set(const handle &src, bool convert) {

@@ -139,7 +139,7 @@ private:
 
 public:
     explicit values_and_holders(instance *inst)
-        : inst{inst}, tinfo(all_type_info(Py_TYPE(inst))) {}
+        : inst{inst}, tinfo(all_type_info(Py_TYPE(reinterpret_cast<PyObject *>(inst)))) {}
 
     explicit values_and_holders(PyObject *obj)
         : inst{nullptr}, tinfo(all_type_info(Py_TYPE(obj))) {

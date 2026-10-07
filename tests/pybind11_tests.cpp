@@ -89,6 +89,12 @@ PYBIND11_MODULE(pybind11_tests, m, py::mod_gil_not_used()) {
 #endif
     m.attr("cpp_std") = cpp_std();
     m.attr("PYBIND11_INTERNALS_ID") = PYBIND11_INTERNALS_ID;
+    m.attr("LIMITED_API") =
+#if defined(Py_LIMITED_API)
+        true;
+#else
+        false;
+#endif
     // Free threaded Python uses UINT32_MAX for immortal objects.
     m.attr("PYBIND11_SIMPLE_GIL_MANAGEMENT") =
 #if defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)

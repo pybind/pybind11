@@ -19,17 +19,35 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 inline void ensure_builtins_in_globals(object &global) {
-#if defined(PYPY_VERSION)
+#if defined(PYPY_VERSION) || defined(Py_LIMITED_API)
     // Running exec and eval adds `builtins` module under `__builtins__` key to
     // globals if not yet present.  Python 3.8 made PyRun_String behave
     // similarly. Let's also do that for older versions, for consistency. This
-    // was missing from PyPy3.8 7.3.7.
+    // was missing from PyPy3.8 7.3.7, and PyEval_EvalCode (the stable-ABI path
+    // below) does not do it either.
     if (!global.contains("__builtins__"))
         global["__builtins__"] = module_::import(PYBIND11_BUILTINS_MODULE);
 #else
     (void) global;
 #endif
 }
+
+#if defined(Py_LIMITED_API)
+// PyRun_String() is not part of the stable ABI: compile and evaluate in two steps.
+inline PyObject *run_string(
+    const char *source, const char *filename, int start, PyObject *global, PyObject *local) {
+    auto code = reinterpret_steal<object>(Py_CompileString(source, filename, start));
+    if (!code) {
+        return nullptr;
+    }
+    return PyEval_EvalCode(code.ptr(), global, local);
+}
+#else
+inline PyObject *run_string(
+    const char *source, const char * /*filename*/, int start, PyObject *global, PyObject *local) {
+    return PyRun_String(source, start, global, local);
+}
+#endif
 
 PYBIND11_NAMESPACE_END(detail)
 
@@ -70,7 +88,8 @@ object eval(const str &expr, object global = globals(), object local = object())
             pybind11_fail("invalid evaluation mode");
     }
 
-    PyObject *result = PyRun_String(buffer.c_str(), start, global.ptr(), local.ptr());
+    PyObject *result
+        = detail::run_string(buffer.c_str(), "<string>", start, global.ptr(), local.ptr());
     if (!result) {
         throw error_already_set();
     }
@@ -130,14 +149,31 @@ object eval_file(str fname, object global = globals(), object local = object()) 
             pybind11_fail("invalid evaluation mode");
     }
 
-    int closeFile = 1;
     std::string fname_str = (std::string) fname;
-    FILE *f =
-#    if PY_VERSION_HEX >= 0x030E0000
-        Py_fopen(fname.ptr(), "r");
+#    if defined(Py_LIMITED_API)
+    // PyRun_FileEx() and Py_fopen() are not part of the stable ABI: read the file from Python.
+    object source;
+    try {
+        object io_open = module_::import("io").attr("open");
+        object file = io_open(fname, "rb");
+        source = file.attr("read")();
+        file.attr("close")();
+    } catch (error_already_set &) {
+        pybind11_fail("File \"" + fname_str + "\" could not be opened!");
+    }
+    if (!global.contains("__file__")) {
+        global["__file__"] = std::move(fname);
+    }
+    PyObject *result = detail::run_string(
+        PyBytes_AsString(source.ptr()), fname_str.c_str(), start, global.ptr(), local.ptr());
 #    else
+    int closeFile = 1;
+    FILE *f =
+#        if PY_VERSION_HEX >= 0x030E0000
+        Py_fopen(fname.ptr(), "r");
+#        else
         _Py_fopen_obj(fname.ptr(), "r");
-#    endif
+#        endif
     if (!f) {
         PyErr_Clear();
         pybind11_fail("File \"" + fname_str + "\" could not be opened!");
@@ -149,6 +185,7 @@ object eval_file(str fname, object global = globals(), object local = object()) 
 
     PyObject *result
         = PyRun_FileEx(f, fname_str.c_str(), start, global.ptr(), local.ptr(), closeFile);
+#    endif
 
     if (!result) {
         throw error_already_set();

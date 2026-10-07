@@ -825,10 +825,10 @@ protected:
 
     void install_buffer_funcs(buffer_info *(*get_buffer)(PyObject *, void *),
                               void *get_buffer_data) {
-        auto *type = reinterpret_cast<PyHeapTypeObject *>(m_ptr);
-        auto *tinfo = detail::get_type_info(&type->ht_type);
+        auto *type = reinterpret_cast<PyTypeObject *>(m_ptr);
+        auto *tinfo = detail::get_type_info(type);
 
-        if (!type->ht_type.tp_as_buffer) {
+        if (PyType_GetSlot(type, Py_bf_getbuffer) == nullptr) {
             pybind11_fail("To be able to register buffer protocol support for the type '"
                           + get_fully_qualified_tp_name(tinfo->type)
                           + "' the associated class<>(..) invocation must "
@@ -2054,8 +2054,10 @@ public:
         def("__index__", [](Type value) { return (Scalar) value; }, pos_only());
         attr("__setstate__") = cpp_function(
             [](detail::value_and_holder &v_h, Scalar arg) {
-                detail::initimpl::setstate<Base>(
-                    v_h, static_cast<Type>(arg), Py_TYPE(v_h.inst) != v_h.type->type);
+                detail::initimpl::setstate<Base>(v_h,
+                                                 static_cast<Type>(arg),
+                                                 Py_TYPE(reinterpret_cast<PyObject *>(v_h.inst))
+                                                     != v_h.type->type);
             },
             detail::is_new_style_constructor(),
             pybind11::name("__setstate__"),
