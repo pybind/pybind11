@@ -31,8 +31,8 @@ PYBIND11_INLINE bool type_is_managed_by_our_internals(PyTypeObject *type_obj) {
 }
 
 PYBIND11_INLINE bool is_instance_method_of_type(PyTypeObject *type_obj, PyObject *attr_name) {
-    PyObject *descr = _PyType_Lookup(type_obj, attr_name);
-    return ((descr != nullptr) && PyInstanceMethod_Check(descr));
+    object descr = type_lookup(type_obj, attr_name);
+    return descr && PyInstanceMethod_Check(descr.ptr());
 }
 
 PYBIND11_INLINE object try_get_cpp_conduit_method(PyObject *obj) {
