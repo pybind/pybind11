@@ -43,7 +43,10 @@ Details:
 
 * The `void_cast_raw_ptr` option is needed to make the `smart_holder` `vptr`
   member invisible to the `shared_from_this` mechanism, in case the lifetime
-  of a `PyObject` is tied to the pointee.
+  of a `PyObject` is tied to the pointee. This control block cannot itself keep
+  the Python object alive: that would create a reference cycle through the
+  object's own holder that Python's garbage collector cannot detect.
+  See https://github.com/pybind/pybind11/pull/3023 for the original rationale.
 */
 
 #pragma once
@@ -333,7 +336,8 @@ struct smart_holder {
 
     template <typename T, typename D>
     static smart_holder from_unique_ptr(std::unique_ptr<T, D> &&unq_ptr,
-                                        void *mi_subobject_ptr = nullptr) {
+                                        void *mi_subobject_ptr = nullptr,
+                                        bool void_cast_raw_ptr = false) {
         smart_holder hld;
         hld.rtti_uqp_del = &typeid(D);
         hld.vptr_is_using_std_default_delete = uqp_del_is_std_default_delete<T, D>();
@@ -344,7 +348,19 @@ struct smart_holder {
                   ? make_guarded_std_default_delete<T>(true)
                   : make_guarded_custom_deleter<T, D>(std::move(unq_ptr.get_deleter()), true);
         // Critical: construct owner with pointer we intend to delete
-        std::shared_ptr<T> owner(unq_ptr.get(), std::move(gd));
+        std::shared_ptr<void> owner;
+        if (void_cast_raw_ptr) {
+            // Passing a `T *` to the `shared_ptr` constructor would connect the
+            // `std::enable_shared_from_this` machinery to this control block, even for
+            // a `shared_ptr<void>`. For trampolines, this control block must stay invisible
+            // (see the `void_cast_raw_ptr` comment near the top of this file).
+            // Cast the raw pointer to `void *` before construction; converting the resulting
+            // `shared_ptr` to `shared_ptr<void>` afterwards would be too late.
+            owner = std::shared_ptr<void>(static_cast<void *>(unq_ptr.get()), std::move(gd));
+        } else {
+            owner
+                = std::static_pointer_cast<void>(std::shared_ptr<T>(unq_ptr.get(), std::move(gd)));
+        }
         // Relinquish ownership only after successful construction of owner
         (void) unq_ptr.release();
 
@@ -366,7 +382,7 @@ struct smart_holder {
         if (mi_subobject_ptr) {
             hld.vptr = std::shared_ptr<void>(owner, mi_subobject_ptr);
         } else {
-            hld.vptr = std::static_pointer_cast<void>(owner);
+            hld.vptr = std::move(owner);
         }
 
         hld.is_populated = true;

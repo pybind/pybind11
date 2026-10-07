@@ -51,7 +51,7 @@ requests==2.33.0
     # via sphinx
 snowballstemmer==2.2.0
     # via sphinx
-soupsieve==2.8.4
+soupsieve==2.9
     # via beautifulsoup4
 sphinx==7.2.6
     # via
@@ -83,5 +83,5 @@ sphinxcontrib-serializinghtml==1.1.10
     # via sphinx
 sphinxcontrib-svg2pdfconverter==1.2.2
     # via -r requirements.in
-urllib3==2.7.0
+urllib3==2.8.0
     # via requests
