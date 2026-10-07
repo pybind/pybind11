@@ -488,9 +488,19 @@ endfunction()
 # built from the consumer's project with the consumer's flags; each extension
 # module links its own copy, preserving pybind11's per-module state. Modules
 # using it must compile with PYBIND11_PRECOMPILED, which the PUBLIC compile
-# definition below provides automatically.
+# definition below provides automatically. With STABLE_ABI the library is
+# compiled against the limited API (Py_LIMITED_API); one build tree cannot mix
+# stable-ABI and regular precompiled modules.
 function(pybind11_precompile)
+  cmake_parse_arguments(ARG "STABLE_ABI" "" "" ${ARGN})
   if(TARGET pybind11_precompiled)
+    get_target_property(_existing_sabi pybind11_precompiled PYBIND11_STABLE_ABI)
+    if(NOT "${_existing_sabi}" STREQUAL "${ARG_STABLE_ABI}")
+      message(
+        FATAL_ERROR
+          "pybind11::precompiled was created for STABLE_ABI=${_existing_sabi}; one build tree "
+          "cannot mix stable-ABI and regular precompiled modules.")
+    endif()
     return()
   endif()
 
@@ -512,6 +522,11 @@ function(pybind11_precompile)
   add_library(pybind11_precompiled STATIC EXCLUDE_FROM_ALL ${_pybind11_precompile_sources})
   add_library(pybind11::precompiled ALIAS pybind11_precompiled)
   target_compile_definitions(pybind11_precompiled PUBLIC PYBIND11_PRECOMPILED)
+  set_target_properties(pybind11_precompiled PROPERTIES PYBIND11_STABLE_ABI "${ARG_STABLE_ABI}")
+  if(ARG_STABLE_ABI)
+    _pybind11_stable_abi_hex(_sabi_hex)
+    target_compile_definitions(pybind11_precompiled PRIVATE "Py_LIMITED_API=${_sabi_hex}")
+  endif()
   # pybind11::module (not just pybind11::pybind11): the library must compile with the
   # interpreter's ABI macros (e.g. Py_GIL_DISABLED, which FindPython attaches to
   # Python::Module); on free-threaded Windows they select the correct autolink library.
@@ -535,9 +550,13 @@ endfunction()
 
 # Link pybind11::precompiled when the PRECOMPILE keyword or the global
 # PYBIND11_PRECOMPILE variable requests it, unless NO_PRECOMPILE opts out.
-function(_pybind11_maybe_precompile target_name precompile no_precompile)
+function(_pybind11_maybe_precompile target_name precompile no_precompile stable_abi)
   if((precompile OR PYBIND11_PRECOMPILE) AND NOT no_precompile)
-    pybind11_precompile()
+    if(stable_abi)
+      pybind11_precompile(STABLE_ABI)
+    else()
+      pybind11_precompile()
+    endif()
     target_link_libraries(${target_name} PRIVATE pybind11::precompiled)
   endif()
 endfunction()
