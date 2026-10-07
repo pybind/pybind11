@@ -349,6 +349,7 @@ function with the following signature:
 
     pybind11_add_module(<name> [MODULE | SHARED] [EXCLUDE_FROM_ALL]
                         [NO_EXTRAS] [THIN_LTO] [OPT_SIZE] [PRECOMPILE | NO_PRECOMPILE]
+                        [STABLE_ABI | NO_STABLE_ABI]
                         source1 [source2 ...])
 
 This function behaves very much like CMake's builtin ``add_library`` (in fact,
@@ -404,6 +405,15 @@ a per-target level and takes precedence over the global CMake build type
 optimizations remain disabled.
 
 .. _ThinLTO: http://clang.llvm.org/docs/ThinLTO.html
+
+``STABLE_ABI`` builds the module against the Python stable ABI
+(``Py_LIMITED_API``), so that one ``.abi3`` module runs on every CPython from
+the targeted version on (3.12 by default; set ``PYBIND11_STABLE_ABI_VERSION``
+to target a newer one). Set the CMake variable ``PYBIND11_STABLE_ABI`` to make
+it the default for all ``pybind11_add_module`` calls and use ``NO_STABLE_ABI``
+to opt a target out. This needs CMake 3.26+, the FindPython mode
+(``PYBIND11_FINDPYTHON=ON``) and CPython 3.12+ headers; it is not available
+for free-threaded builds, PyPy, or GraalPy.
 
 .. _precompile-mode:
 
@@ -469,6 +479,10 @@ Requirements and caveats:
 * The library is static and per-build-tree; it is never installed or shared
   between projects. Each extension module links its own copy, which keeps
   pybind11's per-module state the same as in header-only mode.
+* With ``STABLE_ABI`` the library is compiled against the limited API too.
+  One build tree cannot mix stable-ABI and regular precompiled modules; the
+  first ``PRECOMPILE`` target decides, and a later mismatch is a configure
+  error.
 * Not available with ``PYBIND11_NOPYTHON`` (the library needs Python
   headers).
 
