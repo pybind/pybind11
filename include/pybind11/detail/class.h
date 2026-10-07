@@ -112,6 +112,13 @@ void register_instance(instance *self, void *valptr, const type_info *tinfo);
 
 bool deregister_instance(instance *self, void *valptr, const type_info *tinfo);
 
+/// `type->tp_alloc(type, 0)` / `type->tp_free(self)`, also without direct slot access.
+PyObject *type_alloc(PyTypeObject *type);
+void type_free(PyTypeObject *type, PyObject *self);
+
+/// Pointer to the `__dict__` slot of an instance, or nullptr if its type has none.
+PyObject **instance_dict_ptr(PyObject *self);
+
 /// Instance creation function for all pybind11 types. It allocates the internal instance layout
 /// for holding C++ objects and holders.  Allocation is done lazily (the first time the instance is
 /// cast to a reference or pointer), and initialization is done by an `__init__` function.

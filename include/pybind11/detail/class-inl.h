@@ -429,6 +429,24 @@ PYBIND11_INLINE bool deregister_instance(instance *self, void *valptr, const typ
     return ret;
 }
 
+PYBIND11_INLINE PyObject *type_alloc(PyTypeObject *type) {
+#if defined(PYBIND11_HAS_DIRECT_STRUCT_ACCESS)
+    return type->tp_alloc(type, 0);
+#else
+    return reinterpret_cast<allocfunc>(PyType_GetSlot(type, Py_tp_alloc))(type, 0);
+#endif
+}
+
+PYBIND11_INLINE void type_free(PyTypeObject *type, PyObject *self) {
+#if defined(PYBIND11_HAS_DIRECT_STRUCT_ACCESS)
+    type->tp_free(self);
+#else
+    reinterpret_cast<freefunc>(PyType_GetSlot(type, Py_tp_free))(self);
+#endif
+}
+
+PYBIND11_INLINE PyObject **instance_dict_ptr(PyObject *self) { return _PyObject_GetDictPtr(self); }
+
 PYBIND11_INLINE PyObject *make_new_instance(PyTypeObject *type) {
 #if defined(PYPY_VERSION)
     // PyPy gets tp_basicsize wrong (issue 2482) under multiple inheritance when the first
@@ -438,7 +456,7 @@ PYBIND11_INLINE PyObject *make_new_instance(PyTypeObject *type) {
         type->tp_basicsize = instance_size;
     }
 #endif
-    PyObject *self = type->tp_alloc(type, 0);
+    PyObject *self = type_alloc(type);
     auto *inst = reinterpret_cast<instance *>(self);
     // Allocate the value/holder internals:
     inst->allocate_layout();
@@ -520,7 +538,7 @@ PYBIND11_INLINE void clear_instance(PyObject *self) {
         PyObject_ClearWeakRefs(self);
     }
 
-    PyObject **dict_ptr = _PyObject_GetDictPtr(self);
+    PyObject **dict_ptr = instance_dict_ptr(self);
     if (dict_ptr) {
         Py_CLEAR(*dict_ptr);
     }
@@ -553,7 +571,7 @@ extern "C" PYBIND11_INLINE void pybind11_object_dealloc(PyObject *self) {
 
     clear_instance(self);
 
-    type->tp_free(self);
+    type_free(type, self);
 
     // This was not needed before Python 3.8 (Python issue 35810)
     // https://github.com/pybind/pybind11/issues/1946
@@ -641,7 +659,7 @@ extern "C" PYBIND11_INLINE int pybind11_traverse(PyObject *self, visitproc visit
         return ret;
     }
 #else
-    PyObject *&dict = *_PyObject_GetDictPtr(self);
+    PyObject *&dict = *instance_dict_ptr(self);
     Py_VISIT(dict);
 #endif
     // https://docs.python.org/3/c-api/typeobj.html#c.PyTypeObject.tp_traverse
@@ -653,7 +671,7 @@ extern "C" PYBIND11_INLINE int pybind11_clear(PyObject *self) {
 #if PY_VERSION_HEX >= 0x030D0000
     PyObject_ClearManagedDict(self);
 #else
-    PyObject *&dict = *_PyObject_GetDictPtr(self);
+    PyObject *&dict = *instance_dict_ptr(self);
     Py_CLEAR(dict);
 #endif
     return 0;
