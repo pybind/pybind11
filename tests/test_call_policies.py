@@ -290,7 +290,8 @@ def test_call_guard_rejected_cast(with_hooks):
 
 
 @pytest.mark.skipif(
-    "env.PYPY or env.GRAALPY", reason="GIL state check requires CPython"
+    not hasattr(m, "call_guard_cast_without_gil"),
+    reason="GIL state check requires CPython without Py_LIMITED_API",
 )
 def test_call_guard_cast_without_gil():
     state = m.CallGuardState()
