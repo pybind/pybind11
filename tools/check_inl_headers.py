@@ -47,6 +47,7 @@ GUARDED_MACROS = {
     "PYBIND11_SIMPLE_GIL_MANAGEMENT",
     "PYBIND11_TYPE_CREATION_VIA_SPEC",
     "Py_GIL_DISABLED",
+    "Py_LIMITED_API",
 }
 
 # Only change code inside the library; documented in docs/compiling.rst.

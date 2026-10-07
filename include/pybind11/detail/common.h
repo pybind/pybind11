@@ -14,6 +14,11 @@
 #    error "PYTHON < 3.9 IS UNSUPPORTED. pybind11 v3.0 was the last to support Python 3.8."
 #endif
 
+#if defined(Py_LIMITED_API)
+#    error                                                                                        \
+        "pybind11 does not support Py_LIMITED_API (the Python stable ABI) yet. Track progress at https://github.com/pybind/pybind11/discussions/6104"
+#endif
+
 // Similar to Python's convention: https://docs.python.org/3/c-api/apiabiversion.html
 // See also: https://github.com/python/cpython/blob/HEAD/Include/patchlevel.h
 /* -- start version constants -- */
