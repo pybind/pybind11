@@ -41,6 +41,7 @@ from __future__ import annotations
 import contextlib
 import os
 import platform
+import re
 import shlex
 import shutil
 import sys
@@ -86,6 +87,30 @@ STD_TMPL = "/std:c++{}" if WIN else "-std=c++{}"
 # directory into your path if it sits beside your setup.py.
 
 
+def _limited_api_hex(value: Any) -> str:
+    """
+    The Py_LIMITED_API value for ``py_limited_api``: True selects 3.12 (the
+    minimum pybind11 supports), a string such as "3.13" or "cp313" selects
+    that version, and an int or hex string is passed through.
+    """
+    if value is True:
+        return "0x030C0000"
+    if isinstance(value, int):
+        return f"0x{value:08X}"
+    text = str(value)
+    if text.lower().startswith("0x"):
+        return text
+    match = re.fullmatch(r"(?:cp)?(\d)\.?(\d+)", text)
+    if not match:
+        msg = f"py_limited_api must be True or a Python version such as '3.12', got {value!r}"
+        raise ValueError(msg)
+    major, minor = (int(part) for part in match.groups())
+    if (major, minor) < (3, 12):
+        msg = f"pybind11 supports the stable ABI from Python 3.12 on, got {value!r}"
+        raise ValueError(msg)
+    return f"0x{major:02X}{minor:02X}0000"
+
+
 class Pybind11Extension(_Extension):
     """
     Build a C++11+ Extension module with pybind11. This automatically adds the
@@ -108,6 +133,12 @@ class Pybind11Extension(_Extension):
 
     If you want to add pybind11 headers manually, for example for an exact
     git checkout, then set ``include_pybind11=False``.
+
+    ``py_limited_api=True`` builds against the Python stable ABI (3.12, or
+    pass a version string such as ``"3.13"``): ``Py_LIMITED_API`` is defined
+    and setuptools names the module ``*.abi3.so``, so one wheel serves every
+    CPython from that version on. See the pybind11 documentation for the
+    features that are not available under the stable ABI.
     """
 
     # flags are prepended, so that they can be further overridden, e.g. by
@@ -127,6 +158,16 @@ class Pybind11Extension(_Extension):
             kwargs["language"] = "c++"
 
         include_pybind11 = kwargs.pop("include_pybind11", True)
+
+        py_limited_api = kwargs.get("py_limited_api", False)
+        if py_limited_api:
+            # setuptools only uses the flag for the .abi3 file name; the
+            # define selects the limited API in the headers.
+            kwargs["py_limited_api"] = True
+            macros = list(kwargs.get("define_macros", []) or [])
+            if not any(name == "Py_LIMITED_API" for name, _ in macros):
+                macros.append(("Py_LIMITED_API", _limited_api_hex(py_limited_api)))
+            kwargs["define_macros"] = macros
 
         super().__init__(*args, **kwargs)
 
