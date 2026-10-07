@@ -499,13 +499,26 @@ struct native_enum_record {
     static const char *attribute_name() { return "__pybind11_native_enum__"; }
 };
 
+// Modules built for the Python stable ABI (Py_LIMITED_API) use a different `internals` layout
+// (opaque TSS keys, different type-object access), so they must not share internals with
+// regular modules in the same process. The tag keeps the two universes apart. It is deliberately
+// not part of PYBIND11_PLATFORM_ABI_ID: the C++ ABI is the same, so the cpp_conduit protocol
+// still bridges the two.
+#if defined(Py_LIMITED_API)
+#    define PYBIND11_INTERNALS_SABI_TAG "_stable"
+#else
+#    define PYBIND11_INTERNALS_SABI_TAG ""
+#endif
+
 #define PYBIND11_INTERNALS_ID                                                                     \
     "__pybind11_internals_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                        \
-        PYBIND11_COMPILER_TYPE_LEADING_UNDERSCORE PYBIND11_PLATFORM_ABI_ID "__"
+        PYBIND11_COMPILER_TYPE_LEADING_UNDERSCORE                                                 \
+            PYBIND11_PLATFORM_ABI_ID PYBIND11_INTERNALS_SABI_TAG "__"
 
 #define PYBIND11_MODULE_LOCAL_ID                                                                  \
     "__pybind11_module_local_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                     \
-        PYBIND11_COMPILER_TYPE_LEADING_UNDERSCORE PYBIND11_PLATFORM_ABI_ID "__"
+        PYBIND11_COMPILER_TYPE_LEADING_UNDERSCORE                                                 \
+            PYBIND11_PLATFORM_ABI_ID PYBIND11_INTERNALS_SABI_TAG "__"
 
 /// We use this to figure out if there are or have been multiple subinterpreters active at any
 /// point. This must never go from true to false while any interpreter may be running in any
