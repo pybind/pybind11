@@ -78,6 +78,11 @@ if("${PYTHON_MODULE_EXTENSION}" MATCHES "pypy"
 else()
   pybind11_add_build_test(subdirectory_embed)
 endif()
+if(PYBIND11_STABLE_ABI
+   AND CMAKE_VERSION VERSION_GREATER_EQUAL 3.26
+   AND NOT CMAKE_GENERATOR_PLATFORM MATCHES "Win32")
+  pybind11_add_build_test(subdirectory_stable_abi)
+endif()
 
 if(PYBIND11_INSTALL)
   add_custom_target(
