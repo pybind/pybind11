@@ -678,7 +678,8 @@ PyObject *cached_create_module(PyObject *spec, PyModuleDef *);
 /// the sentinel (0) end slot.
 using slots_array = std::array<PyModuleDef_Slot, 5>;
 
-/// Initialize an array of slots based on the supplied exec slot and options.
+/** Initialize an array of slots based on the supplied exec slot and options. This code may not
+ * assume the GIL and may not use pybind11 internals because this runs early during module init. */
 template <typename... Options>
 inline slots_array init_slots(int (*exec_fn)(PyObject *), Options &&...options) noexcept {
     /* NOTE: slots_array MUST be large enough to hold all possible options.  If you add an option

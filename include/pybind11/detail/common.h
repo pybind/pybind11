@@ -470,7 +470,6 @@ PyModuleDef_Init should be treated like any other PyObject (so not shared across
         PYBIND11_CHECK_PYTHON_VERSION                                                             \
         PYBIND11_PRECOMPILED_CONFIG_GUARD                                                         \
         try {                                                                                     \
-            PYBIND11_ENSURE_INTERNALS_READY                                                       \
             static ::pybind11::detail::slots_array mod_def_slots                                  \
                 = ::pybind11::detail::init_slots(                                                 \
                     &PYBIND11_CONCAT(pybind11_exec_, name), ##__VA_ARGS__);                       \
