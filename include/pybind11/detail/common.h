@@ -265,6 +265,13 @@
 #    endif
 #endif
 
+// Direct access to CPython object struct fields and type slots (tp_*, nb_*, ob_item, ...) is
+// available. Not on PyPy (cpyext emulates only part of the layouts) and not under the stable
+// ABI (the structs are opaque). Code that is gated off this falls back to the public API.
+#if !defined(PYPY_VERSION) && !defined(Py_LIMITED_API)
+#    define PYBIND11_HAS_DIRECT_STRUCT_ACCESS
+#endif
+
 #include <cstddef>
 #include <cstring>
 #include <exception>
