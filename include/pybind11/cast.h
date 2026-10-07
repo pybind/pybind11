@@ -849,7 +849,7 @@ protected:
         tuple result(size);
         int counter = 0;
         for (auto &entry : entries) {
-            PyTuple_SET_ITEM(result.ptr(), counter++, entry.release().ptr());
+            tuple_set_item(result.ptr(), counter++, entry.release().ptr());
         }
         return result.release();
     }
@@ -1959,7 +1959,7 @@ typing::Tuple<Args...> make_tuple(Args &&...args_) {
     tuple result(size);
     int counter = 0;
     for (auto &arg_value : args) {
-        PyTuple_SET_ITEM(result.ptr(), counter++, arg_value.release().ptr());
+        detail::tuple_set_item(result.ptr(), counter++, arg_value.release().ptr());
     }
     PYBIND11_WARNING_PUSH
 #ifdef PYBIND11_DETECTED_CLANG_WITH_MISLEADING_CALL_STD_MOVE_EXPLICITLY_WARNING

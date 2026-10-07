@@ -562,15 +562,15 @@ protected:
          * second lexicographic check. This is wildly expensive for huge argument lists, but those
          * are incredibly rare so we optimize for the vastly common case of just a couple of args.
          */
-        auto n = PyTuple_GET_SIZE(haystack);
+        auto n = detail::tuple_size(haystack);
         auto s = reinterpret_steal<pybind11::str>(PyUnicode_InternFromString(needle));
         for (ssize_t i = 0; i < n; ++i) {
-            if (PyTuple_GET_ITEM(haystack, i) == s.ptr()) {
+            if (detail::tuple_get_item(haystack, i) == s.ptr()) {
                 return i;
             }
         }
         for (ssize_t i = 0; i < n; ++i) {
-            if (PyUnicode_Compare(PyTuple_GET_ITEM(haystack, i), s.ptr()) == 0) {
+            if (PyUnicode_Compare(detail::tuple_get_item(haystack, i), s.ptr()) == 0) {
                 return i;
             }
         }
@@ -1851,7 +1851,7 @@ private:
             return nullptr;
         }
 
-        handle func_self = PyCFunction_GET_SELF(h.ptr());
+        handle func_self = PyCFunction_GetSelf(h.ptr());
         if (!func_self) {
             throw error_already_set();
         }

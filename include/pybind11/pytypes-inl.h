@@ -105,7 +105,7 @@ PYBIND11_INLINE std::string error_fetch_and_normalize::format_value_and_trace() 
             } else {
                 result += "\n__notes__ (len=" + std::to_string(len_notes) + "):";
                 for (ssize_t i = 0; i < len_notes; i++) {
-                    PyObject *note = PyList_GET_ITEM(notes.ptr(), i);
+                    PyObject *note = PyList_GetItem(notes.ptr(), i);
                     auto note_bytes = reinterpret_steal<object>(
                         PyUnicode_AsEncodedString(note, "utf-8", "backslashreplace"));
                     if (!note_bytes) {

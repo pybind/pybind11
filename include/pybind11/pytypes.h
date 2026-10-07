@@ -509,6 +509,33 @@ inline bool tp_name_equals(PyTypeObject *type, const char *name) {
     return std::strcmp(type->tp_name, name) == 0;
 }
 
+// Unchecked tuple/list element access for hot paths. Function forms under the stable ABI.
+#if defined(PYBIND11_HAS_DIRECT_STRUCT_ACCESS)
+inline ssize_t tuple_size(PyObject *tup) { return PyTuple_GET_SIZE(tup); }
+inline PyObject *tuple_get_item(PyObject *tup, ssize_t i) { return PyTuple_GET_ITEM(tup, i); }
+/// Steals a reference to `item`; `tup` must be a fresh tuple.
+inline void tuple_set_item(PyObject *tup, ssize_t i, PyObject *item) {
+    PyTuple_SET_ITEM(tup, i, item);
+}
+inline ssize_t list_size(PyObject *lst) { return PyList_GET_SIZE(lst); }
+inline PyObject *list_get_item(PyObject *lst, ssize_t i) { return PyList_GET_ITEM(lst, i); }
+/// Steals a reference to `item`; `lst` must be a fresh list.
+inline void list_set_item(PyObject *lst, ssize_t i, PyObject *item) {
+    PyList_SET_ITEM(lst, i, item);
+}
+#else
+inline ssize_t tuple_size(PyObject *tup) { return PyTuple_Size(tup); }
+inline PyObject *tuple_get_item(PyObject *tup, ssize_t i) { return PyTuple_GetItem(tup, i); }
+inline void tuple_set_item(PyObject *tup, ssize_t i, PyObject *item) {
+    PyTuple_SetItem(tup, i, item);
+}
+inline ssize_t list_size(PyObject *lst) { return PyList_Size(lst); }
+inline PyObject *list_get_item(PyObject *lst, ssize_t i) { return PyList_GetItem(lst, i); }
+inline void list_set_item(PyObject *lst, ssize_t i, PyObject *item) {
+    PyList_SetItem(lst, i, item);
+}
+#endif
+
 // Equivalent to obj.__class__.__name__ (or obj.__name__ if obj is a class).
 inline std::string obj_class_name(PyObject *obj) {
     if (PyType_Check(obj)) {
@@ -1649,8 +1676,8 @@ public:
     size_t size() const { return static_cast<size_t>(PyByteArray_Size(m_ptr)); }
 
     explicit operator std::string() const {
-        char *buffer = PyByteArray_AS_STRING(m_ptr);
-        ssize_t size = PyByteArray_GET_SIZE(m_ptr);
+        char *buffer = PyByteArray_AsString(m_ptr);
+        ssize_t size = PyByteArray_Size(m_ptr);
         return std::string(buffer, static_cast<size_t>(size));
     }
 };
@@ -1973,7 +2000,7 @@ public:
         return object::operator[](std::forward<T>(o));
     }
     detail::tuple_iterator begin() const { return {*this, 0}; }
-    detail::tuple_iterator end() const { return {*this, PyTuple_GET_SIZE(m_ptr)}; }
+    detail::tuple_iterator end() const { return {*this, detail::tuple_size(m_ptr)}; }
 };
 
 // We need to put this into a separate function because the Intel compiler
@@ -2063,7 +2090,7 @@ public:
         return object::operator[](std::forward<T>(o));
     }
     detail::list_iterator begin() const { return {*this, 0}; }
-    detail::list_iterator end() const { return {*this, PyList_GET_SIZE(m_ptr)}; }
+    detail::list_iterator end() const { return {*this, detail::list_size(m_ptr)}; }
     template <typename T>
     void append(T &&val) /* py-non-const */ {
         if (PyList_Append(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr()) != 0) {

@@ -482,7 +482,7 @@ PYBIND11_INLINE function get_type_override(const void *this_ptr,
 #    else
                 PyObject *co_varnames = PyObject_GetAttrString((PyObject *) f_code, "co_varnames");
 #    endif
-                PyObject *self_arg = PyTuple_GET_ITEM(co_varnames, 0);
+                PyObject *self_arg = PyTuple_GetItem(co_varnames, 0);
                 Py_DECREF(co_varnames);
                 PyObject *self_caller = dict_getitem(locals, self_arg);
                 Py_DECREF(locals);
@@ -611,9 +611,9 @@ PYBIND11_INLINE void cpp_function::initialize_generic(unique_function_record &&u
     detail::function_record *chain = nullptr, *chain_start = rec;
     if (rec->sibling) {
         if (PyCFunction_Check(rec->sibling.ptr())) {
-            auto *self = PyCFunction_GET_SELF(rec->sibling.ptr());
+            auto *self = PyCFunction_GetSelf(rec->sibling.ptr());
             if (self == nullptr) {
-                pybind11_fail("initialize_generic: Unexpected nullptr from PyCFunction_GET_SELF");
+                pybind11_fail("initialize_generic: Unexpected nullptr from PyCFunction_GetSelf");
             }
             chain = detail::function_record_ptr_from_PyObject(self);
             if (chain && !chain->scope.is(rec->scope)) {
@@ -674,8 +674,8 @@ PYBIND11_INLINE void cpp_function::initialize_generic(unique_function_record &&u
             // chain.
             chain_start = rec;
             rec->next = chain;
-            auto *py_func_rec = reinterpret_cast<detail::function_record_PyObject *>(
-                PyCFunction_GET_SELF(m_ptr));
+            auto *py_func_rec
+                = reinterpret_cast<detail::function_record_PyObject *>(PyCFunction_GetSelf(m_ptr));
             py_func_rec->cpp_func_rec = unique_rec.release();
             guarded_strdup.release();
         } else {
@@ -976,7 +976,7 @@ PYBIND11_INLINE PyObject *cpp_function::dispatcher(PyObject *self,
 
             // 2. Check kwargs and, failing that, defaults that may help complete the list
             small_vector<bool, arg_vector_small_size> used_kwargs(
-                kwnames_in ? static_cast<size_t>(PyTuple_GET_SIZE(kwnames_in)) : 0, false);
+                kwnames_in ? static_cast<size_t>(detail::tuple_size(kwnames_in)) : 0, false);
             size_t used_kwargs_count = 0;
             if (args_copied < num_args) {
                 for (; args_copied < num_args; ++args_copied) {
@@ -1052,7 +1052,8 @@ PYBIND11_INLINE PyObject *cpp_function::dispatcher(PyObject *self,
                         // Cast values into handles before indexing into kwargs to ensure
                         // well-defined evaluation order (MSVC C4866).
                         handle arg_in_arr = args_in_arr[n_args_in + i],
-                               kwname = PyTuple_GET_ITEM(kwnames_in, i);
+                               kwname
+                               = detail::tuple_get_item(kwnames_in, static_cast<ssize_t>(i));
                         kwargs[kwname] = arg_in_arr;
                     }
                 }
@@ -1206,19 +1207,20 @@ PYBIND11_INLINE PyObject *cpp_function::dispatcher(PyObject *self,
                 msg += "<repr raised Error>";
             }
         }
-        if (kwnames_in && PyTuple_GET_SIZE(kwnames_in) > 0) {
+        if (kwnames_in && detail::tuple_size(kwnames_in) > 0) {
             if (some_args) {
                 msg += "; ";
             }
             msg += "kwargs: ";
             bool first = true;
-            for (size_t i = 0; i < static_cast<size_t>(PyTuple_GET_SIZE(kwnames_in)); ++i) {
+            for (size_t i = 0; i < static_cast<size_t>(detail::tuple_size(kwnames_in)); ++i) {
                 if (first) {
                     first = false;
                 } else {
                     msg += ", ";
                 }
-                msg += reinterpret_borrow<pybind11::str>(PyTuple_GET_ITEM(kwnames_in, i));
+                msg += reinterpret_borrow<pybind11::str>(
+                    detail::tuple_get_item(kwnames_in, static_cast<ssize_t>(i)));
                 msg += '=';
                 try {
                     msg += pybind11::repr(args_in_arr[n_args_in + i]);
