@@ -104,12 +104,12 @@ public:
         return callback(callable, std::forward<Params>(params)...);
     }
 
-    template <typename Guard, typename Before>
+    template <typename Guard, typename Precall>
     // NOLINTNEXTLINE(performance-unnecessary-value-param)
-    Ret invoke_with_guard(Before &&before, Params... params) const {
+    Ret invoke_with_guard(Precall &&precall, Params... params) const {
         // Keep the same parameter boundary as operator() so prvalue arguments can be elided.
         // Argument conversion must finish before the hook, which runs before the guard.
-        std::forward<Before>(before)();
+        std::forward<Precall>(precall)();
         Guard guard{};
         (void) guard;
         return callback(callable, std::forward<Params>(params)...);

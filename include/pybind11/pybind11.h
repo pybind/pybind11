@@ -339,7 +339,7 @@ private:
 
         // cast_op can reject an argument after load_args succeeds. Run the hook after those
         // conversions, but before constructing the guard, which may release the GIL.
-        auto before = [&] { precall(call); };
+        auto precall_hook = [&] { precall(call); };
 
         /* Override policy for rvalues -- usually to enforce rvp::move on an rvalue */
         return_value_policy policy
@@ -348,13 +348,13 @@ private:
         /* Perform the function call */
         handle result;
         if (call.func.is_setter) {
-            (void) std::move(args_converter).template call<Return, Guard>(f, before);
+            (void) std::move(args_converter).template call<Return, Guard>(f, precall_hook);
             result = none().release();
         } else {
-            result
-                = cast_out::cast(std::move(args_converter).template call<Return, Guard>(f, before),
-                                 policy,
-                                 call.parent);
+            result = cast_out::cast(
+                std::move(args_converter).template call<Return, Guard>(f, precall_hook),
+                policy,
+                call.parent);
         }
 
         return result;

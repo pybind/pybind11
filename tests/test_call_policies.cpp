@@ -10,6 +10,7 @@
 #include "pybind11_tests.h"
 
 #include <string>
+#include <vector>
 
 struct CustomGuard {
     static bool enabled;
@@ -34,8 +35,103 @@ bool DependentGuard::enabled = false;
 struct CallPolicyHooks {};
 struct ThrowingCallPolicyPostcall {};
 
+struct CallGuardState {
+    explicit CallGuardState(bool reject) : reject(reject) {}
+
+    bool reject;
+    bool guarded = false;
+    bool gil_held_during_cast = false;
+    std::vector<std::string> events;
+};
+
+// The caster scopes this thread-local context to one candidate invocation. Each call owns its
+// event log, including when the callable runs with the GIL released.
+static CallGuardState *&current_call_guard_state() {
+    static thread_local CallGuardState *state = nullptr;
+    return state;
+}
+
+struct CallGuardArgument {
+    explicit CallGuardArgument(CallGuardState *state) : state(state) {}
+    CallGuardArgument(CallGuardArgument &&other) noexcept : state(other.state) {}
+    CallGuardArgument(const CallGuardArgument &) = delete;
+    ~CallGuardArgument() {
+        state->events.emplace_back(state->guarded ? "destroy:guarded" : "destroy:unguarded");
+    }
+
+    CallGuardState *state;
+};
+
+struct ConversionGuard {
+    CallGuardState &state = *current_call_guard_state();
+
+    ConversionGuard() {
+        state.events.emplace_back("guard:enter");
+        state.guarded = true;
+    }
+    ~ConversionGuard() {
+        state.guarded = false;
+        state.events.emplace_back("guard:exit");
+    }
+};
+
+struct NativeCallPolicyHooks {};
+
 namespace PYBIND11_NAMESPACE {
 namespace detail {
+template <>
+struct type_caster<CallGuardArgument> {
+    static constexpr auto name = const_name("CallGuardState");
+    CallGuardState *state = nullptr;
+    CallGuardState *previous = nullptr;
+
+    bool load(handle src, bool) {
+        if (!isinstance<CallGuardState>(src)) {
+            return false;
+        }
+        state = &pybind11::cast<CallGuardState &>(src);
+        previous = current_call_guard_state();
+        current_call_guard_state() = state;
+        state->events.emplace_back("load");
+        return true;
+    }
+
+    ~type_caster() {
+        if (state != nullptr) {
+            current_call_guard_state() = previous;
+        }
+    }
+
+    explicit operator CallGuardArgument() {
+        state->events.emplace_back(state->guarded ? "cast:guarded" : "cast:unguarded");
+#if !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)
+        auto *tstate = get_thread_state_unchecked();
+        state->gil_held_during_cast
+            = tstate != nullptr && tstate == PyGILState_GetThisThreadState();
+#endif
+        if (state->reject) {
+            throw reference_cast_error();
+        }
+        return CallGuardArgument(state);
+    }
+
+    template <typename T>
+    using cast_op_type = CallGuardArgument;
+};
+
+template <>
+struct process_attribute<NativeCallPolicyHooks>
+    : process_attribute_default<NativeCallPolicyHooks> {
+    static void precall(function_call &call) {
+        auto &state = pybind11::cast<CallGuardState &>(call.args[0]);
+        state.events.emplace_back(state.guarded ? "precall:guarded" : "precall:unguarded");
+    }
+    static void postcall(function_call &call, handle) {
+        auto &state = pybind11::cast<CallGuardState &>(call.args[0]);
+        state.events.emplace_back(state.guarded ? "postcall:guarded" : "postcall:unguarded");
+    }
+};
+
 template <>
 struct process_attribute<CallPolicyHooks> : process_attribute_default<CallPolicyHooks> {
     static void precall(function_call &call) {
@@ -133,6 +229,27 @@ TEST_SUBMODULE(call_policies, m) {
         },
         py::call_guard<DependentGuard, CustomGuard>());
 
+    // These bindings intentionally have no keep_alive. Final caster extraction must still
+    // finish before constructing the guard, or firing precall for a rejected candidate.
+    py::class_<CallGuardState>(m, "CallGuardState")
+        .def(py::init<bool>(), py::arg("reject") = false)
+        .def_readonly("gil_held_during_cast", &CallGuardState::gil_held_during_cast)
+        .def_property_readonly("events", [](const CallGuardState &state) {
+            py::list events;
+            for (const auto &event : state.events) {
+                events.append(event);
+            }
+            return events;
+        });
+    auto guarded_conversion_call = [](CallGuardArgument arg) {
+        arg.state->events.emplace_back(arg.state->guarded ? "call:guarded" : "call:unguarded");
+    };
+    m.def("call_guard_cast", guarded_conversion_call, py::call_guard<ConversionGuard>());
+    m.def("call_guard_cast_hooks",
+          guarded_conversion_call,
+          NativeCallPolicyHooks(),
+          py::call_guard<ConversionGuard>());
+
 #if !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)
     // `py::call_guard<py::gil_scoped_release>()` should work in PyPy/GraalPy as well,
     // but it's unclear how to test it without `PyGILState_GetThisThreadState`.
@@ -152,6 +269,13 @@ TEST_SUBMODULE(call_policies, m) {
         [report_gil_status](const py::list &) { return report_gil_status(); },
         CallPolicyHooks(),
         py::call_guard<py::gil_scoped_release>());
+    m.def(
+        "call_guard_cast_without_gil",
+        [report_gil_status](CallGuardArgument arg) {
+            arg.state->events.emplace_back(arg.state->guarded ? "call:guarded" : "call:unguarded");
+            return report_gil_status();
+        },
+        py::call_guard<ConversionGuard, py::gil_scoped_release>());
 #endif
 
     // test_keep_alive_failed_overload

@@ -256,6 +256,50 @@ def test_call_guard():
         assert m.without_gil() == "GIL released"
 
 
+@pytest.mark.parametrize("with_hooks", [False, True])
+def test_call_guard_cast_order(with_hooks):
+    function = m.call_guard_cast_hooks if with_hooks else m.call_guard_cast
+    state = m.CallGuardState()
+    function(state)
+    events = state.events
+    assert events[:2] == ["load", "cast:unguarded"]
+    enter = events.index("guard:enter")
+    call = events.index("call:guarded")
+    exit_ = events.index("guard:exit")
+    assert enter < call < exit_
+    # Callee/callback parameters die inside the guard. The outer invoke_with_guard parameter
+    # dies after it; pre-C++17 builds can also have non-elided caster temporaries. Avoid exact
+    # destructor/copy counts while checking both sides of the lifetime boundary.
+    assert "destroy:guarded" in events[call + 1 : exit_]
+    assert "destroy:unguarded" in events[exit_ + 1 :]
+    if with_hooks:
+        assert events.index("precall:unguarded") < enter
+        assert events[-1] == "postcall:unguarded"
+    else:
+        assert not any(event.startswith(("precall:", "postcall:")) for event in events)
+
+
+@pytest.mark.parametrize("with_hooks", [False, True])
+def test_call_guard_rejected_cast(with_hooks):
+    function = m.call_guard_cast_hooks if with_hooks else m.call_guard_cast
+    state = m.CallGuardState(reject=True)
+    with pytest.raises(TypeError):
+        function(state)
+    # load succeeds, but final caster extraction rejects this candidate before hooks/guard.
+    assert state.events == ["load", "cast:unguarded"]
+
+
+@pytest.mark.skipif(
+    "env.PYPY or env.GRAALPY", reason="GIL state check requires CPython"
+)
+def test_call_guard_cast_without_gil():
+    state = m.CallGuardState()
+    assert m.call_guard_cast_without_gil(state) == "GIL released"
+    assert state.gil_held_during_cast
+    assert state.events[:2] == ["load", "cast:unguarded"]
+    assert "call:guarded" in state.events
+
+
 def test_keep_alive_failed_overload():
     """keep_alive on an overload that fails argument conversion must not fire."""
     obj = m.KeepAliveOverload()
