@@ -21,13 +21,13 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 
 PYBIND11_INLINE std::string get_fully_qualified_tp_name(PyTypeObject *type) {
 #if !defined(PYPY_VERSION)
-    return type->tp_name;
+    return get_tp_name(type);
 #else
     auto module_name = handle((PyObject *) type).attr("__module__").cast<std::string>();
     if (module_name == PYBIND11_BUILTINS_MODULE)
-        return type->tp_name;
+        return get_tp_name(type);
     else
-        return std::move(module_name) + "." + type->tp_name;
+        return std::move(module_name) + "." + get_tp_name(type);
 #endif
 }
 
