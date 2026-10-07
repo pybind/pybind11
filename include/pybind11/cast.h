@@ -477,10 +477,9 @@ public:
 private:
     // Test if an object is a NumPy boolean (without fetching the type).
     static bool is_numpy_bool(handle object) {
-        const char *type_name = Py_TYPE(object.ptr())->tp_name;
         // Name changed to `numpy.bool` in NumPy 2, `numpy.bool_` is needed for 1.x support
-        return std::strcmp("numpy.bool", type_name) == 0
-               || std::strcmp("numpy.bool_", type_name) == 0;
+        return tp_name_equals(Py_TYPE(object.ptr()), "numpy.bool")
+               || tp_name_equals(Py_TYPE(object.ptr()), "numpy.bool_");
     }
 };
 
@@ -1172,8 +1171,7 @@ std::weak_ptr<T> potentially_slicing_weak_ptr(handle obj) {
     if (caster.load(obj, /*convert=*/true)) {
         return caster.potentially_slicing_weak_ptr();
     }
-    const char *obj_type_name = detail::obj_class_name(obj.ptr());
-    throw type_error("\"" + std::string(obj_type_name)
+    throw type_error("\"" + detail::obj_class_name(obj.ptr())
                      + "\" object is not convertible to std::weak_ptr<T> (with T = " + type_id<T>()
                      + ")");
 }

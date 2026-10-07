@@ -115,9 +115,8 @@ inline bool is_function_record_PyObject(PyObject *obj) {
         return true;
     }
     // This works across extension modules. Note that tp_name is versioned.
-    if (strcmp(obj_type->tp_name, function_record_PyTypeObject_methods::tp_qualname_impl) == 0
-        || strcmp(obj_type->tp_name, function_record_PyTypeObject_methods::tp_plainname_impl)
-               == 0) {
+    if (tp_name_equals(obj_type, function_record_PyTypeObject_methods::tp_qualname_impl)
+        || tp_name_equals(obj_type, function_record_PyTypeObject_methods::tp_plainname_impl)) {
         return true;
     }
     return false;
