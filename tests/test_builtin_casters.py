@@ -247,7 +247,8 @@ def test_integer_casting():
     assert "incompatible function arguments" in str(excinfo.value)
 
 
-def test_int_convert(doc):
+@pytest.mark.parametrize("prefix", ["int", "uint"])
+def test_int_convert(doc, prefix):
     class Int:
         def __int__(self):
             return 42
@@ -284,13 +285,14 @@ def test_int_convert(doc):
         def __int__(self):
             return 42
 
-    convert, noconvert = m.int_passthrough, m.int_passthrough_noconvert
+    convert = getattr(m, f"{prefix}_passthrough")
+    noconvert = getattr(m, f"{prefix}_passthrough_noconvert")
 
     assert (
         doc(convert)
-        == "int_passthrough(arg0: typing.SupportsInt | typing.SupportsIndex) -> int"
+        == f"{prefix}_passthrough(arg0: typing.SupportsInt | typing.SupportsIndex) -> int"
     )
-    assert doc(noconvert) == "int_passthrough_noconvert(arg0: int) -> int"
+    assert doc(noconvert) == f"{prefix}_passthrough_noconvert(arg0: int) -> int"
 
     def requires_conversion(v):
         pytest.raises(TypeError, noconvert, v)
@@ -402,10 +404,12 @@ def test_float_convert(doc):
     cant_convert(Int())
 
 
-def test_numpy_int_convert():
+@pytest.mark.parametrize("prefix", ["int", "uint"])
+def test_numpy_int_convert(prefix):
     np = pytest.importorskip("numpy")
 
-    convert, noconvert = m.int_passthrough, m.int_passthrough_noconvert
+    convert = getattr(m, f"{prefix}_passthrough")
+    noconvert = getattr(m, f"{prefix}_passthrough_noconvert")
 
     def require_implicit(v):
         pytest.raises(TypeError, noconvert, v)
