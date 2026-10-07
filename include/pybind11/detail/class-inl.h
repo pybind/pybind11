@@ -791,7 +791,103 @@ PYBIND11_INLINE void enable_buffer_protocol(PyHeapTypeObject *heap_type) {
     heap_type->as_buffer.bf_releasebuffer = pybind11_releasebuffer;
 }
 
+#if defined(PYBIND11_TYPE_CREATION_VIA_SPEC)
+
 PYBIND11_INLINE PyObject *make_new_python_type(const type_record &rec) {
+    auto &internals = get_internals();
+    auto *metaclass = rec.metaclass.ptr() ? reinterpret_cast<PyTypeObject *>(rec.metaclass.ptr())
+                                          : internals.default_metaclass;
+
+    // PyType_FromMetaclass() cannot run a pre-PyType_Ready callback, rejects metaclasses with a
+    // custom tp_new, and (correctly) refuses a metaclass that is less derived than the one of
+    // the base; the legacy path accepts all three.
+    if (rec.custom_type_setup_callback
+        || PyType_GetSlot(metaclass, Py_tp_new) != PyType_GetSlot(&PyType_Type, Py_tp_new)
+        || (metaclass != internals.default_metaclass
+            && !PyType_IsSubtype(metaclass, internals.default_metaclass))) {
+        return make_new_python_type_legacy(rec);
+    }
+
+    object module_ = get_module_name_if_available(rec.scope);
+    // Persistent: the type keeps pointing at it as tp_name. PyType_FromMetaclass() derives
+    // __module__ from the part before the last dot and warns if there is none.
+    const auto *full_name
+        = c_str((module_ ? str(module_).cast<std::string>() : PYBIND11_DUMMY_MODULE_NAME) + "."
+                + rec.name);
+
+    auto bases = tuple(rec.bases);
+    object base; // a single base or a tuple of bases
+    if (bases.empty()) {
+        base = reinterpret_borrow<object>(internals.instance_base);
+    } else if (bases.size() == 1) {
+        base = bases[0];
+    } else {
+        base = std::move(bases);
+    }
+
+    std::vector<PyType_Slot> slots;
+    /* Don't inherit base __init__ */
+    slots.push_back({Py_tp_init, reinterpret_cast<void *>(pybind11_object_init)});
+    if (rec.doc && options::show_user_defined_docstrings()) {
+        slots.push_back({Py_tp_doc, const_cast<char *>(rec.doc)});
+    }
+    unsigned int flags = Py_TPFLAGS_DEFAULT;
+    if (!rec.is_final) {
+        flags |= Py_TPFLAGS_BASETYPE;
+    }
+    if (rec.dynamic_attr) {
+        flags |= Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_MANAGED_DICT;
+        slots.push_back({Py_tp_traverse, reinterpret_cast<void *>(pybind11_traverse)});
+        slots.push_back({Py_tp_clear, reinterpret_cast<void *>(pybind11_clear)});
+        slots.push_back({Py_tp_getset, reinterpret_cast<void *>(dynamic_attr_getset())});
+    }
+    if (rec.buffer_protocol) {
+        slots.push_back({Py_bf_getbuffer, reinterpret_cast<void *>(pybind11_getbuffer)});
+        slots.push_back({Py_bf_releasebuffer, reinterpret_cast<void *>(pybind11_releasebuffer)});
+    }
+    slots.push_back({0, nullptr});
+
+    PyType_Spec spec = {full_name,
+                        0, // inherit the instance layout from the base
+                        0,
+                        flags,
+                        slots.data()};
+    PyObject *type = PyType_FromMetaclass(metaclass, nullptr, &spec, base.ptr());
+    if (!type) {
+        pybind11_fail(std::string(rec.name) + ": PyType_FromMetaclass failed: " + error_string());
+    }
+    assert(!rec.dynamic_attr
+           || PyType_HasFeature(reinterpret_cast<PyTypeObject *>(type), Py_TPFLAGS_HAVE_GC));
+
+    /* Register type with the parent scope */
+    if (rec.scope) {
+        setattr(rec.scope, rec.name, type);
+    } else {
+        Py_INCREF(type); // Keep it alive forever (reference leak)
+    }
+
+    if (module_) { // Needed by pydoc
+        setattr(type, "__module__", module_);
+    }
+    if (rec.scope && !PyModule_Check(rec.scope.ptr()) && hasattr(rec.scope, "__qualname__")) {
+        setattr(type,
+                "__qualname__",
+                reinterpret_steal<object>(PyUnicode_FromFormat(
+                    "%U.%s", rec.scope.attr("__qualname__").ptr(), rec.name)));
+    }
+
+    return type;
+}
+
+#else
+
+PYBIND11_INLINE PyObject *make_new_python_type(const type_record &rec) {
+    return make_new_python_type_legacy(rec);
+}
+
+#endif // PYBIND11_TYPE_CREATION_VIA_SPEC
+
+PYBIND11_INLINE PyObject *make_new_python_type_legacy(const type_record &rec) {
     auto name = reinterpret_steal<object>(PYBIND11_FROM_STRING(rec.name));
 
     auto qualname = name;

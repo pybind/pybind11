@@ -170,6 +170,11 @@ void enable_buffer_protocol(PyHeapTypeObject *heap_type);
     Return value: New reference. */
 PyObject *make_new_python_type(const type_record &rec);
 
+/// The hand-filled PyHeapTypeObject path. With PYBIND11_TYPE_CREATION_VIA_SPEC it is still used
+/// for `py::custom_type_setup` and for metaclasses with a custom `tp_new` (which
+/// PyType_FromMetaclass rejects).
+PyObject *make_new_python_type_legacy(const type_record &rec);
+
 PYBIND11_WARNING_POP
 
 PYBIND11_NAMESPACE_END(detail)
