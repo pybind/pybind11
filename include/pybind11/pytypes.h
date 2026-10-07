@@ -2485,6 +2485,12 @@ inline tuple get_bases(PyTypeObject *type) {
 /// `type.__mro__` as a tuple.
 inline tuple get_mro(PyTypeObject *type) { return reinterpret_borrow<tuple>(type->tp_mro); }
 
+/// Look `name` up along the MRO of `type` without invoking descriptors, like `_PyType_Lookup`.
+/// Returns a null object if the attribute is not found; never raises.
+inline object type_lookup(PyTypeObject *type, handle name) {
+    return reinterpret_borrow<object>(_PyType_Lookup(type, name.ptr()));
+}
+
 inline object get_module_name_if_available(handle scope) {
     if (scope) {
         if (hasattr(scope, "__module__")) {
