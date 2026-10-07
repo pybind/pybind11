@@ -121,29 +121,41 @@ using ExceptionTranslator = void (*)(std::exception_ptr);
 
 // The old Python Thread Local Storage (TLS) API is deprecated in Python 3.7 in favor of the new
 // Thread Specific Storage (TSS) API.
-// Avoid unnecessary allocation of `Py_tss_t`, since we cannot use
-// `Py_LIMITED_API` anyway.
-#define PYBIND11_TLS_KEY_REF Py_tss_t &
-#if defined(__clang__)
-#    define PYBIND11_TLS_KEY_INIT(var)                                                            \
-        _Pragma("clang diagnostic push")                                         /**/             \
-            _Pragma("clang diagnostic ignored \"-Wmissing-field-initializers\"") /**/             \
-            Py_tss_t var = Py_tss_NEEDS_INIT;                                                     \
-        _Pragma("clang diagnostic pop")
-#elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
-#    define PYBIND11_TLS_KEY_INIT(var)                                                            \
-        _Pragma("GCC diagnostic push")                                         /**/               \
-            _Pragma("GCC diagnostic ignored \"-Wmissing-field-initializers\"") /**/               \
-            Py_tss_t var = Py_tss_NEEDS_INIT;                                                     \
-        _Pragma("GCC diagnostic pop")
+// `Py_tss_t` is opaque under `Py_LIMITED_API`, so the key is heap-allocated there; otherwise it
+// is embedded to avoid the allocation.
+#if defined(Py_LIMITED_API)
+using tss_key_ptr = Py_tss_t *; // lets PYBIND11_TLS_KEY_INIT(mutable key_) parse
+#    define PYBIND11_TLS_KEY_REF Py_tss_t *
+#    define PYBIND11_TLS_KEY_INIT(var) tss_key_ptr var = nullptr;
+#    define PYBIND11_TLS_KEY_CREATE(var)                                                          \
+        (((var) = PyThread_tss_alloc()) != nullptr && PyThread_tss_create(var) == 0)
+#    define PYBIND11_TLS_GET_VALUE(key) PyThread_tss_get(key)
+#    define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_tss_set((key), (value))
+#    define PYBIND11_TLS_DELETE_VALUE(key) PyThread_tss_set((key), nullptr)
+#    define PYBIND11_TLS_FREE(key) PyThread_tss_free(key)
 #else
-#    define PYBIND11_TLS_KEY_INIT(var) Py_tss_t var = Py_tss_NEEDS_INIT;
+#    define PYBIND11_TLS_KEY_REF Py_tss_t &
+#    if defined(__clang__)
+#        define PYBIND11_TLS_KEY_INIT(var)                                                        \
+            _Pragma("clang diagnostic push")                                         /**/         \
+                _Pragma("clang diagnostic ignored \"-Wmissing-field-initializers\"") /**/         \
+                Py_tss_t var = Py_tss_NEEDS_INIT;                                                 \
+            _Pragma("clang diagnostic pop")
+#    elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#        define PYBIND11_TLS_KEY_INIT(var)                                                        \
+            _Pragma("GCC diagnostic push")                                         /**/           \
+                _Pragma("GCC diagnostic ignored \"-Wmissing-field-initializers\"") /**/           \
+                Py_tss_t var = Py_tss_NEEDS_INIT;                                                 \
+            _Pragma("GCC diagnostic pop")
+#    else
+#        define PYBIND11_TLS_KEY_INIT(var) Py_tss_t var = Py_tss_NEEDS_INIT;
+#    endif
+#    define PYBIND11_TLS_KEY_CREATE(var) (PyThread_tss_create(&(var)) == 0)
+#    define PYBIND11_TLS_GET_VALUE(key) PyThread_tss_get(&(key))
+#    define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_tss_set(&(key), (value))
+#    define PYBIND11_TLS_DELETE_VALUE(key) PyThread_tss_set(&(key), nullptr)
+#    define PYBIND11_TLS_FREE(key) PyThread_tss_delete(&(key))
 #endif
-#define PYBIND11_TLS_KEY_CREATE(var) (PyThread_tss_create(&(var)) == 0)
-#define PYBIND11_TLS_GET_VALUE(key) PyThread_tss_get(&(key))
-#define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_tss_set(&(key), (value))
-#define PYBIND11_TLS_DELETE_VALUE(key) PyThread_tss_set(&(key), nullptr)
-#define PYBIND11_TLS_FREE(key) PyThread_tss_delete(&(key))
 
 /// A smart-pointer-like wrapper around a thread-specific value. get/set of the pointer applies to
 /// the current thread only.
@@ -217,7 +229,11 @@ void translate_exception(std::exception_ptr p);
 inline PyThreadState *get_thread_state_unchecked() {
 #if defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
     return PyThreadState_GET();
-#elif PY_VERSION_HEX < 0x030D0000
+#elif defined(Py_LIMITED_API) && Py_LIMITED_API < 0x030D0000
+    // The stable ABI has no "current thread state or null" function before 3.13. All callers
+    // left under the stable ABI (the interpreter state dict lookup) hold the GIL.
+    return PyThreadState_Get();
+#elif PY_VERSION_HEX < 0x030D0000 && !defined(Py_LIMITED_API)
     return _PyThreadState_UncheckedGet();
 #else
     return PyThreadState_GetUnchecked();
@@ -381,6 +397,11 @@ struct internals {
     PyTypeObject *static_property_type = nullptr;
     PyTypeObject *default_metaclass = nullptr;
     PyObject *instance_base = nullptr;
+#if defined(Py_LIMITED_API)
+    // Replacement for PyInstanceMethod_Type, which is not part of the stable ABI. Shared so
+    // that every module recognizes the methods of every other module's classes.
+    PyTypeObject *instancemethod_type = nullptr;
+#endif
     // Unused if PYBIND11_SIMPLE_GIL_MANAGEMENT is defined:
     thread_specific_storage<PyThreadState> tstate;
 #if PYBIND11_INTERNALS_VERSION <= 11
@@ -474,6 +495,12 @@ struct type_info {
     // nb_alias_chain` added in
     // https://github.com/wjakob/nanobind/commit/b515b1f7f2f4ecc0357818e6201c94a9f4cbfdc2
     std::forward_list<const std::type_info *> alias_chain;
+#endif
+
+#if defined(Py_LIMITED_API)
+    /* Offset of the `__dict__` slot of instances for `py::dynamic_attr()` types (0 if none);
+     * `_PyObject_GetDictPtr` is not available under the stable ABI. */
+    Py_ssize_t dictoffset = 0;
 #endif
 
     /* A simple type never occurs as a (direct or indirect) parent

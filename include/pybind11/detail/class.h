@@ -47,6 +47,12 @@ descrsetfunc property_type_descr_set();
 
 #if !defined(PYPY_VERSION)
 
+#    if defined(Py_LIMITED_API)
+PyObject **static_property_dict_ptr(PyObject *self);
+extern "C" int pybind11_static_property_traverse(PyObject *self, visitproc visit, void *arg);
+extern "C" int pybind11_static_property_clear(PyObject *self);
+#    endif
+
 /// `pybind11_static_property.__get__()`: Always pass the class instead of the instance.
 extern "C" PyObject *pybind11_static_get(PyObject *self, PyObject * /*ob*/, PyObject *cls);
 
@@ -116,6 +122,20 @@ bool deregister_instance(instance *self, void *valptr, const type_info *tinfo);
 PyObject *type_alloc(PyTypeObject *type);
 void type_free(PyTypeObject *type, PyObject *self);
 
+#if defined(Py_LIMITED_API)
+/// Stand-ins for the instancemethod and method C APIs (see detail/class-inl.h). The
+/// `is_*`/`*_function` functions are also declared in pytypes.h.
+PyTypeObject *get_bound_method_type();
+PyTypeObject *get_instancemethod_type();
+extern "C" PyObject *instancemethod_descr_get(PyObject *self, PyObject *obj, PyObject *type);
+extern "C" PyObject *instancemethod_call(PyObject *self, PyObject *args, PyObject *kwargs);
+extern "C" PyObject *instancemethod_getattro(PyObject *self, PyObject *name);
+extern "C" PyObject *instancemethod_repr(PyObject *self);
+extern "C" int instancemethod_traverse(PyObject *self, visitproc visit, void *arg);
+extern "C" int instancemethod_clear(PyObject *self);
+extern "C" void instancemethod_dealloc(PyObject *self);
+#endif
+
 /// Pointer to the `__dict__` slot of an instance, or nullptr if its type has none.
 PyObject **instance_dict_ptr(PyObject *self);
 
@@ -161,8 +181,10 @@ extern "C" int pybind11_clear(PyObject *self);
 /// The `__dict__` descriptor for types with dynamic attributes.
 PyGetSetDef *dynamic_attr_getset();
 
+#if !defined(Py_LIMITED_API)
 /// Give instances of this type a `__dict__` and opt into garbage collection.
 void enable_dynamic_attributes(PyHeapTypeObject *heap_type);
+#endif
 
 /// buffer_protocol: Fill in the view as specified by flags.
 extern "C" int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int flags);
@@ -170,17 +192,21 @@ extern "C" int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int flags);
 /// buffer_protocol: Release the resources of the buffer.
 extern "C" void pybind11_releasebuffer(PyObject *, Py_buffer *view);
 
+#if !defined(Py_LIMITED_API)
 /// Give this type a buffer interface.
 void enable_buffer_protocol(PyHeapTypeObject *heap_type);
+#endif
 
 /** Create a brand new Python type according to the `type_record` specification.
     Return value: New reference. */
 PyObject *make_new_python_type(const type_record &rec);
 
+#if !defined(Py_LIMITED_API)
 /// The hand-filled PyHeapTypeObject path. With PYBIND11_TYPE_CREATION_VIA_SPEC it is still used
 /// for `py::custom_type_setup` and for metaclasses with a custom `tp_new` (which
 /// PyType_FromMetaclass rejects).
 PyObject *make_new_python_type_legacy(const type_record &rec);
+#endif
 
 PYBIND11_WARNING_POP
 

@@ -500,6 +500,7 @@ T reinterpret_steal(handle h) {
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+#if !defined(Py_LIMITED_API)
 /// The `tp_name` of a type: `module.Name` for static and pybind11 types, `Name` for Python
 /// heap types.
 inline std::string get_tp_name(PyTypeObject *type) { return type->tp_name; }
@@ -508,6 +509,52 @@ inline std::string get_tp_name(PyTypeObject *type) { return type->tp_name; }
 inline bool tp_name_equals(PyTypeObject *type, const char *name) {
     return std::strcmp(type->tp_name, name) == 0;
 }
+#else
+bool type_is_managed_by_our_internals(PyTypeObject *type_obj); // detail/cpp_conduit.h
+
+inline std::string utf8_or_empty(const object &o) {
+    Py_ssize_t size = 0;
+    const char *data
+        = o && PyUnicode_Check(o.ptr()) ? PyUnicode_AsUTF8AndSize(o.ptr(), &size) : nullptr;
+    if (data == nullptr) {
+        PyErr_Clear();
+        return std::string();
+    }
+    return std::string(data, static_cast<size_t>(size));
+}
+
+/// Reconstructs `tp_name`, which is not readable under the stable ABI: `__module__.__name__`
+/// for static types outside builtins and for pybind11 types, the bare `__name__` otherwise
+/// (builtins and Python heap types).
+inline std::string get_tp_name(PyTypeObject *type) {
+    std::string name = utf8_or_empty(reinterpret_steal<object>(PyType_GetName(type)));
+    if (PyType_HasFeature(type, Py_TPFLAGS_HEAPTYPE) && !type_is_managed_by_our_internals(type)) {
+        return name;
+    }
+    std::string module_ = utf8_or_empty(
+        reinterpret_steal<object>(PyObject_GetAttrString((PyObject *) type, "__module__")));
+    if (module_.empty() || module_ == PYBIND11_BUILTINS_MODULE) {
+        return name;
+    }
+    return module_ + '.' + name;
+}
+
+inline bool tp_name_equals(PyTypeObject *type, const char *name) {
+    // Cheap pre-check on the unqualified name before reconstructing the full one.
+    const char *dot = std::strrchr(name, '.');
+    auto type_name = reinterpret_steal<object>(PyType_GetName(type));
+    const char *type_name_utf8
+        = type_name ? PyUnicode_AsUTF8AndSize(type_name.ptr(), nullptr) : nullptr;
+    if (type_name_utf8 == nullptr) {
+        PyErr_Clear();
+        return false;
+    }
+    if (std::strcmp(type_name_utf8, dot ? dot + 1 : name) != 0) {
+        return false;
+    }
+    return get_tp_name(type) == name;
+}
+#endif
 
 // Unchecked tuple/list element access for hot paths. Function forms under the stable ABI.
 #if defined(PYBIND11_HAS_DIRECT_STRUCT_ACCESS)
@@ -773,13 +820,32 @@ inline ssize_t hash(handle obj) {
 /// @} python_builtins
 
 PYBIND11_NAMESPACE_BEGIN(detail)
+#if defined(Py_LIMITED_API)
+// Replacements for the instancemethod and method APIs, which are not part of the stable ABI.
+// Defined in detail/class-inl.h (the instancemethod type is created with the other internals
+// types).
+bool is_instancemethod(PyObject *obj);
+PyObject *instancemethod_function(PyObject *obj); // borrowed reference
+PyObject *instancemethod_new(PyObject *func);     // new reference
+bool is_bound_method(PyObject *obj);
+PyObject *bound_method_function(PyObject *obj); // borrowed reference
+#endif
+
 inline handle get_function(handle value) {
     if (value) {
+#if !defined(Py_LIMITED_API)
         if (PyInstanceMethod_Check(value.ptr())) {
             value = PyInstanceMethod_GET_FUNCTION(value.ptr());
         } else if (PyMethod_Check(value.ptr())) {
             value = PyMethod_GET_FUNCTION(value.ptr());
         }
+#else
+        if (is_instancemethod(value.ptr())) {
+            value = instancemethod_function(value.ptr());
+        } else if (is_bound_method(value.ptr())) {
+            value = bound_method_function(value.ptr());
+        }
+#endif
     }
     return value;
 }
@@ -830,13 +896,20 @@ inline PyObject *dict_getitemstringref(PyObject *v, const char *key) {
 #endif
 }
 
+// Returns a borrowed reference (the dict holds the value).
 inline PyObject *dict_setdefaultstring(PyObject *v, const char *key, PyObject *defaultobj) {
     PyObject *kv = PyUnicode_FromString(key);
     if (kv == nullptr) {
         throw error_already_set();
     }
 
+#if !defined(Py_LIMITED_API)
     PyObject *rv = PyDict_SetDefault(v, kv, defaultobj);
+#else
+    // dict.setdefault() is one C-level call, so it is just as atomic as PyDict_SetDefault.
+    PyObject *rv = PyObject_CallMethod(v, "setdefault", "OO", kv, defaultobj);
+    Py_XDECREF(rv);
+#endif
     Py_DECREF(kv);
     if (rv == nullptr) {
         throw error_already_set();
@@ -1123,6 +1196,7 @@ struct arrow_proxy {
     T *operator->() const { return &value; }
 };
 
+#if defined(PYBIND11_HAS_DIRECT_STRUCT_ACCESS)
 /// Lightweight iterator policy using just a simple pointer: see ``PySequence_Fast_ITEMS``
 class sequence_fast_readonly {
 protected:
@@ -1145,6 +1219,7 @@ protected:
 private:
     PyObject **ptr;
 };
+#endif
 
 /// Full read and write access using the sequence protocol: see ``detail::sequence_accessor``
 class sequence_slow_readwrite {
@@ -1229,7 +1304,28 @@ inline bool PyUnicode_Check_Permissive(PyObject *o) {
 #    define PYBIND11_STR_CHECK_FUN PyUnicode_Check
 #endif
 
+#if !defined(Py_LIMITED_API)
 inline bool PyStaticMethod_Check(PyObject *o) { return Py_TYPE(o) == &PyStaticMethod_Type; }
+inline PyObject *PyStaticMethod_New(PyObject *callable) { return ::PyStaticMethod_New(callable); }
+#else
+// PyStaticMethod_Type is not exported by the stable ABI; fetch it from builtins once.
+inline PyTypeObject *get_staticmethod_type() {
+    static PyTypeObject *const type = [] {
+        PyObject *builtins = PyEval_GetBuiltins();
+        PyObject *t = builtins ? PyDict_GetItemString(builtins, "staticmethod") : nullptr;
+        if (t == nullptr) {
+            pybind11_fail("pybind11::detail::get_staticmethod_type(): lookup failed");
+        }
+        return reinterpret_cast<PyTypeObject *>(t); // immortal builtin
+    }();
+    return type;
+}
+inline bool PyStaticMethod_Check(PyObject *o) { return Py_TYPE(o) == get_staticmethod_type(); }
+inline PyObject *PyStaticMethod_New(PyObject *callable) {
+    return PyObject_CallFunctionObjArgs(
+        reinterpret_cast<PyObject *>(get_staticmethod_type()), callable, nullptr);
+}
+#endif
 
 class kwargs_proxy : public handle {
 public:
@@ -2184,7 +2280,10 @@ public:
 
 class staticmethod : public object {
 public:
-    PYBIND11_OBJECT_CVT(staticmethod, object, detail::PyStaticMethod_Check, PyStaticMethod_New)
+    PYBIND11_OBJECT_CVT(staticmethod,
+                        object,
+                        detail::PyStaticMethod_Check,
+                        detail::PyStaticMethod_New)
 };
 
 class buffer : public object {
@@ -2340,7 +2439,20 @@ inline size_t len(handle h) {
 /// Get the length hint of a Python object.
 /// Returns 0 when this cannot be determined.
 inline size_t len_hint(handle h) {
+#if !defined(Py_LIMITED_API)
     ssize_t result = PyObject_LengthHint(h.ptr(), 0);
+#else
+    // PyObject_LengthHint is not part of the stable ABI: try len(), then __length_hint__().
+    ssize_t result = PyObject_Length(h.ptr());
+    if (result < 0) {
+        PyErr_Clear();
+        result = -1;
+        if (auto hint = reinterpret_steal<object>(
+                PyObject_CallMethod(h.ptr(), "__length_hint__", nullptr))) {
+            result = PyLong_AsSsize_t(hint.ptr());
+        }
+    }
+#endif
     if (result < 0) {
         // Sometimes a length can't be determined at all (eg generators)
         // In which case simply return 0
@@ -2501,6 +2613,7 @@ PYBIND11_MATH_OPERATOR_BINARY_INPLACE(operator>>=, PyNumber_InPlaceRshift)
 #undef PYBIND11_MATH_OPERATOR_BINARY_INPLACE
 
 // Meant to return a Python str, but this is not checked.
+#if !defined(Py_LIMITED_API)
 /// `type.__bases__` as a tuple (empty if the type has no bases tuple yet).
 inline tuple get_bases(PyTypeObject *type) {
     if (type->tp_bases == nullptr) {
@@ -2517,6 +2630,48 @@ inline tuple get_mro(PyTypeObject *type) { return reinterpret_borrow<tuple>(type
 inline object type_lookup(PyTypeObject *type, handle name) {
     return reinterpret_borrow<object>(_PyType_Lookup(type, name.ptr()));
 }
+#else
+// Generic attribute lookup on a type object: resolves the `type.__xxx__` descriptors without
+// going through the metaclass's tp_getattro (pybind11's own metaclass calls back into here).
+inline object type_generic_getattr(PyTypeObject *type, const char *name) {
+    auto name_obj = reinterpret_steal<object>(PyUnicode_InternFromString(name));
+    auto value = name_obj ? reinterpret_steal<object>(
+                                PyObject_GenericGetAttr((PyObject *) type, name_obj.ptr()))
+                          : object();
+    if (!value) {
+        PyErr_Clear();
+    }
+    return value;
+}
+
+inline tuple get_type_tuple_attr(PyTypeObject *type, const char *name) {
+    object value = type_generic_getattr(type, name);
+    if (!value || !PyTuple_Check(value.ptr())) {
+        return tuple();
+    }
+    return reinterpret_steal<tuple>(value.release());
+}
+
+inline tuple get_bases(PyTypeObject *type) { return get_type_tuple_attr(type, "__bases__"); }
+inline tuple get_mro(PyTypeObject *type) { return get_type_tuple_attr(type, "__mro__"); }
+
+// No type attribute cache: walks the MRO and looks in each class's `__dict__` (a mappingproxy).
+inline object type_lookup(PyTypeObject *type, handle name) {
+    for (handle base : get_mro(type)) {
+        object dict
+            = type_generic_getattr(reinterpret_cast<PyTypeObject *>(base.ptr()), "__dict__");
+        if (!dict) {
+            continue;
+        }
+        auto value = reinterpret_steal<object>(PyObject_GetItem(dict.ptr(), name.ptr()));
+        if (value) {
+            return value;
+        }
+        PyErr_Clear();
+    }
+    return object();
+}
+#endif
 
 inline object get_module_name_if_available(handle scope) {
     if (scope) {

@@ -14,9 +14,34 @@
 #    error "PYTHON < 3.9 IS UNSUPPORTED. pybind11 v3.0 was the last to support Python 3.8."
 #endif
 
+// Python stable ABI (PEP 384) support. Requires CPython 3.12+ (PyType_FromMetaclass) and a
+// matching Py_LIMITED_API value. See docs/advanced/stable_abi.rst for the feature matrix.
 #if defined(Py_LIMITED_API)
-#    error                                                                                        \
-        "pybind11 does not support Py_LIMITED_API (the Python stable ABI) yet. Track progress at https://github.com/pybind/pybind11/discussions/6104"
+#    if defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
+#        error "Py_LIMITED_API is only supported with CPython."
+#    endif
+#    if PY_VERSION_HEX < 0x030C0000 || Py_LIMITED_API + 0 < 0x030C0000
+#        error                                                                                    \
+            "pybind11 requires Py_LIMITED_API >= 0x030C0000 and CPython >= 3.12 for the stable ABI."
+#    endif
+#    if defined(Py_GIL_DISABLED)
+#        error "The free-threaded build has no stable ABI; do not define Py_LIMITED_API."
+#    endif
+#    if !defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
+#        define PYBIND11_SIMPLE_GIL_MANAGEMENT // gil.h reads thread-state internals
+#    endif
+#    if !defined(PYBIND11_TYPE_CREATION_VIA_SPEC)
+#        define PYBIND11_TYPE_CREATION_VIA_SPEC // the only type-creation path without struct
+                                                // access
+#    endif
+#    if !defined(PYBIND11_HAS_SUBINTERPRETER_SUPPORT)
+#        define PYBIND11_HAS_SUBINTERPRETER_SUPPORT 0 // reads thread/interpreter state fields
+#    elif PYBIND11_HAS_SUBINTERPRETER_SUPPORT
+#        error "Subinterpreter support is not available under Py_LIMITED_API."
+#    endif
+#    if !defined(PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET)
+#        define PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET // no Py_TPFLAGS_MANAGED_DICT
+#    endif
 #endif
 
 // Similar to Python's convention: https://docs.python.org/3/c-api/apiabiversion.html
@@ -260,6 +285,7 @@
 #endif
 
 #include <cstddef>
+#include <cstdlib>
 #include <cstring>
 #include <exception>
 #include <forward_list>
@@ -297,9 +323,10 @@
 #    define PYBIND11_HAS_SPAN 1
 #endif
 
-// See description of PR #4246:
+// See description of PR #4246. PyGILState_Check() is not part of the stable ABI.
 #if !defined(PYBIND11_NO_ASSERT_GIL_HELD_INCREF_DECREF) && !defined(NDEBUG)                       \
-    && !defined(PYPY_VERSION) && !defined(PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF)
+    && !defined(PYPY_VERSION) && !defined(Py_LIMITED_API)                                         \
+    && !defined(PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF)
 #    define PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF
 #endif
 
@@ -361,9 +388,15 @@
 //               behavior.
 
 /// Compatibility macros for Python 2 / Python 3 versions TODO: remove
-#define PYBIND11_INSTANCE_METHOD_NEW(ptr, class_) PyInstanceMethod_New(ptr)
-#define PYBIND11_INSTANCE_METHOD_CHECK PyInstanceMethod_Check
-#define PYBIND11_INSTANCE_METHOD_GET_FUNCTION PyInstanceMethod_GET_FUNCTION
+#if !defined(Py_LIMITED_API)
+#    define PYBIND11_INSTANCE_METHOD_NEW(ptr, class_) PyInstanceMethod_New(ptr)
+#    define PYBIND11_INSTANCE_METHOD_CHECK PyInstanceMethod_Check
+#    define PYBIND11_INSTANCE_METHOD_GET_FUNCTION PyInstanceMethod_GET_FUNCTION
+#else // PyInstanceMethod_Type is not part of the stable ABI; see detail/class-inl.h
+#    define PYBIND11_INSTANCE_METHOD_NEW(ptr, class_) ::pybind11::detail::instancemethod_new(ptr)
+#    define PYBIND11_INSTANCE_METHOD_CHECK ::pybind11::detail::is_instancemethod
+#    define PYBIND11_INSTANCE_METHOD_GET_FUNCTION ::pybind11::detail::instancemethod_function
+#endif
 #define PYBIND11_BYTES_CHECK PyBytes_Check
 #define PYBIND11_BYTES_FROM_STRING PyBytes_FromString
 #define PYBIND11_BYTES_FROM_STRING_AND_SIZE PyBytes_FromStringAndSize
@@ -420,22 +453,42 @@
         } while (0)
 #endif
 
-#define PYBIND11_CHECK_PYTHON_VERSION                                                             \
-    {                                                                                             \
-        const char *compiled_ver                                                                  \
-            = PYBIND11_TOSTRING(PY_MAJOR_VERSION) "." PYBIND11_TOSTRING(PY_MINOR_VERSION);        \
-        const char *runtime_ver = Py_GetVersion();                                                \
-        size_t len = std::strlen(compiled_ver);                                                   \
-        if (std::strncmp(runtime_ver, compiled_ver, len) != 0                                     \
-            || (runtime_ver[len] >= '0' && runtime_ver[len] <= '9')) {                            \
-            PyErr_Format(PyExc_ImportError,                                                       \
-                         "Python version mismatch: module was compiled for Python %s, "           \
-                         "but the interpreter version is incompatible: %s.",                      \
-                         compiled_ver,                                                            \
-                         runtime_ver);                                                            \
-            return nullptr;                                                                       \
-        }                                                                                         \
-    }
+#if !defined(Py_LIMITED_API)
+#    define PYBIND11_CHECK_PYTHON_VERSION                                                         \
+        {                                                                                         \
+            const char *compiled_ver                                                              \
+                = PYBIND11_TOSTRING(PY_MAJOR_VERSION) "." PYBIND11_TOSTRING(PY_MINOR_VERSION);    \
+            const char *runtime_ver = Py_GetVersion();                                            \
+            size_t len = std::strlen(compiled_ver);                                               \
+            if (std::strncmp(runtime_ver, compiled_ver, len) != 0                                 \
+                || (runtime_ver[len] >= '0' && runtime_ver[len] <= '9')) {                        \
+                PyErr_Format(PyExc_ImportError,                                                   \
+                             "Python version mismatch: module was compiled for Python %s, "       \
+                             "but the interpreter version is incompatible: %s.",                  \
+                             compiled_ver,                                                        \
+                             runtime_ver);                                                        \
+                return nullptr;                                                                   \
+            }                                                                                     \
+        }
+#else
+// A stable-ABI module runs on every CPython from the Py_LIMITED_API version on (abi3).
+#    define PYBIND11_CHECK_PYTHON_VERSION                                                         \
+        {                                                                                         \
+            const char *runtime_ver = Py_GetVersion();                                            \
+            long major = std::strtol(runtime_ver, nullptr, 10);                                   \
+            const char *dot = std::strchr(runtime_ver, '.');                                      \
+            long minor = dot ? std::strtol(dot + 1, nullptr, 10) : 0;                             \
+            if (major != ((Py_LIMITED_API) >> 24) || minor < (((Py_LIMITED_API) >> 16) & 0xFF)) { \
+                PyErr_Format(PyExc_ImportError,                                                   \
+                             "Python version mismatch: module was compiled for the Python %d.%d " \
+                             "stable ABI, but the interpreter version is incompatible: %s.",      \
+                             (int) ((Py_LIMITED_API) >> 24),                                      \
+                             (int) (((Py_LIMITED_API) >> 16) & 0xFF),                             \
+                             runtime_ver);                                                        \
+                return nullptr;                                                                   \
+            }                                                                                     \
+        }
+#endif
 
 #define PYBIND11_CATCH_INIT_EXCEPTIONS                                                            \
     catch (pybind11::error_already_set & e) {                                                     \
@@ -1445,8 +1498,10 @@ inline void silence_unused_warnings(Args &&...) {}
 #    define PYBIND11_DETAILED_ERROR_MESSAGES
 #endif
 
-// CPython 3.11+ provides Py_TPFLAGS_MANAGED_DICT, but PyPy3.11 does not, see PR #5508.
-#if PY_VERSION_HEX < 0x030B0000 || defined(PYPY_VERSION)
+// CPython 3.11+ provides Py_TPFLAGS_MANAGED_DICT, but PyPy3.11 does not, see PR #5508. (The
+// stable ABI does not have it either; see the Py_LIMITED_API block at the top of this file.)
+#if (PY_VERSION_HEX < 0x030B0000 || defined(PYPY_VERSION))                                        \
+    && !defined(PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET)
 #    define PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET
 #endif
 
