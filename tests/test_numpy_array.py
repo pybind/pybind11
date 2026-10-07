@@ -210,6 +210,8 @@ def test_bounds_check(arr):
     for func in (
         m.index_at,
         m.index_at_t,
+        m.offset_at,
+        m.offset_at_t,
         m.data,
         m.data_t,
         m.mutate_data,
@@ -223,14 +225,19 @@ def test_bounds_check(arr):
         with pytest.raises(IndexError) as excinfo:
             func(arr, 0, 4)
         assert str(excinfo.value) == "index 4 is out of bounds for axis 1 with size 3"
-        # Negative indices are out of bounds too (they would address memory
-        # before the start of the buffer).
+        # Negative indices are not wrapped like in NumPy
         with pytest.raises(IndexError) as excinfo:
             func(arr, -1, 0)
-        assert str(excinfo.value) == "index -1 is out of bounds for axis 0 with size 2"
+        assert (
+            str(excinfo.value)
+            == "index -1 is out of bounds for axis 0 with size 2 (negative indices are not supported)"
+        )
         with pytest.raises(IndexError) as excinfo:
             func(arr, 0, -1)
-        assert str(excinfo.value) == "index -1 is out of bounds for axis 1 with size 3"
+        assert (
+            str(excinfo.value)
+            == "index -1 is out of bounds for axis 1 with size 3 (negative indices are not supported)"
+        )
 
 
 def test_make_c_f_array():
