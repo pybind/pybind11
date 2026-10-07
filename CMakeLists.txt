@@ -99,6 +99,8 @@ option(PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION
        "To enforce that a handle_type_name<> specialization exists" OFF)
 option(PYBIND11_SIMPLE_GIL_MANAGEMENT
        "Use simpler GIL management logic that does not support disassociation" OFF)
+option(PYBIND11_TYPE_CREATION_VIA_SPEC
+       "Create type objects with PyType_FromMetaclass (CPython 3.12+ only, opt-in preview)" OFF)
 set(PYBIND11_INTERNALS_VERSION
     ""
     CACHE STRING "Override the ABI version, may be used to enable the unstable ABI.")
@@ -322,6 +324,9 @@ if(NOT TARGET pybind11_headers)
   endif()
   if(PYBIND11_SIMPLE_GIL_MANAGEMENT)
     target_compile_definitions(pybind11_headers INTERFACE PYBIND11_SIMPLE_GIL_MANAGEMENT)
+  endif()
+  if(PYBIND11_TYPE_CREATION_VIA_SPEC)
+    target_compile_definitions(pybind11_headers INTERFACE PYBIND11_TYPE_CREATION_VIA_SPEC)
   endif()
 else()
   # It is invalid to install a target twice, too.

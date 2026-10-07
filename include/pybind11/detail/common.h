@@ -242,6 +242,16 @@
 #    define PYBIND11_SIMPLE_GIL_MANAGEMENT
 #endif
 
+// Opt-in: create the pybind11 type objects (metaclass, static property, instance base and all
+// bound classes) through PyType_FromMetaclass() with PyType_Spec instead of filling in raw
+// PyHeapTypeObject fields. Requires CPython 3.12+. This is the only type-creation path under the
+// stable ABI and is planned to become the default on CPython 3.12+.
+#if defined(PYBIND11_TYPE_CREATION_VIA_SPEC)
+#    if PY_VERSION_HEX < 0x030C0000 || defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
+#        error "PYBIND11_TYPE_CREATION_VIA_SPEC requires CPython 3.12 or newer."
+#    endif
+#endif
+
 // Direct access to CPython object struct fields and type slots (tp_*, nb_*, ob_item, ...) is
 // available. Not on PyPy (cpyext emulates only part of the layouts) and not under the stable
 // ABI (the structs are opaque). Code that is gated off this falls back to the public API.
