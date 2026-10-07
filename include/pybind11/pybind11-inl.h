@@ -1337,8 +1337,7 @@ PYBIND11_INLINE void generic_type::initialize(const type_record &rec) {
 }
 
 PYBIND11_INLINE void generic_type::mark_parents_nonsimple(PyTypeObject *value) {
-    auto t = reinterpret_borrow<tuple>(value->tp_bases);
-    for (handle h : t) {
+    for (handle h : get_bases(value)) {
         auto *tinfo2 = get_type_info(reinterpret_cast<PyTypeObject *>(h.ptr()));
         if (tinfo2) {
             tinfo2->simple_type = false;

@@ -2465,6 +2465,17 @@ PYBIND11_MATH_OPERATOR_BINARY_INPLACE(operator>>=, PyNumber_InPlaceRshift)
 #undef PYBIND11_MATH_OPERATOR_BINARY_INPLACE
 
 // Meant to return a Python str, but this is not checked.
+/// `type.__bases__` as a tuple (empty if the type has no bases tuple yet).
+inline tuple get_bases(PyTypeObject *type) {
+    if (type->tp_bases == nullptr) {
+        return tuple();
+    }
+    return reinterpret_borrow<tuple>(type->tp_bases);
+}
+
+/// `type.__mro__` as a tuple.
+inline tuple get_mro(PyTypeObject *type) { return reinterpret_borrow<tuple>(type->tp_mro); }
+
 inline object get_module_name_if_available(handle scope) {
     if (scope) {
         if (hasattr(scope, "__module__")) {
