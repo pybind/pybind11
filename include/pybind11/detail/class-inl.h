@@ -36,16 +36,44 @@ PYBIND11_INLINE PyTypeObject *type_incref(PyTypeObject *type) {
     return type;
 }
 
+// Slots of the static base types that the pybind11 metaclass and static property type forward
+// to. PyType_GetSlot() works on static types since Python 3.10 and is part of the stable ABI;
+// the function-local caches make each lookup happen once per module. Below 3.10 (and on PyPy,
+// where PyType_GetSlot on static types is not reliable) the struct fields are read directly.
+#if PY_VERSION_HEX >= 0x030A0000 && !defined(PYPY_VERSION)
+#    define PYBIND11_BASE_TYPE_SLOT(type, slot_id, field, slot_type)                              \
+        static const auto cached = reinterpret_cast<slot_type>(PyType_GetSlot(&type, slot_id));   \
+        return cached;
+#else
+#    define PYBIND11_BASE_TYPE_SLOT(type, slot_id, field, slot_type) return type.field;
+#endif
+
+PYBIND11_INLINE ternaryfunc type_type_call(){PYBIND11_BASE_TYPE_SLOT(
+    PyType_Type, Py_tp_call, tp_call, ternaryfunc)} PYBIND11_INLINE setattrofunc
+    type_type_setattro(){PYBIND11_BASE_TYPE_SLOT(
+        PyType_Type, Py_tp_setattro, tp_setattro, setattrofunc)} PYBIND11_INLINE getattrofunc
+    type_type_getattro(){PYBIND11_BASE_TYPE_SLOT(
+        PyType_Type, Py_tp_getattro, tp_getattro, getattrofunc)} PYBIND11_INLINE destructor
+    type_type_dealloc(){PYBIND11_BASE_TYPE_SLOT(
+        PyType_Type, Py_tp_dealloc, tp_dealloc, destructor)} PYBIND11_INLINE descrgetfunc
+    property_type_descr_get(){PYBIND11_BASE_TYPE_SLOT(
+        PyProperty_Type, Py_tp_descr_get, tp_descr_get, descrgetfunc)} PYBIND11_INLINE descrsetfunc
+    property_type_descr_set() {
+    PYBIND11_BASE_TYPE_SLOT(PyProperty_Type, Py_tp_descr_set, tp_descr_set, descrsetfunc)
+}
+
+#undef PYBIND11_BASE_TYPE_SLOT
+
 #if !defined(PYPY_VERSION)
 extern "C" PYBIND11_INLINE PyObject *
 pybind11_static_get(PyObject *self, PyObject * /*ob*/, PyObject *cls) {
-    return PyProperty_Type.tp_descr_get(self, cls, cls);
+    return property_type_descr_get()(self, cls, cls);
 }
 
 extern "C" PYBIND11_INLINE int
 pybind11_static_set(PyObject *self, PyObject *obj, PyObject *value) {
     PyObject *cls = PyType_Check(obj) ? obj : (PyObject *) Py_TYPE(obj);
-    return PyProperty_Type.tp_descr_set(self, cls, value);
+    return property_type_descr_set()(self, cls, value);
 }
 
 PYBIND11_INLINE PyTypeObject *make_static_property_type() {
@@ -139,7 +167,7 @@ pybind11_meta_setattro(PyObject *obj, PyObject *name, PyObject *value) {
 #endif
     } else {
         // Replace existing attribute.
-        return PyType_Type.tp_setattro(obj, name, value);
+        return type_type_setattro()(obj, name, value);
     }
 }
 
@@ -148,14 +176,14 @@ extern "C" PYBIND11_INLINE PyObject *pybind11_meta_getattro(PyObject *obj, PyObj
     if (descr && PyInstanceMethod_Check(descr.ptr())) {
         return descr.release().ptr();
     }
-    return PyType_Type.tp_getattro(obj, name);
+    return type_type_getattro()(obj, name);
 }
 
 extern "C" PYBIND11_INLINE PyObject *
 pybind11_meta_call(PyObject *type, PyObject *args, PyObject *kwargs) {
 
     // use the default metaclass call to create/initialize the object
-    PyObject *self = PyType_Type.tp_call(type, args, kwargs);
+    PyObject *self = type_type_call()(type, args, kwargs);
     if (self == nullptr) {
         return nullptr;
     }
@@ -220,7 +248,7 @@ extern "C" PYBIND11_INLINE void pybind11_meta_dealloc(PyObject *obj) {
         }
     });
 
-    PyType_Type.tp_dealloc(obj);
+    type_type_dealloc()(obj);
 }
 
 PYBIND11_INLINE PyTypeObject *make_default_metaclass() {

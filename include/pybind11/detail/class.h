@@ -37,6 +37,14 @@ std::string get_fully_qualified_tp_name(PyTypeObject *type);
 
 PyTypeObject *type_incref(PyTypeObject *type);
 
+/// Slots of `type` and `property` that pybind11's own types forward to.
+ternaryfunc type_type_call();
+setattrofunc type_type_setattro();
+getattrofunc type_type_getattro();
+destructor type_type_dealloc();
+descrgetfunc property_type_descr_get();
+descrsetfunc property_type_descr_set();
+
 #if !defined(PYPY_VERSION)
 
 /// `pybind11_static_property.__get__()`: Always pass the class instead of the instance.
