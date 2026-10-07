@@ -429,6 +429,36 @@ PYBIND11_INLINE bool deregister_instance(instance *self, void *valptr, const typ
     return ret;
 }
 
+PYBIND11_INLINE PyObject *type_alloc(PyTypeObject *type) {
+#if defined(PYBIND11_HAS_DIRECT_STRUCT_ACCESS)
+    return type->tp_alloc(type, 0);
+#else
+    return reinterpret_cast<allocfunc>(PyType_GetSlot(type, Py_tp_alloc))(type, 0);
+#endif
+}
+
+PYBIND11_INLINE void type_free(PyTypeObject *type, PyObject *self) {
+#if defined(PYBIND11_HAS_DIRECT_STRUCT_ACCESS)
+    type->tp_free(self);
+#else
+    reinterpret_cast<freefunc>(PyType_GetSlot(type, Py_tp_free))(self);
+#endif
+}
+
+PYBIND11_INLINE PyObject **instance_dict_ptr(PyObject *self) {
+#if defined(PYPY_VERSION_NUM) && (PYPY_VERSION_NUM & 0xFFFF0000) == 0x08000000
+    // PyPy 8.0.0's _PyObject_GetDictPtr() can abort when called from tp_dealloc.
+    // The bug was fixed in 8.0.1, but all 8.0.x releases share an extension ABI,
+    // so an extension built against a fixed release can still run on 8.0.0.
+    // Keep this workaround for the entire 8.0.x series.
+    auto offset = Py_TYPE(self)->tp_dictoffset;
+    return offset > 0 ? reinterpret_cast<PyObject **>(reinterpret_cast<char *>(self) + offset)
+                      : nullptr;
+#else
+    return _PyObject_GetDictPtr(self);
+#endif
+}
+
 PYBIND11_INLINE PyObject *make_new_instance(PyTypeObject *type) {
 #if defined(PYPY_VERSION)
     // PyPy gets tp_basicsize wrong (issue 2482) under multiple inheritance when the first
@@ -438,7 +468,7 @@ PYBIND11_INLINE PyObject *make_new_instance(PyTypeObject *type) {
         type->tp_basicsize = instance_size;
     }
 #endif
-    PyObject *self = type->tp_alloc(type, 0);
+    PyObject *self = type_alloc(type);
     auto *inst = reinterpret_cast<instance *>(self);
     // Allocate the value/holder internals:
     inst->allocate_layout();
@@ -489,20 +519,6 @@ PYBIND11_INLINE void clear_patients(PyObject *self) {
     for (PyObject *&patient : patients) {
         Py_CLEAR(patient);
     }
-}
-
-PYBIND11_INLINE PyObject **instance_dict_ptr(PyObject *self) {
-#if defined(PYPY_VERSION_NUM) && (PYPY_VERSION_NUM & 0xFFFF0000) == 0x08000000
-    // PyPy 8.0.0's _PyObject_GetDictPtr() can abort when called from tp_dealloc.
-    // The bug was fixed in 8.0.1, but all 8.0.x releases share an extension ABI,
-    // so an extension built against a fixed release can still run on 8.0.0.
-    // Keep this workaround for the entire 8.0.x series.
-    auto offset = Py_TYPE(self)->tp_dictoffset;
-    return offset > 0 ? reinterpret_cast<PyObject **>(reinterpret_cast<char *>(self) + offset)
-                      : nullptr;
-#else
-    return _PyObject_GetDictPtr(self);
-#endif
 }
 
 PYBIND11_INLINE void clear_instance(PyObject *self) {
@@ -567,7 +583,7 @@ extern "C" PYBIND11_INLINE void pybind11_object_dealloc(PyObject *self) {
 
     clear_instance(self);
 
-    type->tp_free(self);
+    type_free(type, self);
 
     // This was not needed before Python 3.8 (Python issue 35810)
     // https://github.com/pybind/pybind11/issues/1946
