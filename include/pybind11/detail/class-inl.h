@@ -113,24 +113,24 @@ class pybind11_static_property(property):
 #endif // PYPY
 extern "C" PYBIND11_INLINE int
 pybind11_meta_setattro(PyObject *obj, PyObject *name, PyObject *value) {
-    // Use `_PyType_Lookup()` instead of `PyObject_GetAttr()` in order to get the raw
+    // Use `type_lookup()` instead of `PyObject_GetAttr()` in order to get the raw
     // descriptor (`property`) instead of calling `tp_descr_get` (`property.__get__()`).
-    PyObject *descr = _PyType_Lookup((PyTypeObject *) obj, name);
+    object descr = type_lookup((PyTypeObject *) obj, name);
 
     // The following assignment combinations are possible:
     //   1. `Type.static_prop = value`             --> descr_set: `Type.static_prop.__set__(value)`
     //   2. `Type.static_prop = other_static_prop` --> setattro:  replace existing `static_prop`
     //   3. `Type.regular_attribute = value`       --> setattro:  regular attribute assignment
     auto *const static_prop = (PyObject *) get_internals().static_property_type;
-    const auto call_descr_set = (descr != nullptr) && (value != nullptr)
-                                && (PyObject_IsInstance(descr, static_prop) != 0)
+    const auto call_descr_set = descr && (value != nullptr)
+                                && (PyObject_IsInstance(descr.ptr(), static_prop) != 0)
                                 && (PyObject_IsInstance(value, static_prop) == 0);
     if (call_descr_set) {
         // Call `static_property.__set__()` instead of replacing the `static_property`.
 #if !defined(PYPY_VERSION)
-        return Py_TYPE(descr)->tp_descr_set(descr, obj, value);
+        return Py_TYPE(descr.ptr())->tp_descr_set(descr.ptr(), obj, value);
 #else
-        if (PyObject *result = PyObject_CallMethod(descr, "__set__", "OO", obj, value)) {
+        if (PyObject *result = PyObject_CallMethod(descr.ptr(), "__set__", "OO", obj, value)) {
             Py_DECREF(result);
             return 0;
         } else {
@@ -144,10 +144,9 @@ pybind11_meta_setattro(PyObject *obj, PyObject *name, PyObject *value) {
 }
 
 extern "C" PYBIND11_INLINE PyObject *pybind11_meta_getattro(PyObject *obj, PyObject *name) {
-    PyObject *descr = _PyType_Lookup((PyTypeObject *) obj, name);
-    if (descr && PyInstanceMethod_Check(descr)) {
-        Py_INCREF(descr);
-        return descr;
+    object descr = type_lookup((PyTypeObject *) obj, name);
+    if (descr && PyInstanceMethod_Check(descr.ptr())) {
+        return descr.release().ptr();
     }
     return PyType_Type.tp_getattro(obj, name);
 }
