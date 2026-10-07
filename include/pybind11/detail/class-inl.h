@@ -268,7 +268,7 @@ PYBIND11_INLINE void traverse_offset_bases(void *valueptr,
                                            const detail::type_info *tinfo,
                                            instance *self,
                                            bool (*f)(void * /*parentptr*/, instance * /*self*/)) {
-    for (handle h : reinterpret_borrow<tuple>(tinfo->type->tp_bases)) {
+    for (handle h : get_bases(tinfo->type)) {
         if (auto *parent_tinfo = get_type_info(reinterpret_cast<PyTypeObject *>(h.ptr()))) {
             for (auto &c : parent_tinfo->implicit_casts) {
                 if (c.first == tinfo->cpptype) {
@@ -564,7 +564,7 @@ PYBIND11_INLINE void enable_dynamic_attributes(PyHeapTypeObject *heap_type) {
 extern "C" PYBIND11_INLINE int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int flags) {
     // Look for a `get_buffer` implementation in this type's info or any bases (following MRO).
     type_info *tinfo = nullptr;
-    for (auto type : reinterpret_borrow<tuple>(Py_TYPE(obj)->tp_mro)) {
+    for (auto type : get_mro(Py_TYPE(obj))) {
         tinfo = get_type_info((PyTypeObject *) type.ptr());
         if (tinfo && tinfo->get_buffer) {
             break;

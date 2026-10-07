@@ -85,7 +85,7 @@ PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void
 all_type_info_populate(PyTypeObject *t, std::vector<type_info *> &bases) {
     assert(bases.empty());
     std::vector<PyTypeObject *> check;
-    for (handle parent : reinterpret_borrow<tuple>(t->tp_bases)) {
+    for (handle parent : get_bases(t)) {
         check.push_back(reinterpret_cast<PyTypeObject *>(parent.ptr()));
     }
     auto const &type_dict = get_internals().registered_types_py;
@@ -118,9 +118,13 @@ all_type_info_populate(PyTypeObject *t, std::vector<type_info *> &bases) {
                     all_type_info_add_base_most_derived_first(bases, tinfo);
                 }
             }
-        } else if (type->tp_bases) {
+        } else {
             // It's some python type, so keep follow its bases classes to look for one or more
             // registered types
+            tuple parents = get_bases(type);
+            if (parents.empty()) {
+                continue;
+            }
             if (i + 1 == check.size()) {
                 // When we're at the end, we can pop off the current element to avoid growing
                 // `check` when adding just one base (which is typical--i.e. when there is no
@@ -128,7 +132,7 @@ all_type_info_populate(PyTypeObject *t, std::vector<type_info *> &bases) {
                 check.pop_back();
                 i--;
             }
-            for (handle parent : reinterpret_borrow<tuple>(type->tp_bases)) {
+            for (handle parent : parents) {
                 check.push_back(reinterpret_cast<PyTypeObject *>(parent.ptr()));
             }
         }
