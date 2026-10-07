@@ -73,6 +73,9 @@ if(NOT Python_FOUND AND NOT Python3_FOUND)
     if(TARGET Python::Module)
       set_property(TARGET Python::Module PROPERTY IMPORTED_GLOBAL TRUE)
     endif()
+    if(TARGET Python::SABIModule)
+      set_property(TARGET Python::SABIModule PROPERTY IMPORTED_GLOBAL TRUE)
+    endif()
   endif()
 
   # Explicitly export version for callers (including our own functions)
@@ -89,6 +92,11 @@ if(NOT Python_FOUND AND NOT Python3_FOUND)
     set(Python_VERSION_PATCH
         "${Python_VERSION_PATCH}"
         CACHE INTERNAL "")
+    if(DEFINED Python_SOSABI)
+      set(Python_SOSABI
+          "${Python_SOSABI}"
+          CACHE INTERNAL "")
+    endif()
   endif()
 endif()
 
