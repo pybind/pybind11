@@ -151,6 +151,9 @@ extern "C" int pybind11_traverse(PyObject *self, visitproc visit, void *arg);
 /// dynamic_attr: Allow the GC to clear the dictionary.
 extern "C" int pybind11_clear(PyObject *self);
 
+/// The `__dict__` descriptor for types with dynamic attributes.
+PyGetSetDef *dynamic_attr_getset();
+
 /// Give instances of this type a `__dict__` and opt into garbage collection.
 void enable_dynamic_attributes(PyHeapTypeObject *heap_type);
 

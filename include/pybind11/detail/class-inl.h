@@ -76,6 +76,34 @@ pybind11_static_set(PyObject *self, PyObject *obj, PyObject *value) {
     return property_type_descr_set()(self, cls, value);
 }
 
+#    if defined(PYBIND11_TYPE_CREATION_VIA_SPEC)
+
+PYBIND11_INLINE PyTypeObject *make_static_property_type() {
+    // Since Python-3.12 property-derived types are required to have dynamic attributes (to set
+    // `__doc__`), hence the GC and dict slots.
+    static PyType_Slot slots[] = {{Py_tp_descr_get, reinterpret_cast<void *>(pybind11_static_get)},
+                                  {Py_tp_descr_set, reinterpret_cast<void *>(pybind11_static_set)},
+                                  {Py_tp_traverse, reinterpret_cast<void *>(pybind11_traverse)},
+                                  {Py_tp_clear, reinterpret_cast<void *>(pybind11_clear)},
+                                  {Py_tp_getset, reinterpret_cast<void *>(dynamic_attr_getset())},
+                                  {0, nullptr}};
+    static PyType_Spec spec
+        = {PYBIND11_DUMMY_MODULE_NAME ".pybind11_static_property",
+           0, // inherit from property
+           0,
+           Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_MANAGED_DICT,
+           slots};
+    PyObject *type = PyType_FromMetaclass(
+        nullptr, nullptr, &spec, reinterpret_cast<PyObject *>(&PyProperty_Type));
+    if (!type) {
+        pybind11_fail("make_static_property_type(): failure in PyType_FromMetaclass(): "
+                      + error_string());
+    }
+    return reinterpret_cast<PyTypeObject *>(type);
+}
+
+#    else // legacy: fill in a PyHeapTypeObject by hand
+
 PYBIND11_INLINE PyTypeObject *make_static_property_type() {
     constexpr auto *name = "pybind11_static_property";
     auto name_obj = reinterpret_steal<object>(PYBIND11_FROM_STRING(name));
@@ -90,9 +118,9 @@ PYBIND11_INLINE PyTypeObject *make_static_property_type() {
     }
 
     heap_type->ht_name = name_obj.inc_ref().ptr();
-#    ifdef PYBIND11_BUILTIN_QUALNAME
+#        ifdef PYBIND11_BUILTIN_QUALNAME
     heap_type->ht_qualname = name_obj.inc_ref().ptr();
-#    endif
+#        endif
 
     auto *type = &heap_type->ht_type;
     type->tp_name = name;
@@ -101,11 +129,11 @@ PYBIND11_INLINE PyTypeObject *make_static_property_type() {
     type->tp_descr_get = pybind11_static_get;
     type->tp_descr_set = pybind11_static_set;
 
-#    if PY_VERSION_HEX >= 0x030C0000
+#        if PY_VERSION_HEX >= 0x030C0000
     // Since Python-3.12 property-derived types are required to
     // have dynamic attributes (to set `__doc__`)
     enable_dynamic_attributes(heap_type);
-#    endif
+#        endif
 
     if (PyType_Ready(type) < 0) {
         pybind11_fail("make_static_property_type(): failure in PyType_Ready()!");
@@ -116,6 +144,8 @@ PYBIND11_INLINE PyTypeObject *make_static_property_type() {
 
     return type;
 }
+
+#    endif // PYBIND11_TYPE_CREATION_VIA_SPEC
 
 #else // PYPY
 PYBIND11_INLINE PyTypeObject *make_static_property_type() {
@@ -570,6 +600,13 @@ extern "C" PYBIND11_INLINE int pybind11_clear(PyObject *self) {
     return 0;
 }
 
+PYBIND11_INLINE PyGetSetDef *dynamic_attr_getset() {
+    static PyGetSetDef getset[]
+        = {{"__dict__", PyObject_GenericGetDict, PyObject_GenericSetDict, nullptr, nullptr},
+           {nullptr, nullptr, nullptr, nullptr, nullptr}};
+    return getset;
+}
+
 PYBIND11_INLINE void enable_dynamic_attributes(PyHeapTypeObject *heap_type) {
     auto *type = &heap_type->ht_type;
     type->tp_flags |= Py_TPFLAGS_HAVE_GC;
@@ -581,11 +618,7 @@ PYBIND11_INLINE void enable_dynamic_attributes(PyHeapTypeObject *heap_type) {
 #endif
     type->tp_traverse = pybind11_traverse;
     type->tp_clear = pybind11_clear;
-
-    static PyGetSetDef getset[]
-        = {{"__dict__", PyObject_GenericGetDict, PyObject_GenericSetDict, nullptr, nullptr},
-           {nullptr, nullptr, nullptr, nullptr, nullptr}};
-    type->tp_getset = getset;
+    type->tp_getset = dynamic_attr_getset();
 }
 
 extern "C" PYBIND11_INLINE int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int flags) {
