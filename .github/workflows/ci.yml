@@ -99,6 +99,34 @@ jobs:
       python-version: ${{ matrix.python-version }}
       cmake-args: -DPYBIND11_TEST_PRECOMPILE=ON
 
+  # Opt-in PyType_FromMetaclass type creation (the future default on CPython 3.12+
+  # and the only path under the stable ABI).
+  type-creation-via-spec:
+    if: github.event.pull_request.draft == false
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runs-on: ubuntu-latest
+            python-version: '3.12'
+            cmake-args: -DPYBIND11_TYPE_CREATION_VIA_SPEC=ON
+          - runs-on: ubuntu-latest
+            python-version: '3.14'
+            cmake-args: -DPYBIND11_TYPE_CREATION_VIA_SPEC=ON -DPYBIND11_TEST_PRECOMPILE=ON
+          - runs-on: macos-latest
+            python-version: '3.13'
+            cmake-args: -DPYBIND11_TYPE_CREATION_VIA_SPEC=ON
+          - runs-on: windows-2022
+            python-version: '3.13'
+            cmake-args: -DPYBIND11_TYPE_CREATION_VIA_SPEC=ON
+
+    name: 📐
+    uses: ./.github/workflows/reusable-standard.yml
+    with:
+      runs-on: ${{ matrix.runs-on }}
+      python-version: ${{ matrix.python-version }}
+      cmake-args: ${{ matrix.cmake-args }}
+
   standard-large:
     if: github.event.pull_request.draft == false
     strategy:

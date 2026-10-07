@@ -436,7 +436,8 @@ Requirements and caveats:
   ``PYBIND11_SIMPLE_GIL_MANAGEMENT``,
   ``PYBIND11_DETAILED_ERROR_MESSAGES`` (defaults on in debug builds),
   ``PYBIND11_HAS_SUBINTERPRETER_SUPPORT``,
-  ``PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET``, and
+  ``PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET``,
+  ``PYBIND11_TYPE_CREATION_VIA_SPEC``, and
   ``Py_LIMITED_API``. A mismatch produces one
   readable undefined symbol at link time referencing
   ``pybind11_precompiled_config``.
