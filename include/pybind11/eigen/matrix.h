@@ -52,11 +52,20 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 #if EIGEN_VERSION_AT_LEAST(3, 3, 0)
 using EigenIndex = Eigen::Index;
 template <typename Scalar, int Flags, typename StorageIndex>
-using EigenMapSparseMatrix = Eigen::Map<Eigen::SparseMatrix<Scalar, Flags, StorageIndex>>;
+using EigenMapSparseMatrix = Eigen::Map<const Eigen::SparseMatrix<Scalar, Flags, StorageIndex>>;
+template <typename T>
+const T *eigen_sparse_map_ptr(const T *ptr) {
+    return ptr;
+}
 #else
 using EigenIndex = EIGEN_DEFAULT_DENSE_INDEX_TYPE;
 template <typename Scalar, int Flags, typename StorageIndex>
 using EigenMapSparseMatrix = Eigen::MappedSparseMatrix<Scalar, Flags, StorageIndex>;
+// MappedSparseMatrix requires mutable pointers, but the map is only read from.
+template <typename T>
+T *eigen_sparse_map_ptr(const T *ptr) {
+    return const_cast<T *>(ptr);
+}
 #endif
 
 // Matches Eigen::Map, Eigen::Ref, blocks, etc:
@@ -685,15 +694,14 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
             return false;
         }
 
-        // The map is only used to copy the data, but Eigen < 3.3 requires mutable pointers.
         value = EigenMapSparseMatrix<Scalar,
                                      Type::Flags &(Eigen::RowMajor | Eigen::ColMajor),
                                      StorageIndex>(shape[0].cast<Index>(),
                                                    shape[1].cast<Index>(),
                                                    std::move(nnz),
-                                                   const_cast<StorageIndex *>(outerIndices.data()),
-                                                   const_cast<StorageIndex *>(innerIndices.data()),
-                                                   const_cast<Scalar *>(values.data()));
+                                                   eigen_sparse_map_ptr(outerIndices.data()),
+                                                   eigen_sparse_map_ptr(innerIndices.data()),
+                                                   eigen_sparse_map_ptr(values.data()));
 
         return true;
     }
