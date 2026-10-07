@@ -102,7 +102,7 @@ struct type_caster<CallGuardArgument> {
         }
     }
 
-    explicit operator CallGuardArgument() {
+    explicit operator CallGuardArgument() const {
         state->events.emplace_back(state->guarded ? "cast:guarded" : "cast:unguarded");
 #if !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)
         auto *tstate = get_thread_state_unchecked();
