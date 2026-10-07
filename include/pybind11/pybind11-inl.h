@@ -464,7 +464,7 @@ PYBIND11_INLINE function get_type_override(const void *this_ptr,
 
     /* Don't call dispatch code if invoked from overridden function.
        Unfortunately this doesn't work on PyPy and GraalPy. */
-#if !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)
+#if !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON) && !defined(Py_LIMITED_API)
     PyFrameObject *frame = PyThreadState_GetFrame(PyThreadState_Get());
     if (frame != nullptr) {
         PyCodeObject *f_code = PyFrame_GetCode(frame);
@@ -495,6 +495,31 @@ PYBIND11_INLINE function get_type_override(const void *this_ptr,
         }
         Py_DECREF(f_code);
         Py_DECREF(frame);
+    }
+
+#elif defined(Py_LIMITED_API)
+    // Same check through attribute access: the frame and code object layouts are not part of
+    // the stable ABI.
+    PyFrameObject *frame = PyThreadState_GetFrame(PyThreadState_Get());
+    if (frame != nullptr) {
+        auto frame_obj = reinterpret_steal<object>(reinterpret_cast<PyObject *>(frame));
+        auto f_code
+            = reinterpret_steal<object>(reinterpret_cast<PyObject *>(PyFrame_GetCode(frame)));
+        if (std::string(str(f_code.attr("co_name"))) == name
+            && f_code.attr("co_argcount").cast<int>() > 0) {
+            object self_arg = f_code.attr("co_varnames")[int_(0)];
+            auto locals
+                = reinterpret_steal<object>(PyObject_GetAttrString(frame_obj.ptr(), "f_locals"));
+            auto self_caller
+                = locals
+                      ? reinterpret_steal<object>(PyObject_GetItem(locals.ptr(), self_arg.ptr()))
+                      : object();
+            if (!self_caller) {
+                PyErr_Clear();
+            } else if (self_caller.is(self)) {
+                return function();
+            }
+        }
     }
 
 #else
@@ -735,13 +760,26 @@ PYBIND11_INLINE void cpp_function::initialize_generic(unique_function_record &&u
         }
     }
 
-    auto *func = reinterpret_cast<PyCFunctionObject *>(m_ptr);
     // Install docstring if it's non-empty (when at least one option is enabled)
     auto *doc = signatures.empty() ? nullptr : PYBIND11_COMPAT_STRDUP(signatures.c_str());
+#if !defined(Py_LIMITED_API)
+    auto *func = reinterpret_cast<PyCFunctionObject *>(m_ptr);
     std::free(const_cast<char *>(PYBIND11_PYCFUNCTION_GET_DOC(func)));
     PYBIND11_PYCFUNCTION_SET_DOC(func, doc);
+#else
+    // PyCFunctionObject is opaque, but the function reads its `__doc__` from the PyMethodDef,
+    // which pybind11 owns: the one record in the chain that allocated it has `def` set.
+    for (auto *it = chain_start; it != nullptr; it = it->next) {
+        if (it->def) {
+            std::free(const_cast<char *>(it->def->ml_doc));
+            it->def->ml_doc = doc;
+            break;
+        }
+    }
+#endif
 
     if (rec->is_method) {
+        PyObject *func = m_ptr;
         m_ptr = PYBIND11_INSTANCE_METHOD_NEW(m_ptr, rec->scope.ptr());
         if (!m_ptr) {
             pybind11_fail(
@@ -1293,6 +1331,9 @@ PYBIND11_INLINE void generic_type::initialize(const type_record &rec) {
     tinfo->simple_ancestors = true;
     tinfo->module_local = rec.module_local;
     tinfo->holder_enum_v = rec.holder_enum_v;
+#if defined(Py_LIMITED_API)
+    tinfo->dictoffset = handle(m_ptr).attr("__dictoffset__").cast<Py_ssize_t>();
+#endif
 
     with_internals([&](internals &internals) {
         auto tindex = std::type_index(*rec.type);
@@ -1384,9 +1425,10 @@ PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void enum_base::init(bool is_arithmetic,
                 [](handle arg) -> std::string {
                     std::string docstring;
                     dict entries = arg.attr("__entries");
-                    if ((reinterpret_cast<PyTypeObject *>(arg.ptr()))->tp_doc) {
-                        docstring
-                            += std::string(reinterpret_cast<PyTypeObject *>(arg.ptr())->tp_doc);
+                    // tp_doc: the class docstring; `__doc__` itself is this property.
+                    if (const auto *tp_doc = static_cast<const char *>(PyType_GetSlot(
+                            reinterpret_cast<PyTypeObject *>(arg.ptr()), Py_tp_doc))) {
+                        docstring += tp_doc;
                         docstring += "\n\n";
                     }
                     docstring += "Members:";

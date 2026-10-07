@@ -12,6 +12,11 @@
 
 #include "pybind11.h"
 
+#if defined(Py_LIMITED_API)
+#    error                                                                                        \
+        "pybind11/chrono.h is not available under the stable ABI (Py_LIMITED_API): the datetime C API accesses struct fields."
+#endif
+
 #include <chrono>
 #include <cmath>
 #include <ctime>
