@@ -127,6 +127,99 @@ jobs:
       python-version: ${{ matrix.python-version }}
       cmake-args: ${{ matrix.cmake-args }}
 
+  # Stable ABI (Py_LIMITED_API): every test module is built as *.abi3.
+  stable-abi:
+    if: github.event.pull_request.draft == false
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runs-on: ubuntu-latest
+            python-version: '3.12'
+            cmake-args: -DPYBIND11_TEST_STABLE_ABI=ON
+          # precompiled: the -inl.h files must not read any non-limited struct field
+          - runs-on: ubuntu-latest
+            python-version: '3.14'
+            cmake-args: -DPYBIND11_TEST_STABLE_ABI=ON -DPYBIND11_TEST_PRECOMPILE=ON
+          - runs-on: macos-latest
+            python-version: '3.13'
+            cmake-args: -DPYBIND11_TEST_STABLE_ABI=ON -DCMAKE_CXX_STANDARD=17
+          - runs-on: windows-2022
+            python-version: '3.12'
+            cmake-args: -DPYBIND11_TEST_STABLE_ABI=ON
+
+    name: 🧱
+    uses: ./.github/workflows/reusable-standard.yml
+    with:
+      runs-on: ${{ matrix.runs-on }}
+      python-version: ${{ matrix.python-version }}
+      cmake-args: ${{ matrix.cmake-args }}
+
+  # The point of the stable ABI: build the suite once against the 3.12 headers
+  # and run the same .abi3 modules on newer interpreters.
+  stable-abi-forward:
+    if: github.event.pull_request.draft == false
+    name: 🧱 abi3 on newer Pythons
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      PYBIND11_STABLE_ABI_SKIPPED_TESTS: >-
+        --ignore=tests/test_chrono.py
+        --ignore=tests/test_custom_type_setup.py
+        --ignore=tests/test_multiple_interpreters.py
+        --ignore=tests/test_class_release_gil_before_calling_cpp_dtor.py
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Python 3.12 (build)
+        id: py312
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - name: Setup Python 3.13 and 3.14 (run)
+        uses: actions/setup-python@v7
+        with:
+          python-version: |
+            3.13
+            3.14
+          allow-prereleases: true
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.0.1
+        with:
+          enable-cache: true
+
+      - name: Prepare env
+        run: |
+          for py in "${{ steps.py312.outputs.python-path }}" python3.13 python3.14; do
+            uv pip install --python="$py" --system -r tests/requirements.txt
+          done
+
+      - name: Configure (Python 3.12, stable ABI)
+        run: >
+          cmake -S. -Bbuild -Werror=dev -GNinja
+          -DPYBIND11_WERROR=ON
+          -DDOWNLOAD_CATCH=ON
+          -DDOWNLOAD_EIGEN=ON
+          -DPYBIND11_TEST_STABLE_ABI=ON
+          -DPYTHON_EXECUTABLE=${{ steps.py312.outputs.python-path }}
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Python tests (3.12)
+        run: cmake --build build --target pytest
+
+      - name: Python tests (3.13, same binaries)
+        working-directory: build/tests
+        run: python3.13 -m pytest -v ../../tests ${{ env.PYBIND11_STABLE_ABI_SKIPPED_TESTS }}
+
+      - name: Python tests (3.14, same binaries)
+        working-directory: build/tests
+        run: python3.14 -m pytest -v ../../tests ${{ env.PYBIND11_STABLE_ABI_SKIPPED_TESTS }}
+
   standard-large:
     if: github.event.pull_request.draft == false
     strategy:
