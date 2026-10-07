@@ -119,7 +119,7 @@ public:
             }
 
             // upon success, the new interpreter is activated in this thread
-            result.istate_ = result.creation_tstate_->interp;
+            result.istate_ = PyThreadState_GetInterpreter(result.creation_tstate_);
             detail::has_seen_non_main_interpreter() = true;
             detail::get_internals(); // initialize internals.tstate, amongst other things...
 
@@ -184,7 +184,8 @@ public:
         old_tstate = PyThreadState_Swap(destroy_tstate);
 #endif
 
-        bool switch_back = (old_tstate != nullptr) && old_tstate->interp != istate_;
+        bool switch_back
+            = (old_tstate != nullptr) && PyThreadState_GetInterpreter(old_tstate) != istate_;
 
         // Internals always exists in the subinterpreter, this class enforces it when it creates
         // the subinterpreter. Even if it didn't, this only creates the pointer-to-pointer, not the
