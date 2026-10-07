@@ -560,6 +560,36 @@ extern "C" PYBIND11_INLINE void pybind11_object_dealloc(PyObject *self) {
     Py_DECREF(type);
 }
 
+#if defined(PYBIND11_TYPE_CREATION_VIA_SPEC)
+
+PYBIND11_INLINE PyObject *make_object_base_type(PyTypeObject *metaclass) {
+    /* Support weak references (needed for the keep_alive feature) */
+    static PyMemberDef members[] = {
+        {"__weaklistoffset__", Py_T_PYSSIZET, offsetof(instance, weakrefs), Py_READONLY, nullptr},
+        {nullptr, 0, 0, 0, nullptr}};
+    static PyType_Slot slots[]
+        = {{Py_tp_new, reinterpret_cast<void *>(pybind11_object_new)},
+           {Py_tp_init, reinterpret_cast<void *>(pybind11_object_init)},
+           {Py_tp_dealloc, reinterpret_cast<void *>(pybind11_object_dealloc)},
+           {Py_tp_members, reinterpret_cast<void *>(members)},
+           {0, nullptr}};
+    static PyType_Spec spec = {PYBIND11_DUMMY_MODULE_NAME ".pybind11_object",
+                               static_cast<int>(sizeof(instance)),
+                               0,
+                               Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+                               slots};
+    PyObject *type = PyType_FromMetaclass(
+        metaclass, nullptr, &spec, reinterpret_cast<PyObject *>(&PyBaseObject_Type));
+    if (!type) {
+        pybind11_fail("make_object_base_type(): failure in PyType_FromMetaclass(): "
+                      + error_string());
+    }
+    assert(!PyType_HasFeature(reinterpret_cast<PyTypeObject *>(type), Py_TPFLAGS_HAVE_GC));
+    return type;
+}
+
+#else // legacy: fill in a PyHeapTypeObject by hand
+
 PYBIND11_INLINE PyObject *make_object_base_type(PyTypeObject *metaclass) {
     constexpr auto *name = "pybind11_object";
     auto name_obj = reinterpret_steal<object>(PYBIND11_FROM_STRING(name));
@@ -574,9 +604,9 @@ PYBIND11_INLINE PyObject *make_object_base_type(PyTypeObject *metaclass) {
     }
 
     heap_type->ht_name = name_obj.inc_ref().ptr();
-#ifdef PYBIND11_BUILTIN_QUALNAME
+#    ifdef PYBIND11_BUILTIN_QUALNAME
     heap_type->ht_qualname = name_obj.inc_ref().ptr();
-#endif
+#    endif
 
     auto *type = &heap_type->ht_type;
     type->tp_name = name;
@@ -601,6 +631,8 @@ PYBIND11_INLINE PyObject *make_object_base_type(PyTypeObject *metaclass) {
     assert(!PyType_HasFeature(type, Py_TPFLAGS_HAVE_GC));
     return reinterpret_cast<PyObject *>(heap_type);
 }
+
+#endif // PYBIND11_TYPE_CREATION_VIA_SPEC
 
 extern "C" PYBIND11_INLINE int pybind11_traverse(PyObject *self, visitproc visit, void *arg) {
 #if PY_VERSION_HEX >= 0x030D0000
