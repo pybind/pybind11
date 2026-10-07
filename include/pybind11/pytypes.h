@@ -1169,7 +1169,7 @@ private:
 };
 PYBIND11_NAMESPACE_END(iterator_policies)
 
-#if !defined(PYPY_VERSION)
+#if defined(PYBIND11_HAS_DIRECT_STRUCT_ACCESS)
 using tuple_iterator = generic_iterator<iterator_policies::sequence_fast_readonly>;
 using list_iterator = generic_iterator<iterator_policies::sequence_fast_readonly>;
 #else

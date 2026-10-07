@@ -127,7 +127,7 @@ pybind11_meta_setattro(PyObject *obj, PyObject *name, PyObject *value) {
                                 && (PyObject_IsInstance(value, static_prop) == 0);
     if (call_descr_set) {
         // Call `static_property.__set__()` instead of replacing the `static_property`.
-#if !defined(PYPY_VERSION)
+#if defined(PYBIND11_HAS_DIRECT_STRUCT_ACCESS)
         return Py_TYPE(descr.ptr())->tp_descr_set(descr.ptr(), obj, value);
 #else
         if (PyObject *result = PyObject_CallMethod(descr.ptr(), "__set__", "OO", obj, value)) {

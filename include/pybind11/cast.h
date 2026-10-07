@@ -447,8 +447,8 @@ public:
             if (src.is_none()) {
                 res = 0; // None is implicitly converted to False
             }
-#if defined(PYPY_VERSION)
-            // On PyPy, check that "__bool__" attr exists
+#if !defined(PYBIND11_HAS_DIRECT_STRUCT_ACCESS)
+            // Check that the "__bool__" attr exists
             else if (hasattr(src, PYBIND11_BOOL_ATTR)) {
                 res = PyObject_IsTrue(src.ptr());
             }
