@@ -105,12 +105,10 @@ inline PyTypeObject *get_function_record_PyTypeObject() {
 
 // This works across extension modules, and does not need the internals lock.
 // Note that tp_name is versioned.
+// This works across extension modules. Note that tp_name is versioned.
 inline bool function_record_PyTypeObject_name_matches(PyTypeObject *obj_type) {
-    return std::strcmp(obj_type->tp_name, function_record_PyTypeObject_methods::tp_qualname_impl)
-               == 0
-           || std::strcmp(obj_type->tp_name,
-                          function_record_PyTypeObject_methods::tp_plainname_impl)
-                  == 0;
+    return tp_name_equals(obj_type, function_record_PyTypeObject_methods::tp_qualname_impl)
+           || tp_name_equals(obj_type, function_record_PyTypeObject_methods::tp_plainname_impl);
 }
 
 inline bool is_function_record_PyObject(PyObject *obj) {
