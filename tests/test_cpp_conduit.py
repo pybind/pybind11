@@ -149,6 +149,25 @@ def test_exo_planet_c_api_premium_traveler(premium_traveler_type):
     assert exo_planet_c_api.GetPoints(pt) == 5
 
 
+@pytest.mark.parametrize(
+    "module", [home_planet, home_planet_very_lonely_traveler], ids=["home", "other"]
+)
+def test_conduit_override_ignored_for_managed_type(module):
+    # Every module that shares the internals must treat a subclass of a
+    # registered type as managed, and skip a non-instancemethod override.
+    # home_planet_very_lonely_traveler did not create the pybind11_object base,
+    # so a tp_new comparison gave the wrong answer there.
+    calls = []
+
+    class Impostor(home_planet.Traveler):
+        def _pybind11_conduit_v1_(self, *args):
+            calls.append(args)
+
+    with pytest.raises(TypeError):
+        module.get_points(Impostor("home"))
+    assert calls == []
+
+
 def test_home_planet_wrap_very_lonely_traveler():
     # This does not exercise the cpp_conduit feature, but is here to
     # demonstrate that the cpp_conduit feature does not solve
