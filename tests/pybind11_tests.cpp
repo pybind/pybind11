@@ -89,6 +89,9 @@ PYBIND11_MODULE(pybind11_tests, m, py::mod_gil_not_used()) {
 #endif
     m.attr("cpp_std") = cpp_std();
     m.attr("PYBIND11_INTERNALS_ID") = PYBIND11_INTERNALS_ID;
+    // The Python version the headers were compiled against; differs from the runtime version for
+    // stable-ABI modules.
+    m.attr("COMPILED_PYTHON_VERSION") = py::make_tuple(PY_MAJOR_VERSION, PY_MINOR_VERSION);
     m.attr("LIMITED_API") =
 #if defined(Py_LIMITED_API)
         true;
