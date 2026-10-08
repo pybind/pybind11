@@ -240,12 +240,6 @@ jobs:
         --ignore=tests/test_custom_type_setup.py
         --ignore=tests/test_multiple_interpreters.py
         --ignore=tests/test_class_release_gil_before_calling_cpp_dtor.py
-        --ignore=tests/test_numpy_array.py
-        --ignore=tests/test_numpy_dtypes.py
-        --ignore=tests/test_numpy_scalars.py
-        --ignore=tests/test_numpy_vectorize.py
-        --ignore=tests/test_eigen_matrix.py
-        --ignore=tests/test_eigen_tensor.py
 
     steps:
       - uses: actions/checkout@v7

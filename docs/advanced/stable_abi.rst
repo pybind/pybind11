@@ -56,12 +56,10 @@ available and in how a few things are implemented.
    * - Feature
      - Stable ABI
      - Notes
-   * - Classes, functions, casters, STL
+   * - Classes, functions, casters, STL, numpy, Eigen
      - supported
-     -
-   * - numpy, Eigen
-     - supported (abi3 only)
-     - ``numpy.h`` mirrors NumPy's object layouts, which abi3t hides.
+     - Under abi3t, ``numpy.h`` needs NumPy 2.5+ at run time (it reads
+       array fields through NumPy's abi3t accessors).
    * - ``py::dynamic_attr()``
      - supported
      - The ``__dict__`` slot is appended to the instance (no
@@ -108,7 +106,8 @@ Under abi3t, ``PyObject`` and ``PyModuleDef`` are incomplete types and
   one weak reference per registered instance so that the instance registry
   can hand out strong references safely (``PyWeakref_GetRef()``).
 
-``pybind11/numpy.h`` (and therefore the Eigen headers) is not available. The
+``pybind11/numpy.h`` reads NumPy's object fields through the accessors NumPy
+2.5 added for abi3t, so older NumPy versions are rejected at run time. The
 internals tag is ``_stable_ft``: an abi3t module and an abi3 module loaded
 into the same GIL-enabled interpreter do not share internals (see below).
 
