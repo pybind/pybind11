@@ -720,6 +720,41 @@ inline slots_array init_slots(int (*exec_fn)(PyObject *), Options &&...options) 
     return mod_def_slots;
 }
 
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+/// PEP 793 slot array; large enough for every slot below plus the zero sentinel.
+using export_slots_array = std::array<PySlot, 7>;
+
+template <typename... Options>
+inline export_slots_array
+init_export_slots(const char *name, int (*exec_fn)(PyObject *), Options &&...options) noexcept {
+    export_slots_array slots{};
+    size_t next_slot = 0;
+    auto data_slot = [&](int id, const void *value, uint16_t flags) {
+        slots[next_slot].sl_id = static_cast<uint16_t>(id);
+        slots[next_slot].sl_flags = flags;
+        slots[next_slot].sl_ptr = const_cast<void *>(value);
+        ++next_slot;
+    };
+    auto func_slot = [&](int id, _Py_funcptr_t fn) {
+        slots[next_slot].sl_id = static_cast<uint16_t>(id);
+        slots[next_slot].sl_func = fn;
+        ++next_slot;
+    };
+    PyABIInfo_VAR(abi_info);
+    data_slot(Py_mod_name, name, PySlot_INTPTR);
+    data_slot(Py_mod_abi, &abi_info, PySlot_STATIC);
+    func_slot(Py_mod_create, reinterpret_cast<_Py_funcptr_t>(&cached_create_module));
+    if (exec_fn != nullptr) {
+        func_slot(Py_mod_exec, reinterpret_cast<_Py_funcptr_t>(exec_fn));
+    }
+    data_slot(Py_mod_multiple_interpreters, multi_interp_slot(options...), PySlot_INTPTR);
+    if (gil_not_used_option(options...)) {
+        data_slot(Py_mod_gil, Py_MOD_GIL_NOT_USED, PySlot_INTPTR);
+    }
+    return slots;
+}
+#endif
+
 PYBIND11_NAMESPACE_END(detail)
 
 /// Wrapper for Python extension modules
@@ -727,11 +762,13 @@ class module_ : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(module_, object, PyModule_Check)
 
+#if !defined(PYBIND11_OPAQUE_PYOBJECT)
     /// Create a new top-level Python module with the given name and docstring
     PYBIND11_DEPRECATED("Use PYBIND11_MODULE or module_::create_extension_module instead")
     explicit module_(const char *name, const char *doc = nullptr) {
         *this = create_extension_module(name, doc, new PyModuleDef());
     }
+#endif
 
     /** \rst
         Create Python binding for a new function within the module scope. ``Func``
@@ -782,6 +819,7 @@ public:
     // DEPRECATED (since PR #5688): Use PyModuleDef directly instead.
     using module_def = PyModuleDef;
 
+#if !defined(PYBIND11_OPAQUE_PYOBJECT)
     /** \rst
         Create a new top-level module that can be used as the main module of a C extension.
 
@@ -791,6 +829,7 @@ public:
                                            const char *doc,
                                            PyModuleDef *def,
                                            mod_gil_not_used gil_not_used = mod_gil_used());
+#endif
 };
 
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -2056,7 +2095,7 @@ public:
             [](detail::value_and_holder &v_h, Scalar arg) {
                 detail::initimpl::setstate<Base>(v_h,
                                                  static_cast<Type>(arg),
-                                                 Py_TYPE(reinterpret_cast<PyObject *>(v_h.inst))
+                                                 Py_TYPE(instance_object(v_h.inst))
                                                      != v_h.type->type);
             },
             detail::is_new_style_constructor(),

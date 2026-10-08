@@ -19,9 +19,19 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 struct function_record_PyObject {
+#if !defined(PYBIND11_OPAQUE_PYOBJECT)
     PyObject_HEAD
+#endif
     function_record *cpp_func_rec;
 };
+
+inline function_record_PyObject *function_record_data(PyObject *obj) {
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+    return static_cast<function_record_PyObject *>(PyObject_GetTypeData(obj, Py_TYPE(obj)));
+#else
+    return reinterpret_cast<function_record_PyObject *>(obj);
+#endif
+}
 
 PYBIND11_NAMESPACE_BEGIN(function_record_PyTypeObject_methods)
 
@@ -84,7 +94,7 @@ static PyType_Slot function_record_PyType_Slots[] = {
 
 static PyType_Spec function_record_PyType_Spec
     = {function_record_PyTypeObject_methods::tp_qualname_impl,
-       sizeof(function_record_PyObject),
+       PYBIND11_TYPE_DATA_SIZE(function_record_PyObject),
        0,
        Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HEAPTYPE,
        function_record_PyType_Slots};
@@ -124,18 +134,18 @@ inline bool is_function_record_PyObject(PyObject *obj) {
 
 inline function_record *function_record_ptr_from_PyObject(PyObject *obj) {
     if (is_function_record_PyObject(obj)) {
-        return (reinterpret_cast<detail::function_record_PyObject *>(obj))->cpp_func_rec;
+        return function_record_data(obj)->cpp_func_rec;
     }
     return nullptr;
 }
 
 inline object function_record_PyObject_New() {
-    auto *py_func_rec = PyObject_New(function_record_PyObject, get_function_record_PyTypeObject());
+    PyObject *py_func_rec = PyObject_New(PyObject, get_function_record_PyTypeObject());
     if (py_func_rec == nullptr) {
         throw error_already_set();
     }
-    py_func_rec->cpp_func_rec = nullptr; // For clarity/purity. Redundant in practice.
-    return reinterpret_steal<object>(reinterpret_cast<PyObject *>(py_func_rec));
+    function_record_data(py_func_rec)->cpp_func_rec = nullptr; // For clarity. Redundant.
+    return reinterpret_steal<object>(py_func_rec);
 }
 
 PYBIND11_NAMESPACE_BEGIN(function_record_PyTypeObject_methods)

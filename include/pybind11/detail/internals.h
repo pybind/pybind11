@@ -229,10 +229,9 @@ void translate_exception(std::exception_ptr p);
 inline PyThreadState *get_thread_state_unchecked() {
 #if defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
     return PyThreadState_GET();
-#elif defined(Py_LIMITED_API) && Py_LIMITED_API < 0x030D0000
-    // The stable ABI has no "current thread state or null" function before 3.13. All callers
-    // left under the stable ABI (the interpreter state dict lookup) hold the GIL.
-    return PyThreadState_Get();
+#elif defined(Py_LIMITED_API)
+    // PyThreadState_GetUnchecked() is not part of the stable ABI.
+    return PyGILState_GetThisThreadState();
 #elif PY_VERSION_HEX < 0x030D0000 && !defined(Py_LIMITED_API)
     return _PyThreadState_UncheckedGet();
 #else
@@ -299,7 +298,34 @@ struct override_hash {
 
 using instance_map = std::unordered_multimap<const void *, instance *>;
 
-#ifdef Py_GIL_DISABLED
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+// PyMutex is not part of the stable ABI, but critical sections are (3.15+). The lock is the
+// per-object mutex of a plain `object()`, which is kept for the lifetime of the process.
+class pymutex {
+    friend class pycritical_section;
+    PyObject *lock_object;
+
+public:
+    pymutex()
+        : lock_object(PyObject_CallNoArgs(reinterpret_cast<PyObject *>(&PyBaseObject_Type))) {
+        if (lock_object == nullptr) {
+            throw error_already_set();
+        }
+    }
+};
+
+class pycritical_section {
+    PyCriticalSection cs{};
+
+public:
+    explicit pycritical_section(pymutex &m) { PyCriticalSection_Begin(&cs, m.lock_object); }
+    ~pycritical_section() { PyCriticalSection_End(&cs); }
+    pycritical_section(const pycritical_section &) = delete;
+    pycritical_section &operator=(const pycritical_section &) = delete;
+    pycritical_section(pycritical_section &&) = delete;
+    pycritical_section &operator=(pycritical_section &&) = delete;
+};
+#elif defined(Py_GIL_DISABLED)
 // Wrapper around PyMutex to provide BasicLockable semantics
 class pymutex {
     friend class pycritical_section;
@@ -341,7 +367,9 @@ public:
     pycritical_section(pycritical_section &&) = delete;
     pycritical_section &operator=(pycritical_section &&) = delete;
 };
+#endif
 
+#ifdef Py_GIL_DISABLED
 // Instance map shards are used to reduce mutex contention in free-threaded Python.
 struct instance_map_shard {
     instance_map registered_instances;
@@ -537,7 +565,9 @@ struct native_enum_record {
 // regular modules in the same process. The tag keeps the two universes apart. It is deliberately
 // not part of PYBIND11_PLATFORM_ABI_ID: the C++ ABI is the same, so the cpp_conduit protocol
 // still bridges the two.
-#if defined(Py_LIMITED_API)
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+#    define PYBIND11_INTERNALS_SABI_TAG "_stable_ft" // abi3t modules also load on GIL builds
+#elif defined(Py_LIMITED_API)
 #    define PYBIND11_INTERNALS_SABI_TAG "_stable"
 #else
 #    define PYBIND11_INTERNALS_SABI_TAG ""
@@ -940,7 +970,7 @@ inline auto with_instance_map(const void *ptr, const F &cb)
     auto idx = static_cast<size_t>(hash & internals.instance_shards_mask);
 
     auto &shard = internals.instance_shards[idx];
-    std::unique_lock<pymutex> lock(shard.mutex);
+    pycritical_section lock(shard.mutex);
     return cb(shard.registered_instances);
 #else
     (void) ptr;

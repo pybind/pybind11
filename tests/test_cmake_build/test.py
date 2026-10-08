@@ -11,5 +11,5 @@ assert test_cmake_build.add(1, 2) == 3
 
 expect_abi3 = os.environ.get("PYBIND11_EXPECT_ABI3")
 if expect_abi3:
-    assert ".abi3." in expect_abi3, f"expected an abi3 module name, got {expect_abi3}"
+    assert ".abi3" in expect_abi3, f"expected an abi3 module name, got {expect_abi3}"
 print(f"{sys.argv[1]} imports, runs, and adds: 1 + 2 = 3")

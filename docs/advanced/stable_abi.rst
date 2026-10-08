@@ -1,5 +1,5 @@
-Python stable ABI (abi3)
-########################
+Python stable ABI (abi3, abi3t)
+###############################
 
 CPython's `stable ABI <https://docs.python.org/3/c-api/stable.html>`_ lets
 one extension module run on every CPython release from the version it was
@@ -7,6 +7,12 @@ built for. pybind11 supports it from CPython 3.12 on: define
 ``Py_LIMITED_API`` to ``0x030C0000`` (or a newer version) and ship one
 ``*.abi3.so`` / ``*.pyd`` per platform instead of one module per Python
 version.
+
+Free-threaded CPython has its own stable ABI from 3.15 on, ``abi3t``
+(:pep:`803`). pybind11 supports it too: build against the free-threaded
+headers with ``Py_LIMITED_API`` set to ``0x030F0000`` or newer, and ship one
+``*.abi3t.so`` that every free-threaded *and* GIL-enabled CPython from 3.15
+on can load. See `abi3t`_ below for what differs.
 
 Enabling it
 ===========
@@ -19,21 +25,23 @@ the default for a build tree:
 
     pybind11_add_module(example STABLE_ABI example.cpp)
 
-``PYBIND11_STABLE_ABI_VERSION`` (default ``3.12``) selects the targeted
-version. ``PRECOMPILE`` can be combined with ``STABLE_ABI``; the precompiled
+``PYBIND11_STABLE_ABI_VERSION`` (default ``3.12``, raised to ``3.15`` on
+free-threaded Python) selects the targeted version. ``PRECOMPILE`` can be
+combined with ``STABLE_ABI``; the precompiled
 library is then compiled against the limited API too, and one build tree
 cannot mix stable-ABI and regular precompiled modules.
 
 With setuptools, pass ``py_limited_api=True`` (or a version such as
-``"3.13"``) to ``Pybind11Extension``; the module is named ``*.abi3.so`` and
-``Py_LIMITED_API`` is defined for you.
+``"3.13"``) to ``Pybind11Extension``; the module is named ``*.abi3.so``
+(``*.abi3t.so`` on free-threaded Python) and ``Py_LIMITED_API`` is defined
+for you.
 
 With any other build system, define ``Py_LIMITED_API=0x030C0000`` for every
 translation unit, link no version-specific Python library (``python3.lib`` on
 Windows), and name the module ``<name>.abi3.so`` (``<name>.pyd`` on Windows).
 
 pybind11 rejects the combination with PyPy, GraalPy, and free-threaded
-CPython at compile time: they have no stable ABI.
+CPython before 3.15 at compile time: they have no stable ABI.
 
 What changes under the stable ABI
 =================================
@@ -48,9 +56,12 @@ available and in how a few things are implemented.
    * - Feature
      - Stable ABI
      - Notes
-   * - Classes, functions, casters, STL, numpy, Eigen
+   * - Classes, functions, casters, STL
      - supported
      -
+   * - numpy, Eigen
+     - supported (abi3 only)
+     - ``numpy.h`` mirrors NumPy's object layouts, which abi3t hides.
    * - ``py::dynamic_attr()``
      - supported
      - The ``__dict__`` slot is appended to the instance (no
@@ -82,12 +93,32 @@ available and in how a few things are implemented.
      - not available
      - ``PyGILState_Check()`` is not part of the stable ABI.
 
+abi3t
+=====
+
+Under abi3t, ``PyObject`` and ``PyModuleDef`` are incomplete types and
+``PyMutex`` and ``PyUnstable_TryIncRef()`` are not available. pybind11 then:
+
+* stores its per-instance data as :pep:`697` type data
+  (``PyObject_GetTypeData()``) instead of embedding ``PyObject_HEAD``;
+* exports the module through the :pep:`793` ``PyModExport_<name>`` hook
+  instead of ``PyInit_<name>``, so ``PYBIND11_MODULE`` is unchanged but
+  ``py::module_::create_extension_module()`` is not available;
+* locks its internals with critical sections on a private object, and keeps
+  one weak reference per registered instance so that the instance registry
+  can hand out strong references safely (``PyWeakref_GetRef()``).
+
+``pybind11/numpy.h`` (and therefore the Eigen headers) is not available. The
+internals tag is ``_stable_ft``: an abi3t module and an abi3 module loaded
+into the same GIL-enabled interpreter do not share internals (see below).
+
 ABI isolation
 =============
 
 A stable-ABI module and a regular module can be loaded in one process, but
 they do not share pybind11's internal state: the internals ID carries a
-``_stable`` tag, so each kind of module registers its own types and
+``_stable`` (abi3) or ``_stable_ft`` (abi3t) tag, so each kind of module
+registers its own types and
 instances. Types bound in one kind of module are opaque to the other, except
 through the ``pybind11_conduit_v1`` protocol
 (``include/pybind11/conduit/README.txt``), which bridges the two: the C++ ABI

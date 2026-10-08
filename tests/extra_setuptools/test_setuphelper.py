@@ -114,8 +114,8 @@ def test_simple_setup_py(monkeypatch, tmpdir, parallel, std):
 @pytest.mark.skipif(
     sys.implementation.name != "cpython"
     or sys.version_info < (3, 12)
-    or sysconfig.get_config_var("Py_GIL_DISABLED"),
-    reason="stable ABI needs CPython 3.12+ with the GIL",
+    or (sysconfig.get_config_var("Py_GIL_DISABLED") and sys.version_info < (3, 15)),
+    reason="stable ABI needs CPython 3.12+, or 3.15+ when free-threaded (abi3t)",
 )
 def test_stable_abi_setup_py(monkeypatch, tmpdir):
     monkeypatch.chdir(tmpdir)

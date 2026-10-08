@@ -412,7 +412,7 @@ PYBIND11_INLINE void traverse_offset_bases(void *valueptr,
     }
 }
 
-#ifdef Py_GIL_DISABLED
+#if defined(Py_GIL_DISABLED) && !defined(PYBIND11_OPAQUE_PYOBJECT)
 PYBIND11_INLINE void enable_try_inc_ref(PyObject *obj) {
 #    if PY_VERSION_HEX >= 0x030E00A4
     PyUnstable_EnableTryIncRef(obj);
@@ -437,8 +437,15 @@ PYBIND11_INLINE void enable_try_inc_ref(PyObject *obj) {
 #endif
 PYBIND11_INLINE bool register_instance_impl(void *ptr, instance *self) {
     assert(ptr);
-#ifdef Py_GIL_DISABLED
-    enable_try_inc_ref(reinterpret_cast<PyObject *>(self));
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+    if (self->registry_weakref == nullptr) {
+        self->registry_weakref = PyWeakref_NewRef(instance_object(self), nullptr);
+        if (self->registry_weakref == nullptr) {
+            throw error_already_set();
+        }
+    }
+#elif defined(Py_GIL_DISABLED)
+    enable_try_inc_ref(instance_object(self));
 #endif
     with_instance_map(ptr, [&](instance_map &instances) { instances.emplace(ptr, self); });
     return true; // unused, but gives the same signature as the deregister func
@@ -479,9 +486,19 @@ PYBIND11_INLINE bool deregister_instance(instance *self, void *valptr, const typ
 // instancemethod: `__get__` binds through types.MethodType, calls and unknown attributes go to
 // the wrapped function. The type is shared through the internals.
 struct instancemethod_object {
+#    if !defined(PYBIND11_OPAQUE_PYOBJECT)
     PyObject_HEAD
+#    endif
     PyObject *func;
 };
+
+PYBIND11_INLINE instancemethod_object *instancemethod_data(PyObject *self) {
+#    if defined(PYBIND11_OPAQUE_PYOBJECT)
+    return static_cast<instancemethod_object *>(PyObject_GetTypeData(self, Py_TYPE(self)));
+#    else
+    return reinterpret_cast<instancemethod_object *>(self);
+#    endif
+}
 
 PYBIND11_INLINE PyTypeObject *get_bound_method_type() {
     static PyTypeObject *const type = [] {
@@ -517,14 +534,14 @@ instancemethod_descr_get(PyObject *self, PyObject *obj, PyObject * /*type*/) {
         return self;
     }
     return PyObject_CallFunctionObjArgs(reinterpret_cast<PyObject *>(get_bound_method_type()),
-                                        reinterpret_cast<instancemethod_object *>(self)->func,
+                                        instancemethod_data(self)->func,
                                         obj,
                                         nullptr);
 }
 
 extern "C" PYBIND11_INLINE PyObject *
 instancemethod_call(PyObject *self, PyObject *args, PyObject *kwargs) {
-    return PyObject_Call(reinterpret_cast<instancemethod_object *>(self)->func, args, kwargs);
+    return PyObject_Call(instancemethod_data(self)->func, args, kwargs);
 }
 
 extern "C" PYBIND11_INLINE PyObject *instancemethod_getattro(PyObject *self, PyObject *name) {
@@ -538,11 +555,11 @@ extern "C" PYBIND11_INLINE PyObject *instancemethod_getattro(PyObject *self, PyO
             return get(descr.ptr(), self, reinterpret_cast<PyObject *>(Py_TYPE(self)));
         }
     }
-    return PyObject_GetAttr(reinterpret_cast<instancemethod_object *>(self)->func, name);
+    return PyObject_GetAttr(instancemethod_data(self)->func, name);
 }
 
 extern "C" PYBIND11_INLINE PyObject *instancemethod_repr(PyObject *self) {
-    PyObject *func = reinterpret_cast<instancemethod_object *>(self)->func;
+    PyObject *func = instancemethod_data(self)->func;
     auto name = reinterpret_steal<object>(PyObject_GetAttrString(func, "__name__"));
     if (!name) {
         PyErr_Clear();
@@ -553,20 +570,20 @@ extern "C" PYBIND11_INLINE PyObject *instancemethod_repr(PyObject *self) {
 
 extern "C" PYBIND11_INLINE int
 instancemethod_traverse(PyObject *self, visitproc visit, void *arg) {
-    Py_VISIT(reinterpret_cast<instancemethod_object *>(self)->func);
+    Py_VISIT(instancemethod_data(self)->func);
     Py_VISIT(Py_TYPE(self));
     return 0;
 }
 
 extern "C" PYBIND11_INLINE int instancemethod_clear(PyObject *self) {
-    Py_CLEAR(reinterpret_cast<instancemethod_object *>(self)->func);
+    Py_CLEAR(instancemethod_data(self)->func);
     return 0;
 }
 
 extern "C" PYBIND11_INLINE void instancemethod_dealloc(PyObject *self) {
     PyTypeObject *type = Py_TYPE(self);
     PyObject_GC_UnTrack(self);
-    Py_CLEAR(reinterpret_cast<instancemethod_object *>(self)->func);
+    Py_CLEAR(instancemethod_data(self)->func);
     type_free(type, self);
     Py_DECREF(reinterpret_cast<PyObject *>(type));
 }
@@ -577,7 +594,7 @@ PYBIND11_INLINE PyTypeObject *get_instancemethod_type() {
             static PyMemberDef members[] = {{"__func__",
                                              Py_T_OBJECT_EX,
                                              offsetof(instancemethod_object, func),
-                                             Py_READONLY,
+                                             Py_READONLY | PYBIND11_MEMBER_OFFSET_FLAGS,
                                              nullptr},
                                             {nullptr, 0, 0, 0, nullptr}};
             static PyType_Slot slots[]
@@ -592,7 +609,7 @@ PYBIND11_INLINE PyTypeObject *get_instancemethod_type() {
                    {0, nullptr}};
             static PyType_Spec spec
                 = {PYBIND11_DUMMY_MODULE_NAME ".instancemethod",
-                   static_cast<int>(sizeof(instancemethod_object)),
+                   PYBIND11_TYPE_DATA_SIZE(instancemethod_object),
                    0,
                    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_DISALLOW_INSTANTIATION,
                    slots};
@@ -612,7 +629,7 @@ PYBIND11_INLINE bool is_instancemethod(PyObject *obj) {
 }
 
 PYBIND11_INLINE PyObject *instancemethod_function(PyObject *obj) {
-    return reinterpret_cast<instancemethod_object *>(obj)->func;
+    return instancemethod_data(obj)->func;
 }
 
 PYBIND11_INLINE PyObject *instancemethod_new(PyObject *func) {
@@ -622,7 +639,7 @@ PYBIND11_INLINE PyObject *instancemethod_new(PyObject *func) {
         return nullptr;
     }
     Py_INCREF(func);
-    reinterpret_cast<instancemethod_object *>(self)->func = func;
+    instancemethod_data(self)->func = func;
     return self;
 }
 
@@ -661,6 +678,18 @@ PYBIND11_INLINE PyObject **instance_dict_ptr(PyObject *self) {
 #endif
 }
 
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+PYBIND11_INLINE Py_ssize_t instance_data_offset() {
+    // The same for every pybind11 type: the type data of pybind11_object, whose base is object.
+    static const Py_ssize_t offset = [] {
+        handle base = get_internals().instance_base;
+        auto basicsize = base.attr("__basicsize__").cast<Py_ssize_t>();
+        return basicsize - PyType_GetTypeDataSize(reinterpret_cast<PyTypeObject *>(base.ptr()));
+    }();
+    return offset;
+}
+#endif
+
 PYBIND11_INLINE PyObject *make_new_instance(PyTypeObject *type) {
 #if defined(PYPY_VERSION)
     // PyPy gets tp_basicsize wrong (issue 2482) under multiple inheritance when the first
@@ -671,7 +700,7 @@ PYBIND11_INLINE PyObject *make_new_instance(PyTypeObject *type) {
     }
 #endif
     PyObject *self = type_alloc(type);
-    auto *inst = reinterpret_cast<instance *>(self);
+    auto *inst = get_instance(self);
     // Allocate the value/holder internals:
     inst->allocate_layout();
 
@@ -691,7 +720,7 @@ extern "C" PYBIND11_INLINE int pybind11_object_init(PyObject *self, PyObject *, 
 }
 
 PYBIND11_INLINE void add_patient(PyObject *nurse, PyObject *patient) {
-    auto *instance = reinterpret_cast<detail::instance *>(nurse);
+    auto *instance = get_instance(nurse);
     instance->has_patients = true;
     Py_INCREF(patient);
 
@@ -699,7 +728,7 @@ PYBIND11_INLINE void add_patient(PyObject *nurse, PyObject *patient) {
 }
 
 PYBIND11_INLINE void clear_patients(PyObject *self) {
-    auto *instance = reinterpret_cast<detail::instance *>(self);
+    auto *instance = get_instance(self);
     std::vector<PyObject *> patients;
 
     with_internals([&](internals &internals) {
@@ -724,7 +753,7 @@ PYBIND11_INLINE void clear_patients(PyObject *self) {
 }
 
 PYBIND11_INLINE void clear_instance(PyObject *self) {
-    auto *instance = reinterpret_cast<detail::instance *>(self);
+    auto *instance = get_instance(self);
 
     // Deallocate any values/holders, if present:
     for (auto &v_h : values_and_holders(instance)) {
@@ -748,6 +777,9 @@ PYBIND11_INLINE void clear_instance(PyObject *self) {
     // Deallocate the value/holder layout internals:
     instance->deallocate_layout();
 
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+    Py_CLEAR(instance->registry_weakref);
+#endif
     if (instance->weakrefs) {
         PyObject_ClearWeakRefs(self);
     }
@@ -796,9 +828,12 @@ extern "C" PYBIND11_INLINE void pybind11_object_dealloc(PyObject *self) {
 
 PYBIND11_INLINE PyObject *make_object_base_type(PyTypeObject *metaclass) {
     /* Support weak references (needed for the keep_alive feature) */
-    static PyMemberDef members[] = {
-        {"__weaklistoffset__", Py_T_PYSSIZET, offsetof(instance, weakrefs), Py_READONLY, nullptr},
-        {nullptr, 0, 0, 0, nullptr}};
+    static PyMemberDef members[] = {{"__weaklistoffset__",
+                                     Py_T_PYSSIZET,
+                                     offsetof(instance, weakrefs),
+                                     Py_READONLY | PYBIND11_MEMBER_OFFSET_FLAGS,
+                                     nullptr},
+                                    {nullptr, 0, 0, 0, nullptr}};
     static PyType_Slot slots[]
         = {{Py_tp_new, reinterpret_cast<void *>(pybind11_object_new)},
            {Py_tp_init, reinterpret_cast<void *>(pybind11_object_init)},
@@ -806,7 +841,7 @@ PYBIND11_INLINE PyObject *make_object_base_type(PyTypeObject *metaclass) {
            {Py_tp_members, reinterpret_cast<void *>(members)},
            {0, nullptr}};
     static PyType_Spec spec = {PYBIND11_DUMMY_MODULE_NAME ".pybind11_object",
-                               static_cast<int>(sizeof(instance)),
+                               PYBIND11_TYPE_DATA_SIZE(instance),
                                0,
                                Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
                                slots};

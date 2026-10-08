@@ -7,8 +7,10 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
-#include <pybind11/numpy.h>
 #include <pybind11/stl_bind.h>
+#if !defined(PYBIND11_OPAQUE_PYOBJECT)
+#    include <pybind11/numpy.h>
+#endif
 
 #include "pybind11_tests.h"
 
@@ -238,10 +240,12 @@ TEST_SUBMODULE(stl_binders, m) {
         double y;
         bool z;
     };
+#if !defined(PYBIND11_OPAQUE_PYOBJECT) // needs numpy.h's generic format_descriptor
     m.def("create_undeclstruct", [m]() mutable {
         py::bind_vector<std::vector<VUndeclStruct>>(
             m, "VectorUndeclStruct", py::buffer_protocol());
     });
+#endif
 
     // Bind recursive container types
     py::bind_vector<RecursiveVector>(m, "RecursiveVector");
@@ -253,6 +257,7 @@ TEST_SUBMODULE(stl_binders, m) {
     py::bind_vector<UserVectorLike>(m, "UserVectorLike");
     py::bind_map<UserMapLike>(m, "UserMapLike");
 
+#if !defined(PYBIND11_OPAQUE_PYOBJECT)
     // The rest depends on numpy:
     try {
         py::module_::import("numpy");
@@ -272,4 +277,5 @@ TEST_SUBMODULE(stl_binders, m) {
     py::bind_vector<std::vector<VStruct>>(m, "VectorStruct", py::buffer_protocol());
     m.def("get_vectorstruct",
           [] { return std::vector<VStruct>{{false, 5, 3.0, true}, {true, 30, -1e4, false}}; });
+#endif
 }

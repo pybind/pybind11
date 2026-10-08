@@ -397,7 +397,7 @@ public:
         const auto &bases
             = all_type_info(reinterpret_cast<PyTypeObject *>(type::handle_of(h).ptr()));
         if (bases.size() == 1) { // Only allowing loading from a single-value type
-            value = values_and_holders(reinterpret_cast<instance *>(h.ptr())).begin()->value_ptr();
+            value = values_and_holders(get_instance(h.ptr())).begin()->value_ptr();
             return true;
         }
 

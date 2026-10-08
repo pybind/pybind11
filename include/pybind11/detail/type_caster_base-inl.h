@@ -240,7 +240,12 @@ PYBIND11_NOINLINE_ATTR PYBIND11_INLINE handle get_type_handle(const std::type_in
 
 PYBIND11_INLINE bool try_incref(PyObject *obj) {
     // Tries to increment the reference count of an object if it's not zero.
-#if defined(Py_GIL_DISABLED) && PY_VERSION_HEX >= 0x030E00A4
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+    // Not used: the registry goes through PyWeakref_GetRef() instead.
+    assert(Py_REFCNT(obj) > 0);
+    Py_INCREF(obj);
+    return true;
+#elif defined(Py_GIL_DISABLED) && PY_VERSION_HEX >= 0x030E00A4
     return PyUnstable_TryIncRef(obj);
 #elif defined(Py_GIL_DISABLED)
     // See
@@ -287,12 +292,20 @@ find_registered_python_instance(void *src, const detail::type_info *tinfo) {
         auto it_instances = instances.equal_range(src);
         for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
             for (auto *instance_type :
-                 detail::all_type_info(Py_TYPE(reinterpret_cast<PyObject *>(it_i->second)))) {
+                 detail::all_type_info(Py_TYPE(instance_object(it_i->second)))) {
                 if (instance_type && same_type(*instance_type->cpptype, *tinfo->cpptype)) {
-                    auto *wrapper = reinterpret_cast<PyObject *>(it_i->second);
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+                    PyObject *wrapper = nullptr;
+                    if (it_i->second->registry_weakref != nullptr
+                        && PyWeakref_GetRef(it_i->second->registry_weakref, &wrapper) == 1) {
+                        return handle(wrapper);
+                    }
+#else
+                    auto *wrapper = instance_object(it_i->second);
                     if (try_incref(wrapper)) {
                         return handle(wrapper);
                     }
+#endif
                 }
             }
         }
@@ -304,7 +317,7 @@ PYBIND11_NOINLINE_ATTR PYBIND11_INLINE value_and_holder
 instance::get_value_and_holder(const type_info *find_type /*= nullptr default in common.h*/,
                                bool throw_if_missing /*= true in common.h*/) {
     // Optimize common case:
-    if (!find_type || Py_TYPE(reinterpret_cast<PyObject *>(this)) == find_type->type) {
+    if (!find_type || Py_TYPE(instance_object(this)) == find_type->type) {
         return value_and_holder(this, find_type, 0, 0);
     }
 
@@ -319,10 +332,10 @@ instance::get_value_and_holder(const type_info *find_type /*= nullptr default in
     }
 
 #if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
-    pybind11_fail(
-        "pybind11::detail::instance::get_value_and_holder: `"
-        + get_fully_qualified_tp_name(find_type->type) + "' is not a pybind11 base of the given `"
-        + get_fully_qualified_tp_name(Py_TYPE(reinterpret_cast<PyObject *>(this))) + "' instance");
+    pybind11_fail("pybind11::detail::instance::get_value_and_holder: `"
+                  + get_fully_qualified_tp_name(find_type->type)
+                  + "' is not a pybind11 base of the given `"
+                  + get_fully_qualified_tp_name(Py_TYPE(instance_object(this))) + "' instance");
 #else
     pybind11_fail(
         "pybind11::detail::instance::get_value_and_holder: "
@@ -332,7 +345,7 @@ instance::get_value_and_holder(const type_info *find_type /*= nullptr default in
 }
 
 PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void instance::allocate_layout() {
-    const auto &tinfo = all_type_info(Py_TYPE(reinterpret_cast<PyObject *>(this)));
+    const auto &tinfo = all_type_info(Py_TYPE(instance_object(this)));
 
     const size_t n_types = tinfo.size();
 
@@ -403,7 +416,7 @@ PYBIND11_NOINLINE_ATTR PYBIND11_INLINE handle get_object_handle(const void *ptr,
         for (auto it = range.first; it != range.second; ++it) {
             for (const auto &vh : values_and_holders(it->second)) {
                 if (vh.type == type) {
-                    return handle(reinterpret_cast<PyObject *>(it->second));
+                    return handle(instance_object(it->second));
                 }
             }
         }
@@ -484,7 +497,7 @@ type_caster_generic::cast(const cast_sources &srcs,
     }
 
     auto inst = reinterpret_steal<object>(make_new_instance(tinfo->type));
-    auto *wrapper = reinterpret_cast<instance *>(inst.ptr());
+    auto *wrapper = get_instance(inst.ptr());
     wrapper->owned = false;
     void *&valueptr = values_and_holders(wrapper).begin()->value_ptr();
 

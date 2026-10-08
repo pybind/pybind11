@@ -107,7 +107,7 @@ void traverse_offset_bases(void *valueptr,
                            instance *self,
                            bool (*f)(void * /*parentptr*/, instance * /*self*/));
 
-#ifdef Py_GIL_DISABLED
+#if defined(Py_GIL_DISABLED) && !defined(PYBIND11_OPAQUE_PYOBJECT)
 void enable_try_inc_ref(PyObject *obj);
 #endif
 
@@ -127,6 +127,8 @@ void type_free(PyTypeObject *type, PyObject *self);
 /// `is_*`/`*_function` functions are also declared in pytypes.h.
 PyTypeObject *get_bound_method_type();
 PyTypeObject *get_instancemethod_type();
+struct instancemethod_object;
+instancemethod_object *instancemethod_data(PyObject *self);
 extern "C" PyObject *instancemethod_descr_get(PyObject *self, PyObject *obj, PyObject *type);
 extern "C" PyObject *instancemethod_call(PyObject *self, PyObject *args, PyObject *kwargs);
 extern "C" PyObject *instancemethod_getattro(PyObject *self, PyObject *name);
