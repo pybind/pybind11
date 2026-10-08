@@ -34,17 +34,14 @@
 #    if !defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
 #        define PYBIND11_SIMPLE_GIL_MANAGEMENT // gil.h reads thread-state internals
 #    endif
+// The only type-creation path without struct access.
 #    if !defined(PYBIND11_TYPE_CREATION_VIA_SPEC)
-#        define PYBIND11_TYPE_CREATION_VIA_SPEC // the only type-creation path without struct
-                                                // access
+#        define PYBIND11_TYPE_CREATION_VIA_SPEC
 #    endif
 #    if !defined(PYBIND11_HAS_SUBINTERPRETER_SUPPORT)
 #        define PYBIND11_HAS_SUBINTERPRETER_SUPPORT 0 // reads thread/interpreter state fields
 #    elif PYBIND11_HAS_SUBINTERPRETER_SUPPORT
 #        error "Subinterpreter support is not available under Py_LIMITED_API."
-#    endif
-#    if !defined(PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET)
-#        define PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET // no Py_TPFLAGS_MANAGED_DICT
 #    endif
 #endif
 
@@ -299,7 +296,6 @@
 #endif
 
 #include <cstddef>
-#include <cstdlib>
 #include <cstring>
 #include <exception>
 #include <forward_list>
@@ -488,17 +484,16 @@
 // A stable-ABI module runs on every CPython from the Py_LIMITED_API version on (abi3).
 #    define PYBIND11_CHECK_PYTHON_VERSION                                                         \
         {                                                                                         \
-            const char *runtime_ver = Py_GetVersion();                                            \
-            long major = std::strtol(runtime_ver, nullptr, 10);                                   \
-            const char *dot = std::strchr(runtime_ver, '.');                                      \
-            long minor = dot ? std::strtol(dot + 1, nullptr, 10) : 0;                             \
-            if (major != ((Py_LIMITED_API) >> 24) || minor < (((Py_LIMITED_API) >> 16) & 0xFF)) { \
+            const unsigned long want_major = (Py_LIMITED_API) >> 24;                              \
+            const unsigned long want_minor = ((Py_LIMITED_API) >> 16) & 0xFF;                     \
+            if ((Py_Version >> 24) != want_major || ((Py_Version >> 16) & 0xFF) < want_minor) {   \
                 PyErr_Format(PyExc_ImportError,                                                   \
-                             "Python version mismatch: module was compiled for the Python %d.%d " \
-                             "stable ABI, but the interpreter version is incompatible: %s.",      \
-                             (int) ((Py_LIMITED_API) >> 24),                                      \
-                             (int) (((Py_LIMITED_API) >> 16) & 0xFF),                             \
-                             runtime_ver);                                                        \
+                             "Python version mismatch: module was compiled for the Python "       \
+                             "%lu.%lu stable ABI, but the interpreter version is incompatible: "  \
+                             "%s.",                                                               \
+                             want_major,                                                          \
+                             want_minor,                                                          \
+                             Py_GetVersion());                                                    \
                 return nullptr;                                                                   \
             }                                                                                     \
         }
@@ -845,6 +840,17 @@ inline PyObject *instance_object(instance *inst) {
 inline instance *get_instance(PyObject *obj) { return reinterpret_cast<instance *>(obj); }
 inline PyObject *instance_object(instance *inst) { return reinterpret_cast<PyObject *>(inst); }
 #endif
+
+/// The C++ data of an object of a pybind11 type with PYBIND11_TYPE_DATA_SIZE(T) as basicsize
+/// (not for `instance`: its offset is cached, see get_instance()).
+template <typename T>
+T *type_data(PyObject *obj) {
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+    return static_cast<T *>(PyObject_GetTypeData(obj, Py_TYPE(obj)));
+#else
+    return reinterpret_cast<T *>(obj);
+#endif
+}
 
 // Some older compilers (e.g. gcc 9.4.0) require
 //     static_assert(always_false<T>::value, "...");
@@ -1553,9 +1559,8 @@ inline void silence_unused_warnings(Args &&...) {}
 #endif
 
 // CPython 3.11+ provides Py_TPFLAGS_MANAGED_DICT, but PyPy3.11 does not, see PR #5508. (The
-// stable ABI does not have it either; see the Py_LIMITED_API block at the top of this file.)
-#if (PY_VERSION_HEX < 0x030B0000 || defined(PYPY_VERSION))                                        \
-    && !defined(PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET)
+// stable ABI has neither; it records the `__dict__` offset in type_info::dictoffset instead.)
+#if PY_VERSION_HEX < 0x030B0000 || defined(PYPY_VERSION)
 #    define PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET
 #endif
 
