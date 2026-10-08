@@ -312,7 +312,7 @@ struct constructor {
         cl.def(
             "__init__",
             [](value_and_holder &v_h, Args... args) {
-                if (Py_TYPE(instance_object(v_h.inst)) == v_h.type->type) {
+                if (v_h.type_is_exact()) {
                     v_h.value_ptr()
                         = construct_or_initialize<Cpp<Class>>(std::forward<Args>(args)...);
                 } else {
@@ -399,9 +399,7 @@ struct factory<Func, void_type (*)(), Return(Args...), void_type()> {
             [func]
 #endif
             (value_and_holder &v_h, Args... args) {
-                construct<Class>(v_h,
-                                 func(std::forward<Args>(args)...),
-                                 Py_TYPE(instance_object(v_h.inst)) != v_h.type->type);
+                construct<Class>(v_h, func(std::forward<Args>(args)...), !v_h.type_is_exact());
             },
             is_new_style_constructor(),
             extra...);
@@ -448,7 +446,7 @@ struct factory<CFunc, AFunc, CReturn(CArgs...), AReturn(AArgs...)> {
             [class_func, alias_func]
 #endif
             (value_and_holder &v_h, CArgs... args) {
-                if (Py_TYPE(instance_object(v_h.inst)) == v_h.type->type) {
+                if (v_h.type_is_exact()) {
                     // If the instance type equals the registered type we don't have inheritance,
                     // so don't need the alias and can construct using the class function:
                     construct<Class>(v_h, class_func(std::forward<CArgs>(args)...), false);
@@ -536,9 +534,7 @@ struct pickle_factory<Get, Set, RetState(Self), NewInstance(ArgState)> {
             [func]
 #endif
             (value_and_holder &v_h, ArgState state) {
-                setstate<Class>(v_h,
-                                func(std::forward<ArgState>(state)),
-                                Py_TYPE(instance_object(v_h.inst)) != v_h.type->type);
+                setstate<Class>(v_h, func(std::forward<ArgState>(state)), !v_h.type_is_exact());
             },
             is_new_style_constructor(),
             extra...);

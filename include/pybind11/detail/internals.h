@@ -232,7 +232,7 @@ inline PyThreadState *get_thread_state_unchecked() {
 #elif defined(Py_LIMITED_API)
     // PyThreadState_GetUnchecked() is not part of the stable ABI.
     return PyGILState_GetThisThreadState();
-#elif PY_VERSION_HEX < 0x030D0000 && !defined(Py_LIMITED_API)
+#elif PY_VERSION_HEX < 0x030D0000
     return _PyThreadState_UncheckedGet();
 #else
     return PyThreadState_GetUnchecked();

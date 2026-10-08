@@ -16,6 +16,7 @@
 #include <cstddef>
 #include <exception>
 #include <frameobject.h>
+#include <initializer_list>
 #include <iterator>
 #include <memory>
 #include <string>
@@ -516,6 +517,14 @@ inline std::string get_tp_name(PyTypeObject *type) { return type->tp_name; }
 inline bool tp_name_equals(PyTypeObject *type, const char *name) {
     return std::strcmp(type->tp_name, name) == 0;
 }
+inline bool tp_name_is_one_of(PyTypeObject *type, std::initializer_list<const char *> names) {
+    for (const char *name : names) {
+        if (tp_name_equals(type, name)) {
+            return true;
+        }
+    }
+    return false;
+}
 #else
 bool type_is_managed_by_our_internals(PyTypeObject *type_obj); // detail/cpp_conduit.h
 
@@ -546,9 +555,9 @@ inline std::string get_tp_name(PyTypeObject *type) {
     return module_ + '.' + name;
 }
 
-inline bool tp_name_equals(PyTypeObject *type, const char *name) {
-    // Cheap pre-check on the unqualified name before reconstructing the full one.
-    const char *dot = std::strrchr(name, '.');
+/// True if `get_tp_name(type)` is one of `names`. The unqualified `__name__` is fetched once and
+/// compared first; the full name is only reconstructed on a match.
+inline bool tp_name_is_one_of(PyTypeObject *type, std::initializer_list<const char *> names) {
     auto type_name = reinterpret_steal<object>(PyType_GetName(type));
     const char *type_name_utf8
         = type_name ? PyUnicode_AsUTF8AndSize(type_name.ptr(), nullptr) : nullptr;
@@ -556,10 +565,16 @@ inline bool tp_name_equals(PyTypeObject *type, const char *name) {
         PyErr_Clear();
         return false;
     }
-    if (std::strcmp(type_name_utf8, dot ? dot + 1 : name) != 0) {
-        return false;
+    for (const char *name : names) {
+        const char *dot = std::strrchr(name, '.');
+        if (std::strcmp(type_name_utf8, dot ? dot + 1 : name) == 0 && get_tp_name(type) == name) {
+            return true;
+        }
     }
-    return get_tp_name(type) == name;
+    return false;
+}
+inline bool tp_name_equals(PyTypeObject *type, const char *name) {
+    return tp_name_is_one_of(type, {name});
 }
 #endif
 
@@ -572,7 +587,6 @@ inline void tuple_set_item(PyObject *tup, ssize_t i, PyObject *item) {
     PyTuple_SET_ITEM(tup, i, item);
 }
 inline ssize_t list_size(PyObject *lst) { return PyList_GET_SIZE(lst); }
-inline PyObject *list_get_item(PyObject *lst, ssize_t i) { return PyList_GET_ITEM(lst, i); }
 /// Steals a reference to `item`; `lst` must be a fresh list.
 inline void list_set_item(PyObject *lst, ssize_t i, PyObject *item) {
     PyList_SET_ITEM(lst, i, item);
@@ -584,7 +598,6 @@ inline void tuple_set_item(PyObject *tup, ssize_t i, PyObject *item) {
     PyTuple_SetItem(tup, i, item);
 }
 inline ssize_t list_size(PyObject *lst) { return PyList_Size(lst); }
-inline PyObject *list_get_item(PyObject *lst, ssize_t i) { return PyList_GetItem(lst, i); }
 inline void list_set_item(PyObject *lst, ssize_t i, PyObject *item) {
     PyList_SetItem(lst, i, item);
 }
@@ -2619,7 +2632,6 @@ PYBIND11_MATH_OPERATOR_BINARY_INPLACE(operator>>=, PyNumber_InPlaceRshift)
 #undef PYBIND11_MATH_OPERATOR_BINARY
 #undef PYBIND11_MATH_OPERATOR_BINARY_INPLACE
 
-// Meant to return a Python str, but this is not checked.
 #if !defined(Py_LIMITED_API)
 /// `type.__bases__` as a tuple (empty if the type has no bases tuple yet).
 inline tuple get_bases(PyTypeObject *type) {
@@ -2633,34 +2645,12 @@ inline tuple get_bases(PyTypeObject *type) {
 inline tuple get_mro(PyTypeObject *type) { return reinterpret_borrow<tuple>(type->tp_mro); }
 
 /// Look `name` up along the MRO of `type` without invoking descriptors, like `_PyType_Lookup`.
-/// Returns a null object if the attribute is not found; never raises.
-inline object type_lookup(PyTypeObject *type, handle name) {
-    return reinterpret_borrow<object>(_PyType_Lookup(type, name.ptr()));
+/// Returns a null handle if the attribute is not found; never raises. (Borrowed here; the
+/// stable-ABI version below returns an owning `object`.)
+inline handle type_lookup(PyTypeObject *type, handle name) {
+    return _PyType_Lookup(type, name.ptr());
 }
 #else
-// Generic attribute lookup on a type object: resolves the `type.__xxx__` descriptors without
-// going through the metaclass's tp_getattro (pybind11's own metaclass calls back into here).
-inline object type_generic_getattr(PyTypeObject *type, const char *name) {
-    auto name_obj = reinterpret_steal<object>(PyUnicode_InternFromString(name));
-    auto value = name_obj ? reinterpret_steal<object>(
-                                PyObject_GenericGetAttr((PyObject *) type, name_obj.ptr()))
-                          : object();
-    if (!value) {
-        PyErr_Clear();
-    }
-    return value;
-}
-
-inline tuple get_type_tuple_attr(PyTypeObject *type, const char *name) {
-    object value = type_generic_getattr(type, name);
-    if (!value || !PyTuple_Check(value.ptr())) {
-        return tuple();
-    }
-    return reinterpret_steal<tuple>(value.release());
-}
-
-inline tuple get_bases(PyTypeObject *type) { return get_type_tuple_attr(type, "__bases__"); }
-
 inline PyObject *interned_name(const char *name) {
     PyObject *obj = PyUnicode_InternFromString(name);
     if (obj == nullptr) {
@@ -2669,14 +2659,52 @@ inline PyObject *interned_name(const char *name) {
     return obj; // kept alive on purpose
 }
 
-inline tuple get_mro(PyTypeObject *type) {
-    static PyObject *name = interned_name("__mro__");
-    auto value = reinterpret_steal<object>(PyObject_GenericGetAttr((PyObject *) type, name));
-    if (!value || !PyTuple_Check(value.ptr())) {
+// Generic attribute lookup on a type object: resolves the `type.__xxx__` descriptors without
+// going through the metaclass's tp_getattro (pybind11's own metaclass calls back into here).
+// Returns a null object if the attribute is not found; never raises.
+inline object type_generic_getattr(PyTypeObject *type, handle name) {
+    auto value = reinterpret_steal<object>(PyObject_GenericGetAttr((PyObject *) type, name.ptr()));
+    if (!value) {
         PyErr_Clear();
+    }
+    return value;
+}
+
+inline Py_ssize_t type_ssize_attr(PyTypeObject *type, handle name) {
+    object value = type_generic_getattr(type, name);
+    Py_ssize_t result = value ? PyLong_AsSsize_t(value.ptr()) : -1;
+    if (result == -1 && PyErr_Occurred()) {
+        throw error_already_set();
+    }
+    return result;
+}
+
+/// `type.__dictoffset__` / `type.__basicsize__` (tp_dictoffset and tp_basicsize).
+inline Py_ssize_t type_dictoffset(PyTypeObject *type) {
+    static PyObject *name = interned_name("__dictoffset__");
+    return type_ssize_attr(type, name);
+}
+inline Py_ssize_t type_basicsize(PyTypeObject *type) {
+    static PyObject *name = interned_name("__basicsize__");
+    return type_ssize_attr(type, name);
+}
+
+inline tuple type_tuple_attr(PyTypeObject *type, handle name) {
+    object value = type_generic_getattr(type, name);
+    if (!value || !PyTuple_Check(value.ptr())) {
         return tuple();
     }
     return reinterpret_steal<tuple>(value.release());
+}
+
+inline tuple get_bases(PyTypeObject *type) {
+    static PyObject *name = interned_name("__bases__");
+    return type_tuple_attr(type, name);
+}
+
+inline tuple get_mro(PyTypeObject *type) {
+    static PyObject *name = interned_name("__mro__");
+    return type_tuple_attr(type, name);
 }
 
 // No type attribute cache: walks the MRO and looks in each class's `__dict__` (a mappingproxy).
@@ -2705,6 +2733,7 @@ inline object type_lookup(PyTypeObject *type, handle name) {
 }
 #endif
 
+// Meant to return a Python str, but this is not checked.
 inline object get_module_name_if_available(handle scope) {
     if (scope) {
         if (hasattr(scope, "__module__")) {

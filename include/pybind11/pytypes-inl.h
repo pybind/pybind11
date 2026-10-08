@@ -139,17 +139,10 @@ PYBIND11_INLINE std::string error_fetch_and_normalize::format_value_and_trace() 
     if (m_trace) {
 #if !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)
         // Attribute access instead of struct access: the traceback, frame and code object
-        // layouts are not part of the stable ABI. Returns a null object on failure.
-        auto get_attr = [](handle obj, const char *name) {
-            auto value = reinterpret_steal<object>(PyObject_GetAttrString(obj.ptr(), name));
-            if (!value) {
-                // Known flaw: all secondary exceptions raised by this lookup are silently
-                // discarded, including KeyboardInterrupt and SystemError.
-                // Reading tb_frame can invoke audit hooks that raise such exceptions.
-                PyErr_Clear();
-            }
-            return value;
-        };
+        // layouts are not part of the stable ABI. A missing attribute gives a null object.
+        // Known flaw: all secondary exceptions raised by the lookup are silently discarded,
+        // including KeyboardInterrupt and SystemError (reading tb_frame can invoke audit hooks).
+        auto get_attr = [](handle obj, const char *name) { return getattr(obj, name, handle()); };
 
         // Get the deepest trace possible.
         object tb = m_trace;
