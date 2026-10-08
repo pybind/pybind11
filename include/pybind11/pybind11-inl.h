@@ -776,13 +776,13 @@ PYBIND11_INLINE void cpp_function::initialize_generic(unique_function_record &&u
 #endif
 
     if (rec->is_method) {
-        PyObject *func = m_ptr;
+        PyObject *cfunc = m_ptr;
         m_ptr = PYBIND11_INSTANCE_METHOD_NEW(m_ptr, rec->scope.ptr());
         if (!m_ptr) {
             pybind11_fail(
                 "cpp_function::cpp_function(): Could not allocate instance method object");
         }
-        Py_DECREF(func);
+        Py_DECREF(cfunc);
     }
 }
 

@@ -58,12 +58,12 @@ type_from_spec(const char *caller, PyTypeObject *metaclass, PyType_Spec *spec, P
 #    define PYBIND11_BASE_TYPE_SLOT(fn, slot_type, type, slot_id, field)                          \
         PYBIND11_INLINE slot_type fn() {                                                          \
             static const auto cached                                                              \
-                = reinterpret_cast<slot_type>(PyType_GetSlot(&type, slot_id));                    \
+                = reinterpret_cast<slot_type>(PyType_GetSlot(&(type), slot_id));                  \
             return cached;                                                                        \
         }
 #else
 #    define PYBIND11_BASE_TYPE_SLOT(fn, slot_type, type, slot_id, field)                          \
-        PYBIND11_INLINE slot_type fn() { return type.field; }
+        PYBIND11_INLINE slot_type fn() { return (type).field; }
 #endif
 
 PYBIND11_BASE_TYPE_SLOT(type_type_call, ternaryfunc, PyType_Type, Py_tp_call, tp_call)
