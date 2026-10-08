@@ -18,6 +18,5 @@
 #include <chrono>
 
 TEST_SUBMODULE(chrono_second_tu, m) {
-    m.def("duration_roundtrip",
-          [](const std::chrono::system_clock::duration &d) { return d; });
+    m.def("duration_roundtrip", [](const std::chrono::system_clock::duration &d) { return d; });
 }
