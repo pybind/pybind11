@@ -249,7 +249,7 @@ PYBIND11_INLINE PyObject *cached_create_module(PyObject *spec, PyModuleDef *) {
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_INLINE dict globals() {
-#if PY_VERSION_HEX >= 0x030d0000
+#if PYBIND11_API_VERSION_HEX >= 0x030d0000
     PyObject *p = PyEval_GetFrameGlobals();
     return p ? reinterpret_steal<dict>(p)
              : reinterpret_borrow<dict>(module_::import("__main__").attr("__dict__").ptr());
@@ -398,7 +398,7 @@ PYBIND11_INLINE void register_local_exception_translator(ExceptionTranslator &&t
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void print(const tuple &args, const dict &kwargs) {
-#if PY_VERSION_HEX >= 0x030D0000
+#if PYBIND11_API_VERSION_HEX >= 0x030D0000
     auto builtins = reinterpret_steal<dict>(PyEval_GetFrameBuiltins());
 #else
     auto builtins = reinterpret_borrow<dict>(PyEval_GetBuiltins());
