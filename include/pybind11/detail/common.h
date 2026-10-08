@@ -43,6 +43,10 @@
 #    elif PYBIND11_HAS_SUBINTERPRETER_SUPPORT
 #        error "Subinterpreter support is not available under Py_LIMITED_API."
 #    endif
+// The C API version the build may use: the limited API target, not the headers' version.
+#    define PYBIND11_API_VERSION_HEX Py_LIMITED_API
+#else
+#    define PYBIND11_API_VERSION_HEX PY_VERSION_HEX
 #endif
 
 // Heap types declare their extra data as PEP 697 type data when PyObject is opaque: a negative
