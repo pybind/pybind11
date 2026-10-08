@@ -48,6 +48,8 @@ add a ``pyproject.toml`` file like this:
 
 You don't need setuptools files like ``MANIFEST.in``, ``setup.py``, or
 ``setup.cfg``, as this is not setuptools. See `scikit-build-core`_ for details.
+To ship one wheel per platform instead of one per Python version, see
+:doc:`advanced/stable_abi`.
 For projects you plan to upload to PyPI, be sure to fill out the ``[project]``
 table with other important metadata as well (see `Writing pyproject.toml`_).
 
@@ -415,8 +417,9 @@ to opt a target out. This needs CMake 3.26+, the FindPython mode
 (``PYBIND11_FINDPYTHON=ON``) and CPython 3.12+ headers. Free-threaded
 builds produce ``.abi3t`` modules and need 3.15+; set ``PYBIND11_ABI3T`` to
 also build ``.abi3t`` modules with GIL-enabled CPython 3.15+. It is not
-available for PyPy or GraalPy. See :doc:`advanced/stable_abi`
-for the features that are not available under the stable ABI.
+available for PyPy or GraalPy. See :doc:`advanced/stable_abi` for the
+features that are not available under the stable ABI and for the
+scikit-build-core setup (``wheel.py-api`` plus ``SKBUILD_SABI_COMPONENT``).
 
 .. _precompile-mode:
 
