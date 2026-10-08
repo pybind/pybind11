@@ -10,6 +10,10 @@
 #pragma once
 
 #include "pybind11.h"
+
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+#    error "numpy.h mirrors NumPy object layouts; it is not available with the abi3t stable ABI."
+#endif
 #include "detail/common.h"
 #include "complex.h"
 #include "gil_safe_call_once.h"

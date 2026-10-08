@@ -199,7 +199,7 @@ PYBIND11_NAMESPACE_BEGIN(function_record_PyTypeObject_methods)
 PYBIND11_INLINE void tp_dealloc_impl(PyObject *self) {
     // Save type before PyObject_Free invalidates self.
     auto *type = Py_TYPE(self);
-    auto *py_func_rec = reinterpret_cast<function_record_PyObject *>(self);
+    auto *py_func_rec = function_record_data(self);
     cpp_function::destruct(py_func_rec->cpp_func_rec);
     py_func_rec->cpp_func_rec = nullptr;
     // PyObject_New increments the heap type refcount and allocates via
@@ -665,8 +665,7 @@ PYBIND11_INLINE void cpp_function::initialize_generic(unique_function_record &&u
         rec->def->ml_flags = METH_FASTCALL | METH_KEYWORDS;
 
         object py_func_rec = detail::function_record_PyObject_New();
-        (reinterpret_cast<detail::function_record_PyObject *>(py_func_rec.ptr()))->cpp_func_rec
-            = unique_rec.release();
+        detail::function_record_data(py_func_rec.ptr())->cpp_func_rec = unique_rec.release();
         guarded_strdup.release();
 
         object scope_module = detail::get_scope_module(rec->scope);
@@ -699,8 +698,7 @@ PYBIND11_INLINE void cpp_function::initialize_generic(unique_function_record &&u
             // chain.
             chain_start = rec;
             rec->next = chain;
-            auto *py_func_rec
-                = reinterpret_cast<detail::function_record_PyObject *>(PyCFunction_GetSelf(m_ptr));
+            auto *py_func_rec = detail::function_record_data(PyCFunction_GetSelf(m_ptr));
             py_func_rec->cpp_func_rec = unique_rec.release();
             guarded_strdup.release();
         } else {
@@ -862,7 +860,7 @@ PYBIND11_INLINE PyObject *cpp_function::dispatcher(PyObject *self,
 
         auto *const tinfo
             = get_type_info(reinterpret_cast<PyTypeObject *>(overloads->scope.ptr()));
-        auto *const pi = reinterpret_cast<instance *>(parent.ptr());
+        auto *const pi = get_instance(parent.ptr());
         self_value_and_holder = pi->get_value_and_holder(tinfo, true);
 
         // If this value is already registered it must mean __init__ is invoked multiple times;
@@ -1293,7 +1291,7 @@ PYBIND11_INLINE PyObject *cpp_function::dispatcher(PyObject *self,
         return nullptr;
     }
     if (overloads->is_constructor && !self_value_and_holder.holder_constructed()) {
-        auto *pi = reinterpret_cast<instance *>(parent.ptr());
+        auto *pi = get_instance(parent.ptr());
         self_value_and_holder.type->init_instance(pi, nullptr);
     }
     return result.ptr();
@@ -1606,6 +1604,7 @@ module_::add_object(const char *name, handle obj, bool overwrite) {
     PyModule_AddObject(ptr(), name, obj.inc_ref().ptr() /* steals a reference */);
 }
 
+#if !defined(PYBIND11_OPAQUE_PYOBJECT)
 PYBIND11_INLINE module_ module_::create_extension_module(const char *name,
                                                          const char *doc,
                                                          PyModuleDef *def,
@@ -1628,14 +1627,15 @@ PYBIND11_INLINE module_ module_::create_extension_module(const char *name,
         pybind11_fail("Internal error in module_::create_extension_module()");
     }
     if (gil_not_used.flag()) {
-#ifdef Py_GIL_DISABLED
+#    ifdef Py_GIL_DISABLED
         PyUnstable_Module_SetGIL(m, Py_MOD_GIL_NOT_USED);
-#endif
+#    endif
     }
     // TODO: Should be reinterpret_steal for Python 3, but Python also steals it again when
     //       returned from PyInit_...
     //       For Python 2, reinterpret_borrow was correct.
     return reinterpret_borrow<module_>(m);
 }
+#endif
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

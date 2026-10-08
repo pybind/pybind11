@@ -236,6 +236,19 @@ if(PYBIND11_TEST_STABLE_ABI)
     MESSAGE
     "Skipping chrono, custom_type_setup, subinterpreter and PyGILState_Check tests under the stable ABI"
   )
+  # numpy.h mirrors NumPy object layouts, which the abi3t stable ABI hides (PEP 803).
+  if("${PYTHON_MODULE_EXTENSION}" MATCHES "^\\.cpython-[0-9]+t")
+    pybind11_filter_tests(
+      PYBIND11_TEST_FILES
+      test_numpy_array.cpp
+      test_numpy_dtypes.cpp
+      test_numpy_scalars.cpp
+      test_numpy_vectorize.cpp
+      test_eigen_matrix.cpp
+      test_eigen_tensor.cpp
+      MESSAGE
+      "Skipping numpy and eigen tests under the free-threaded stable ABI (abi3t)")
+  endif()
 endif()
 
 # Skip tests for CUDA check:
