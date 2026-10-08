@@ -525,7 +525,12 @@ function(pybind11_precompile)
   set_target_properties(pybind11_precompiled PROPERTIES PYBIND11_STABLE_ABI "${ARG_STABLE_ABI}")
   if(ARG_STABLE_ABI)
     _pybind11_stable_abi_hex(_sabi_hex)
-    target_compile_definitions(pybind11_precompiled PRIVATE "Py_LIMITED_API=${_sabi_hex}")
+    _pybind11_stable_abi_is_abi3t(_abi3t)
+    if(_abi3t)
+      target_compile_definitions(pybind11_precompiled PRIVATE "Py_TARGET_ABI3T=${_sabi_hex}")
+    else()
+      target_compile_definitions(pybind11_precompiled PRIVATE "Py_LIMITED_API=${_sabi_hex}")
+    endif()
   endif()
   # pybind11::module (not just pybind11::pybind11): the library must compile with the
   # interpreter's ABI macros (e.g. Py_GIL_DISABLED, which FindPython attaches to

@@ -412,9 +412,10 @@ the targeted version on (3.12 by default; set ``PYBIND11_STABLE_ABI_VERSION``
 to target a newer one). Set the CMake variable ``PYBIND11_STABLE_ABI`` to make
 it the default for all ``pybind11_add_module`` calls and use ``NO_STABLE_ABI``
 to opt a target out. This needs CMake 3.26+, the FindPython mode
-(``PYBIND11_FINDPYTHON=ON``) and CPython 3.12+ headers (3.15+ for
-free-threaded builds, which produce ``.abi3t`` modules); it is not available
-for PyPy or GraalPy. See :doc:`advanced/stable_abi`
+(``PYBIND11_FINDPYTHON=ON``) and CPython 3.12+ headers. Free-threaded
+builds produce ``.abi3t`` modules and need 3.15+; set ``PYBIND11_ABI3T`` to
+also build ``.abi3t`` modules with GIL-enabled CPython 3.15+. It is not
+available for PyPy or GraalPy. See :doc:`advanced/stable_abi`
 for the features that are not available under the stable ABI.
 
 .. _precompile-mode:

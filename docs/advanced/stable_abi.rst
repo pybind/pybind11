@@ -8,11 +8,13 @@ built for. pybind11 supports it from CPython 3.12 on: define
 ``*.abi3.so`` / ``*.pyd`` per platform instead of one module per Python
 version.
 
-Free-threaded CPython has its own stable ABI from 3.15 on, ``abi3t``
-(:pep:`803`). pybind11 supports it too: build against the free-threaded
-headers with ``Py_LIMITED_API`` set to ``0x030F0000`` or newer, and ship one
-``*.abi3t.so`` that every free-threaded *and* GIL-enabled CPython from 3.15
-on can load. See `abi3t`_ below for what differs.
+CPython 3.15 adds a second stable ABI, ``abi3t`` (:pep:`803`). An ``abi3t``
+module loads on every free-threaded *and* GIL-enabled CPython from 3.15 on, so
+one ``*.abi3t.so`` per platform covers both builds. pybind11 supports it too:
+define ``Py_TARGET_ABI3T`` to ``0x030F0000`` (or a newer version). Headers of
+either build work. With free-threaded headers, ``Py_LIMITED_API`` alone also
+selects ``abi3t``, because free-threaded CPython has no ``abi3``. See `abi3t`_
+below for what differs.
 
 Enabling it
 ===========
@@ -25,20 +27,31 @@ the default for a build tree:
 
     pybind11_add_module(example STABLE_ABI example.cpp)
 
-``PYBIND11_STABLE_ABI_VERSION`` (default ``3.12``, raised to ``3.15`` on
-free-threaded Python) selects the targeted version. ``PRECOMPILE`` can be
-combined with ``STABLE_ABI``; the precompiled
-library is then compiled against the limited API too, and one build tree
-cannot mix stable-ABI and regular precompiled modules.
+``PYBIND11_STABLE_ABI_VERSION`` (default ``3.12``, raised to ``3.15`` for
+``abi3t``) selects the targeted version. On free-threaded Python the modules
+are always ``abi3t``. Set ``PYBIND11_ABI3T`` to ``ON`` to also build ``abi3t``
+modules with GIL-enabled Python:
+
+.. code-block:: bash
+
+    cmake -S . -B build -DPYBIND11_STABLE_ABI=ON -DPYBIND11_ABI3T=ON
+
+``PRECOMPILE`` can be combined with ``STABLE_ABI``; the precompiled library
+is then compiled against the limited API too, and one build tree cannot mix
+stable-ABI and regular precompiled modules.
 
 With setuptools, pass ``py_limited_api=True`` (or a version such as
 ``"3.13"``) to ``Pybind11Extension``; the module is named ``*.abi3.so``
-(``*.abi3t.so`` on free-threaded Python) and ``Py_LIMITED_API`` is defined
-for you.
+and ``Py_LIMITED_API`` is defined for you. Add a ``t`` (``"3.15t"``) for
+``abi3t``, which is always used on free-threaded Python; ``Py_TARGET_ABI3T``
+is then defined and the module is named ``*.abi3t.so``. With GIL-enabled
+Python, use ``build_ext`` from ``pybind11.setup_helpers`` to get that name.
 
 With any other build system, define ``Py_LIMITED_API=0x030C0000`` for every
 translation unit, link no version-specific Python library (``python3.lib`` on
 Windows), and name the module ``<name>.abi3.so`` (``<name>.pyd`` on Windows).
+For ``abi3t``, define ``Py_TARGET_ABI3T=0x030F0000`` instead, link
+``python3t.lib`` on Windows, and name the module ``<name>.abi3t.so``.
 
 pybind11 rejects the combination with PyPy, GraalPy, and free-threaded
 CPython before 3.15 at compile time: they have no stable ABI.

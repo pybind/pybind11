@@ -287,6 +287,77 @@ jobs:
         working-directory: build/tests
         run: python3.15 -m pytest -v ../../tests ${{ env.PYBIND11_STABLE_ABI_SKIPPED_TESTS }}
 
+  # PYBIND11_ABI3T builds abi3t from GIL-enabled Python; run the same modules on 3.15t.
+  stable-abi-abi3t-from-gil:
+    if: github.event.pull_request.draft == false
+    strategy:
+      fail-fast: false
+      matrix:
+        runs-on: [ubuntu-latest, windows-latest]
+    name: 🧱 abi3t from GIL-enabled Python • ${{ matrix.runs-on }}
+    runs-on: ${{ matrix.runs-on }}
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    env:
+      # Relative to the working directory of the forward steps, build/tests
+      PYBIND11_STABLE_ABI_SKIPPED_TESTS: >-
+        --ignore=../../tests/test_custom_type_setup.py
+        --ignore=../../tests/test_multiple_interpreters.py
+        --ignore=../../tests/test_class_release_gil_before_calling_cpp_dtor.py
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Python 3.15t (run)
+        id: py315t
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.15t'
+          allow-prereleases: true
+
+      - name: Setup Python 3.15 (build)
+        id: py315
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.15'
+          allow-prereleases: true
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.0.1
+        with:
+          enable-cache: true
+
+      - name: Prepare env
+        run: |
+          for py in "${{ steps.py315t.outputs.python-path }}" "${{ steps.py315.outputs.python-path }}"; do
+            uv pip install --python="$py" --system -r tests/requirements.txt
+          done
+
+      - name: Configure (Python 3.15, abi3t)
+        run: >
+          cmake -S. -Bbuild -Werror=dev
+          -DPYBIND11_WERROR=ON
+          -DDOWNLOAD_CATCH=ON
+          -DDOWNLOAD_EIGEN=ON
+          -DPYBIND11_TEST_STABLE_ABI=ON
+          -DPYBIND11_ABI3T=ON
+          -DCMAKE_BUILD_TYPE=Release
+          -DPYTHON_EXECUTABLE="${{ steps.py315.outputs.python-path }}"
+
+      - name: Build
+        run: cmake --build build --config Release -j 4
+
+      - name: Python tests (3.15)
+        run: cmake --build build --config Release --target pytest
+
+      - name: Python tests (3.15t, same binaries)
+        working-directory: build/tests
+        run: >
+          "${{ steps.py315t.outputs.python-path }}" -m pytest -v ../../tests
+          ${{ env.PYBIND11_STABLE_ABI_SKIPPED_TESTS }}
+
   standard-large:
     if: github.event.pull_request.draft == false
     strategy:
