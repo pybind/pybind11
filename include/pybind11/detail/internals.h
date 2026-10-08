@@ -970,7 +970,13 @@ inline auto with_instance_map(const void *ptr, const F &cb)
     auto idx = static_cast<size_t>(hash & internals.instance_shards_mask);
 
     auto &shard = internals.instance_shards[idx];
+#    if defined(PYBIND11_OPAQUE_PYOBJECT)
+    // A critical section is suspended while `cb` waits for another one (e.g. the internals
+    // lock): `cb` must not keep iterators or instance pointers across such calls.
     pycritical_section lock(shard.mutex);
+#    else
+    std::unique_lock<pymutex> lock(shard.mutex);
+#    endif
     return cb(shard.registered_instances);
 #else
     (void) ptr;

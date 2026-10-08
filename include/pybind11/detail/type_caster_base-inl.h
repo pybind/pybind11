@@ -285,29 +285,46 @@ PYBIND11_INLINE bool try_incref(PyObject *obj) {
 
 PYBIND11_NOINLINE_ATTR PYBIND11_INLINE handle
 find_registered_python_instance(void *src, const detail::type_info *tinfo) {
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+    // all_type_info() takes the internals lock, which can suspend the instance map's critical
+    // section: take strong references first, then check the types without the map lock.
+    std::vector<object> candidates = with_instance_map(src, [&](instance_map &instances) {
+        std::vector<object> found;
+        auto it_instances = instances.equal_range(src);
+        for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
+            PyObject *wrapper = nullptr;
+            if (it_i->second->registry_weakref != nullptr
+                && PyWeakref_GetRef(it_i->second->registry_weakref, &wrapper) == 1) {
+                found.emplace_back(reinterpret_steal<object>(wrapper));
+            }
+        }
+        return found;
+    });
+    for (auto &wrapper : candidates) {
+        for (auto *instance_type : detail::all_type_info(Py_TYPE(wrapper.ptr()))) {
+            if (instance_type && same_type(*instance_type->cpptype, *tinfo->cpptype)) {
+                return wrapper.release();
+            }
+        }
+    }
+    return handle();
+#else
     return with_instance_map(src, [&](instance_map &instances) {
         auto it_instances = instances.equal_range(src);
         for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
             for (auto *instance_type :
                  detail::all_type_info(Py_TYPE(instance_object(it_i->second)))) {
                 if (instance_type && same_type(*instance_type->cpptype, *tinfo->cpptype)) {
-#if defined(PYBIND11_OPAQUE_PYOBJECT)
-                    PyObject *wrapper = nullptr;
-                    if (it_i->second->registry_weakref != nullptr
-                        && PyWeakref_GetRef(it_i->second->registry_weakref, &wrapper) == 1) {
-                        return handle(wrapper);
-                    }
-#else
                     auto *wrapper = instance_object(it_i->second);
                     if (try_incref(wrapper)) {
                         return handle(wrapper);
                     }
-#endif
                 }
             }
         }
         return handle();
     });
+#endif
 }
 
 PYBIND11_NOINLINE_ATTR PYBIND11_INLINE value_and_holder
