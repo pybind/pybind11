@@ -900,7 +900,7 @@ inline PyObject *dict_getitem(PyObject *v, PyObject *key) {
 // PyDict_GetItemStringRef was added in Python 3.13.0a1.
 // See also: https://github.com/python/pythoncapi-compat/blob/main/pythoncapi_compat.h
 inline PyObject *dict_getitemstringref(PyObject *v, const char *key) {
-#if PY_VERSION_HEX >= 0x030D00A1
+#if PYBIND11_API_VERSION_HEX >= 0x030D00A1
     PyObject *rv = nullptr;
     if (PyDict_GetItemStringRef(v, key, &rv) < 0) {
         throw error_already_set();
@@ -940,7 +940,7 @@ inline PyObject *dict_setdefaultstring(PyObject *v, const char *key, PyObject *d
 // PyDict_SetDefaultRef was added in Python 3.13.0a4.
 // See also: https://github.com/python/pythoncapi-compat/blob/main/pythoncapi_compat.h
 inline PyObject *dict_setdefaultstringref(PyObject *v, const char *key, PyObject *defaultobj) {
-#if PY_VERSION_HEX >= 0x030D00A4
+#if PYBIND11_API_VERSION_HEX >= 0x030D00A4
     PyObject *kv = PyUnicode_FromString(key);
     if (kv == nullptr) {
         throw error_already_set();
@@ -2554,8 +2554,9 @@ str_attr_accessor object_api<D>::doc() const {
 
 template <typename D>
 object object_api<D>::annotations() const {
-// This is needed again because of the lazy annotations added in 3.14+
-#if PY_VERSION_HEX < 0x030A0000 || PY_VERSION_HEX >= 0x030E0000
+// This is needed again because of the lazy annotations added in 3.14+ (a stable-ABI module
+// built for an older target can still run on 3.14+)
+#if PY_VERSION_HEX < 0x030A0000 || PY_VERSION_HEX >= 0x030E0000 || defined(Py_LIMITED_API)
     // https://docs.python.org/3/howto/annotations.html#accessing-the-annotations-dict-of-an-object-in-python-3-9-and-older
     if (!hasattr(derived(), "__annotations__")) {
         setattr(derived(), "__annotations__", dict());
