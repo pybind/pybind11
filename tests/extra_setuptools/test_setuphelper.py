@@ -117,7 +117,19 @@ def test_simple_setup_py(monkeypatch, tmpdir, parallel, std):
     or (sysconfig.get_config_var("Py_GIL_DISABLED") and sys.version_info < (3, 15)),
     reason="stable ABI needs CPython 3.12+, or 3.15+ when free-threaded (abi3t)",
 )
-def test_stable_abi_setup_py(monkeypatch, tmpdir):
+@pytest.mark.parametrize(
+    "py_limited_api",
+    [
+        True,
+        pytest.param(
+            "3.15t",
+            marks=pytest.mark.skipif(
+                sys.version_info < (3, 15), reason="abi3t needs CPython 3.15+"
+            ),
+        ),
+    ],
+)
+def test_stable_abi_setup_py(monkeypatch, tmpdir, py_limited_api):
     monkeypatch.chdir(tmpdir)
     monkeypatch.syspath_prepend(MAIN_DIR)
 
@@ -135,7 +147,7 @@ def test_stable_abi_setup_py(monkeypatch, tmpdir):
                     "stable_abi_setup",
                     ["main.cpp"],
                     cxx_std=17,
-                    py_limited_api=True,
+                    py_limited_api={py_limited_api!r},
                 ),
             ]
 
@@ -175,6 +187,9 @@ def test_stable_abi_setup_py(monkeypatch, tmpdir):
     built = [f for f in tmpdir.listdir() if f.basename.startswith("stable_abi_setup")]
     assert len(built) == 1
     assert ".abi3" in built[0].basename or built[0].ext == ".pyd"
+    abi3t = py_limited_api == "3.15t" or sysconfig.get_config_var("Py_GIL_DISABLED")
+    if not WIN:
+        assert (".abi3t" in built[0].basename) == bool(abi3t)
 
     (tmpdir / "test.py").write_text(
         dedent(
