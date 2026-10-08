@@ -53,6 +53,7 @@ static CallGuardState *&current_call_guard_state() {
 
 struct CallGuardArgument {
     explicit CallGuardArgument(CallGuardState *state) : state(state) {}
+    // Preserve the source's non-owning state pointer so both objects log their destruction.
     CallGuardArgument(CallGuardArgument &&other) noexcept : state(other.state) {}
     CallGuardArgument(const CallGuardArgument &) = delete;
     ~CallGuardArgument() {
