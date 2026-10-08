@@ -137,6 +137,8 @@ struct instancemethod_object;
 instancemethod_object *instancemethod_data(PyObject *self);
 extern "C" PyObject *instancemethod_descr_get(PyObject *self, PyObject *obj, PyObject *type);
 extern "C" PyObject *instancemethod_call(PyObject *self, PyObject *args, PyObject *kwargs);
+extern "C" PyObject *
+instancemethod_vectorcall(PyObject *self, PyObject *const *args, size_t nargsf, PyObject *kwnames);
 extern "C" PyObject *instancemethod_getattro(PyObject *self, PyObject *name);
 extern "C" PyObject *instancemethod_repr(PyObject *self);
 extern "C" int instancemethod_traverse(PyObject *self, visitproc visit, void *arg);
