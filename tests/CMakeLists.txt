@@ -130,6 +130,7 @@ set(PYBIND11_TEST_FILES
     test_builtin_casters
     test_call_policies
     test_callbacks
+    test_chrono_second_tu.cpp
     test_chrono
     test_class
     test_class_cross_module_use_after_one_module_dealloc
