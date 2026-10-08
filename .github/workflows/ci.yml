@@ -101,7 +101,7 @@ jobs:
 
   # Opt-in PyType_FromMetaclass type creation (the future default on CPython 3.12+
   # and the only path under the stable ABI).
-  type-creation-via-spec:
+  type-creation-legacy:
     if: github.event.pull_request.draft == false
     strategy:
       fail-fast: false
@@ -109,16 +109,16 @@ jobs:
         include:
           - runs-on: ubuntu-latest
             python-version: '3.12'
-            cmake-args: -DPYBIND11_TYPE_CREATION_VIA_SPEC=ON
+            cmake-args: -DPYBIND11_TYPE_CREATION_VIA_SPEC=OFF
           - runs-on: ubuntu-latest
             python-version: '3.14'
-            cmake-args: -DPYBIND11_TYPE_CREATION_VIA_SPEC=ON -DPYBIND11_TEST_PRECOMPILE=ON
+            cmake-args: -DPYBIND11_TYPE_CREATION_VIA_SPEC=OFF -DPYBIND11_TEST_PRECOMPILE=ON
           - runs-on: macos-latest
             python-version: '3.13'
-            cmake-args: -DPYBIND11_TYPE_CREATION_VIA_SPEC=ON
+            cmake-args: -DPYBIND11_TYPE_CREATION_VIA_SPEC=OFF
           - runs-on: windows-2022
             python-version: '3.13'
-            cmake-args: -DPYBIND11_TYPE_CREATION_VIA_SPEC=ON
+            cmake-args: -DPYBIND11_TYPE_CREATION_VIA_SPEC=OFF
 
     name: 📐
     uses: ./.github/workflows/reusable-standard.yml

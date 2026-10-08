@@ -65,7 +65,7 @@ PYBIND11_BASE_TYPE_SLOT(
 
 #undef PYBIND11_BASE_TYPE_SLOT
 
-#if defined(PYBIND11_TYPE_CREATION_VIA_SPEC)
+#if PYBIND11_TYPE_CREATION_VIA_SPEC
 PYBIND11_INLINE PyTypeObject *
 type_from_spec(const char *caller, PyTypeObject *metaclass, PyType_Spec *spec, PyObject *bases) {
     PyObject *type = PyType_FromMetaclass(metaclass, nullptr, spec, bases);
@@ -89,9 +89,9 @@ pybind11_static_set(PyObject *self, PyObject *obj, PyObject *value) {
     return property_type_descr_set()(self, cls, value);
 }
 
-#    if defined(PYBIND11_TYPE_CREATION_VIA_SPEC)
+#    if PYBIND11_TYPE_CREATION_VIA_SPEC
 
-#        if defined(Py_LIMITED_API)
+#        if defined(Py_LIMITED_API) || defined(PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET)
 // Without Py_TPFLAGS_MANAGED_DICT the `__dict__` slot follows the property object. These two
 // functions find it through the type's `__dictoffset__`.
 PYBIND11_INLINE PyObject **static_property_dict_ptr(PyObject *self) {
@@ -113,7 +113,7 @@ extern "C" PYBIND11_INLINE int pybind11_static_property_clear(PyObject *self) {
 PYBIND11_INLINE PyTypeObject *make_static_property_type() {
     // Since Python-3.12 property-derived types are required to have dynamic attributes (to set
     // `__doc__`), hence the GC and dict slots.
-#        if !defined(Py_LIMITED_API)
+#        if !defined(Py_LIMITED_API) && !defined(PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET)
     static PyType_Slot slots[] = {{Py_tp_descr_get, reinterpret_cast<void *>(pybind11_static_get)},
                                   {Py_tp_descr_set, reinterpret_cast<void *>(pybind11_static_set)},
                                   {Py_tp_traverse, reinterpret_cast<void *>(pybind11_traverse)},
@@ -331,7 +331,7 @@ extern "C" PYBIND11_INLINE void pybind11_meta_dealloc(PyObject *obj) {
     type_type_dealloc()(obj);
 }
 
-#if defined(PYBIND11_TYPE_CREATION_VIA_SPEC)
+#if PYBIND11_TYPE_CREATION_VIA_SPEC
 
 PYBIND11_INLINE PyTypeObject *make_default_metaclass() {
     static PyType_Slot slots[] = {
@@ -828,7 +828,7 @@ extern "C" PYBIND11_INLINE void pybind11_object_dealloc(PyObject *self) {
     Py_DECREF(reinterpret_cast<PyObject *>(type));
 }
 
-#if defined(PYBIND11_TYPE_CREATION_VIA_SPEC)
+#if PYBIND11_TYPE_CREATION_VIA_SPEC
 
 PYBIND11_INLINE PyObject *make_object_base_type(PyTypeObject *metaclass) {
     /* Support weak references (needed for the keep_alive feature) */
@@ -904,7 +904,8 @@ PYBIND11_INLINE PyObject *make_object_base_type(PyTypeObject *metaclass) {
 #endif // PYBIND11_TYPE_CREATION_VIA_SPEC
 
 extern "C" PYBIND11_INLINE int pybind11_traverse(PyObject *self, visitproc visit, void *arg) {
-#if PY_VERSION_HEX >= 0x030D0000 && !defined(Py_LIMITED_API)
+#if PY_VERSION_HEX >= 0x030D0000 && !defined(Py_LIMITED_API)                                      \
+    && !defined(PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET)
     int ret = PyObject_VisitManagedDict(self, visit, arg);
     if (ret) {
         return ret;
@@ -920,7 +921,8 @@ extern "C" PYBIND11_INLINE int pybind11_traverse(PyObject *self, visitproc visit
 }
 
 extern "C" PYBIND11_INLINE int pybind11_clear(PyObject *self) {
-#if PY_VERSION_HEX >= 0x030D0000 && !defined(Py_LIMITED_API)
+#if PY_VERSION_HEX >= 0x030D0000 && !defined(Py_LIMITED_API)                                      \
+    && !defined(PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET)
     PyObject_ClearManagedDict(self);
 #else
     if (PyObject **dict = instance_dict_ptr(self)) {
@@ -1066,7 +1068,7 @@ PYBIND11_INLINE void enable_buffer_protocol(PyHeapTypeObject *heap_type) {
 }
 #endif // !Py_LIMITED_API
 
-#if defined(PYBIND11_TYPE_CREATION_VIA_SPEC)
+#if PYBIND11_TYPE_CREATION_VIA_SPEC
 
 PYBIND11_INLINE PyObject *make_new_python_type(const type_record &rec) {
     auto &internals = get_internals();
@@ -1117,16 +1119,16 @@ PYBIND11_INLINE PyObject *make_new_python_type(const type_record &rec) {
         flags |= Py_TPFLAGS_BASETYPE;
     }
     int basicsize = 0; // inherit the instance layout from the base
-#    if defined(Py_LIMITED_API)
-    // No Py_TPFLAGS_MANAGED_DICT in the stable ABI: the `__dict__` slot is appended to the base
-    // layout unless a base has one already. (PEP 697 relative offsets are not applied to
+#    if defined(Py_LIMITED_API) || defined(PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET)
+    // Without Py_TPFLAGS_MANAGED_DICT (not in the stable ABI) the `__dict__` slot is appended to
+    // the base layout unless a base has one already. (PEP 697 relative offsets are not applied to
     // `__dictoffset__` on 3.12, so the offset is absolute.)
     PyMemberDef dict_member[] = {{"__dictoffset__", Py_T_PYSSIZET, 0, Py_READONLY, nullptr},
                                  {nullptr, 0, 0, 0, nullptr}};
 #    endif
     if (rec.dynamic_attr) {
         flags |= Py_TPFLAGS_HAVE_GC;
-#    if !defined(Py_LIMITED_API)
+#    if !defined(Py_LIMITED_API) && !defined(PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET)
         flags |= Py_TPFLAGS_MANAGED_DICT;
 #    else
         bool base_has_dict = false;

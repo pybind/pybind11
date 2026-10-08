@@ -145,8 +145,10 @@ where it used to read fields directly. The costs are small and are confined
 to specific operations:
 
 * Type objects are created with ``PyType_FromMetaclass()`` and
-  ``PyType_Spec`` (the ``PYBIND11_TYPE_CREATION_VIA_SPEC`` path, also
-  available as an opt-in for regular builds on CPython 3.12+).
+  ``PyType_Spec``. This is also the default for regular builds on CPython
+  3.12+; define ``PYBIND11_TYPE_CREATION_VIA_SPEC=0`` (CMake:
+  ``-DPYBIND11_TYPE_CREATION_VIA_SPEC=OFF``) to use the previous path, which
+  fills in the ``PyHeapTypeObject`` fields directly.
 * Instance allocation and deallocation look up ``tp_alloc``/``tp_free`` with
   ``PyType_GetSlot()``; the ``__dict__`` of ``py::dynamic_attr()`` instances
   is found through the type's cached dictionary offset.
