@@ -229,13 +229,11 @@ endif()
 if(PYBIND11_TEST_STABLE_ABI)
   pybind11_filter_tests(
     PYBIND11_TEST_FILES
-    test_chrono.cpp
     test_custom_type_setup.cpp
     test_multiple_interpreters.py
     test_class_release_gil_before_calling_cpp_dtor.cpp # PyGILState_Check
     MESSAGE
-    "Skipping chrono, custom_type_setup, subinterpreter and PyGILState_Check tests under the stable ABI"
-  )
+    "Skipping custom_type_setup, subinterpreter and PyGILState_Check tests under the stable ABI")
 endif()
 
 # Skip tests for CUDA check:

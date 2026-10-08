@@ -12,18 +12,125 @@
 
 #include "pybind11.h"
 
-#if defined(Py_LIMITED_API)
-#    error                                                                                        \
-        "pybind11/chrono.h is not available under the stable ABI (Py_LIMITED_API): the datetime C API accesses struct fields."
-#endif
-
 #include <chrono>
 #include <cmath>
 #include <ctime>
-#include <datetime.h>
+#if !defined(Py_LIMITED_API)
+#    include <datetime.h>
+#endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
+
+#if defined(Py_LIMITED_API)
+// The datetime C API is not part of the stable ABI: use the Python-level types and attributes.
+struct datetime_types {
+    PyTypeObject *datetime, *date, *time, *timedelta;
+};
+
+inline const datetime_types &get_datetime_types() {
+    // The type objects are kept for the lifetime of the process.
+    static const datetime_types types = [] {
+        module_ m = module_::import("datetime");
+        auto get = [&](const char *name) {
+            return reinterpret_cast<PyTypeObject *>(m.attr(name).cast<object>().release().ptr());
+        };
+        return datetime_types{get("datetime"), get("date"), get("time"), get("timedelta")};
+    }();
+    return types;
+}
+
+inline void datetime_import() { (void) get_datetime_types(); }
+inline bool is_timedelta(handle h) {
+    return PyObject_TypeCheck(h.ptr(), get_datetime_types().timedelta) != 0;
+}
+inline bool is_datetime(handle h) {
+    return PyObject_TypeCheck(h.ptr(), get_datetime_types().datetime) != 0;
+}
+inline bool is_date(handle h) {
+    return PyObject_TypeCheck(h.ptr(), get_datetime_types().date) != 0;
+}
+inline bool is_time(handle h) {
+    return PyObject_TypeCheck(h.ptr(), get_datetime_types().time) != 0;
+}
+inline int datetime_field(handle h, const char *name) { return h.attr(name).cast<int>(); }
+#    define PYBIND11_DATETIME_FIELD(fn, attr)                                                     \
+        inline int fn(handle h) { return datetime_field(h, #attr); }
+#    define PYBIND11_DATETIME_FIELD_C(fn, c_macro)
+
+inline PyObject *make_timedelta(int days, int seconds, int microseconds) {
+    return PyObject_CallFunction(reinterpret_cast<PyObject *>(get_datetime_types().timedelta),
+                                 "iii",
+                                 days,
+                                 seconds,
+                                 microseconds);
+}
+inline PyObject *make_datetime(
+    int year, int month, int day, int hour, int minute, int second, int microsecond, int fold) {
+    auto cls
+        = reinterpret_borrow<object>(reinterpret_cast<PyObject *>(get_datetime_types().datetime));
+    return cls(year, month, day, hour, minute, second, microsecond, arg("fold") = fold)
+        .release()
+        .ptr();
+}
+inline PyObject *datetime_from_timestamp(std::time_t tt) {
+    auto cls
+        = reinterpret_borrow<object>(reinterpret_cast<PyObject *>(get_datetime_types().datetime));
+    return cls.attr("fromtimestamp")(tt).release().ptr();
+}
+#else
+inline void datetime_import() {
+    if (!PyDateTimeAPI) {
+        PyDateTime_IMPORT;
+    }
+}
+inline bool is_timedelta(handle h) { return PyDelta_Check(h.ptr()); }
+inline bool is_datetime(handle h) { return PyDateTime_Check(h.ptr()); }
+inline bool is_date(handle h) { return PyDate_Check(h.ptr()); }
+inline bool is_time(handle h) { return PyTime_Check(h.ptr()); }
+#    define PYBIND11_DATETIME_FIELD(fn, attr)
+#    define PYBIND11_DATETIME_FIELD_C(fn, c_macro)                                                \
+        inline int fn(handle h) { return c_macro(h.ptr()); }
+inline PyObject *make_timedelta(int days, int seconds, int microseconds) {
+    return PyDelta_FromDSU(days, seconds, microseconds);
+}
+inline PyObject *make_datetime(
+    int year, int month, int day, int hour, int minute, int second, int microsecond, int fold) {
+    return PyDateTime_FromDateAndTimeAndFold(
+        year, month, day, hour, minute, second, microsecond, fold);
+}
+inline PyObject *datetime_from_timestamp(std::time_t tt) {
+    auto args = make_tuple(tt);
+    return PyDateTime_FromTimestamp(args.ptr());
+}
+#endif
+
+// One accessor per field: attribute lookup under the stable ABI, the C macro otherwise.
+#define PYBIND11_DATETIME_ACCESSOR(fn, attr, c_macro)                                             \
+    PYBIND11_DATETIME_FIELD(fn, attr)                                                             \
+    PYBIND11_DATETIME_FIELD_C(fn, c_macro)
+PYBIND11_DATETIME_ACCESSOR(timedelta_days, days, PyDateTime_DELTA_GET_DAYS)
+PYBIND11_DATETIME_ACCESSOR(timedelta_seconds, seconds, PyDateTime_DELTA_GET_SECONDS)
+PYBIND11_DATETIME_ACCESSOR(timedelta_microseconds, microseconds, PyDateTime_DELTA_GET_MICROSECONDS)
+PYBIND11_DATETIME_ACCESSOR(datetime_year, year, PyDateTime_GET_YEAR)
+PYBIND11_DATETIME_ACCESSOR(datetime_month, month, PyDateTime_GET_MONTH)
+PYBIND11_DATETIME_ACCESSOR(datetime_day, day, PyDateTime_GET_DAY)
+PYBIND11_DATETIME_ACCESSOR(datetime_hour, hour, PyDateTime_DATE_GET_HOUR)
+PYBIND11_DATETIME_ACCESSOR(datetime_minute, minute, PyDateTime_DATE_GET_MINUTE)
+PYBIND11_DATETIME_ACCESSOR(datetime_second, second, PyDateTime_DATE_GET_SECOND)
+PYBIND11_DATETIME_ACCESSOR(datetime_microsecond, microsecond, PyDateTime_DATE_GET_MICROSECOND)
+PYBIND11_DATETIME_ACCESSOR(datetime_fold, fold, PyDateTime_DATE_GET_FOLD)
+PYBIND11_DATETIME_ACCESSOR(date_year, year, PyDateTime_GET_YEAR)
+PYBIND11_DATETIME_ACCESSOR(date_month, month, PyDateTime_GET_MONTH)
+PYBIND11_DATETIME_ACCESSOR(date_day, day, PyDateTime_GET_DAY)
+PYBIND11_DATETIME_ACCESSOR(time_hour, hour, PyDateTime_TIME_GET_HOUR)
+PYBIND11_DATETIME_ACCESSOR(time_minute, minute, PyDateTime_TIME_GET_MINUTE)
+PYBIND11_DATETIME_ACCESSOR(time_second, second, PyDateTime_TIME_GET_SECOND)
+PYBIND11_DATETIME_ACCESSOR(time_microsecond, microsecond, PyDateTime_TIME_GET_MICROSECOND)
+PYBIND11_DATETIME_ACCESSOR(time_fold, fold, PyDateTime_TIME_GET_FOLD)
+#undef PYBIND11_DATETIME_ACCESSOR
+#undef PYBIND11_DATETIME_FIELD
+#undef PYBIND11_DATETIME_FIELD_C
 
 template <typename type>
 class duration_caster {
@@ -37,20 +144,16 @@ public:
     bool load(handle src, bool) {
         using namespace std::chrono;
 
-        // Lazy initialise the PyDateTime import
-        if (!PyDateTimeAPI) {
-            PyDateTime_IMPORT;
-        }
+        datetime_import();
 
         if (!src) {
             return false;
         }
         // If invoked with datetime.delta object
-        if (PyDelta_Check(src.ptr())) {
+        if (is_timedelta(src)) {
             value = type(duration_cast<duration<rep, period>>(
-                days(PyDateTime_DELTA_GET_DAYS(src.ptr()))
-                + seconds(PyDateTime_DELTA_GET_SECONDS(src.ptr()))
-                + microseconds(PyDateTime_DELTA_GET_MICROSECONDS(src.ptr()))));
+                days(timedelta_days(src)) + seconds(timedelta_seconds(src))
+                + microseconds(timedelta_microseconds(src))));
             return true;
         }
         // If invoked with a float we assume it is seconds and convert
@@ -84,10 +187,7 @@ public:
         // Works out if it is a duration or time_point and get the duration
         auto d = get_duration(src);
 
-        // Lazy initialise the PyDateTime import
-        if (!PyDateTimeAPI) {
-            PyDateTime_IMPORT;
-        }
+        datetime_import();
 
         // Declare these special duration types so the conversions happen with the correct
         // primitive types (int)
@@ -99,7 +199,7 @@ public:
         auto subd = d - dd;
         auto ss = duration_cast<ss_t>(subd);
         auto us = duration_cast<us_t>(subd - ss);
-        return PyDelta_FromDSU(dd.count(), ss.count(), us.count());
+        return make_timedelta(dd.count(), ss.count(), us.count());
     }
 
     PYBIND11_TYPE_CASTER(type, const_name("datetime.timedelta"));
@@ -113,10 +213,7 @@ public:
     bool load(handle src, bool) {
         using namespace std::chrono;
 
-        // Lazy initialise the PyDateTime import
-        if (!PyDateTimeAPI) {
-            PyDateTime_IMPORT;
-        }
+        datetime_import();
 
         if (!src) {
             return false;
@@ -126,35 +223,35 @@ public:
         microseconds msecs;
         int fold = 0;
 
-        if (PyDateTime_Check(src.ptr())) {
-            cal.tm_sec = PyDateTime_DATE_GET_SECOND(src.ptr());
-            cal.tm_min = PyDateTime_DATE_GET_MINUTE(src.ptr());
-            cal.tm_hour = PyDateTime_DATE_GET_HOUR(src.ptr());
-            cal.tm_mday = PyDateTime_GET_DAY(src.ptr());
-            cal.tm_mon = PyDateTime_GET_MONTH(src.ptr()) - 1;
-            cal.tm_year = PyDateTime_GET_YEAR(src.ptr()) - 1900;
+        if (is_datetime(src)) {
+            cal.tm_sec = datetime_second(src);
+            cal.tm_min = datetime_minute(src);
+            cal.tm_hour = datetime_hour(src);
+            cal.tm_mday = datetime_day(src);
+            cal.tm_mon = datetime_month(src) - 1;
+            cal.tm_year = datetime_year(src) - 1900;
             cal.tm_isdst = -1;
-            msecs = microseconds(PyDateTime_DATE_GET_MICROSECOND(src.ptr()));
-            fold = PyDateTime_DATE_GET_FOLD(src.ptr());
-        } else if (PyDate_Check(src.ptr())) {
+            msecs = microseconds(datetime_microsecond(src));
+            fold = datetime_fold(src);
+        } else if (is_date(src)) {
             cal.tm_sec = 0;
             cal.tm_min = 0;
             cal.tm_hour = 0;
-            cal.tm_mday = PyDateTime_GET_DAY(src.ptr());
-            cal.tm_mon = PyDateTime_GET_MONTH(src.ptr()) - 1;
-            cal.tm_year = PyDateTime_GET_YEAR(src.ptr()) - 1900;
+            cal.tm_mday = date_day(src);
+            cal.tm_mon = date_month(src) - 1;
+            cal.tm_year = date_year(src) - 1900;
             cal.tm_isdst = -1;
             msecs = microseconds(0);
-        } else if (PyTime_Check(src.ptr())) {
-            cal.tm_sec = PyDateTime_TIME_GET_SECOND(src.ptr());
-            cal.tm_min = PyDateTime_TIME_GET_MINUTE(src.ptr());
-            cal.tm_hour = PyDateTime_TIME_GET_HOUR(src.ptr());
+        } else if (is_time(src)) {
+            cal.tm_sec = time_second(src);
+            cal.tm_min = time_minute(src);
+            cal.tm_hour = time_hour(src);
             cal.tm_mday = 1;  // This date (day, month, year) = (1, 0, 70)
             cal.tm_mon = 0;   // represents 1-Jan-1970, which is the first
             cal.tm_year = 70; // earliest available date for Python's datetime
             cal.tm_isdst = -1;
-            msecs = microseconds(PyDateTime_TIME_GET_MICROSECOND(src.ptr()));
-            fold = PyDateTime_TIME_GET_FOLD(src.ptr());
+            msecs = microseconds(time_microsecond(src));
+            fold = time_fold(src);
         } else {
             return false;
         }
@@ -176,14 +273,14 @@ public:
         // Use Python's local-time disambiguation, preserving fold while ignoring
         // tzinfo and datetime subclass overrides. Keep microseconds separate to
         // avoid losing precision through timestamp()'s floating-point result.
-        auto dt = reinterpret_steal<object>(PyDateTime_FromDateAndTimeAndFold(cal.tm_year + 1900,
-                                                                              cal.tm_mon + 1,
-                                                                              cal.tm_mday,
-                                                                              cal.tm_hour,
-                                                                              cal.tm_min,
-                                                                              cal.tm_sec,
-                                                                              0,
-                                                                              fold));
+        auto dt = reinterpret_steal<object>(make_datetime(cal.tm_year + 1900,
+                                                          cal.tm_mon + 1,
+                                                          cal.tm_mday,
+                                                          cal.tm_hour,
+                                                          cal.tm_min,
+                                                          cal.tm_sec,
+                                                          0,
+                                                          fold));
         if (!dt) {
             throw error_already_set();
         }
@@ -197,10 +294,7 @@ public:
                        handle /* parent */) {
         using namespace std::chrono;
 
-        // Lazy initialise the PyDateTime import
-        if (!PyDateTimeAPI) {
-            PyDateTime_IMPORT;
-        }
+        datetime_import();
 
         // Get out microseconds, and make sure they are positive, to avoid bug in eastern
         // hemisphere time zones (cfr. https://github.com/pybind/pybind11/issues/2417)
@@ -217,19 +311,18 @@ public:
             = system_clock::to_time_t(time_point_cast<system_clock::duration>(src - us));
 
         // Python determines the local calendar fields and fold from whole seconds.
-        auto args = make_tuple(tt);
-        auto dt = reinterpret_steal<object>(PyDateTime_FromTimestamp(args.ptr()));
+        auto dt = reinterpret_steal<object>(datetime_from_timestamp(tt));
         if (!dt) {
             throw error_already_set();
         }
-        return PyDateTime_FromDateAndTimeAndFold(PyDateTime_GET_YEAR(dt.ptr()),
-                                                 PyDateTime_GET_MONTH(dt.ptr()),
-                                                 PyDateTime_GET_DAY(dt.ptr()),
-                                                 PyDateTime_DATE_GET_HOUR(dt.ptr()),
-                                                 PyDateTime_DATE_GET_MINUTE(dt.ptr()),
-                                                 PyDateTime_DATE_GET_SECOND(dt.ptr()),
-                                                 us.count(),
-                                                 PyDateTime_DATE_GET_FOLD(dt.ptr()));
+        return make_datetime(datetime_year(dt),
+                             datetime_month(dt),
+                             datetime_day(dt),
+                             datetime_hour(dt),
+                             datetime_minute(dt),
+                             datetime_second(dt),
+                             us.count(),
+                             datetime_fold(dt));
     }
     PYBIND11_TYPE_CASTER(type, const_name("datetime.datetime"));
 };

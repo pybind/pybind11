@@ -85,8 +85,9 @@ available and in how a few things are implemented.
      - not available
      - Reads thread- and interpreter-state fields.
    * - ``pybind11/chrono.h``
-     - not available
-     - The ``datetime`` C API accesses struct fields.
+     - supported
+     - The ``datetime`` C API is not in the stable ABI; fields are read as
+       attributes and objects are built by calling the ``datetime`` types.
    * - GIL-held assertions (``PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF``)
      - not available
      - ``PyGILState_Check()`` is not part of the stable ABI.
