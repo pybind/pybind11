@@ -106,8 +106,10 @@ def test_unbound_method_access():
     Sub.alias = m.ExampleMandA.internal1
     assert Sub(9).alias() == 9
 
-    # Py_TPFLAGS_METHOD_DESCRIPTOR: `obj.method(...)` skips the bound method
-    assert type(unbound).__flags__ & (1 << 17)
+    # Py_TPFLAGS_METHOD_DESCRIPTOR: `obj.method(...)` skips the bound method. Only pybind11's
+    # own instancemethod (limited API) has it; CPython's PyInstanceMethod_Type does not.
+    if env.LIMITED_API:
+        assert type(unbound).__flags__ & (1 << 17)
     bound = m.ExampleMandA(5).overloaded
     assert bound.__self__.internal1() == 5
     assert bound.__func__ is m.ExampleMandA.overloaded.__func__
