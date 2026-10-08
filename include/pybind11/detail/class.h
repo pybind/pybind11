@@ -45,7 +45,7 @@ destructor type_type_dealloc();
 descrgetfunc property_type_descr_get();
 descrsetfunc property_type_descr_set();
 
-#if defined(PYBIND11_TYPE_CREATION_VIA_SPEC)
+#if PYBIND11_TYPE_CREATION_VIA_SPEC
 /// PyType_FromMetaclass(), or pybind11_fail() with the Python error prefixed by `caller`.
 PyTypeObject *
 type_from_spec(const char *caller, PyTypeObject *metaclass, PyType_Spec *spec, PyObject *bases);
@@ -212,9 +212,9 @@ void enable_buffer_protocol(PyHeapTypeObject *heap_type);
 PyObject *make_new_python_type(const type_record &rec);
 
 #if !defined(Py_LIMITED_API)
-/// The hand-filled PyHeapTypeObject path. With PYBIND11_TYPE_CREATION_VIA_SPEC it is still used
-/// for `py::custom_type_setup` and for metaclasses with a custom `tp_new` (which
-/// PyType_FromMetaclass rejects).
+/// The hand-filled PyHeapTypeObject path: the only one before CPython 3.12 or with
+/// PYBIND11_TYPE_CREATION_VIA_SPEC=0. Otherwise still used for `py::custom_type_setup` and for
+/// metaclasses with a custom `tp_new` (which PyType_FromMetaclass rejects).
 PyObject *make_new_python_type_legacy(const type_record &rec);
 #endif
 
