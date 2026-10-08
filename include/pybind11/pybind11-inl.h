@@ -309,6 +309,14 @@ PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void keep_alive_impl(handle nurse, handle
 
 PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void
 keep_alive_impl(size_t Nurse, size_t Patient, function_call &call, handle ret) {
+    // With index 0, this runs in postcall, where a null `ret` means the return-value conversion
+    // failed with the real error already set. Report that error, not "Could not activate
+    // keep_alive!". Without index 0, this runs in precall, where `ret` is always null.
+    const bool uses_ret = Nurse == 0 || Patient == 0;
+    if (uses_ret && !ret) {
+        return;
+    }
+
     auto get_arg = [&](size_t n) {
         if (n == 0) {
             return ret;

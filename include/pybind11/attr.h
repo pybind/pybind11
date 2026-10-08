@@ -409,7 +409,9 @@ struct process_attribute_default {
     /// Default implementation: do nothing
     static void init(const T &, function_record *) {}
     static void init(const T &, type_record *) {}
+    /// Runs after argument conversion succeeded, before the call.
     static void precall(function_call &) {}
+    /// Runs after the call succeeded. The handle is null if return-value conversion failed.
     static void postcall(function_call &, handle) {}
 };
 
@@ -650,8 +652,8 @@ struct process_attribute<call_guard<Ts...>> : process_attribute_default<call_gua
 
 /**
  * Process a keep_alive call policy -- invokes keep_alive_impl during the
- * pre-call handler if both Nurse, Patient != 0 and use the post-call handler
- * otherwise
+ * pre-call handler (after argument conversion succeeded) if both Nurse,
+ * Patient != 0 and use the post-call handler otherwise
  */
 template <size_t Nurse, size_t Patient>
 struct process_attribute<keep_alive<Nurse, Patient>>
