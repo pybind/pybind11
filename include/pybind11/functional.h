@@ -82,7 +82,7 @@ public:
            captured variables), in which case the roundtrip can be avoided.
          */
         if (auto cfunc = func.cpp_function()) {
-            auto *cfunc_self = PyCFunction_GetSelf(cfunc.ptr());
+            auto *cfunc_self = PYBIND11_PYCFUNCTION_GET_SELF(cfunc.ptr());
             if (cfunc_self == nullptr) {
                 PyErr_Clear();
             } else {

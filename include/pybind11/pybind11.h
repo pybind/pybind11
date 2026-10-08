@@ -1890,7 +1890,7 @@ private:
             return nullptr;
         }
 
-        handle func_self = PyCFunction_GetSelf(h.ptr());
+        handle func_self = PYBIND11_PYCFUNCTION_GET_SELF(h.ptr());
         if (!func_self) {
             throw error_already_set();
         }

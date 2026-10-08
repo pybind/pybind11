@@ -453,6 +453,13 @@
         pybind11::detail::ensure_internals();                                                     \
     }
 
+// PyPy has only the macro form.
+#if defined(PYPY_VERSION)
+#    define PYBIND11_PYCFUNCTION_GET_SELF(func) PyCFunction_GET_SELF(func)
+#else
+#    define PYBIND11_PYCFUNCTION_GET_SELF(func) PyCFunction_GetSelf(func)
+#endif
+
 #if !defined(GRAALVM_PYTHON)
 #    define PYBIND11_PYCFUNCTION_GET_DOC(func) ((func)->m_ml->ml_doc)
 #    define PYBIND11_PYCFUNCTION_SET_DOC(func, doc)                                               \
