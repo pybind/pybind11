@@ -376,7 +376,10 @@ function(pybind11_add_module target_name)
     endif()
   endif()
 
-  if("${_Python}" STREQUAL "Python")
+  if(stable_abi AND lib_type STREQUAL "SHARED")
+    # python_add_library(SHARED) links the embedding library; a stable-ABI helper must not.
+    add_library(${target_name} SHARED ${ARG_UNPARSED_ARGUMENTS})
+  elseif("${_Python}" STREQUAL "Python")
     python_add_library(${target_name} ${lib_type} ${use_sabi} ${ARG_UNPARSED_ARGUMENTS})
   elseif("${_Python}" STREQUAL "Python3")
     python3_add_library(${target_name} ${lib_type} ${use_sabi} ${ARG_UNPARSED_ARGUMENTS})
