@@ -171,7 +171,6 @@ jobs:
     timeout-minutes: 60
     env:
       PYBIND11_STABLE_ABI_SKIPPED_TESTS: >-
-        --ignore=tests/test_chrono.py
         --ignore=tests/test_custom_type_setup.py
         --ignore=tests/test_multiple_interpreters.py
         --ignore=tests/test_class_release_gil_before_calling_cpp_dtor.py
@@ -236,7 +235,6 @@ jobs:
     timeout-minutes: 60
     env:
       PYBIND11_STABLE_ABI_SKIPPED_TESTS: >-
-        --ignore=tests/test_chrono.py
         --ignore=tests/test_custom_type_setup.py
         --ignore=tests/test_multiple_interpreters.py
         --ignore=tests/test_class_release_gil_before_calling_cpp_dtor.py
