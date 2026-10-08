@@ -84,7 +84,7 @@
 #    else
 #        define PYBIND11_PRECOMPILED_CFG_LA 0
 #    endif
-#    if defined(PYBIND11_TYPE_CREATION_VIA_SPEC)
+#    if PYBIND11_TYPE_CREATION_VIA_SPEC
 #        define PYBIND11_PRECOMPILED_CFG_TS 1
 #    else
 #        define PYBIND11_PRECOMPILED_CFG_TS 0

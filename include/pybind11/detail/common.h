@@ -36,7 +36,9 @@
 #    endif
 // The only type-creation path without struct access.
 #    if !defined(PYBIND11_TYPE_CREATION_VIA_SPEC)
-#        define PYBIND11_TYPE_CREATION_VIA_SPEC
+#        define PYBIND11_TYPE_CREATION_VIA_SPEC 1
+#    elif !PYBIND11_TYPE_CREATION_VIA_SPEC
+#        error "PYBIND11_TYPE_CREATION_VIA_SPEC=0 is not possible under Py_LIMITED_API."
 #    endif
 #    if !defined(PYBIND11_HAS_SUBINTERPRETER_SUPPORT)
 #        define PYBIND11_HAS_SUBINTERPRETER_SUPPORT 0 // reads thread/interpreter state fields
@@ -282,11 +284,18 @@
 #    define PYBIND11_SIMPLE_GIL_MANAGEMENT
 #endif
 
-// Opt-in: create the pybind11 type objects (metaclass, static property, instance base and all
-// bound classes) through PyType_FromMetaclass() with PyType_Spec instead of filling in raw
-// PyHeapTypeObject fields. Requires CPython 3.12+. This is the only type-creation path under the
-// stable ABI and is planned to become the default on CPython 3.12+.
-#if defined(PYBIND11_TYPE_CREATION_VIA_SPEC)
+// Create the pybind11 type objects (metaclass, static property, instance base and all bound
+// classes) through PyType_FromMetaclass() with PyType_Spec instead of filling in raw
+// PyHeapTypeObject fields. The default on CPython 3.12+ and the only path under the stable ABI;
+// define PYBIND11_TYPE_CREATION_VIA_SPEC=0 to opt out. `py::custom_type_setup()` and
+// metaclasses with a custom `tp_new` still use the legacy path.
+#if !defined(PYBIND11_TYPE_CREATION_VIA_SPEC)
+#    if PY_VERSION_HEX >= 0x030C0000 && !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)
+#        define PYBIND11_TYPE_CREATION_VIA_SPEC 1
+#    else
+#        define PYBIND11_TYPE_CREATION_VIA_SPEC 0
+#    endif
+#elif PYBIND11_TYPE_CREATION_VIA_SPEC
 #    if PY_VERSION_HEX < 0x030C0000 || defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
 #        error "PYBIND11_TYPE_CREATION_VIA_SPEC requires CPython 3.12 or newer."
 #    endif
