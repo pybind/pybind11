@@ -319,7 +319,9 @@ private:
     // actual function lambda so that we can get code reuse for
     // functions with the same Return, Args, and Guard.
     template <typename Return, typename Guard, typename ArgsConverter, typename... Args>
-    static handle call_impl(detail::function_call &call, detail::function_ref<Return(Args...)> f) {
+    static handle call_impl(detail::function_call &call,
+                            detail::function_ref<Return(Args...)> f,
+                            void (*precall)(detail::function_call &)) {
         using namespace detail;
         // Static assertion: function_ref must be trivially copyable to ensure safe pass-by-value.
         // Lifetime safety: The function_ref is created from cap->f which lives in the capture
@@ -335,6 +337,10 @@ private:
             return PYBIND11_TRY_NEXT_OVERLOAD;
         }
 
+        // cast_op can reject an argument after load_args succeeds. Run the hook after those
+        // conversions, but before constructing the guard, which may release the GIL.
+        auto precall_hook = [&] { precall(call); };
+
         /* Override policy for rvalues -- usually to enforce rvp::move on an rvalue */
         return_value_policy policy
             = return_value_policy_override<Return>::policy(call.func.policy);
@@ -342,11 +348,13 @@ private:
         /* Perform the function call */
         handle result;
         if (call.func.is_setter) {
-            (void) std::move(args_converter).template call<Return, Guard>(f);
+            (void) std::move(args_converter).template call<Return, Guard>(f, precall_hook);
             result = none().release();
         } else {
             result = cast_out::cast(
-                std::move(args_converter).template call<Return, Guard>(f), policy, call.parent);
+                std::move(args_converter).template call<Return, Guard>(f, precall_hook),
+                policy,
+                call.parent);
         }
 
         return result;
@@ -415,9 +423,6 @@ protected:
 
         /* Dispatch code which converts function arguments and performs the actual function call */
         rec->impl = [](function_call &call) -> handle {
-            /* Invoke call policy pre-call hook */
-            process_attributes<Extra...>::precall(call);
-
             /* Get a pointer to the capture object */
             const auto *data = (sizeof(capture) <= sizeof(call.func.data) ? &call.func.data
                                                                           : call.func.data[0]);
@@ -427,12 +432,18 @@ protected:
                                     /* Function scope guard -- defaults to the compile-to-nothing
                                        `void_type` */
                                     extract_guard_t<Extra...>,
-                                    cast_in>(call, detail::function_ref<Return(Args...)>(cap->f));
+                                    cast_in>(call,
+                                             detail::function_ref<Return(Args...)>(cap->f),
+                                             &process_attributes<Extra...>::precall);
 
-            /* Invoke call policy post-call hook */
-            process_attributes<Extra...>::postcall(call, result);
+            if (result.ptr() == PYBIND11_TRY_NEXT_OVERLOAD) {
+                return result;
+            }
 
-            return result;
+            // Own the result while running postcall so any throwing hook releases it.
+            auto result_guard = reinterpret_steal<object>(result);
+            process_attributes<Extra...>::postcall(call, result_guard);
+            return result_guard.release();
         };
 
         rec->nargs_pos = cast_in::args_pos >= 0
