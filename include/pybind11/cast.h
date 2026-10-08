@@ -927,9 +927,13 @@ protected:
         }
     }
 
+    // The fallback overload always throws; MSVC LTCG then flags this return as unreachable.
+    PYBIND11_WARNING_PUSH
+    PYBIND11_WARNING_DISABLE_MSVC(4702)
     bool set_foreign_holder(handle src) {
         return holder_caster_foreign_helpers::set_foreign_holder(src, (type *) value, &holder);
     }
+    PYBIND11_WARNING_POP
 
     void load_value(value_and_holder &&v_h) {
         if (v_h.holder_constructed()) {

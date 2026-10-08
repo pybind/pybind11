@@ -343,6 +343,18 @@ class build_ext(_build_ext):  # noqa: N801
 
         super().build_extensions()
 
+    def get_export_symbols(self, ext: _Extension) -> list[str]:  # type: ignore[override]
+        """
+        abi3t modules export the PEP 793 ``PyModExport_*`` hook, not ``PyInit_*``.
+        """
+        symbols: list[str] = super().get_export_symbols(ext)  # type: ignore[no-untyped-call]
+        if getattr(ext, "_abi3t", False):
+            name = ext.name.split(".")[-1]
+            symbols = [
+                f"PyModExport_{name}" if s == f"PyInit_{name}" else s for s in symbols
+            ]
+        return symbols
+
     def get_ext_filename(self, fullname: str) -> str:
         """
         setuptools picks the first ``.abi3*`` suffix, which is ``.abi3`` on
