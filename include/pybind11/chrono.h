@@ -89,21 +89,23 @@ make_datetime(int year, int month, int day, int hour, int minute, int second, in
                                  microsecond);
 }
 #else
-inline void datetime_import() {
+// `PyDateTimeAPI` is a per-translation-unit static: these helpers get internal linkage so the
+// linker cannot pair one unit's import with another unit's (null) pointer.
+static inline void datetime_import() {
     if (!PyDateTimeAPI) {
         PyDateTime_IMPORT;
     }
 }
-inline bool is_timedelta(handle h) { return PyDelta_Check(h.ptr()); }
-inline bool is_datetime(handle h) { return PyDateTime_Check(h.ptr()); }
-inline bool is_date(handle h) { return PyDate_Check(h.ptr()); }
-inline bool is_time(handle h) { return PyTime_Check(h.ptr()); }
+static inline bool is_timedelta(handle h) { return PyDelta_Check(h.ptr()); }
+static inline bool is_datetime(handle h) { return PyDateTime_Check(h.ptr()); }
+static inline bool is_date(handle h) { return PyDate_Check(h.ptr()); }
+static inline bool is_time(handle h) { return PyTime_Check(h.ptr()); }
 #    define PYBIND11_DATETIME_ACCESSOR(fn, attr, c_macro)                                         \
-        inline int fn(handle h) { return c_macro(h.ptr()); }
-inline PyObject *make_timedelta(int days, int seconds, int microseconds) {
+        static inline int fn(handle h) { return c_macro(h.ptr()); }
+static inline PyObject *make_timedelta(int days, int seconds, int microseconds) {
     return PyDelta_FromDSU(days, seconds, microseconds);
 }
-inline PyObject *
+static inline PyObject *
 make_datetime(int year, int month, int day, int hour, int minute, int second, int microsecond) {
     return PyDateTime_FromDateAndTime(year, month, day, hour, minute, second, microsecond);
 }

@@ -6,6 +6,7 @@ import pytest
 
 import env  # noqa: F401
 from pybind11_tests import chrono as m
+from pybind11_tests import chrono_second_tu as m2
 
 
 def test_chrono_system_clock():
@@ -27,6 +28,13 @@ def test_chrono_system_clock():
     # Since datetime.datetime.today() calls time.time(), and on some platforms
     # that has 1 second accuracy, we compare this way
     assert diff.seconds <= diff_python.seconds
+
+
+def test_chrono_second_translation_unit():
+    """The datetime C API import must work per translation unit (two-TU crash)"""
+    delta = datetime.timedelta(seconds=1, microseconds=5)
+    assert m2.duration_roundtrip(delta) == delta
+    assert m.test_chrono2(m.test_chrono1()) is not None
 
 
 def test_chrono_system_clock_roundtrip():
