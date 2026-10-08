@@ -43,13 +43,15 @@ jobs:
           check-latest: >-
             ${{ inputs.python-version == '3.13' && runner.os == 'Windows' }}
 
-      - name: Setup Boost (Linux)
-        if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libboost-dev
-
-      - name: Setup Boost (macOS)
-        if: runner.os == 'macOS'
-        run: brew install boost
+      - name: Setup Boost
+        id: boost
+        background: true
+        shell: bash
+        run: |
+          case "$RUNNER_OS" in
+            Linux) sudo apt-get update && sudo apt-get install -y libboost-dev ;;
+            macOS) brew install boost ;;
+          esac
 
       - name: Install uv
         uses: astral-sh/setup-uv@v10.2.0
@@ -57,7 +59,7 @@ jobs:
           enable-cache: true
 
       - name: Prepare env
-        run: uv pip install --python=python --system -r tests/requirements.txt
+        run: uv pip install --python=python --system -r tests/requirements.txt setuptools
 
       - name: Setup annotations on Linux
         if: runner.os == 'Linux'
@@ -71,6 +73,9 @@ jobs:
       # Pass setup-python's resolved interpreter path to CMake so FindPython
       # does not select a different interpreter (e.g. Homebrew's 3.14 instead
       # of setup-python's 3.14t).
+      - name: Wait for Boost
+        wait: boost
+
       - name: Configure
         run: >
           cmake -S. -Bbuild -Werror=dev
@@ -84,20 +89,22 @@ jobs:
       - name: Build
         run: cmake --build build
 
-      - name: Python tests
-        run: cmake --build build --target pytest
+      # Python tests run pytest directly: two concurrent `cmake --build` calls
+      # on one build tree are not safe.
+      - parallel:
+          - name: Python tests
+            working-directory: build/tests
+            run: python -m pytest -v
+
+          - name: Interface test
+            run: cmake --build build --target test_cmake_build
+
+          - name: Setuptools helpers test
+            run: pytest tests/extra_setuptools
 
       - name: C++ tests
         timeout-minutes: 3
         run: cmake --build build --target cpptest
 
-      - name: Interface test
-        run: cmake --build build --target test_cmake_build
-
       - name: Visibility test
         run: cmake --build build --target test_cross_module_rtti
-
-      - name: Setuptools helpers test
-        run: |
-          uv pip install --python=python --system setuptools
-          pytest tests/extra_setuptools

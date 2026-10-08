@@ -445,10 +445,19 @@ jobs:
     steps:
     - uses: actions/checkout@v7
 
-    - name: Clean out unused stuff to save space
-      run: |
-        sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
-        sudo apt-get clean
+    - parallel:
+      - name: Clean out unused stuff to save space
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
+          sudo apt-get clean
+
+      # Downloaded with curl instead of apt: the Akamai CDN in front of
+      # developer.download.nvidia.com intermittently 404s, and apt neither
+      # retries 404s nor resumes a broken 5 GB transfer.
+      - name: Download NVHPC
+        run: |
+          curl -fSLO --retry 10 --retry-all-errors --retry-delay 15 --continue-at - \
+            https://developer.download.nvidia.com/hpc-sdk/ubuntu/amd64/nvhpc-26-5_26.5-0_amd64.deb
 
     - name: Install 🐍 3
       run: |
@@ -457,13 +466,8 @@ jobs:
         python3 -m pip install --upgrade pip
         python3 -m pip install --upgrade pytest
 
-    # Downloaded with curl instead of apt: the Akamai CDN in front of
-    # developer.download.nvidia.com intermittently 404s, and apt neither
-    # retries 404s nor resumes a broken 5 GB transfer.
     - name: Install NVHPC
       run: |
-        curl -fSLO --retry 10 --retry-all-errors --retry-delay 15 --continue-at - \
-          https://developer.download.nvidia.com/hpc-sdk/ubuntu/amd64/nvhpc-26-5_26.5-0_amd64.deb
         sudo apt-get install -y --no-install-recommends ./nvhpc-26-5_26.5-0_amd64.deb
         rm nvhpc-26-5_26.5-0_amd64.deb
 
