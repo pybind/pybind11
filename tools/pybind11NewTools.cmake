@@ -269,9 +269,37 @@ set(PYBIND11_STABLE_ABI_VERSION
     "3.12"
     CACHE STRING "Python version whose stable ABI STABLE_ABI modules target (3.12 or newer)")
 
-# PYBIND11_STABLE_ABI_VERSION as the Py_LIMITED_API hex value.
+# True if the interpreter is a free-threaded build (needs the abi3t variant of the stable ABI).
+function(_pybind11_python_is_free_threaded out_var)
+  if(${_Python}_FREE_THREADED
+     OR "${${_Python}_SOABI}" MATCHES "^cpython-[0-9]+t"
+     OR "${PYTHON_MODULE_EXTENSION}" MATCHES "^\\.cpython-[0-9]+t")
+    set(${out_var}
+        ON
+        PARENT_SCOPE)
+  else()
+    set(${out_var}
+        OFF
+        PARENT_SCOPE)
+  endif()
+endfunction()
+
+# PYBIND11_STABLE_ABI_VERSION, raised to 3.15 on free-threaded Python (abi3t starts there).
+function(_pybind11_stable_abi_version out_var)
+  set(_version "${PYBIND11_STABLE_ABI_VERSION}")
+  _pybind11_python_is_free_threaded(_free_threaded)
+  if(_free_threaded AND _version VERSION_LESS 3.15)
+    set(_version "3.15")
+  endif()
+  set(${out_var}
+      "${_version}"
+      PARENT_SCOPE)
+endfunction()
+
+# The effective stable ABI version as the Py_LIMITED_API hex value.
 function(_pybind11_stable_abi_hex out_var)
-  string(REPLACE "." ";" _parts "${PYBIND11_STABLE_ABI_VERSION}")
+  _pybind11_stable_abi_version(_version)
+  string(REPLACE "." ";" _parts "${_version}")
   list(GET _parts 0 _major)
   list(GET _parts 1 _minor)
   math(EXPR _hex "(${_major} << 24) | (${_minor} << 16)" OUTPUT_FORMAT HEXADECIMAL)
@@ -300,9 +328,12 @@ function(_pybind11_check_stable_abi target_name lib_type)
     message(FATAL_ERROR "${target_name}: STABLE_ABI ${PYBIND11_STABLE_ABI_VERSION} needs Python "
                         ">= ${PYBIND11_STABLE_ABI_VERSION} headers, found ${${_Python}_VERSION}.")
   endif()
-  if("${${_Python}_SOABI}" MATCHES "^cpython-[0-9]+t" OR "${PYTHON_MODULE_EXTENSION}" MATCHES
-                                                         "^\\.cpython-[0-9]+t")
-    message(FATAL_ERROR "${target_name}: the free-threaded build has no stable ABI.")
+  _pybind11_python_is_free_threaded(_free_threaded)
+  if(_free_threaded
+     AND DEFINED ${_Python}_VERSION
+     AND ${_Python}_VERSION VERSION_LESS 3.15)
+    message(FATAL_ERROR "${target_name}: the free-threaded stable ABI (abi3t) needs Python "
+                        ">= 3.15, found ${${_Python}_VERSION}.")
   endif()
   if(NOT TARGET ${_Python}::SABIModule)
     message(
@@ -340,7 +371,8 @@ function(pybind11_add_module target_name)
     set(stable_abi ON)
     if(lib_type STREQUAL "MODULE")
       # Defines Py_LIMITED_API and links Python::SABIModule (python3.lib on Windows).
-      set(use_sabi USE_SABI ${PYBIND11_STABLE_ABI_VERSION})
+      _pybind11_stable_abi_version(_sabi_version)
+      set(use_sabi USE_SABI ${_sabi_version})
     endif()
   endif()
 

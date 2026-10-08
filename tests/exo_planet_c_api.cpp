@@ -47,6 +47,7 @@ PyMethodDef ThisMethodDef[] = {{"GetLuggage", wrapGetLuggage, METH_O, nullptr},
                                {"GetPoints", wrapGetPoints, METH_O, nullptr},
                                {nullptr, nullptr, 0, nullptr}};
 
+#if !defined(_Py_OPAQUE_PYOBJECT)
 struct PyModuleDef ThisModuleDef = {
     PyModuleDef_HEAD_INIT, // m_base
     "exo_planet_c_api",    // m_name
@@ -58,6 +59,7 @@ struct PyModuleDef ThisModuleDef = {
     nullptr,               // m_clear
     nullptr                // m_free
 };
+#endif
 
 } // namespace
 
@@ -67,6 +69,17 @@ struct PyModuleDef ThisModuleDef = {
 #    define EXO_PLANET_C_API_EXPORT __attribute__((visibility("default")))
 #endif
 
+#if defined(_Py_OPAQUE_PYOBJECT)
+// PEP 793 export hook: PyModuleDef is an incomplete type under the abi3t stable ABI.
+extern "C" EXO_PLANET_C_API_EXPORT PySlot *PyModExport_exo_planet_c_api() {
+    PyABIInfo_VAR(abi_info);
+    static PySlot slots[] = {PySlot_PTR(Py_mod_name, "exo_planet_c_api"),
+                             PySlot_PTR_STATIC(Py_mod_methods, ThisMethodDef),
+                             PySlot_PTR_STATIC(Py_mod_abi, &abi_info),
+                             {0, 0, {0}, {nullptr}}};
+    return slots;
+}
+#else
 extern "C" EXO_PLANET_C_API_EXPORT PyObject *PyInit_exo_planet_c_api() {
     PyObject *m = PyModule_Create(&ThisModuleDef);
     if (m == nullptr) {
@@ -74,3 +87,4 @@ extern "C" EXO_PLANET_C_API_EXPORT PyObject *PyInit_exo_planet_c_api() {
     }
     return m;
 }
+#endif

@@ -25,12 +25,12 @@ struct trampoline_self_life_support {
     trampoline_self_life_support() = default;
 
     void activate_life_support(const detail::value_and_holder &v_h_) {
-        Py_INCREF((PyObject *) v_h_.inst);
+        Py_INCREF(instance_object(v_h_.inst));
         v_h = v_h_;
     }
 
     void deactivate_life_support() {
-        Py_DECREF((PyObject *) v_h.inst);
+        Py_DECREF(instance_object(v_h.inst));
         v_h = detail::value_and_holder();
     }
 
@@ -42,7 +42,7 @@ struct trampoline_self_life_support {
                 v_h.value_ptr() = nullptr;
                 v_h.holder<smart_holder>().release_disowned();
                 detail::deregister_instance(v_h.inst, value_void_ptr, v_h.type);
-                Py_DECREF((PyObject *) v_h.inst); // Must be after deregister.
+                Py_DECREF(instance_object(v_h.inst)); // Must be after deregister.
                 PyGILState_Release(threadstate);
             }
         }

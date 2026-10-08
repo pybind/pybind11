@@ -25,7 +25,11 @@
             "pybind11 requires Py_LIMITED_API >= 0x030C0000 and CPython >= 3.12 for the stable ABI."
 #    endif
 #    if defined(Py_GIL_DISABLED)
-#        error "The free-threaded build has no stable ABI; do not define Py_LIMITED_API."
+#        if Py_LIMITED_API + 0 < 0x030F0000 || !defined(_Py_OPAQUE_PYOBJECT)
+#            error "The free-threaded stable ABI (abi3t) needs Py_LIMITED_API >= 0x030F0000."
+#        endif
+// PEP 803: PyObject and PyModuleDef are incomplete types; see docs/advanced/stable_abi.rst.
+#        define PYBIND11_OPAQUE_PYOBJECT
 #    endif
 #    if !defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
 #        define PYBIND11_SIMPLE_GIL_MANAGEMENT // gil.h reads thread-state internals
@@ -42,6 +46,16 @@
 #    if !defined(PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET)
 #        define PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET // no Py_TPFLAGS_MANAGED_DICT
 #    endif
+#endif
+
+// Heap types declare their extra data as PEP 697 type data when PyObject is opaque: a negative
+// PyType_Spec::basicsize and member offsets relative to that data.
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+#    define PYBIND11_TYPE_DATA_SIZE(T) (-static_cast<int>(sizeof(T)))
+#    define PYBIND11_MEMBER_OFFSET_FLAGS Py_RELATIVE_OFFSET
+#else
+#    define PYBIND11_TYPE_DATA_SIZE(T) (static_cast<int>(sizeof(T)))
+#    define PYBIND11_MEMBER_OFFSET_FLAGS 0
 #endif
 
 // Similar to Python's convention: https://docs.python.org/3/c-api/apiabiversion.html
@@ -539,29 +553,49 @@ Note that this is run once for each (sub-)interpreter the module is imported int
 possibly concurrently.  The PyModuleDef is allowed to be static, but the PyObject* resulting from
 PyModuleDef_Init should be treated like any other PyObject (so not shared across interpreters).
  */
-#define PYBIND11_MODULE_PYINIT(name, ...)                                                         \
-    static int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject *);                                 \
-    PYBIND11_PLUGIN_IMPL(name) {                                                                  \
-        PYBIND11_CHECK_PYTHON_VERSION                                                             \
-        PYBIND11_PRECOMPILED_CONFIG_GUARD                                                         \
-        try {                                                                                     \
-            static ::pybind11::detail::slots_array mod_def_slots                                  \
-                = ::pybind11::detail::init_slots(                                                 \
-                    &PYBIND11_CONCAT(pybind11_exec_, name), ##__VA_ARGS__);                       \
-            static PyModuleDef def{/* m_base */ PyModuleDef_HEAD_INIT,                            \
-                                   /* m_name */ PYBIND11_TOSTRING(name),                          \
-                                   /* m_doc */ nullptr,                                           \
-                                   /* m_size */ 0,                                                \
-                                   /* m_methods */ nullptr,                                       \
-                                   /* m_slots */ mod_def_slots.data(),                            \
-                                   /* m_traverse */ nullptr,                                      \
-                                   /* m_clear */ nullptr,                                         \
-                                   /* m_free */ nullptr};                                         \
-            return PyModuleDef_Init(&def);                                                        \
-        }                                                                                         \
-        PYBIND11_CATCH_INIT_EXCEPTIONS                                                            \
-        return nullptr;                                                                           \
-    }
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+// PEP 793 export hook: PyModuleDef is an incomplete type, so the module is described by a static
+// PySlot array instead.
+#    define PYBIND11_MODULE_PYINIT(name, ...)                                                            \
+        static int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject *);                                    \
+        extern "C" PYBIND11_MAYBE_UNUSED PYBIND11_EXPORT PySlot *PyModExport_##name(void);               \
+        extern "C" PYBIND11_EXPORT PySlot *PyModExport_##name(void) {                                    \
+            PYBIND11_CHECK_PYTHON_VERSION                                                                \
+            PYBIND11_PRECOMPILED_CONFIG_GUARD                                                            \
+            try {                                                                                        \
+                static ::pybind11::detail::export_slots_array mod_slots                                  \
+                    = ::pybind11::detail::init_export_slots(                                             \
+                        PYBIND11_TOSTRING(name), &PYBIND11_CONCAT(pybind11_exec_, name), ##__VA_ARGS__); \
+                return mod_slots.data();                                                                 \
+            }                                                                                            \
+            PYBIND11_CATCH_INIT_EXCEPTIONS                                                               \
+            return nullptr;                                                                              \
+        }
+#else
+#    define PYBIND11_MODULE_PYINIT(name, ...)                                                     \
+        static int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject *);                             \
+        PYBIND11_PLUGIN_IMPL(name) {                                                              \
+            PYBIND11_CHECK_PYTHON_VERSION                                                         \
+            PYBIND11_PRECOMPILED_CONFIG_GUARD                                                     \
+            try {                                                                                 \
+                static ::pybind11::detail::slots_array mod_def_slots                              \
+                    = ::pybind11::detail::init_slots(                                             \
+                        &PYBIND11_CONCAT(pybind11_exec_, name), ##__VA_ARGS__);                   \
+                static PyModuleDef def{/* m_base */ PyModuleDef_HEAD_INIT,                        \
+                                       /* m_name */ PYBIND11_TOSTRING(name),                      \
+                                       /* m_doc */ nullptr,                                       \
+                                       /* m_size */ 0,                                            \
+                                       /* m_methods */ nullptr,                                   \
+                                       /* m_slots */ mod_def_slots.data(),                        \
+                                       /* m_traverse */ nullptr,                                  \
+                                       /* m_clear */ nullptr,                                     \
+                                       /* m_free */ nullptr};                                     \
+                return PyModuleDef_Init(&def);                                                    \
+            }                                                                                     \
+            PYBIND11_CATCH_INIT_EXCEPTIONS                                                        \
+            return nullptr;                                                                       \
+        }
+#endif
 
 #define PYBIND11_MODULE_EXEC(name, variable)                                                      \
     static void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ &);                     \
@@ -720,7 +754,9 @@ struct nonsimple_values_and_holders {
 
 /// The 'instance' type which needs to be standard layout (need to be able to use 'offsetof')
 struct instance {
+#if !defined(PYBIND11_OPAQUE_PYOBJECT)
     PyObject_HEAD
+#endif
     /// Storage for pointers and holder; see simple_layout, below, for a description
     union {
         void *simple_value_holder[1 + instance_simple_holder_in_ptrs()];
@@ -770,6 +806,10 @@ struct instance {
     /// `old_style_placement_new` in `docs/upgrade.rst` and referenced from
     /// `docs/advanced/classes.rst`.
     bool old_style_init_active : 1;
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+    /// Weak reference used by the instance registry: the limited API has no PyUnstable_TryIncRef.
+    PyObject *registry_weakref;
+#endif
 
     /// Initializes all of the above type/values/holders data (but not the instance values
     /// themselves)
@@ -791,6 +831,20 @@ struct instance {
 
 static_assert(std::is_standard_layout<instance>::value,
               "Internal error: `pybind11::detail::instance` is not standard layout!");
+
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+/// Offset of the `instance` data (PEP 697 type data) from the start of the Python object.
+Py_ssize_t instance_data_offset();
+inline instance *get_instance(PyObject *obj) {
+    return reinterpret_cast<instance *>(reinterpret_cast<char *>(obj) + instance_data_offset());
+}
+inline PyObject *instance_object(instance *inst) {
+    return reinterpret_cast<PyObject *>(reinterpret_cast<char *>(inst) - instance_data_offset());
+}
+#else
+inline instance *get_instance(PyObject *obj) { return reinterpret_cast<instance *>(obj); }
+inline PyObject *instance_object(instance *inst) { return reinterpret_cast<PyObject *>(inst); }
+#endif
 
 // Some older compilers (e.g. gcc 9.4.0) require
 //     static_assert(always_false<T>::value, "...");
