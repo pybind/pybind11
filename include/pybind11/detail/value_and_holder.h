@@ -25,6 +25,10 @@ struct value_and_holder {
           vh{inst->simple_layout ? inst->simple_value_holder
                                  : &inst->nonsimple.values_and_holders[vpos]} {}
 
+    /// True if the Python object is exactly the bound type, i.e. not a Python subclass that
+    /// may need the alias (trampoline) type.
+    bool type_is_exact() const;
+
     // Default constructor (used to signal a value-and-holder not found by get_value_and_holder())
     value_and_holder() = default;
 
