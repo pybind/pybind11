@@ -635,7 +635,7 @@ PYBIND11_INLINE void cpp_function::initialize_generic(unique_function_record &&u
     detail::function_record *chain = nullptr, *chain_start = rec;
     if (rec->sibling) {
         if (PyCFunction_Check(rec->sibling.ptr())) {
-            auto *self = PyCFunction_GetSelf(rec->sibling.ptr());
+            auto *self = PYBIND11_PYCFUNCTION_GET_SELF(rec->sibling.ptr());
             if (self == nullptr) {
                 pybind11_fail("initialize_generic: Unexpected nullptr from PyCFunction_GetSelf");
             }
@@ -697,7 +697,7 @@ PYBIND11_INLINE void cpp_function::initialize_generic(unique_function_record &&u
             // chain.
             chain_start = rec;
             rec->next = chain;
-            auto *py_func_rec = detail::function_record_data(PyCFunction_GetSelf(m_ptr));
+            auto *py_func_rec = detail::function_record_data(PYBIND11_PYCFUNCTION_GET_SELF(m_ptr));
             py_func_rec->cpp_func_rec = unique_rec.release();
             guarded_strdup.release();
         } else {
