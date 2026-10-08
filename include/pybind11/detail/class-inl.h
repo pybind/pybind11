@@ -494,6 +494,7 @@ struct instancemethod_object {
     PyObject_HEAD
 #    endif
     PyObject *func;
+    vectorcallfunc vectorcall;
 };
 
 PYBIND11_INLINE instancemethod_object *instancemethod_data(PyObject *self) {
@@ -534,6 +535,15 @@ instancemethod_descr_get(PyObject *self, PyObject *obj, PyObject * /*type*/) {
 extern "C" PYBIND11_INLINE PyObject *
 instancemethod_call(PyObject *self, PyObject *args, PyObject *kwargs) {
     return PyObject_Call(instancemethod_data(self)->func, args, kwargs);
+}
+
+// Py_TPFLAGS_METHOD_DESCRIPTOR: `obj.method(...)` calls this with `obj` prepended instead of
+// creating a bound method.
+extern "C" PYBIND11_INLINE PyObject *instancemethod_vectorcall(PyObject *self,
+                                                               PyObject *const *args,
+                                                               size_t nargsf,
+                                                               PyObject *kwnames) {
+    return PyObject_Vectorcall(instancemethod_data(self)->func, args, nargsf, kwnames);
 }
 
 extern "C" PYBIND11_INLINE PyObject *instancemethod_getattro(PyObject *self, PyObject *name) {
@@ -587,6 +597,11 @@ PYBIND11_INLINE PyTypeObject *get_instancemethod_type() {
                                              offsetof(instancemethod_object, func),
                                              Py_READONLY | PYBIND11_MEMBER_OFFSET_FLAGS,
                                              nullptr},
+                                            {"__vectorcalloffset__",
+                                             Py_T_PYSSIZET,
+                                             offsetof(instancemethod_object, vectorcall),
+                                             Py_READONLY | PYBIND11_MEMBER_OFFSET_FLAGS,
+                                             nullptr},
                                             {nullptr, 0, 0, 0, nullptr}};
             static PyType_Slot slots[]
                 = {{Py_tp_descr_get, reinterpret_cast<void *>(instancemethod_descr_get)},
@@ -602,7 +617,8 @@ PYBIND11_INLINE PyTypeObject *get_instancemethod_type() {
                 = {PYBIND11_DUMMY_MODULE_NAME ".instancemethod",
                    PYBIND11_TYPE_DATA_SIZE(instancemethod_object),
                    0,
-                   Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_DISALLOW_INSTANTIATION,
+                   Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_DISALLOW_INSTANTIATION
+                       | Py_TPFLAGS_METHOD_DESCRIPTOR | Py_TPFLAGS_HAVE_VECTORCALL,
                    slots};
             internals.instancemethod_type
                 = type_from_spec("get_instancemethod_type()", nullptr, &spec, nullptr);
@@ -627,6 +643,7 @@ PYBIND11_INLINE PyObject *instancemethod_new(PyObject *func) {
     }
     Py_INCREF(func);
     instancemethod_data(self)->func = func;
+    instancemethod_data(self)->vectorcall = instancemethod_vectorcall;
     return self;
 }
 
