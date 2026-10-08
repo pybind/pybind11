@@ -77,8 +77,13 @@ TEST_SUBMODULE(modules, m) {
         class Dupe3 {};
         class DupeException {};
 
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+        // PyModuleDef is an incomplete type under the abi3t stable ABI.
+        auto dm = py::reinterpret_steal<py::module_>(PyModule_New("dummy"));
+#else
         // Go ahead and leak, until we have a non-leaking py::module_ constructor
         auto dm = py::module_::create_extension_module("dummy", nullptr, new PyModuleDef);
+#endif
         auto failures = py::list();
 
         py::class_<Dupe1>(dm, "Dupe1");

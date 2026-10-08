@@ -73,7 +73,14 @@ using tuple_accessor = accessor<accessor_policies::tuple_item>;
 /// Tag and check to identify a class which implements the Python object API
 class pyobject_tag {};
 template <typename T>
-using is_pyobject = std::is_base_of<pyobject_tag, remove_reference_t<T>>;
+struct is_pyobject : std::is_base_of<pyobject_tag, remove_reference_t<T>> {};
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+// PyObject is an incomplete type under the abi3t stable ABI; type traits cannot inspect it.
+template <>
+struct is_pyobject<PyObject> : std::false_type {};
+template <>
+struct is_pyobject<const PyObject> : std::false_type {};
+#endif
 
 /** \rst
     A mixin class which adds common functions to `handle`, `object` and various accessors.

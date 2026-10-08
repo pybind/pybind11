@@ -89,12 +89,15 @@ STD_TMPL = "/std:c++{}" if WIN else "-std=c++{}"
 
 def _limited_api_hex(value: Any) -> str:
     """
-    The Py_LIMITED_API value for ``py_limited_api``: True selects 3.12 (the
-    minimum pybind11 supports), a string such as "3.13" or "cp313" selects
-    that version, and an int or hex string is passed through.
+    The Py_LIMITED_API value for ``py_limited_api``: True selects the minimum
+    pybind11 supports (3.12, or 3.15 on free-threaded Python, where the stable
+    ABI is abi3t), a string such as "3.13" or "cp313" selects that version, and
+    an int or hex string is passed through.
     """
+    free_threaded = bool(sysconfig.get_config_var("Py_GIL_DISABLED"))
+    minimum = (3, 15) if free_threaded else (3, 12)
     if value is True:
-        return "0x030C0000"
+        return f"0x{minimum[0]:02X}{minimum[1]:02X}0000"
     if isinstance(value, int):
         return f"0x{value:08X}"
     text = str(value)
@@ -105,8 +108,13 @@ def _limited_api_hex(value: Any) -> str:
         msg = f"py_limited_api must be True or a Python version such as '3.12', got {value!r}"
         raise ValueError(msg)
     major, minor = (int(part) for part in match.groups())
-    if (major, minor) < (3, 12):
-        msg = f"pybind11 supports the stable ABI from Python 3.12 on, got {value!r}"
+    if (major, minor) < minimum:
+        what = (
+            "the free-threaded stable ABI (abi3t)"
+            if free_threaded
+            else "the stable ABI"
+        )
+        msg = f"pybind11 supports {what} from Python {minimum[0]}.{minimum[1]} on, got {value!r}"
         raise ValueError(msg)
     return f"0x{major:02X}{minor:02X}0000"
 

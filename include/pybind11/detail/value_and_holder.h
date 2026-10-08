@@ -84,7 +84,7 @@ struct value_and_holder {
 //                for `tp_traverse` and `tp_clear` implementations.
 // WARNING: The caller is responsible for ensuring that the `reinterpret_cast` is valid.
 inline bool is_holder_constructed(PyObject *obj) {
-    auto *const instance = reinterpret_cast<pybind11::detail::instance *>(obj);
+    auto *const instance = get_instance(obj);
     return instance->get_value_and_holder().holder_constructed();
 }
 
