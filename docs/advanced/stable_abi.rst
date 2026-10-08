@@ -137,8 +137,9 @@ to specific operations:
 * Instance allocation and deallocation look up ``tp_alloc``/``tp_free`` with
   ``PyType_GetSlot()``; the ``__dict__`` of ``py::dynamic_attr()`` instances
   is found through the type's cached dictionary offset.
-* Attribute access on bound *classes* (not instances) walks ``__mro__`` and
-  the class dictionaries instead of using ``_PyType_Lookup()``.
+* Attribute *assignment* on bound classes (``Type.static_prop = value``) walks
+  ``__mro__`` and the class dictionaries instead of using ``_PyType_Lookup()``;
+  attribute reads use the metaclass default and are not affected.
 * Methods are bound through a pybind11-provided ``instancemethod`` type and
   ``types.MethodType`` instead of ``PyInstanceMethod_Type`` /
   ``PyMethod_New()``.

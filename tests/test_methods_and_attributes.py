@@ -90,6 +90,23 @@ def test_methods_and_attributes():
     assert cstats.move_assignments == 0
 
 
+def test_unbound_method_access():
+    """`Class.method` returns the raw instancemethod, also on Python subclasses"""
+
+    class Sub(m.ExampleMandA):
+        pass
+
+    unbound = m.ExampleMandA.internal1
+    assert Sub.internal1 is unbound
+    assert m.ExampleMandA.__dict__["internal1"] is unbound
+    assert unbound(m.ExampleMandA(7)) == 7
+    assert Sub.__name__ == "Sub"
+
+    # Aliasing through the class keeps the instancemethod
+    Sub.alias = m.ExampleMandA.internal1
+    assert Sub(9).alias() == 9
+
+
 def test_copy_method():
     """Issue #443: calling copied methods fails in Python 3"""
 

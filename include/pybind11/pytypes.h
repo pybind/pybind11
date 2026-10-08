@@ -2660,20 +2660,45 @@ inline tuple get_type_tuple_attr(PyTypeObject *type, const char *name) {
 }
 
 inline tuple get_bases(PyTypeObject *type) { return get_type_tuple_attr(type, "__bases__"); }
-inline tuple get_mro(PyTypeObject *type) { return get_type_tuple_attr(type, "__mro__"); }
+
+inline PyObject *interned_name(const char *name) {
+    PyObject *obj = PyUnicode_InternFromString(name);
+    if (obj == nullptr) {
+        throw error_already_set();
+    }
+    return obj; // kept alive on purpose
+}
+
+inline tuple get_mro(PyTypeObject *type) {
+    static PyObject *name = interned_name("__mro__");
+    auto value = reinterpret_steal<object>(PyObject_GenericGetAttr((PyObject *) type, name));
+    if (!value || !PyTuple_Check(value.ptr())) {
+        PyErr_Clear();
+        return tuple();
+    }
+    return reinterpret_steal<tuple>(value.release());
+}
 
 // No type attribute cache: walks the MRO and looks in each class's `__dict__` (a mappingproxy).
 inline object type_lookup(PyTypeObject *type, handle name) {
+    static PyObject *dict_name = interned_name("__dict__");
     for (handle base : get_mro(type)) {
-        object dict
-            = type_generic_getattr(reinterpret_cast<PyTypeObject *>(base.ptr()), "__dict__");
+        auto dict = reinterpret_steal<object>(PyObject_GenericGetAttr(base.ptr(), dict_name));
         if (!dict) {
+            PyErr_Clear();
             continue;
         }
-        auto value = reinterpret_steal<object>(PyObject_GetItem(dict.ptr(), name.ptr()));
-        if (value) {
-            return value;
+#    if Py_LIMITED_API >= 0x030D0000
+        PyObject *value = nullptr;
+        if (PyMapping_GetOptionalItem(dict.ptr(), name.ptr(), &value) == 1) {
+            return reinterpret_steal<object>(value);
         }
+#    else
+        PyObject *value = PyObject_GetItem(dict.ptr(), name.ptr());
+        if (value != nullptr) {
+            return reinterpret_steal<object>(value);
+        }
+#    endif
         PyErr_Clear();
     }
     return object();
