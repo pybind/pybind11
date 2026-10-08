@@ -118,16 +118,13 @@ def test_vector_buffer():
     v = m.VectorUChar(mv[::2])
     assert v[1] == 3
 
-    if hasattr(m, "create_undeclstruct"):  # not built with the abi3t stable ABI
-        with pytest.raises(RuntimeError) as excinfo:
-            m.create_undeclstruct()  # Undeclared struct contents, no buffer interface
-        assert "NumPy type info missing for " in str(excinfo.value)
+    with pytest.raises(RuntimeError) as excinfo:
+        m.create_undeclstruct()  # Undeclared struct contents, no buffer interface
+    assert "NumPy type info missing for " in str(excinfo.value)
 
 
 def test_vector_buffer_numpy():
     np = pytest.importorskip("numpy")
-    if not hasattr(m, "VectorStruct"):
-        pytest.skip("numpy.h is not available with the abi3t stable ABI")
     a = np.array([1, 2, 3, 4], dtype=np.int32)
     with pytest.raises(TypeError):
         m.VectorInt(a)
