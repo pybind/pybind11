@@ -897,10 +897,11 @@ inline PyObject *dict_getitem(PyObject *v, PyObject *key) {
     return rv;
 }
 
-// PyDict_GetItemStringRef was added in Python 3.13.0a1.
+// PyDict_GetItemStringRef was added in Python 3.13.0a1 (limited API: 3.13).
 // See also: https://github.com/python/pythoncapi-compat/blob/main/pythoncapi_compat.h
 inline PyObject *dict_getitemstringref(PyObject *v, const char *key) {
-#if PYBIND11_API_VERSION_HEX >= 0x030D00A1
+#if (defined(Py_LIMITED_API) && Py_LIMITED_API + 0 >= 0x030D0000)                                 \
+    || (!defined(Py_LIMITED_API) && PY_VERSION_HEX >= 0x030D00A1)
     PyObject *rv = nullptr;
     if (PyDict_GetItemStringRef(v, key, &rv) < 0) {
         throw error_already_set();
@@ -937,10 +938,11 @@ inline PyObject *dict_setdefaultstring(PyObject *v, const char *key, PyObject *d
     return rv;
 }
 
-// PyDict_SetDefaultRef was added in Python 3.13.0a4.
+// PyDict_SetDefaultRef was added in Python 3.13.0a4 (limited API: 3.15).
 // See also: https://github.com/python/pythoncapi-compat/blob/main/pythoncapi_compat.h
 inline PyObject *dict_setdefaultstringref(PyObject *v, const char *key, PyObject *defaultobj) {
-#if PYBIND11_API_VERSION_HEX >= 0x030D00A4
+#if (defined(Py_LIMITED_API) && Py_LIMITED_API + 0 >= 0x030F0000)                                 \
+    || (!defined(Py_LIMITED_API) && PY_VERSION_HEX >= 0x030D00A4)
     PyObject *kv = PyUnicode_FromString(key);
     if (kv == nullptr) {
         throw error_already_set();

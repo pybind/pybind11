@@ -141,6 +141,10 @@ jobs:
           - runs-on: ubuntu-latest
             python-version: '3.14'
             cmake-args: -DPYBIND11_TEST_STABLE_ABI=ON -DPYBIND11_TEST_PRECOMPILE=ON
+          # A newer limited API target: gates must follow the limited API, not PY_VERSION_HEX
+          - runs-on: ubuntu-latest
+            python-version: '3.14'
+            cmake-args: -DPYBIND11_TEST_STABLE_ABI=ON -DPYBIND11_STABLE_ABI_VERSION=3.14
           - runs-on: macos-latest
             python-version: '3.13'
             cmake-args: -DPYBIND11_TEST_STABLE_ABI=ON -DCMAKE_CXX_STANDARD=17
