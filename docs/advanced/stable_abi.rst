@@ -40,6 +40,20 @@ modules with GIL-enabled Python:
 is then compiled against the limited API too, and one build tree cannot mix
 stable-ABI and regular precompiled modules.
 
+With scikit-build-core, set ``wheel.py-api = "cp312"`` in ``pyproject.toml``
+(``"cp312.cp315t"`` to also get ``abi3t`` wheels from free-threaded Python;
+the pybind11 defaults produce the matching module in both cases). This only
+selects the wheel tag, and scikit-build-core ignores it when the build Python
+is too old or is not CPython, so enable ``STABLE_ABI`` from the variables it
+sets, before ``find_package(pybind11)``:
+
+.. code-block:: cmake
+
+    if(SKBUILD_SABI_COMPONENT)
+      set(PYBIND11_STABLE_ABI ON)
+      set(PYBIND11_STABLE_ABI_VERSION "${SKBUILD_SABI_VERSION}" CACHE STRING "")
+    endif()
+
 With setuptools, pass ``py_limited_api=True`` (or a version such as
 ``"3.13"``) to ``Pybind11Extension``; the module is named ``*.abi3.so``
 and ``Py_LIMITED_API`` is defined for you. Add a ``t`` (``"3.15t"``) for
