@@ -447,10 +447,17 @@ public:
             if (src.is_none()) {
                 res = 0; // None is implicitly converted to False
             }
-#if !defined(PYBIND11_HAS_DIRECT_STRUCT_ACCESS)
+#if defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
             // Check that the "__bool__" attr exists
             else if (hasattr(src, PYBIND11_BOOL_ATTR)) {
                 res = PyObject_IsTrue(src.ptr());
+            }
+#elif defined(Py_LIMITED_API)
+            // Same as below through the stable ABI (PyType_GetSlot works on static types since
+            // 3.10).
+            else if (auto *nb_bool
+                     = reinterpret_cast<inquiry>(PyType_GetSlot(Py_TYPE(src.ptr()), Py_nb_bool))) {
+                res = nb_bool(src.ptr());
             }
 #else
             // Alternate approach for CPython: this does the same as the above, but optimized
@@ -478,8 +485,7 @@ private:
     // Test if an object is a NumPy boolean (without fetching the type).
     static bool is_numpy_bool(handle object) {
         // Name changed to `numpy.bool` in NumPy 2, `numpy.bool_` is needed for 1.x support
-        return tp_name_equals(Py_TYPE(object.ptr()), "numpy.bool")
-               || tp_name_equals(Py_TYPE(object.ptr()), "numpy.bool_");
+        return tp_name_is_one_of(Py_TYPE(object.ptr()), {"numpy.bool", "numpy.bool_"});
     }
 };
 

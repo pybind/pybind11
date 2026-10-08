@@ -35,7 +35,7 @@ inline const datetime_types &get_datetime_types() {
     static const datetime_types types = [] {
         module_ m = module_::import("datetime");
         auto get = [&](const char *name) {
-            return reinterpret_cast<PyTypeObject *>(m.attr(name).cast<object>().release().ptr());
+            return reinterpret_cast<PyTypeObject *>(object(m.attr(name)).release().ptr());
         };
         return datetime_types{get("datetime"), get("date"), get("time"), get("timedelta")};
     }();
@@ -55,10 +55,19 @@ inline bool is_date(handle h) {
 inline bool is_time(handle h) {
     return PyObject_TypeCheck(h.ptr(), get_datetime_types().time) != 0;
 }
-inline int datetime_field(handle h, const char *name) { return h.attr(name).cast<int>(); }
-#    define PYBIND11_DATETIME_FIELD(fn, attr)                                                     \
-        inline int fn(handle h) { return datetime_field(h, #attr); }
-#    define PYBIND11_DATETIME_FIELD_C(fn, c_macro)
+inline int datetime_field(handle h, PyObject *name) {
+    auto value = reinterpret_steal<object>(PyObject_GetAttr(h.ptr(), name));
+    if (!value) {
+        throw error_already_set();
+    }
+    return value.cast<int>();
+}
+// One accessor per field: interned attribute lookup here, the C macro otherwise.
+#    define PYBIND11_DATETIME_ACCESSOR(fn, attr, c_macro)                                         \
+        inline int fn(handle h) {                                                                 \
+            static PyObject *name = interned_name(#attr);                                         \
+            return datetime_field(h, name);                                                       \
+        }
 
 inline PyObject *make_timedelta(int days, int seconds, int microseconds) {
     return PyObject_CallFunction(reinterpret_cast<PyObject *>(get_datetime_types().timedelta),
@@ -89,8 +98,7 @@ inline bool is_timedelta(handle h) { return PyDelta_Check(h.ptr()); }
 inline bool is_datetime(handle h) { return PyDateTime_Check(h.ptr()); }
 inline bool is_date(handle h) { return PyDate_Check(h.ptr()); }
 inline bool is_time(handle h) { return PyTime_Check(h.ptr()); }
-#    define PYBIND11_DATETIME_FIELD(fn, attr)
-#    define PYBIND11_DATETIME_FIELD_C(fn, c_macro)                                                \
+#    define PYBIND11_DATETIME_ACCESSOR(fn, attr, c_macro)                                         \
         inline int fn(handle h) { return c_macro(h.ptr()); }
 inline PyObject *make_timedelta(int days, int seconds, int microseconds) {
     return PyDelta_FromDSU(days, seconds, microseconds);
@@ -101,10 +109,6 @@ make_datetime(int year, int month, int day, int hour, int minute, int second, in
 }
 #endif
 
-// One accessor per field: attribute lookup under the stable ABI, the C macro otherwise.
-#define PYBIND11_DATETIME_ACCESSOR(fn, attr, c_macro)                                             \
-    PYBIND11_DATETIME_FIELD(fn, attr)                                                             \
-    PYBIND11_DATETIME_FIELD_C(fn, c_macro)
 PYBIND11_DATETIME_ACCESSOR(timedelta_days, days, PyDateTime_DELTA_GET_DAYS)
 PYBIND11_DATETIME_ACCESSOR(timedelta_seconds, seconds, PyDateTime_DELTA_GET_SECONDS)
 PYBIND11_DATETIME_ACCESSOR(timedelta_microseconds, microseconds, PyDateTime_DELTA_GET_MICROSECONDS)
@@ -115,16 +119,11 @@ PYBIND11_DATETIME_ACCESSOR(datetime_hour, hour, PyDateTime_DATE_GET_HOUR)
 PYBIND11_DATETIME_ACCESSOR(datetime_minute, minute, PyDateTime_DATE_GET_MINUTE)
 PYBIND11_DATETIME_ACCESSOR(datetime_second, second, PyDateTime_DATE_GET_SECOND)
 PYBIND11_DATETIME_ACCESSOR(datetime_microsecond, microsecond, PyDateTime_DATE_GET_MICROSECOND)
-PYBIND11_DATETIME_ACCESSOR(date_year, year, PyDateTime_GET_YEAR)
-PYBIND11_DATETIME_ACCESSOR(date_month, month, PyDateTime_GET_MONTH)
-PYBIND11_DATETIME_ACCESSOR(date_day, day, PyDateTime_GET_DAY)
 PYBIND11_DATETIME_ACCESSOR(time_hour, hour, PyDateTime_TIME_GET_HOUR)
 PYBIND11_DATETIME_ACCESSOR(time_minute, minute, PyDateTime_TIME_GET_MINUTE)
 PYBIND11_DATETIME_ACCESSOR(time_second, second, PyDateTime_TIME_GET_SECOND)
 PYBIND11_DATETIME_ACCESSOR(time_microsecond, microsecond, PyDateTime_TIME_GET_MICROSECOND)
 #undef PYBIND11_DATETIME_ACCESSOR
-#undef PYBIND11_DATETIME_FIELD
-#undef PYBIND11_DATETIME_FIELD_C
 
 template <typename type>
 class duration_caster {
@@ -245,9 +244,9 @@ public:
             cal.tm_sec = 0;
             cal.tm_min = 0;
             cal.tm_hour = 0;
-            cal.tm_mday = date_day(src);
-            cal.tm_mon = date_month(src) - 1;
-            cal.tm_year = date_year(src) - 1900;
+            cal.tm_mday = datetime_day(src);
+            cal.tm_mon = datetime_month(src) - 1;
+            cal.tm_year = datetime_year(src) - 1900;
             cal.tm_isdst = -1;
             msecs = microseconds(0);
         } else if (is_time(src)) {

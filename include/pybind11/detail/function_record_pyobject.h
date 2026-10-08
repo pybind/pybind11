@@ -26,11 +26,7 @@ struct function_record_PyObject {
 };
 
 inline function_record_PyObject *function_record_data(PyObject *obj) {
-#if defined(PYBIND11_OPAQUE_PYOBJECT)
-    return static_cast<function_record_PyObject *>(PyObject_GetTypeData(obj, Py_TYPE(obj)));
-#else
-    return reinterpret_cast<function_record_PyObject *>(obj);
-#endif
+    return type_data<function_record_PyObject>(obj);
 }
 
 PYBIND11_NAMESPACE_BEGIN(function_record_PyTypeObject_methods)

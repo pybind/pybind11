@@ -2093,10 +2093,8 @@ public:
         def("__index__", [](Type value) { return (Scalar) value; }, pos_only());
         attr("__setstate__") = cpp_function(
             [](detail::value_and_holder &v_h, Scalar arg) {
-                detail::initimpl::setstate<Base>(v_h,
-                                                 static_cast<Type>(arg),
-                                                 Py_TYPE(instance_object(v_h.inst))
-                                                     != v_h.type->type);
+                detail::initimpl::setstate<Base>(
+                    v_h, static_cast<Type>(arg), !v_h.type_is_exact());
             },
             detail::is_new_style_constructor(),
             pybind11::name("__setstate__"),

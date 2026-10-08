@@ -508,8 +508,7 @@ PYBIND11_INLINE function get_type_override(const void *this_ptr,
         if (std::string(str(f_code.attr("co_name"))) == name
             && f_code.attr("co_argcount").cast<int>() > 0) {
             object self_arg = f_code.attr("co_varnames")[int_(0)];
-            auto locals
-                = reinterpret_steal<object>(PyObject_GetAttrString(frame_obj.ptr(), "f_locals"));
+            object locals = getattr(frame_obj, "f_locals", handle());
             auto self_caller
                 = locals
                       ? reinterpret_steal<object>(PyObject_GetItem(locals.ptr(), self_arg.ptr()))
@@ -1330,7 +1329,7 @@ PYBIND11_INLINE void generic_type::initialize(const type_record &rec) {
     tinfo->module_local = rec.module_local;
     tinfo->holder_enum_v = rec.holder_enum_v;
 #if defined(Py_LIMITED_API)
-    tinfo->dictoffset = handle(m_ptr).attr("__dictoffset__").cast<Py_ssize_t>();
+    tinfo->dictoffset = type_dictoffset(reinterpret_cast<PyTypeObject *>(m_ptr));
 #endif
 
     with_internals([&](internals &internals) {

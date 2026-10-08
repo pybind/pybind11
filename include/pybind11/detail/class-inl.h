@@ -43,28 +43,39 @@ PYBIND11_INLINE PyTypeObject *type_incref(PyTypeObject *type) {
 // the function-local caches make each lookup happen once per module. Below 3.10 (and on PyPy,
 // where PyType_GetSlot on static types is not reliable) the struct fields are read directly.
 #if PY_VERSION_HEX >= 0x030A0000 && !defined(PYPY_VERSION)
-#    define PYBIND11_BASE_TYPE_SLOT(type, slot_id, field, slot_type)                              \
-        static const auto cached = reinterpret_cast<slot_type>(PyType_GetSlot(&type, slot_id));   \
-        return cached;
+#    define PYBIND11_BASE_TYPE_SLOT(fn, slot_type, type, slot_id, field)                          \
+        PYBIND11_INLINE slot_type fn() {                                                          \
+            static const auto cached                                                              \
+                = reinterpret_cast<slot_type>(PyType_GetSlot(&type, slot_id));                    \
+            return cached;                                                                        \
+        }
 #else
-#    define PYBIND11_BASE_TYPE_SLOT(type, slot_id, field, slot_type) return type.field;
+#    define PYBIND11_BASE_TYPE_SLOT(fn, slot_type, type, slot_id, field)                          \
+        PYBIND11_INLINE slot_type fn() { return type.field; }
 #endif
 
-PYBIND11_INLINE ternaryfunc type_type_call(){PYBIND11_BASE_TYPE_SLOT(
-    PyType_Type, Py_tp_call, tp_call, ternaryfunc)} PYBIND11_INLINE setattrofunc
-    type_type_setattro(){PYBIND11_BASE_TYPE_SLOT(
-        PyType_Type, Py_tp_setattro, tp_setattro, setattrofunc)} PYBIND11_INLINE getattrofunc
-    type_type_getattro(){PYBIND11_BASE_TYPE_SLOT(
-        PyType_Type, Py_tp_getattro, tp_getattro, getattrofunc)} PYBIND11_INLINE destructor
-    type_type_dealloc(){PYBIND11_BASE_TYPE_SLOT(
-        PyType_Type, Py_tp_dealloc, tp_dealloc, destructor)} PYBIND11_INLINE descrgetfunc
-    property_type_descr_get(){PYBIND11_BASE_TYPE_SLOT(
-        PyProperty_Type, Py_tp_descr_get, tp_descr_get, descrgetfunc)} PYBIND11_INLINE descrsetfunc
-    property_type_descr_set() {
-    PYBIND11_BASE_TYPE_SLOT(PyProperty_Type, Py_tp_descr_set, tp_descr_set, descrsetfunc)
-}
+PYBIND11_BASE_TYPE_SLOT(type_type_call, ternaryfunc, PyType_Type, Py_tp_call, tp_call)
+PYBIND11_BASE_TYPE_SLOT(type_type_setattro, setattrofunc, PyType_Type, Py_tp_setattro, tp_setattro)
+PYBIND11_BASE_TYPE_SLOT(type_type_getattro, getattrofunc, PyType_Type, Py_tp_getattro, tp_getattro)
+PYBIND11_BASE_TYPE_SLOT(type_type_dealloc, destructor, PyType_Type, Py_tp_dealloc, tp_dealloc)
+PYBIND11_BASE_TYPE_SLOT(
+    property_type_descr_get, descrgetfunc, PyProperty_Type, Py_tp_descr_get, tp_descr_get)
+PYBIND11_BASE_TYPE_SLOT(
+    property_type_descr_set, descrsetfunc, PyProperty_Type, Py_tp_descr_set, tp_descr_set)
 
 #undef PYBIND11_BASE_TYPE_SLOT
+
+#if defined(PYBIND11_TYPE_CREATION_VIA_SPEC)
+PYBIND11_INLINE PyTypeObject *
+type_from_spec(const char *caller, PyTypeObject *metaclass, PyType_Spec *spec, PyObject *bases) {
+    PyObject *type = PyType_FromMetaclass(metaclass, nullptr, spec, bases);
+    if (type == nullptr) {
+        pybind11_fail(std::string(caller)
+                      + ": failure in PyType_FromMetaclass(): " + error_string());
+    }
+    return reinterpret_cast<PyTypeObject *>(type);
+}
+#endif
 
 #if !defined(PYPY_VERSION)
 extern "C" PYBIND11_INLINE PyObject *
@@ -84,9 +95,7 @@ pybind11_static_set(PyObject *self, PyObject *obj, PyObject *value) {
 // Without Py_TPFLAGS_MANAGED_DICT the `__dict__` slot follows the property object. These two
 // functions find it through the type's `__dictoffset__`.
 PYBIND11_INLINE PyObject **static_property_dict_ptr(PyObject *self) {
-    static const Py_ssize_t offset = handle(reinterpret_cast<PyObject *>(Py_TYPE(self)))
-                                         .attr("__dictoffset__")
-                                         .cast<Py_ssize_t>();
+    static const Py_ssize_t offset = type_dictoffset(Py_TYPE(self));
     return reinterpret_cast<PyObject **>(reinterpret_cast<char *>(self) + offset);
 }
 extern "C" PYBIND11_INLINE int
@@ -120,7 +129,7 @@ PYBIND11_INLINE PyTypeObject *make_static_property_type() {
 #        else
     // Append the `__dict__` slot to the property layout. (PEP 697 relative offsets are not
     // applied to `__dictoffset__` on 3.12, so the offset is absolute.)
-    const auto dictoffset = type_generic_getattr(&PyProperty_Type, "__basicsize__").cast<int>();
+    const auto dictoffset = static_cast<int>(type_basicsize(&PyProperty_Type));
     PyMemberDef members[] = {{"__dictoffset__", Py_T_PYSSIZET, dictoffset, Py_READONLY, nullptr},
                              {nullptr, 0, 0, 0, nullptr}};
     PyType_Slot slots[]
@@ -137,13 +146,10 @@ PYBIND11_INLINE PyTypeObject *make_static_property_type() {
                         Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HAVE_GC,
                         slots};
 #        endif
-    PyObject *type = PyType_FromMetaclass(
-        nullptr, nullptr, &spec, reinterpret_cast<PyObject *>(&PyProperty_Type));
-    if (!type) {
-        pybind11_fail("make_static_property_type(): failure in PyType_FromMetaclass(): "
-                      + error_string());
-    }
-    return reinterpret_cast<PyTypeObject *>(type);
+    return type_from_spec("make_static_property_type()",
+                          nullptr,
+                          &spec,
+                          reinterpret_cast<PyObject *>(&PyProperty_Type));
 }
 
 #    else // legacy: fill in a PyHeapTypeObject by hand
@@ -217,7 +223,7 @@ extern "C" PYBIND11_INLINE int
 pybind11_meta_setattro(PyObject *obj, PyObject *name, PyObject *value) {
     // Use `type_lookup()` instead of `PyObject_GetAttr()` in order to get the raw
     // descriptor (`property`) instead of calling `tp_descr_get` (`property.__get__()`).
-    object descr = type_lookup((PyTypeObject *) obj, name);
+    auto descr = type_lookup((PyTypeObject *) obj, name);
 
     // The following assignment combinations are possible:
     //   1. `Type.static_prop = value`             --> descr_set: `Type.static_prop.__set__(value)`
@@ -246,9 +252,9 @@ pybind11_meta_setattro(PyObject *obj, PyObject *name, PyObject *value) {
 }
 
 extern "C" PYBIND11_INLINE PyObject *pybind11_meta_getattro(PyObject *obj, PyObject *name) {
-    object descr = type_lookup((PyTypeObject *) obj, name);
+    auto descr = type_lookup((PyTypeObject *) obj, name);
     if (descr && PYBIND11_INSTANCE_METHOD_CHECK(descr.ptr())) {
-        return descr.release().ptr();
+        return handle(descr).inc_ref().ptr();
     }
     return type_type_getattro()(obj, name);
 }
@@ -342,13 +348,8 @@ PYBIND11_INLINE PyTypeObject *make_default_metaclass() {
                                0,
                                Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
                                slots};
-    PyObject *type = PyType_FromMetaclass(
-        nullptr, nullptr, &spec, reinterpret_cast<PyObject *>(&PyType_Type));
-    if (!type) {
-        pybind11_fail("make_default_metaclass(): failure in PyType_FromMetaclass(): "
-                      + error_string());
-    }
-    return reinterpret_cast<PyTypeObject *>(type);
+    return type_from_spec(
+        "make_default_metaclass()", nullptr, &spec, reinterpret_cast<PyObject *>(&PyType_Type));
 }
 
 #else // legacy: fill in a PyHeapTypeObject by hand
@@ -496,11 +497,7 @@ struct instancemethod_object {
 };
 
 PYBIND11_INLINE instancemethod_object *instancemethod_data(PyObject *self) {
-#    if defined(PYBIND11_OPAQUE_PYOBJECT)
-    return static_cast<instancemethod_object *>(PyObject_GetTypeData(self, Py_TYPE(self)));
-#    else
-    return reinterpret_cast<instancemethod_object *>(self);
-#    endif
+    return type_data<instancemethod_object>(self);
 }
 
 PYBIND11_INLINE PyTypeObject *get_bound_method_type() {
@@ -510,8 +507,7 @@ PYBIND11_INLINE PyTypeObject *get_bound_method_type() {
             throw error_already_set();
         }
         // Static builtin type: keep the reference forever.
-        return reinterpret_cast<PyTypeObject *>(
-            types.attr("MethodType").cast<object>().release().ptr());
+        return reinterpret_cast<PyTypeObject *>(object(types.attr("MethodType")).release().ptr());
     }();
     return type;
 }
@@ -521,13 +517,7 @@ PYBIND11_INLINE bool is_bound_method(PyObject *obj) {
 }
 
 PYBIND11_INLINE PyObject *bound_method_function(PyObject *obj) {
-    PyObject *func = PyObject_GetAttrString(obj, "__func__");
-    if (func == nullptr) {
-        PyErr_Clear();
-        return nullptr;
-    }
-    Py_DECREF(func); // the method object keeps the function alive
-    return func;
+    return getattr(obj, "__func__", handle()).ptr(); // the method object keeps the function alive
 }
 
 extern "C" PYBIND11_INLINE PyObject *
@@ -562,9 +552,8 @@ extern "C" PYBIND11_INLINE PyObject *instancemethod_getattro(PyObject *self, PyO
 
 extern "C" PYBIND11_INLINE PyObject *instancemethod_repr(PyObject *self) {
     PyObject *func = instancemethod_data(self)->func;
-    auto name = reinterpret_steal<object>(PyObject_GetAttrString(func, "__name__"));
+    object name = getattr(func, "__name__", handle());
     if (!name) {
-        PyErr_Clear();
         return PyUnicode_FromFormat("<instancemethod at %p>", self);
     }
     return PyUnicode_FromFormat("<instancemethod %U at %p>", name.ptr(), self);
@@ -615,12 +604,8 @@ PYBIND11_INLINE PyTypeObject *get_instancemethod_type() {
                    0,
                    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_DISALLOW_INSTANTIATION,
                    slots};
-            PyObject *type = PyType_FromSpec(&spec);
-            if (type == nullptr) {
-                pybind11_fail("get_instancemethod_type(): failure in PyType_FromSpec(): "
-                              + error_string());
-            }
-            internals.instancemethod_type = reinterpret_cast<PyTypeObject *>(type);
+            internals.instancemethod_type
+                = type_from_spec("get_instancemethod_type()", nullptr, &spec, nullptr);
         }
         return internals.instancemethod_type;
     });
@@ -685,8 +670,8 @@ PYBIND11_INLINE Py_ssize_t instance_data_offset() {
     // The same for every pybind11 type: the type data of pybind11_object, whose base is object.
     static const Py_ssize_t offset = [] {
         handle base = get_internals().instance_base;
-        auto basicsize = base.attr("__basicsize__").cast<Py_ssize_t>();
-        return basicsize - PyType_GetTypeDataSize(reinterpret_cast<PyTypeObject *>(base.ptr()));
+        auto *base_type = reinterpret_cast<PyTypeObject *>(base.ptr());
+        return type_basicsize(base_type) - PyType_GetTypeDataSize(base_type);
     }();
     return offset;
 }
@@ -847,14 +832,12 @@ PYBIND11_INLINE PyObject *make_object_base_type(PyTypeObject *metaclass) {
                                0,
                                Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
                                slots};
-    PyObject *type = PyType_FromMetaclass(
-        metaclass, nullptr, &spec, reinterpret_cast<PyObject *>(&PyBaseObject_Type));
-    if (!type) {
-        pybind11_fail("make_object_base_type(): failure in PyType_FromMetaclass(): "
-                      + error_string());
-    }
-    assert(!PyType_HasFeature(reinterpret_cast<PyTypeObject *>(type), Py_TPFLAGS_HAVE_GC));
-    return type;
+    PyTypeObject *type = type_from_spec("make_object_base_type()",
+                                        metaclass,
+                                        &spec,
+                                        reinterpret_cast<PyObject *>(&PyBaseObject_Type));
+    assert(!PyType_HasFeature(type, Py_TPFLAGS_HAVE_GC));
+    return reinterpret_cast<PyObject *>(type);
 }
 
 #else // legacy: fill in a PyHeapTypeObject by hand
@@ -1133,10 +1116,8 @@ PYBIND11_INLINE PyObject *make_new_python_type(const type_record &rec) {
         int base_basicsize = 0;
         for (handle b : bases) {
             auto *b_type = reinterpret_cast<PyTypeObject *>(b.ptr());
-            base_has_dict
-                |= type_generic_getattr(b_type, "__dictoffset__").cast<Py_ssize_t>() != 0;
-            base_basicsize = std::max(base_basicsize,
-                                      type_generic_getattr(b_type, "__basicsize__").cast<int>());
+            base_has_dict |= type_dictoffset(b_type) != 0;
+            base_basicsize = std::max(base_basicsize, static_cast<int>(type_basicsize(b_type)));
         }
         if (!base_has_dict) {
             dict_member[0].offset = base_basicsize;
@@ -1155,10 +1136,8 @@ PYBIND11_INLINE PyObject *make_new_python_type(const type_record &rec) {
     slots.push_back({0, nullptr});
 
     PyType_Spec spec = {full_name, basicsize, 0, flags, slots.data()};
-    PyObject *type = PyType_FromMetaclass(metaclass, nullptr, &spec, base.ptr());
-    if (!type) {
-        pybind11_fail(std::string(rec.name) + ": PyType_FromMetaclass failed: " + error_string());
-    }
+    auto *type
+        = reinterpret_cast<PyObject *>(type_from_spec(rec.name, metaclass, &spec, base.ptr()));
     assert(!rec.dynamic_attr
            || PyType_HasFeature(reinterpret_cast<PyTypeObject *>(type), Py_TPFLAGS_HAVE_GC));
 

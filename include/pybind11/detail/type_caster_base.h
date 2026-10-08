@@ -125,10 +125,16 @@ detail::type_info *get_type_info(const std::type_info &tp, bool throw_if_missing
 
 handle get_type_handle(const std::type_info &tp, bool throw_if_missing);
 
+#if !defined(PYBIND11_OPAQUE_PYOBJECT)
 bool try_incref(PyObject *obj);
+#endif
 
 // Searches the inheritance graph for a registered Python instance, using all_type_info().
 handle find_registered_python_instance(void *src, const detail::type_info *tinfo);
+
+inline bool value_and_holder::type_is_exact() const {
+    return Py_TYPE(instance_object(inst)) == type->type;
+}
 
 // Container for accessing and iterating over an instance's values/holders
 struct values_and_holders {

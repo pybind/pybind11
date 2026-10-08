@@ -45,6 +45,12 @@ destructor type_type_dealloc();
 descrgetfunc property_type_descr_get();
 descrsetfunc property_type_descr_set();
 
+#if defined(PYBIND11_TYPE_CREATION_VIA_SPEC)
+/// PyType_FromMetaclass(), or pybind11_fail() with the Python error prefixed by `caller`.
+PyTypeObject *
+type_from_spec(const char *caller, PyTypeObject *metaclass, PyType_Spec *spec, PyObject *bases);
+#endif
+
 #if !defined(PYPY_VERSION)
 
 #    if defined(Py_LIMITED_API)

@@ -238,16 +238,12 @@ PYBIND11_NOINLINE_ATTR PYBIND11_INLINE handle get_type_handle(const std::type_in
     return handle(type_info ? (reinterpret_cast<PyObject *>(type_info->type)) : nullptr);
 }
 
+#if !defined(PYBIND11_OPAQUE_PYOBJECT) // the registry goes through PyWeakref_GetRef() instead
 PYBIND11_INLINE bool try_incref(PyObject *obj) {
     // Tries to increment the reference count of an object if it's not zero.
-#if defined(PYBIND11_OPAQUE_PYOBJECT)
-    // Not used: the registry goes through PyWeakref_GetRef() instead.
-    assert(Py_REFCNT(obj) > 0);
-    Py_INCREF(obj);
-    return true;
-#elif defined(Py_GIL_DISABLED) && PY_VERSION_HEX >= 0x030E00A4
+#    if defined(Py_GIL_DISABLED) && PY_VERSION_HEX >= 0x030E00A4
     return PyUnstable_TryIncRef(obj);
-#elif defined(Py_GIL_DISABLED)
+#    elif defined(Py_GIL_DISABLED)
     // See
     // https://github.com/python/cpython/blob/d05140f9f77d7dfc753dd1e5ac3a5962aaa03eff/Include/internal/pycore_object.h#L761
     uint32_t local = _Py_atomic_load_uint32_relaxed(&obj->ob_ref_local);
@@ -258,9 +254,9 @@ PYBIND11_INLINE bool try_incref(PyObject *obj) {
     }
     if (_Py_IsOwnedByCurrentThread(obj)) {
         _Py_atomic_store_uint32_relaxed(&obj->ob_ref_local, local);
-#    ifdef Py_REF_DEBUG
+#        ifdef Py_REF_DEBUG
         _Py_INCREF_IncRefTotal();
-#    endif
+#        endif
         return true;
     }
     Py_ssize_t shared = _Py_atomic_load_ssize_relaxed(&obj->ob_ref_shared);
@@ -273,18 +269,19 @@ PYBIND11_INLINE bool try_incref(PyObject *obj) {
 
         if (_Py_atomic_compare_exchange_ssize(
                 &obj->ob_ref_shared, &shared, shared + (1 << _Py_REF_SHARED_SHIFT))) {
-#    ifdef Py_REF_DEBUG
+#        ifdef Py_REF_DEBUG
             _Py_INCREF_IncRefTotal();
-#    endif
+#        endif
             return true;
         }
     }
-#else
+#    else
     assert(Py_REFCNT(obj) > 0);
     Py_INCREF(obj);
     return true;
-#endif
+#    endif
 }
+#endif
 
 PYBIND11_NOINLINE_ATTR PYBIND11_INLINE handle
 find_registered_python_instance(void *src, const detail::type_info *tinfo) {

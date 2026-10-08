@@ -79,12 +79,7 @@ inline bool object_is_instance_with_one_of_tp_names(PyObject *obj,
     if (PyType_Check(obj)) {
         return false;
     }
-    for (const auto *tp_name : tp_names) {
-        if (tp_name_equals(Py_TYPE(obj), tp_name)) {
-            return true;
-        }
-    }
-    return false;
+    return tp_name_is_one_of(Py_TYPE(obj), tp_names);
 }
 
 inline bool object_is_convertible_to_std_vector(const handle &src) {
@@ -93,11 +88,6 @@ inline bool object_is_convertible_to_std_vector(const handle &src) {
         return !PyUnicode_Check(src.ptr()) && !PyBytes_Check(src.ptr());
     }
     // Allow generators, set/frozenset and several common iterable types.
-#if !defined(Py_LIMITED_API)
-    if (PyGen_Check(src.ptr()) != 0) {
-        return true;
-    }
-#endif
     return (PyAnySet_Check(src.ptr()) != 0)
            || object_is_instance_with_one_of_tp_names(
                src.ptr(), {"generator", "dict_keys", "dict_values", "dict_items", "map", "zip"});
