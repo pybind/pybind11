@@ -328,12 +328,15 @@ extern "C" PYBIND11_INLINE void pybind11_meta_dealloc(PyObject *obj) {
 #if defined(PYBIND11_TYPE_CREATION_VIA_SPEC)
 
 PYBIND11_INLINE PyTypeObject *make_default_metaclass() {
-    static PyType_Slot slots[]
-        = {{Py_tp_call, reinterpret_cast<void *>(pybind11_meta_call)},
-           {Py_tp_setattro, reinterpret_cast<void *>(pybind11_meta_setattro)},
-           {Py_tp_getattro, reinterpret_cast<void *>(pybind11_meta_getattro)},
-           {Py_tp_dealloc, reinterpret_cast<void *>(pybind11_meta_dealloc)},
-           {0, nullptr}};
+    static PyType_Slot slots[] = {
+        {Py_tp_call, reinterpret_cast<void *>(pybind11_meta_call)},
+        {Py_tp_setattro, reinterpret_cast<void *>(pybind11_meta_setattro)},
+#    if !defined(Py_LIMITED_API)
+        // Not needed with pybind11's own instancemethod: its `__get__` returns itself on a class.
+        {Py_tp_getattro, reinterpret_cast<void *>(pybind11_meta_getattro)},
+#    endif
+        {Py_tp_dealloc, reinterpret_cast<void *>(pybind11_meta_dealloc)},
+        {0, nullptr}};
     static PyType_Spec spec = {PYBIND11_DUMMY_MODULE_NAME ".pybind11_type",
                                0, // inherit from type
                                0,
