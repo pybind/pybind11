@@ -536,10 +536,9 @@ instancemethod_descr_get(PyObject *self, PyObject *obj, PyObject * /*type*/) {
         Py_INCREF(self);
         return self;
     }
-    return PyObject_CallFunctionObjArgs(reinterpret_cast<PyObject *>(get_bound_method_type()),
-                                        instancemethod_data(self)->func,
-                                        obj,
-                                        nullptr);
+    PyObject *args[] = {instancemethod_data(self)->func, obj};
+    return PyObject_Vectorcall(
+        reinterpret_cast<PyObject *>(get_bound_method_type()), args, 2, nullptr);
 }
 
 extern "C" PYBIND11_INLINE PyObject *
