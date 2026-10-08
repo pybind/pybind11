@@ -304,7 +304,7 @@ def test_int_convert(doc, prefix):
     assert noconvert(7) == 7
     cant_convert(3.14159)
     # TODO: Avoid DeprecationWarning in `PyLong_AsLong` (and similar)
-    if sys.version_info < (3, 10) and env.CPYTHON:
+    if sys.version_info < (3, 10) and env.CPYTHON and prefix == "int":
         with pytest.deprecated_call():
             assert convert(Int()) == 42
     else:
@@ -421,7 +421,7 @@ def test_numpy_int_convert(prefix):
     # The implicit conversion from np.float32 is undesirable but currently accepted.
     # TODO: Avoid DeprecationWarning in `PyLong_AsLong` (and similar)
     # https://github.com/pybind/pybind11/issues/3408
-    if sys.version_info < (3, 10) and env.CPYTHON:
+    if sys.version_info < (3, 10) and env.CPYTHON and prefix == "int":
         with pytest.deprecated_call():
             assert convert(np.float32(3.14159)) == 3
     else:
