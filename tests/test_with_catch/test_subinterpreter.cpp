@@ -91,6 +91,83 @@ TEST_CASE("Internals cache retries after a failed lookup") {
     }
 }
 
+TEST_CASE("First subinterpreter initialization preserves the singleton cache",
+          "[internals_init]") {
+    // No worker threads or other subinterpreters may be alive while resetting the cache mode.
+    unsafe_reset_internals_for_single_interpreter();
+    auto &manager = py::detail::get_internals_pp_manager();
+    auto *main_pp = manager.get_pp();
+
+    struct reset_guard {
+        PyThreadState *main_tstate;
+        PyThreadState *sub_tstate = nullptr;
+        PyObject *state_dict = nullptr;
+        PyObject *capsule = nullptr;
+
+        explicit reset_guard(PyThreadState *main) : main_tstate(main) {}
+
+        void end_subinterpreter() {
+            if (sub_tstate == nullptr) {
+                return;
+            }
+            // Also handle assertions that fail before ensure_internals() enables TLS caching.
+            py::detail::has_seen_non_main_interpreter() = true;
+            py::detail::get_internals_pp_manager().get_pp();
+            py::detail::get_local_internals_pp_manager().get_pp();
+            Py_EndInterpreter(sub_tstate);
+            sub_tstate = nullptr;
+            // As in py::subinterpreter's destructor, free holders after interpreter shutdown.
+            py::detail::get_internals_pp_manager().destroy();
+            py::detail::get_local_internals_pp_manager().destroy();
+            PyThreadState_Swap(main_tstate);
+        }
+
+        ~reset_guard() {
+            end_subinterpreter();
+            if (capsule != nullptr) {
+                PyDict_SetItemString(state_dict, PYBIND11_INTERNALS_ID, capsule);
+                Py_DECREF(capsule);
+            }
+            unsafe_reset_internals_for_single_interpreter();
+        }
+    } reset{PyThreadState_Get()};
+
+    REQUIRE_FALSE(py::detail::has_seen_non_main_interpreter());
+    PyInterpreterConfig config{};
+    config.allow_threads = 1;
+    config.check_multi_interp_extensions = 1;
+    config.gil = PyInterpreterConfig_OWN_GIL;
+    // py::subinterpreter::create() would set the flag itself, masking the initialization order.
+    auto status = Py_NewInterpreterFromConfig(&reset.sub_tstate, &config);
+    REQUIRE_FALSE(PyStatus_Exception(status));
+    REQUIRE_FALSE(py::detail::has_seen_non_main_interpreter());
+
+    // This must be the first pybind11 operation in the new interpreter.
+    py::detail::ensure_internals();
+    REQUIRE(py::detail::has_seen_non_main_interpreter());
+    REQUIRE(manager.get_pp() != main_pp);
+    reset.end_subinterpreter();
+
+    // All subinterpreters are gone: clear TLS before selecting the singleton cache again.
+    manager.unref();
+    py::detail::get_local_internals_pp_manager().unref();
+    py::detail::has_seen_non_main_interpreter() = false;
+
+    reset.state_dict = PyInterpreterState_GetDict(PyInterpreterState_Get());
+    REQUIRE(reset.state_dict != nullptr);
+    reset.capsule = Py_XNewRef(PyDict_GetItemString(reset.state_dict, PYBIND11_INTERNALS_ID));
+    REQUIRE(reset.capsule != nullptr);
+    REQUIRE(PyDict_DelItemString(reset.state_dict, PYBIND11_INTERNALS_ID) == 0);
+
+    // Hide the capsule: otherwise an incorrectly cleared singleton could just fetch it again.
+    auto *cached_pp = manager.get_pp();
+    bool preserved_singleton = cached_pp == main_pp;
+    if (!preserved_singleton) {
+        manager.destroy(); // Free the empty holder created by the failed cache lookup.
+    }
+    REQUIRE(preserved_singleton);
+}
+
 py::object &get_dict_type_object() {
     PYBIND11_CONSTINIT static py::gil_safe_call_once_and_store<py::object> storage;
     return storage
