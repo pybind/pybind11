@@ -7,4 +7,5 @@
 #endif
 
 #include <pybind11/detail/internals-inl.h>
+#include <pybind11/gil-inl.h>
 #include <pybind11/pybind11.h>

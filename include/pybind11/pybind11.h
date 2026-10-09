@@ -762,59 +762,13 @@ public:
             py::module_ m2 = m.def_submodule("sub", "A submodule of 'example'");
             py::module_ m3 = m2.def_submodule("subsub", "A submodule of 'example.sub'");
     \endrst */
-    module_ def_submodule(const char *name, const char *doc = nullptr) {
-        const char *this_name = PyModule_GetName(m_ptr);
-        if (this_name == nullptr) {
-            throw error_already_set();
-        }
-        std::string full_name = std::string(this_name) + '.' + name;
-        handle submodule = PyImport_AddModule(full_name.c_str());
-        if (!submodule) {
-            throw error_already_set();
-        }
-        auto result = reinterpret_borrow<module_>(submodule);
-        if (doc && options::show_user_defined_docstrings()) {
-            result.attr("__doc__") = pybind11::str(doc);
-        }
-
-#if defined(GRAALVM_PYTHON) && (!defined(GRAALPY_VERSION_NUM) || GRAALPY_VERSION_NUM < 0x190000)
-        // GraalPy doesn't support PyModule_GetFilenameObject,
-        // so getting by attribute (see PR #5584)
-        handle this_module = m_ptr;
-        if (object this_file = getattr(this_module, "__file__", none())) {
-            result.attr("__file__") = this_file;
-        }
-#else
-        handle this_file = PyModule_GetFilenameObject(m_ptr);
-        if (this_file) {
-            result.attr("__file__") = this_file;
-        } else if (PyErr_ExceptionMatches(PyExc_SystemError) != 0) {
-            PyErr_Clear();
-        } else {
-            throw error_already_set();
-        }
-#endif
-        attr(name) = result;
-        return result;
-    }
+    module_ def_submodule(const char *name, const char *doc = nullptr);
 
     /// Import and return a module or throws `error_already_set`.
-    static module_ import(const char *name) {
-        PyObject *obj = PyImport_ImportModule(name);
-        if (!obj) {
-            throw error_already_set();
-        }
-        return reinterpret_steal<module_>(obj);
-    }
+    static module_ import(const char *name);
 
     /// Reload the module or throws `error_already_set`.
-    void reload() {
-        PyObject *obj = PyImport_ReloadModule(ptr());
-        if (!obj) {
-            throw error_already_set();
-        }
-        *this = reinterpret_steal<module_>(obj);
-    }
+    void reload();
 
     /** \rst
         Adds an object to the module using the given name.  Throws if an object with the given name
@@ -823,15 +777,7 @@ public:
         ``overwrite`` should almost always be false: attempting to overwrite objects that pybind11
         has established will, in most cases, break things.
     \endrst */
-    PYBIND11_NOINLINE void add_object(const char *name, handle obj, bool overwrite = false) {
-        if (!overwrite && hasattr(*this, name)) {
-            pybind11_fail(
-                "Error during initialization: multiple incompatible definitions with name \""
-                + std::string(name) + "\"");
-        }
-
-        PyModule_AddObject(ptr(), name, obj.inc_ref().ptr() /* steals a reference */);
-    }
+    void add_object(const char *name, handle obj, bool overwrite = false);
 
     // DEPRECATED (since PR #5688): Use PyModuleDef directly instead.
     using module_def = PyModuleDef;
@@ -844,34 +790,7 @@ public:
     static module_ create_extension_module(const char *name,
                                            const char *doc,
                                            PyModuleDef *def,
-                                           mod_gil_not_used gil_not_used = mod_gil_used()) {
-        // Placement new (not an allocation).
-        new (def) PyModuleDef{/* m_base */ PyModuleDef_HEAD_INIT,
-                              /* m_name */ name,
-                              /* m_doc */ options::show_user_defined_docstrings() ? doc : nullptr,
-                              /* m_size */ -1,
-                              /* m_methods */ nullptr,
-                              /* m_slots */ nullptr,
-                              /* m_traverse */ nullptr,
-                              /* m_clear */ nullptr,
-                              /* m_free */ nullptr};
-        auto *m = PyModule_Create(def);
-        if (m == nullptr) {
-            if (PyErr_Occurred()) {
-                throw error_already_set();
-            }
-            pybind11_fail("Internal error in module_::create_extension_module()");
-        }
-        if (gil_not_used.flag()) {
-#ifdef Py_GIL_DISABLED
-            PyUnstable_Module_SetGIL(m, Py_MOD_GIL_NOT_USED);
-#endif
-        }
-        // TODO: Should be reinterpret_steal for Python 3, but Python also steals it again when
-        //       returned from PyInit_...
-        //       For Python 2, reinterpret_borrow was correct.
-        return reinterpret_borrow<module_>(m);
-    }
+                                           mod_gil_not_used gil_not_used = mod_gil_used());
 };
 
 PYBIND11_NAMESPACE_BEGIN(detail)
