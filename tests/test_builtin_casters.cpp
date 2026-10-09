@@ -235,6 +235,8 @@ TEST_SUBMODULE(builtin_casters, m) {
     // test_int_convert
     m.def("int_passthrough", [](int arg) { return arg; });
     m.def("int_passthrough_noconvert", [](int arg) { return arg; }, py::arg{}.noconvert());
+    m.def("uint_passthrough", [](unsigned arg) { return arg; });
+    m.def("uint_passthrough_noconvert", [](unsigned arg) { return arg; }, py::arg{}.noconvert());
 
     // test_float_convert
     m.def("float_passthrough", [](float arg) { return arg; });
