@@ -18,7 +18,59 @@ else()
   set(_pybind11_quiet "")
 endif()
 
-if(NOT Python_FOUND AND NOT Python3_FOUND)
+if(Python_FOUND)
+  set(_pybind11_found_python Python)
+elseif(Python3_FOUND)
+  set(_pybind11_found_python Python3)
+else()
+  set(_pybind11_found_python "")
+endif()
+
+# Development.Module support (required for manylinux) started in 3.18
+if(CMAKE_VERSION VERSION_LESS 3.18)
+  set(_pybind11_dev_component Development)
+else()
+  set(_pybind11_dev_component Development.Module OPTIONAL_COMPONENTS Development.Embed)
+endif()
+
+# A parent project may have found Python without the development components
+# pybind11 needs; ask for the missing ones, keeping the interpreter it selected.
+if(_pybind11_found_python AND NOT TARGET ${_pybind11_found_python}::Module)
+  if(${_pybind11_found_python}_Interpreter_FOUND)
+    set(_pybind11_interp_component Interpreter)
+  else()
+    set(_pybind11_interp_component "")
+  endif()
+  # Targets the parent created must not be promoted from here
+  set(_pybind11_new_targets "")
+  foreach(_pybind11_target IN ITEMS Python Module)
+    if(NOT TARGET ${_pybind11_found_python}::${_pybind11_target})
+      list(APPEND _pybind11_new_targets ${_pybind11_target})
+    endif()
+  endforeach()
+
+  set(_pybind11_global_keyword "")
+  if(NOT is_config AND NOT CMAKE_VERSION VERSION_LESS 3.24)
+    set(_pybind11_global_keyword "GLOBAL")
+  endif()
+
+  find_package(
+    ${_pybind11_found_python} REQUIRED
+    COMPONENTS ${_pybind11_interp_component} ${_pybind11_dev_component} ${_pybind11_quiet}
+               ${_pybind11_global_keyword})
+
+  # In submodule mode, the new targets must be visible to the parent project too
+  if(NOT is_config AND _pybind11_global_keyword STREQUAL "")
+    foreach(_pybind11_target IN LISTS _pybind11_new_targets)
+      if(TARGET ${_pybind11_found_python}::${_pybind11_target})
+        set_property(TARGET ${_pybind11_found_python}::${_pybind11_target} PROPERTY IMPORTED_GLOBAL
+                                                                                    TRUE)
+      endif()
+    endforeach()
+  endif()
+endif()
+
+if(NOT _pybind11_found_python)
   if(NOT DEFINED Python_FIND_IMPLEMENTATIONS)
     set(Python_FIND_IMPLEMENTATIONS CPython PyPy)
   endif()
@@ -33,13 +85,6 @@ if(NOT Python_FOUND AND NOT Python3_FOUND)
     set(_pybind11_interp_component "")
   else()
     set(_pybind11_interp_component Interpreter)
-  endif()
-
-  # Development.Module support (required for manylinux) started in 3.18
-  if(CMAKE_VERSION VERSION_LESS 3.18)
-    set(_pybind11_dev_component Development)
-  else()
-    set(_pybind11_dev_component Development.Module OPTIONAL_COMPONENTS Development.Embed)
   endif()
 
   # Callers need to be able to access Python_EXECUTABLE
