@@ -171,14 +171,14 @@ public:
         // Use Python's local-time disambiguation, preserving fold while ignoring
         // tzinfo and datetime subclass overrides. Keep microseconds separate to
         // avoid losing precision through timestamp()'s floating-point result.
-        object dt = reinterpret_steal<object>(PyDateTime_FromDateAndTimeAndFold(cal.tm_year + 1900,
-                                                                                cal.tm_mon + 1,
-                                                                                cal.tm_mday,
-                                                                                cal.tm_hour,
-                                                                                cal.tm_min,
-                                                                                cal.tm_sec,
-                                                                                0,
-                                                                                fold));
+        auto dt = reinterpret_steal<object>(PyDateTime_FromDateAndTimeAndFold(cal.tm_year + 1900,
+                                                                              cal.tm_mon + 1,
+                                                                              cal.tm_mday,
+                                                                              cal.tm_hour,
+                                                                              cal.tm_min,
+                                                                              cal.tm_sec,
+                                                                              0,
+                                                                              fold));
         if (!dt) {
             throw error_already_set();
         }
@@ -213,7 +213,7 @@ public:
 
         // Python determines the local calendar fields and fold from whole seconds.
         auto args = make_tuple(tt);
-        object dt = reinterpret_steal<object>(PyDateTime_FromTimestamp(args.ptr()));
+        auto dt = reinterpret_steal<object>(PyDateTime_FromTimestamp(args.ptr()));
         if (!dt) {
             throw error_already_set();
         }
