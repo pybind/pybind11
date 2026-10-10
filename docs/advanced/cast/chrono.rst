@@ -47,7 +47,9 @@ Provided conversions
 - ``std::chrono::system_clock::time_point`` → ``datetime.datetime``
     System clock times are converted to python datetime instances. They are
     in the local timezone, but do not have any timezone information attached
-    to them (they are naive datetime objects).
+    to them (they are naive datetime objects). The ``fold`` attribute
+    distinguishes the two occurrences of an ambiguous local time when
+    clocks move backward.
 
 - ``std::chrono::duration`` → ``datetime.timedelta``
     Durations are converted to timedeltas, any precision in the duration
@@ -62,7 +64,10 @@ Provided conversions
 - ``datetime.datetime`` or ``datetime.date`` or ``datetime.time`` → ``std::chrono::system_clock::time_point``
     Date/time objects are converted into system clock timepoints. Any
     timezone information is ignored and the type is treated as a naive
-    object.
+    object in the local timezone. The ``fold`` attribute selects the earlier
+    (``0``) or later (``1``) occurrence of an ambiguous local time.
+    Nonexistent local times when clocks move forward follow Python's
+    ``datetime.timestamp()`` behavior and cannot round-trip unchanged.
 
 - ``datetime.timedelta`` → ``std::chrono::duration``
     Time delta are converted into durations with microsecond precision.
