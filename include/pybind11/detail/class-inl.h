@@ -407,6 +407,17 @@ PYBIND11_INLINE void clear_patients(PyObject *self) {
     }
 }
 
+PYBIND11_INLINE PyObject **instance_dict_ptr(PyObject *self) {
+#if defined(PYPY_VERSION)
+    // PyPy 3.12's _PyObject_GetDictPtr() aborts if called from tp_dealloc.
+    auto offset = Py_TYPE(self)->tp_dictoffset;
+    return offset > 0 ? reinterpret_cast<PyObject **>(reinterpret_cast<char *>(self) + offset)
+                      : nullptr;
+#else
+    return _PyObject_GetDictPtr(self);
+#endif
+}
+
 PYBIND11_INLINE void clear_instance(PyObject *self) {
     auto *instance = reinterpret_cast<detail::instance *>(self);
 
@@ -436,7 +447,7 @@ PYBIND11_INLINE void clear_instance(PyObject *self) {
         PyObject_ClearWeakRefs(self);
     }
 
-    PyObject **dict_ptr = _PyObject_GetDictPtr(self);
+    PyObject **dict_ptr = instance_dict_ptr(self);
     if (dict_ptr) {
         Py_CLEAR(*dict_ptr);
     }
@@ -525,7 +536,7 @@ extern "C" PYBIND11_INLINE int pybind11_traverse(PyObject *self, visitproc visit
         return ret;
     }
 #else
-    PyObject *&dict = *_PyObject_GetDictPtr(self);
+    PyObject *&dict = *instance_dict_ptr(self);
     Py_VISIT(dict);
 #endif
     // https://docs.python.org/3/c-api/typeobj.html#c.PyTypeObject.tp_traverse
@@ -537,7 +548,7 @@ extern "C" PYBIND11_INLINE int pybind11_clear(PyObject *self) {
 #if PY_VERSION_HEX >= 0x030D0000
     PyObject_ClearManagedDict(self);
 #else
-    PyObject *&dict = *_PyObject_GetDictPtr(self);
+    PyObject *&dict = *instance_dict_ptr(self);
     Py_CLEAR(dict);
 #endif
     return 0;
