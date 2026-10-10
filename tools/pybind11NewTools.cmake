@@ -35,11 +35,15 @@ if(NOT Python_FOUND AND NOT Python3_FOUND)
     set(_pybind11_interp_component Interpreter)
   endif()
 
-  # Development.Module support (required for manylinux) started in 3.18
+  # Development.Module support (required for manylinux) started in 3.18;
+  # Development.SABIModule (stable ABI, see the STABLE_ABI option) in 3.26.
   if(CMAKE_VERSION VERSION_LESS 3.18)
     set(_pybind11_dev_component Development)
-  else()
+  elseif(CMAKE_VERSION VERSION_LESS 3.26)
     set(_pybind11_dev_component Development.Module OPTIONAL_COMPONENTS Development.Embed)
+  else()
+    set(_pybind11_dev_component Development.Module OPTIONAL_COMPONENTS Development.Embed
+                                Development.SABIModule)
   endif()
 
   # Callers need to be able to access Python_EXECUTABLE
@@ -69,6 +73,9 @@ if(NOT Python_FOUND AND NOT Python3_FOUND)
     if(TARGET Python::Module)
       set_property(TARGET Python::Module PROPERTY IMPORTED_GLOBAL TRUE)
     endif()
+    if(TARGET Python::SABIModule)
+      set_property(TARGET Python::SABIModule PROPERTY IMPORTED_GLOBAL TRUE)
+    endif()
   endif()
 
   # Explicitly export version for callers (including our own functions)
@@ -85,6 +92,11 @@ if(NOT Python_FOUND AND NOT Python3_FOUND)
     set(Python_VERSION_PATCH
         "${Python_VERSION_PATCH}"
         CACHE INTERNAL "")
+    if(DEFINED Python_SOSABI)
+      set(Python_SOSABI
+          "${Python_SOSABI}"
+          CACHE INTERNAL "")
+    endif()
   endif()
 endif()
 
@@ -252,12 +264,149 @@ else()
     PROPERTY INTERFACE_LINK_LIBRARIES pybind11::python_link_helper)
 endif()
 
+# The Py_LIMITED_API value for STABLE_ABI modules (CPython 3.12 is the minimum pybind11 supports).
+set(PYBIND11_STABLE_ABI_VERSION
+    "3.12"
+    CACHE STRING "Python version whose stable ABI STABLE_ABI modules target (3.12 or newer)")
+
+set(PYBIND11_ABI3T
+    OFF
+    CACHE BOOL "STABLE_ABI modules target abi3t (PEP 803), also from GIL-enabled Python 3.15+")
+
+# True if the interpreter is a free-threaded build (needs the abi3t variant of the stable ABI).
+function(_pybind11_python_is_free_threaded out_var)
+  # SOABI is cpython-315t-... on POSIX and cp315t-win_amd64 on Windows.
+  if(${_Python}_FREE_THREADED
+     OR "${${_Python}_SOABI}" MATCHES "^(cpython-|cp)[0-9]+t"
+     OR "${PYTHON_MODULE_EXTENSION}" MATCHES "^\\.(cpython-|cp)[0-9]+t")
+    set(${out_var}
+        ON
+        PARENT_SCOPE)
+  else()
+    set(${out_var}
+        OFF
+        PARENT_SCOPE)
+  endif()
+endfunction()
+
+# True if STABLE_ABI modules target abi3t: always on free-threaded Python, else PYBIND11_ABI3T.
+function(_pybind11_stable_abi_is_abi3t out_var)
+  _pybind11_python_is_free_threaded(_abi3t)
+  if(PYBIND11_ABI3T)
+    set(_abi3t ON)
+  endif()
+  set(${out_var}
+      ${_abi3t}
+      PARENT_SCOPE)
+endfunction()
+
+# PYBIND11_STABLE_ABI_VERSION, raised to 3.15 for abi3t (abi3t starts there).
+function(_pybind11_stable_abi_version out_var)
+  set(_version "${PYBIND11_STABLE_ABI_VERSION}")
+  _pybind11_stable_abi_is_abi3t(_abi3t)
+  if(_abi3t AND _version VERSION_LESS 3.15)
+    set(_version "3.15")
+  endif()
+  set(${out_var}
+      "${_version}"
+      PARENT_SCOPE)
+endfunction()
+
+# The effective stable ABI version as the Py_LIMITED_API hex value.
+function(_pybind11_stable_abi_hex out_var)
+  _pybind11_stable_abi_version(_version)
+  string(REPLACE "." ";" _parts "${_version}")
+  list(GET _parts 0 _major)
+  list(GET _parts 1 _minor)
+  math(EXPR _hex "(${_major} << 24) | (${_minor} << 16)" OUTPUT_FORMAT HEXADECIMAL)
+  set(${out_var}
+      "${_hex}"
+      PARENT_SCOPE)
+endfunction()
+
+# Add the stable ABI define and import library to a target that FindPython's USE_SABI did not set up.
+function(_pybind11_stable_abi_setup target_name)
+  _pybind11_stable_abi_hex(_hex)
+  _pybind11_stable_abi_is_abi3t(_abi3t)
+  _pybind11_python_is_free_threaded(_free_threaded)
+  if(NOT _abi3t)
+    target_compile_definitions(${target_name} PRIVATE "Py_LIMITED_API=${_hex}")
+  else()
+    target_compile_definitions(${target_name} PRIVATE "Py_TARGET_ABI3T=${_hex}")
+  endif()
+  if(_abi3t
+     AND NOT _free_threaded
+     AND WIN32)
+    # Python::SABIModule is python3.lib here, but abi3t needs python3t.lib from the same
+    # directory. Read it from the imported target: FindPython's variables are not visible when
+    # pybind11 was found in a subdirectory. (The headers come from pybind11::python_headers.)
+    set(_python3_lib "")
+    foreach(_prop IMPORTED_IMPLIB_RELEASE IMPORTED_IMPLIB IMPORTED_LOCATION_RELEASE
+                  IMPORTED_LOCATION)
+      get_property(
+        _python3_lib
+        TARGET ${_Python}::SABIModule
+        PROPERTY ${_prop})
+      if(_python3_lib)
+        break()
+      endif()
+    endforeach()
+    get_filename_component(_python3_lib_dir "${_python3_lib}" DIRECTORY)
+    find_library(
+      _pybind11_python3t_lib python3t
+      PATHS ${_python3_lib_dir} ${${_Python}_SABI_LIBRARY_DIRS}
+      NO_DEFAULT_PATH REQUIRED)
+    target_link_libraries(${target_name} PRIVATE "${_pybind11_python3t_lib}")
+  else()
+    target_link_libraries(${target_name} PRIVATE ${_Python}::SABIModule)
+  endif()
+endfunction()
+
+# Fail with an explanation if a STABLE_ABI module cannot be built in this configuration.
+function(_pybind11_check_stable_abi target_name lib_type)
+  if(CMAKE_VERSION VERSION_LESS 3.26)
+    message(FATAL_ERROR "${target_name}: STABLE_ABI requires CMake 3.26 or newer (USE_SABI).")
+  endif()
+  if(lib_type STREQUAL "STATIC")
+    message(FATAL_ERROR "${target_name}: STABLE_ABI is not supported for STATIC libraries.")
+  endif()
+  if(PYBIND11_STABLE_ABI_VERSION VERSION_LESS 3.12)
+    message(FATAL_ERROR "${target_name}: PYBIND11_STABLE_ABI_VERSION must be 3.12 or newer, "
+                        "got ${PYBIND11_STABLE_ABI_VERSION}.")
+  endif()
+  if(DEFINED ${_Python}_INTERPRETER_ID AND NOT "${${_Python}_INTERPRETER_ID}" STREQUAL "Python")
+    message(FATAL_ERROR "${target_name}: STABLE_ABI requires CPython, found "
+                        "${${_Python}_INTERPRETER_ID}.")
+  endif()
+  if(DEFINED ${_Python}_VERSION AND ${_Python}_VERSION VERSION_LESS PYBIND11_STABLE_ABI_VERSION)
+    message(FATAL_ERROR "${target_name}: STABLE_ABI ${PYBIND11_STABLE_ABI_VERSION} needs Python "
+                        ">= ${PYBIND11_STABLE_ABI_VERSION} headers, found ${${_Python}_VERSION}.")
+  endif()
+  _pybind11_stable_abi_is_abi3t(_abi3t)
+  if(_abi3t
+     AND DEFINED ${_Python}_VERSION
+     AND ${_Python}_VERSION VERSION_LESS 3.15)
+    message(FATAL_ERROR "${target_name}: the stable ABI for free-threading (abi3t) needs Python "
+                        ">= 3.15, found ${${_Python}_VERSION}.")
+  endif()
+  if(NOT TARGET ${_Python}::SABIModule)
+    message(
+      FATAL_ERROR
+        "${target_name}: STABLE_ABI needs the Development.SABIModule component "
+        "of FindPython. If your project calls find_package(Python) itself, add "
+        "Development.SABIModule to its components.")
+  endif()
+endfunction()
+
 # WITHOUT_SOABI and WITH_SOABI will disable the custom extension handling used by pybind11.
 # WITH_SOABI is passed on to python_add_library.
 function(pybind11_add_module target_name)
   cmake_parse_arguments(
-    PARSE_ARGV 1 ARG
-    "STATIC;SHARED;MODULE;THIN_LTO;OPT_SIZE;NO_EXTRAS;WITHOUT_SOABI;PRECOMPILE;NO_PRECOMPILE" ""
+    PARSE_ARGV
+    1
+    ARG
+    "STATIC;SHARED;MODULE;THIN_LTO;OPT_SIZE;NO_EXTRAS;WITHOUT_SOABI;PRECOMPILE;NO_PRECOMPILE;STABLE_ABI;NO_STABLE_ABI"
+    ""
     "")
 
   if(ARG_STATIC)
@@ -268,10 +417,33 @@ function(pybind11_add_module target_name)
     set(lib_type MODULE)
   endif()
 
-  if("${_Python}" STREQUAL "Python")
-    python_add_library(${target_name} ${lib_type} ${ARG_UNPARSED_ARGUMENTS})
+  # STABLE_ABI keyword, or the PYBIND11_STABLE_ABI variable as the default; NO_STABLE_ABI opts out.
+  set(stable_abi OFF)
+  set(use_sabi "")
+  set(own_sabi OFF)
+  if((ARG_STABLE_ABI OR PYBIND11_STABLE_ABI) AND NOT ARG_NO_STABLE_ABI)
+    _pybind11_check_stable_abi(${target_name} ${lib_type})
+    set(stable_abi ON)
+    _pybind11_stable_abi_is_abi3t(_abi3t)
+    _pybind11_python_is_free_threaded(_free_threaded)
+    if(lib_type STREQUAL "SHARED" OR (_abi3t AND NOT _free_threaded))
+      # python_add_library(SHARED) links the embedding library, and USE_SABI only selects abi3t
+      # on free-threaded Python.
+      set(own_sabi ON)
+    elseif(lib_type STREQUAL "MODULE")
+      # Defines Py_LIMITED_API and links Python::SABIModule (python3.lib on Windows).
+      _pybind11_stable_abi_version(_sabi_version)
+      set(use_sabi USE_SABI ${_sabi_version})
+    endif()
+  endif()
+
+  if(own_sabi)
+    add_library(${target_name} ${lib_type} ${ARG_UNPARSED_ARGUMENTS})
+    _pybind11_stable_abi_setup(${target_name})
+  elseif("${_Python}" STREQUAL "Python")
+    python_add_library(${target_name} ${lib_type} ${use_sabi} ${ARG_UNPARSED_ARGUMENTS})
   elseif("${_Python}" STREQUAL "Python3")
-    python3_add_library(${target_name} ${lib_type} ${ARG_UNPARSED_ARGUMENTS})
+    python3_add_library(${target_name} ${lib_type} ${use_sabi} ${ARG_UNPARSED_ARGUMENTS})
   else()
     message(FATAL_ERROR "Cannot detect FindPython version: ${_Python}")
   endif()
@@ -279,18 +451,30 @@ function(pybind11_add_module target_name)
   target_link_libraries(${target_name} PRIVATE pybind11::headers)
 
   if(lib_type STREQUAL "MODULE")
-    target_link_libraries(${target_name} PRIVATE pybind11::module)
+    if(NOT own_sabi)
+      target_link_libraries(${target_name} PRIVATE pybind11::module)
+    else()
+      # Python::Module would link the version-specific library; take only the module link flags.
+      target_link_libraries(${target_name} PRIVATE pybind11::python_link_helper)
+    endif()
+  elseif(stable_abi)
+    # A SHARED helper library that stable-ABI modules link: same ABI, no embedding.
   else()
     target_link_libraries(${target_name} PRIVATE pybind11::embed)
   endif()
 
-  _pybind11_maybe_precompile(${target_name} "${ARG_PRECOMPILE}" "${ARG_NO_PRECOMPILE}")
+  _pybind11_maybe_precompile(${target_name} "${ARG_PRECOMPILE}" "${ARG_NO_PRECOMPILE}"
+                             "${stable_abi}")
 
   _pybind11_default_hidden_visibility(${target_name})
 
   # If we don't pass a WITH_SOABI or WITHOUT_SOABI, use our own default handling of extensions
   if(NOT ARG_WITHOUT_SOABI AND NOT "WITH_SOABI" IN_LIST ARG_UNPARSED_ARGUMENTS)
-    pybind11_extension(${target_name})
+    if(stable_abi)
+      pybind11_extension_stable_abi(${target_name})
+    else()
+      pybind11_extension(${target_name})
+    endif()
   endif()
 
   if(ARG_NO_EXTRAS)
@@ -330,4 +514,23 @@ function(pybind11_extension name)
     PROPERTIES PREFIX ""
                DEBUG_POSTFIX "${PYTHON_MODULE_DEBUG_POSTFIX}"
                SUFFIX "${PYTHON_MODULE_EXTENSION}")
+endfunction()
+
+# Stable-ABI modules carry the version-independent "abi3" or "abi3t" tag (none on Windows).
+function(pybind11_extension_stable_abi name)
+  if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    set(_ext ".pyd")
+  else()
+    set(_ext "${CMAKE_SHARED_MODULE_SUFFIX}")
+  endif()
+  if(DEFINED ${_Python}_SOSABI AND NOT "${${_Python}_SOSABI}" STREQUAL "")
+    set(_sosabi "${${_Python}_SOSABI}")
+    _pybind11_stable_abi_is_abi3t(_abi3t)
+    if(_abi3t AND _sosabi MATCHES "^abi3(-|$)")
+      # SOSABI is abi3 on GIL-enabled Python.
+      string(REGEX REPLACE "^abi3" "abi3t" _sosabi "${_sosabi}")
+    endif()
+    set(_ext ".${_sosabi}${_ext}")
+  endif()
+  set_target_properties(${name} PROPERTIES PREFIX "" SUFFIX "${_ext}")
 endfunction()

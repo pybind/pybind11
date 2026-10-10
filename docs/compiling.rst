@@ -48,6 +48,8 @@ add a ``pyproject.toml`` file like this:
 
 You don't need setuptools files like ``MANIFEST.in``, ``setup.py``, or
 ``setup.cfg``, as this is not setuptools. See `scikit-build-core`_ for details.
+To ship one wheel per platform instead of one per Python version, see
+:doc:`advanced/stable_abi`.
 For projects you plan to upload to PyPI, be sure to fill out the ``[project]``
 table with other important metadata as well (see `Writing pyproject.toml`_).
 
@@ -349,6 +351,7 @@ function with the following signature:
 
     pybind11_add_module(<name> [MODULE | SHARED] [EXCLUDE_FROM_ALL]
                         [NO_EXTRAS] [THIN_LTO] [OPT_SIZE] [PRECOMPILE | NO_PRECOMPILE]
+                        [STABLE_ABI | NO_STABLE_ABI]
                         source1 [source2 ...])
 
 This function behaves very much like CMake's builtin ``add_library`` (in fact,
@@ -405,6 +408,19 @@ optimizations remain disabled.
 
 .. _ThinLTO: http://clang.llvm.org/docs/ThinLTO.html
 
+``STABLE_ABI`` builds the module against the Python stable ABI
+(``Py_LIMITED_API``), so that one ``.abi3`` module runs on every CPython from
+the targeted version on (3.12 by default; set ``PYBIND11_STABLE_ABI_VERSION``
+to target a newer one). Set the CMake variable ``PYBIND11_STABLE_ABI`` to make
+it the default for all ``pybind11_add_module`` calls and use ``NO_STABLE_ABI``
+to opt a target out. This needs CMake 3.26+, the FindPython mode
+(``PYBIND11_FINDPYTHON=ON``) and CPython 3.12+ headers. Free-threaded
+builds produce ``.abi3t`` modules and need 3.15+; set ``PYBIND11_ABI3T`` to
+also build ``.abi3t`` modules with GIL-enabled CPython 3.15+. It is not
+available for PyPy or GraalPy. See :doc:`advanced/stable_abi` for the
+features that are not available under the stable ABI and for the
+scikit-build-core setup (``wheel.py-api`` plus ``SKBUILD_SABI_COMPONENT``).
+
 .. _precompile-mode:
 
 Pre-compiling part of pybind11
@@ -435,8 +451,10 @@ Requirements and caveats:
   macros ``PYBIND11_INTERNALS_VERSION``, ``Py_GIL_DISABLED``,
   ``PYBIND11_SIMPLE_GIL_MANAGEMENT``,
   ``PYBIND11_DETAILED_ERROR_MESSAGES`` (defaults on in debug builds),
-  ``PYBIND11_HAS_SUBINTERPRETER_SUPPORT``, and
-  ``PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET``. A mismatch produces one
+  ``PYBIND11_HAS_SUBINTERPRETER_SUPPORT``,
+  ``PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET``,
+  ``PYBIND11_TYPE_CREATION_VIA_SPEC``, and
+  ``Py_LIMITED_API``. A mismatch produces one
   readable undefined symbol at link time referencing
   ``pybind11_precompiled_config``.
 * Configuration macros that only change code inside the library (for example
@@ -467,6 +485,10 @@ Requirements and caveats:
 * The library is static and per-build-tree; it is never installed or shared
   between projects. Each extension module links its own copy, which keeps
   pybind11's per-module state the same as in header-only mode.
+* With ``STABLE_ABI`` the library is compiled against the limited API too.
+  One build tree cannot mix stable-ABI and regular precompiled modules; the
+  first ``PRECOMPILE`` target decides, and a later mismatch is a configure
+  error.
 * Not available with ``PYBIND11_NOPYTHON`` (the library needs Python
   headers).
 

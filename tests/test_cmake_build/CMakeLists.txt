@@ -23,7 +23,7 @@ function(pybind11_add_build_test name)
   # Forward option-driven defines so the nested projects can verify they propagate
   # through the pybind11_headers usage requirements.
   foreach(opt IN ITEMS PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION
-                       PYBIND11_SIMPLE_GIL_MANAGEMENT)
+                       PYBIND11_SIMPLE_GIL_MANAGEMENT PYBIND11_STABLE_ABI)
     if(${opt})
       list(APPEND build_options "-D${opt}=ON")
     endif()
@@ -72,10 +72,16 @@ pybind11_add_build_test(subdirectory_target)
 pybind11_add_build_test(subdirectory_precompile)
 if("${PYTHON_MODULE_EXTENSION}" MATCHES "pypy"
    OR "${Python_INTERPRETER_ID}" STREQUAL "PyPy"
-   OR "${PYTHON_MODULE_EXTENSION}" MATCHES "graalpy")
-  message(STATUS "Skipping embed test on PyPy or GraalPy")
+   OR "${PYTHON_MODULE_EXTENSION}" MATCHES "graalpy"
+   OR PYBIND11_STABLE_ABI)
+  message(STATUS "Skipping embed test on PyPy, GraalPy, or under the stable ABI")
 else()
   pybind11_add_build_test(subdirectory_embed)
+endif()
+if(PYBIND11_STABLE_ABI
+   AND CMAKE_VERSION VERSION_GREATER_EQUAL 3.26
+   AND NOT CMAKE_GENERATOR_PLATFORM MATCHES "Win32")
+  pybind11_add_build_test(subdirectory_stable_abi)
 endif()
 
 if(PYBIND11_INSTALL)
@@ -91,7 +97,8 @@ if(PYBIND11_INSTALL)
   if(NOT
      ("${PYTHON_MODULE_EXTENSION}" MATCHES "pypy"
       OR "${Python_INTERPRETER_ID}" STREQUAL "PyPy"
-      OR "${PYTHON_MODULE_EXTENSION}" MATCHES "graalpy"))
+      OR "${PYTHON_MODULE_EXTENSION}" MATCHES "graalpy"
+      OR PYBIND11_STABLE_ABI))
     pybind11_add_build_test(installed_embed INSTALL)
   endif()
 endif()

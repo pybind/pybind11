@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+import sysconfig
 from textwrap import dedent
 
 import pytest
@@ -105,6 +106,100 @@ def test_simple_setup_py(monkeypatch, tmpdir, parallel, std):
         encoding="ascii",
     )
 
+    subprocess.check_call(
+        [sys.executable, "test.py"], stdout=sys.stdout, stderr=sys.stderr
+    )
+
+
+@pytest.mark.skipif(
+    sys.implementation.name != "cpython"
+    or sys.version_info < (3, 12)
+    or (sysconfig.get_config_var("Py_GIL_DISABLED") and sys.version_info < (3, 15)),
+    reason="stable ABI needs CPython 3.12+, or 3.15+ when free-threaded (abi3t)",
+)
+@pytest.mark.parametrize(
+    "py_limited_api",
+    [
+        True,
+        pytest.param(
+            "3.15t",
+            marks=pytest.mark.skipif(
+                sys.version_info < (3, 15), reason="abi3t needs CPython 3.15+"
+            ),
+        ),
+    ],
+)
+def test_stable_abi_setup_py(monkeypatch, tmpdir, py_limited_api):
+    monkeypatch.chdir(tmpdir)
+    monkeypatch.syspath_prepend(MAIN_DIR)
+
+    (tmpdir / "setup.py").write_text(
+        dedent(
+            f"""\
+            import sys
+            sys.path.append({MAIN_DIR!r})
+
+            from setuptools import setup
+            from pybind11.setup_helpers import build_ext, Pybind11Extension
+
+            ext_modules = [
+                Pybind11Extension(
+                    "stable_abi_setup",
+                    ["main.cpp"],
+                    cxx_std=17,
+                    py_limited_api={py_limited_api!r},
+                ),
+            ]
+
+            setup(
+                name="stable_abi_setup_package",
+                cmdclass={{"build_ext": build_ext}},
+                ext_modules=ext_modules,
+            )
+            """
+        ),
+        encoding="ascii",
+    )
+
+    (tmpdir / "main.cpp").write_text(
+        dedent(
+            """\
+            #include <pybind11/pybind11.h>
+
+            #if !defined(Py_LIMITED_API)
+            #    error "Py_LIMITED_API should be defined"
+            #endif
+
+            struct Point { int x; };
+
+            PYBIND11_MODULE(stable_abi_setup, m, pybind11::mod_gil_used()) {
+                pybind11::class_<Point>(m, "Point")
+                    .def(pybind11::init<int>())
+                    .def_readwrite("x", &Point::x);
+            }
+            """
+        ),
+        encoding="ascii",
+    )
+
+    subprocess.check_call([sys.executable, "setup.py", "build_ext", "--inplace"])
+
+    built = [f for f in tmpdir.listdir() if f.basename.startswith("stable_abi_setup")]
+    assert len(built) == 1
+    assert ".abi3" in built[0].basename or built[0].ext == ".pyd"
+    abi3t = py_limited_api == "3.15t" or sysconfig.get_config_var("Py_GIL_DISABLED")
+    if not WIN:
+        assert (".abi3t" in built[0].basename) == bool(abi3t)
+
+    (tmpdir / "test.py").write_text(
+        dedent(
+            """\
+            import stable_abi_setup
+            assert stable_abi_setup.Point(4).x == 4
+            """
+        ),
+        encoding="ascii",
+    )
     subprocess.check_call(
         [sys.executable, "test.py"], stdout=sys.stdout, stderr=sys.stderr
     )

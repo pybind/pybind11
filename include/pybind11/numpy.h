@@ -71,9 +71,19 @@ struct handle_type_name<array> {
 template <typename type, typename SFINAE = void>
 struct npy_format_descriptor;
 
+// The proxies mirror NumPy's object layouts. Under the abi3t stable ABI PyObject is opaque and
+// its size differs between free-threaded and GIL-enabled interpreters; NumPy >= 2.5 then
+// defines the same structs without the header and returns pointers to them from its C API
+// (`_PyArray_GET_ITEM_DATA`, `_PyDataType_GET_ITEM_DATA`), which the accessors below use.
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+#    define PYBIND11_NUMPY_PROXY_HEAD
+#else
+#    define PYBIND11_NUMPY_PROXY_HEAD PyObject_HEAD
+#endif
+
 /* NumPy 1 proxy (always includes legacy fields) */
 struct PyArrayDescr1_Proxy {
-    PyObject_HEAD
+    PYBIND11_NUMPY_PROXY_HEAD
     PyObject *typeobj;
     char kind;
     char type;
@@ -88,7 +98,7 @@ struct PyArrayDescr1_Proxy {
 };
 
 struct PyArrayDescr_Proxy {
-    PyObject_HEAD
+    PYBIND11_NUMPY_PROXY_HEAD
     PyObject *typeobj;
     char kind;
     char type;
@@ -100,7 +110,7 @@ struct PyArrayDescr_Proxy {
 
 /* NumPy 2 proxy, including legacy fields */
 struct PyArrayDescr2_Proxy {
-    PyObject_HEAD
+    PYBIND11_NUMPY_PROXY_HEAD
     PyObject *typeobj;
     char kind;
     char type;
@@ -120,7 +130,7 @@ struct PyArrayDescr2_Proxy {
 };
 
 struct PyArray_Proxy {
-    PyObject_HEAD
+    PYBIND11_NUMPY_PROXY_HEAD
     char *data;
     int nd;
     ssize_t *dimensions;
@@ -130,12 +140,14 @@ struct PyArray_Proxy {
     int flags;
 };
 
+#if !defined(PYBIND11_OPAQUE_PYOBJECT)
 struct PyVoidScalarObject_Proxy {
     PyObject_VAR_HEAD char *obval;
     PyArrayDescr_Proxy *descr;
     int flags;
     PyObject *base;
 };
+#endif
 
 struct numpy_type_info {
     PyObject *dtype_ptr;
@@ -317,6 +329,10 @@ struct npy_api {
     PyObject *(*PyArray_Squeeze_)(PyObject *);
     // Unused. Not removed because that affects ABI of the class.
     int (*PyArray_SetBaseObject_)(PyObject *, PyObject *);
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+    PyArray_Proxy *(*_PyArray_GET_ITEM_DATA_)(const PyObject *);
+    PyArrayDescr_Proxy *(*_PyDataType_GET_ITEM_DATA_)(const PyObject *);
+#endif
     PyObject *(*PyArray_Resize_)(PyObject *, PyArray_Dims *, int, int);
     PyObject *(*PyArray_Newshape_)(PyObject *, PyArray_Dims *, int);
     PyObject *(*PyArray_View_)(PyObject *, PyObject *, PyObject *);
@@ -344,7 +360,10 @@ private:
         API_PyArray_View = 137,
         API_PyArray_DescrConverter = 174,
         API_PyArray_EquivTypes = 182,
-        API_PyArray_SetBaseObject = 282
+        API_PyArray_SetBaseObject = 282,
+        // NumPy >= 2.5: field access for abi3t, where PyObject_HEAD has no fixed size.
+        API__PyArray_GET_ITEM_DATA = 369,
+        API__PyDataType_GET_ITEM_DATA = 372
     };
 
     static npy_api lookup() {
@@ -382,6 +401,14 @@ private:
         DECL_NPY_API(PyArray_DescrConverter);
         DECL_NPY_API(PyArray_EquivTypes);
         DECL_NPY_API(PyArray_SetBaseObject);
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+        if (api.PyArray_RUNTIME_VERSION_ < 0x16) {
+            pybind11_fail(
+                "pybind11 numpy support with the abi3t stable ABI requires numpy >= 2.5");
+        }
+        DECL_NPY_API(_PyArray_GET_ITEM_DATA);
+        DECL_NPY_API(_PyDataType_GET_ITEM_DATA);
+#endif
 
 #undef DECL_NPY_API
         return api;
@@ -533,6 +560,31 @@ static constexpr int normalized_dtype_num[npy_api::NPY_VOID_ + 1] = {
     npy_api::NPY_VOID_,
 };
 
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+inline PyArray_Proxy *array_proxy(void *ptr) {
+    return npy_api::get()._PyArray_GET_ITEM_DATA_(static_cast<PyObject *>(ptr));
+}
+
+inline const PyArray_Proxy *array_proxy(const void *ptr) {
+    return npy_api::get()._PyArray_GET_ITEM_DATA_(static_cast<const PyObject *>(ptr));
+}
+
+inline PyArrayDescr_Proxy *array_descriptor_proxy(PyObject *ptr) {
+    return npy_api::get()._PyDataType_GET_ITEM_DATA_(ptr);
+}
+
+inline const PyArrayDescr_Proxy *array_descriptor_proxy(const PyObject *ptr) {
+    return npy_api::get()._PyDataType_GET_ITEM_DATA_(ptr);
+}
+
+inline const PyArrayDescr1_Proxy *array_descriptor1_proxy(const PyObject *ptr) {
+    return reinterpret_cast<const PyArrayDescr1_Proxy *>(array_descriptor_proxy(ptr));
+}
+
+inline const PyArrayDescr2_Proxy *array_descriptor2_proxy(const PyObject *ptr) {
+    return reinterpret_cast<const PyArrayDescr2_Proxy *>(array_descriptor_proxy(ptr));
+}
+#else
 inline PyArray_Proxy *array_proxy(void *ptr) { return reinterpret_cast<PyArray_Proxy *>(ptr); }
 
 inline const PyArray_Proxy *array_proxy(const void *ptr) {
@@ -554,6 +606,7 @@ inline const PyArrayDescr1_Proxy *array_descriptor1_proxy(const PyObject *ptr) {
 inline const PyArrayDescr2_Proxy *array_descriptor2_proxy(const PyObject *ptr) {
     return reinterpret_cast<const PyArrayDescr2_Proxy *>(ptr);
 }
+#endif
 
 inline bool check_flags(const void *ptr, int flag) {
     return (flag == (array_proxy(ptr)->flags & flag));
@@ -1788,7 +1841,18 @@ private:
         }
         if (auto descr = reinterpret_steal<object>(api.PyArray_DescrFromScalar_(obj))) {
             if (api.PyArray_EquivTypes_(dtype_ptr(), descr.ptr())) {
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+                // The void scalar is opaque; its buffer is the scalar's own storage.
+                Py_buffer view;
+                if (PyObject_GetBuffer(obj, &view, PyBUF_SIMPLE) != 0) {
+                    PyErr_Clear();
+                    return false;
+                }
+                value = view.buf;
+                PyBuffer_Release(&view);
+#else
                 value = ((PyVoidScalarObject_Proxy *) obj)->obval;
+#endif
                 return true;
             }
         }

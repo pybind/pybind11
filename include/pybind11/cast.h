@@ -397,7 +397,7 @@ public:
         const auto &bases
             = all_type_info(reinterpret_cast<PyTypeObject *>(type::handle_of(h).ptr()));
         if (bases.size() == 1) { // Only allowing loading from a single-value type
-            value = values_and_holders(reinterpret_cast<instance *>(h.ptr())).begin()->value_ptr();
+            value = values_and_holders(get_instance(h.ptr())).begin()->value_ptr();
             return true;
         }
 
@@ -447,10 +447,17 @@ public:
             if (src.is_none()) {
                 res = 0; // None is implicitly converted to False
             }
-#if defined(PYPY_VERSION)
-            // On PyPy, check that "__bool__" attr exists
+#if defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
+            // Check that the "__bool__" attr exists
             else if (hasattr(src, PYBIND11_BOOL_ATTR)) {
                 res = PyObject_IsTrue(src.ptr());
+            }
+#elif defined(Py_LIMITED_API)
+            // Same as below through the stable ABI (PyType_GetSlot works on static types since
+            // 3.10).
+            else if (auto *nb_bool
+                     = reinterpret_cast<inquiry>(PyType_GetSlot(Py_TYPE(src.ptr()), Py_nb_bool))) {
+                res = nb_bool(src.ptr());
             }
 #else
             // Alternate approach for CPython: this does the same as the above, but optimized
@@ -477,10 +484,8 @@ public:
 private:
     // Test if an object is a NumPy boolean (without fetching the type).
     static bool is_numpy_bool(handle object) {
-        const char *type_name = Py_TYPE(object.ptr())->tp_name;
         // Name changed to `numpy.bool` in NumPy 2, `numpy.bool_` is needed for 1.x support
-        return std::strcmp("numpy.bool", type_name) == 0
-               || std::strcmp("numpy.bool_", type_name) == 0;
+        return tp_name_is_one_of(Py_TYPE(object.ptr()), {"numpy.bool", "numpy.bool_"});
     }
 };
 
@@ -850,7 +855,7 @@ protected:
         tuple result(size);
         int counter = 0;
         for (auto &entry : entries) {
-            PyTuple_SET_ITEM(result.ptr(), counter++, entry.release().ptr());
+            tuple_set_item(result.ptr(), counter++, entry.release().ptr());
         }
         return result.release();
     }
@@ -922,9 +927,13 @@ protected:
         }
     }
 
+    // The fallback overload always throws; MSVC LTCG then flags this return as unreachable.
+    PYBIND11_WARNING_PUSH
+    PYBIND11_WARNING_DISABLE_MSVC(4702)
     bool set_foreign_holder(handle src) {
         return holder_caster_foreign_helpers::set_foreign_holder(src, (type *) value, &holder);
     }
+    PYBIND11_WARNING_POP
 
     void load_value(value_and_holder &&v_h) {
         if (v_h.holder_constructed()) {
@@ -1172,8 +1181,7 @@ std::weak_ptr<T> potentially_slicing_weak_ptr(handle obj) {
     if (caster.load(obj, /*convert=*/true)) {
         return caster.potentially_slicing_weak_ptr();
     }
-    const char *obj_type_name = detail::obj_class_name(obj.ptr());
-    throw type_error("\"" + std::string(obj_type_name)
+    throw type_error("\"" + detail::obj_class_name(obj.ptr())
                      + "\" object is not convertible to std::weak_ptr<T> (with T = " + type_id<T>()
                      + ")");
 }
@@ -1961,7 +1969,7 @@ typing::Tuple<Args...> make_tuple(Args &&...args_) {
     tuple result(size);
     int counter = 0;
     for (auto &arg_value : args) {
-        PyTuple_SET_ITEM(result.ptr(), counter++, arg_value.release().ptr());
+        detail::tuple_set_item(result.ptr(), counter++, arg_value.release().ptr());
     }
     PYBIND11_WARNING_PUSH
 #ifdef PYBIND11_DETECTED_CLANG_WITH_MISLEADING_CALL_STD_MOVE_EXPLICITLY_WARNING
@@ -2415,7 +2423,7 @@ unpacking_collector<policy> collect_arguments(Args &&...args) {
 template <typename Derived>
 template <return_value_policy policy, typename... Args>
 object object_api<Derived>::operator()(Args &&...args) const {
-#ifndef NDEBUG
+#if !defined(NDEBUG) && !defined(Py_LIMITED_API) // PyGILState_Check: not in the stable ABI
     if (!PyGILState_Check()) {
         pybind11_fail("pybind11::object_api<>::operator() PyGILState_Check() failure.");
     }

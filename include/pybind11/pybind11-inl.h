@@ -199,7 +199,7 @@ PYBIND11_NAMESPACE_BEGIN(function_record_PyTypeObject_methods)
 PYBIND11_INLINE void tp_dealloc_impl(PyObject *self) {
     // Save type before PyObject_Free invalidates self.
     auto *type = Py_TYPE(self);
-    auto *py_func_rec = reinterpret_cast<function_record_PyObject *>(self);
+    auto *py_func_rec = function_record_data(self);
     cpp_function::destruct(py_func_rec->cpp_func_rec);
     py_func_rec->cpp_func_rec = nullptr;
     // PyObject_New increments the heap type refcount and allocates via
@@ -249,7 +249,7 @@ PYBIND11_INLINE PyObject *cached_create_module(PyObject *spec, PyModuleDef *) {
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_INLINE dict globals() {
-#if PY_VERSION_HEX >= 0x030d0000
+#if PYBIND11_API_VERSION_HEX >= 0x030d0000
     PyObject *p = PyEval_GetFrameGlobals();
     return p ? reinterpret_steal<dict>(p)
              : reinterpret_borrow<dict>(module_::import("__main__").attr("__dict__").ptr());
@@ -398,7 +398,7 @@ PYBIND11_INLINE void register_local_exception_translator(ExceptionTranslator &&t
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void print(const tuple &args, const dict &kwargs) {
-#if PY_VERSION_HEX >= 0x030D0000
+#if PYBIND11_API_VERSION_HEX >= 0x030D0000
     auto builtins = reinterpret_steal<dict>(PyEval_GetFrameBuiltins());
 #else
     auto builtins = reinterpret_borrow<dict>(PyEval_GetBuiltins());
@@ -437,7 +437,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 PYBIND11_INLINE function get_type_override(const void *this_ptr,
                                            const type_info *this_type,
                                            const char *name) {
-    handle self = get_object_handle(this_ptr, this_type);
+    object self = get_object_handle(this_ptr, this_type);
     if (!self) {
         return function();
     }
@@ -464,7 +464,7 @@ PYBIND11_INLINE function get_type_override(const void *this_ptr,
 
     /* Don't call dispatch code if invoked from overridden function.
        Unfortunately this doesn't work on PyPy and GraalPy. */
-#if !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)
+#if !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON) && !defined(Py_LIMITED_API)
     PyFrameObject *frame = PyThreadState_GetFrame(PyThreadState_Get());
     if (frame != nullptr) {
         PyCodeObject *f_code = PyFrame_GetCode(frame);
@@ -482,7 +482,7 @@ PYBIND11_INLINE function get_type_override(const void *this_ptr,
 #    else
                 PyObject *co_varnames = PyObject_GetAttrString((PyObject *) f_code, "co_varnames");
 #    endif
-                PyObject *self_arg = PyTuple_GET_ITEM(co_varnames, 0);
+                PyObject *self_arg = PyTuple_GetItem(co_varnames, 0);
                 Py_DECREF(co_varnames);
                 PyObject *self_caller = dict_getitem(locals, self_arg);
                 Py_DECREF(locals);
@@ -495,6 +495,30 @@ PYBIND11_INLINE function get_type_override(const void *this_ptr,
         }
         Py_DECREF(f_code);
         Py_DECREF(frame);
+    }
+
+#elif defined(Py_LIMITED_API)
+    // Same check through attribute access: the frame and code object layouts are not part of
+    // the stable ABI.
+    PyFrameObject *frame = PyThreadState_GetFrame(PyThreadState_Get());
+    if (frame != nullptr) {
+        auto frame_obj = reinterpret_steal<object>(reinterpret_cast<PyObject *>(frame));
+        auto f_code
+            = reinterpret_steal<object>(reinterpret_cast<PyObject *>(PyFrame_GetCode(frame)));
+        if (std::string(str(f_code.attr("co_name"))) == name
+            && f_code.attr("co_argcount").cast<int>() > 0) {
+            object self_arg = f_code.attr("co_varnames")[int_(0)];
+            object locals = getattr(frame_obj, "f_locals", handle());
+            auto self_caller
+                = locals
+                      ? reinterpret_steal<object>(PyObject_GetItem(locals.ptr(), self_arg.ptr()))
+                      : object();
+            if (!self_caller) {
+                PyErr_Clear();
+            } else if (self_caller.is(self)) {
+                return function();
+            }
+        }
     }
 
 #else
@@ -611,9 +635,9 @@ PYBIND11_INLINE void cpp_function::initialize_generic(unique_function_record &&u
     detail::function_record *chain = nullptr, *chain_start = rec;
     if (rec->sibling) {
         if (PyCFunction_Check(rec->sibling.ptr())) {
-            auto *self = PyCFunction_GET_SELF(rec->sibling.ptr());
+            auto *self = PYBIND11_PYCFUNCTION_GET_SELF(rec->sibling.ptr());
             if (self == nullptr) {
-                pybind11_fail("initialize_generic: Unexpected nullptr from PyCFunction_GET_SELF");
+                pybind11_fail("initialize_generic: Unexpected nullptr from PyCFunction_GetSelf");
             }
             chain = detail::function_record_ptr_from_PyObject(self);
             if (chain && !chain->scope.is(rec->scope)) {
@@ -640,8 +664,7 @@ PYBIND11_INLINE void cpp_function::initialize_generic(unique_function_record &&u
         rec->def->ml_flags = METH_FASTCALL | METH_KEYWORDS;
 
         object py_func_rec = detail::function_record_PyObject_New();
-        (reinterpret_cast<detail::function_record_PyObject *>(py_func_rec.ptr()))->cpp_func_rec
-            = unique_rec.release();
+        detail::function_record_data(py_func_rec.ptr())->cpp_func_rec = unique_rec.release();
         guarded_strdup.release();
 
         object scope_module = detail::get_scope_module(rec->scope);
@@ -674,8 +697,7 @@ PYBIND11_INLINE void cpp_function::initialize_generic(unique_function_record &&u
             // chain.
             chain_start = rec;
             rec->next = chain;
-            auto *py_func_rec = reinterpret_cast<detail::function_record_PyObject *>(
-                PyCFunction_GET_SELF(m_ptr));
+            auto *py_func_rec = detail::function_record_data(PYBIND11_PYCFUNCTION_GET_SELF(m_ptr));
             py_func_rec->cpp_func_rec = unique_rec.release();
             guarded_strdup.release();
         } else {
@@ -735,19 +757,32 @@ PYBIND11_INLINE void cpp_function::initialize_generic(unique_function_record &&u
         }
     }
 
-    auto *func = reinterpret_cast<PyCFunctionObject *>(m_ptr);
     // Install docstring if it's non-empty (when at least one option is enabled)
     auto *doc = signatures.empty() ? nullptr : PYBIND11_COMPAT_STRDUP(signatures.c_str());
+#if !defined(Py_LIMITED_API)
+    auto *func = reinterpret_cast<PyCFunctionObject *>(m_ptr);
     std::free(const_cast<char *>(PYBIND11_PYCFUNCTION_GET_DOC(func)));
     PYBIND11_PYCFUNCTION_SET_DOC(func, doc);
+#else
+    // PyCFunctionObject is opaque, but the function reads its `__doc__` from the PyMethodDef,
+    // which pybind11 owns: the one record in the chain that allocated it has `def` set.
+    for (auto *it = chain_start; it != nullptr; it = it->next) {
+        if (it->def) {
+            std::free(const_cast<char *>(it->def->ml_doc));
+            it->def->ml_doc = doc;
+            break;
+        }
+    }
+#endif
 
     if (rec->is_method) {
+        PyObject *cfunc = m_ptr;
         m_ptr = PYBIND11_INSTANCE_METHOD_NEW(m_ptr, rec->scope.ptr());
         if (!m_ptr) {
             pybind11_fail(
                 "cpp_function::cpp_function(): Could not allocate instance method object");
         }
-        Py_DECREF(func);
+        Py_DECREF(cfunc);
     }
 }
 
@@ -824,7 +859,7 @@ PYBIND11_INLINE PyObject *cpp_function::dispatcher(PyObject *self,
 
         auto *const tinfo
             = get_type_info(reinterpret_cast<PyTypeObject *>(overloads->scope.ptr()));
-        auto *const pi = reinterpret_cast<instance *>(parent.ptr());
+        auto *const pi = get_instance(parent.ptr());
         self_value_and_holder = pi->get_value_and_holder(tinfo, true);
 
         // If this value is already registered it must mean __init__ is invoked multiple times;
@@ -976,7 +1011,7 @@ PYBIND11_INLINE PyObject *cpp_function::dispatcher(PyObject *self,
 
             // 2. Check kwargs and, failing that, defaults that may help complete the list
             small_vector<bool, arg_vector_small_size> used_kwargs(
-                kwnames_in ? static_cast<size_t>(PyTuple_GET_SIZE(kwnames_in)) : 0, false);
+                kwnames_in ? static_cast<size_t>(detail::tuple_size(kwnames_in)) : 0, false);
             size_t used_kwargs_count = 0;
             if (args_copied < num_args) {
                 for (; args_copied < num_args; ++args_copied) {
@@ -1052,7 +1087,8 @@ PYBIND11_INLINE PyObject *cpp_function::dispatcher(PyObject *self,
                         // Cast values into handles before indexing into kwargs to ensure
                         // well-defined evaluation order (MSVC C4866).
                         handle arg_in_arr = args_in_arr[n_args_in + i],
-                               kwname = PyTuple_GET_ITEM(kwnames_in, i);
+                               kwname
+                               = detail::tuple_get_item(kwnames_in, static_cast<ssize_t>(i));
                         kwargs[kwname] = arg_in_arr;
                     }
                 }
@@ -1206,19 +1242,20 @@ PYBIND11_INLINE PyObject *cpp_function::dispatcher(PyObject *self,
                 msg += "<repr raised Error>";
             }
         }
-        if (kwnames_in && PyTuple_GET_SIZE(kwnames_in) > 0) {
+        if (kwnames_in && detail::tuple_size(kwnames_in) > 0) {
             if (some_args) {
                 msg += "; ";
             }
             msg += "kwargs: ";
             bool first = true;
-            for (size_t i = 0; i < static_cast<size_t>(PyTuple_GET_SIZE(kwnames_in)); ++i) {
+            for (size_t i = 0; i < static_cast<size_t>(detail::tuple_size(kwnames_in)); ++i) {
                 if (first) {
                     first = false;
                 } else {
                     msg += ", ";
                 }
-                msg += reinterpret_borrow<pybind11::str>(PyTuple_GET_ITEM(kwnames_in, i));
+                msg += reinterpret_borrow<pybind11::str>(
+                    detail::tuple_get_item(kwnames_in, static_cast<ssize_t>(i)));
                 msg += '=';
                 try {
                     msg += pybind11::repr(args_in_arr[n_args_in + i]);
@@ -1253,7 +1290,7 @@ PYBIND11_INLINE PyObject *cpp_function::dispatcher(PyObject *self,
         return nullptr;
     }
     if (overloads->is_constructor && !self_value_and_holder.holder_constructed()) {
-        auto *pi = reinterpret_cast<instance *>(parent.ptr());
+        auto *pi = get_instance(parent.ptr());
         self_value_and_holder.type->init_instance(pi, nullptr);
     }
     return result.ptr();
@@ -1291,6 +1328,9 @@ PYBIND11_INLINE void generic_type::initialize(const type_record &rec) {
     tinfo->simple_ancestors = true;
     tinfo->module_local = rec.module_local;
     tinfo->holder_enum_v = rec.holder_enum_v;
+#if defined(Py_LIMITED_API)
+    tinfo->dictoffset = type_dictoffset(reinterpret_cast<PyTypeObject *>(m_ptr));
+#endif
 
     with_internals([&](internals &internals) {
         auto tindex = std::type_index(*rec.type);
@@ -1337,8 +1377,7 @@ PYBIND11_INLINE void generic_type::initialize(const type_record &rec) {
 }
 
 PYBIND11_INLINE void generic_type::mark_parents_nonsimple(PyTypeObject *value) {
-    auto t = reinterpret_borrow<tuple>(value->tp_bases);
-    for (handle h : t) {
+    for (handle h : get_bases(value)) {
         auto *tinfo2 = get_type_info(reinterpret_cast<PyTypeObject *>(h.ptr()));
         if (tinfo2) {
             tinfo2->simple_type = false;
@@ -1383,9 +1422,10 @@ PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void enum_base::init(bool is_arithmetic,
                 [](handle arg) -> std::string {
                     std::string docstring;
                     dict entries = arg.attr("__entries");
-                    if ((reinterpret_cast<PyTypeObject *>(arg.ptr()))->tp_doc) {
-                        docstring
-                            += std::string(reinterpret_cast<PyTypeObject *>(arg.ptr())->tp_doc);
+                    // tp_doc: the class docstring; `__doc__` itself is this property.
+                    if (const auto *tp_doc = static_cast<const char *>(PyType_GetSlot(
+                            reinterpret_cast<PyTypeObject *>(arg.ptr()), Py_tp_doc))) {
+                        docstring += tp_doc;
                         docstring += "\n\n";
                     }
                     docstring += "Members:";
@@ -1563,6 +1603,7 @@ module_::add_object(const char *name, handle obj, bool overwrite) {
     PyModule_AddObject(ptr(), name, obj.inc_ref().ptr() /* steals a reference */);
 }
 
+#if !defined(PYBIND11_OPAQUE_PYOBJECT)
 PYBIND11_INLINE module_ module_::create_extension_module(const char *name,
                                                          const char *doc,
                                                          PyModuleDef *def,
@@ -1585,14 +1626,15 @@ PYBIND11_INLINE module_ module_::create_extension_module(const char *name,
         pybind11_fail("Internal error in module_::create_extension_module()");
     }
     if (gil_not_used.flag()) {
-#ifdef Py_GIL_DISABLED
+#    ifdef Py_GIL_DISABLED
         PyUnstable_Module_SetGIL(m, Py_MOD_GIL_NOT_USED);
-#endif
+#    endif
     }
     // TODO: Should be reinterpret_steal for Python 3, but Python also steals it again when
     //       returned from PyInit_...
     //       For Python 2, reinterpret_borrow was correct.
     return reinterpret_borrow<module_>(m);
 }
+#endif
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

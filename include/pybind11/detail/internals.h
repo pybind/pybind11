@@ -79,18 +79,30 @@
 #    else
 #        define PYBIND11_PRECOMPILED_CFG_TD 0
 #    endif
+#    if defined(Py_LIMITED_API)
+#        define PYBIND11_PRECOMPILED_CFG_LA 1
+#    else
+#        define PYBIND11_PRECOMPILED_CFG_LA 0
+#    endif
+#    if PYBIND11_TYPE_CREATION_VIA_SPEC
+#        define PYBIND11_PRECOMPILED_CFG_TS 1
+#    else
+#        define PYBIND11_PRECOMPILED_CFG_TS 0
+#    endif
 // PYBIND11_CONCAT does not macro-expand its arguments (## suppresses expansion).
-#    define PYBIND11_PRECOMPILED_CONFIG_NAME_(v, gd, sg, de, si, td)                              \
-        pybind11_precompiled_config_v##v##_gd##gd##_sg##sg##_de##de##_si##si##_td##td
-#    define PYBIND11_PRECOMPILED_CONFIG_NAME(v, gd, sg, de, si, td)                               \
-        PYBIND11_PRECOMPILED_CONFIG_NAME_(v, gd, sg, de, si, td)
+#    define PYBIND11_PRECOMPILED_CONFIG_NAME_(v, gd, sg, de, si, td, la, ts)                      \
+        pybind11_precompiled_config_v##v##_gd##gd##_sg##sg##_de##de##_si##si##_td##td##_la##la##_ts##ts
+#    define PYBIND11_PRECOMPILED_CONFIG_NAME(v, gd, sg, de, si, td, la, ts)                       \
+        PYBIND11_PRECOMPILED_CONFIG_NAME_(v, gd, sg, de, si, td, la, ts)
 #    define PYBIND11_PRECOMPILED_CONFIG_CHECK                                                     \
         PYBIND11_PRECOMPILED_CONFIG_NAME(PYBIND11_INTERNALS_VERSION,                              \
                                          PYBIND11_PRECOMPILED_CFG_GD,                             \
                                          PYBIND11_PRECOMPILED_CFG_SG,                             \
                                          PYBIND11_PRECOMPILED_CFG_DE,                             \
                                          PYBIND11_PRECOMPILED_CFG_SI,                             \
-                                         PYBIND11_PRECOMPILED_CFG_TD)
+                                         PYBIND11_PRECOMPILED_CFG_TD,                             \
+                                         PYBIND11_PRECOMPILED_CFG_LA,                             \
+                                         PYBIND11_PRECOMPILED_CFG_TS)
 #    define PYBIND11_PRECOMPILED_CONFIG_GUARD                                                     \
         ::pybind11::detail::PYBIND11_PRECOMPILED_CONFIG_CHECK();
 #else
@@ -109,29 +121,41 @@ using ExceptionTranslator = void (*)(std::exception_ptr);
 
 // The old Python Thread Local Storage (TLS) API is deprecated in Python 3.7 in favor of the new
 // Thread Specific Storage (TSS) API.
-// Avoid unnecessary allocation of `Py_tss_t`, since we cannot use
-// `Py_LIMITED_API` anyway.
-#define PYBIND11_TLS_KEY_REF Py_tss_t &
-#if defined(__clang__)
-#    define PYBIND11_TLS_KEY_INIT(var)                                                            \
-        _Pragma("clang diagnostic push")                                         /**/             \
-            _Pragma("clang diagnostic ignored \"-Wmissing-field-initializers\"") /**/             \
-            Py_tss_t var = Py_tss_NEEDS_INIT;                                                     \
-        _Pragma("clang diagnostic pop")
-#elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
-#    define PYBIND11_TLS_KEY_INIT(var)                                                            \
-        _Pragma("GCC diagnostic push")                                         /**/               \
-            _Pragma("GCC diagnostic ignored \"-Wmissing-field-initializers\"") /**/               \
-            Py_tss_t var = Py_tss_NEEDS_INIT;                                                     \
-        _Pragma("GCC diagnostic pop")
+// `Py_tss_t` is opaque under `Py_LIMITED_API`, so the key is heap-allocated there; otherwise it
+// is embedded to avoid the allocation.
+#if defined(Py_LIMITED_API)
+using tss_key_ptr = Py_tss_t *; // lets PYBIND11_TLS_KEY_INIT(mutable key_) parse
+#    define PYBIND11_TLS_KEY_REF Py_tss_t *
+#    define PYBIND11_TLS_KEY_INIT(var) tss_key_ptr var = nullptr;
+#    define PYBIND11_TLS_KEY_CREATE(var)                                                          \
+        (((var) = PyThread_tss_alloc()) != nullptr && PyThread_tss_create(var) == 0)
+#    define PYBIND11_TLS_GET_VALUE(key) PyThread_tss_get(key)
+#    define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_tss_set((key), (value))
+#    define PYBIND11_TLS_DELETE_VALUE(key) PyThread_tss_set((key), nullptr)
+#    define PYBIND11_TLS_FREE(key) PyThread_tss_free(key)
 #else
-#    define PYBIND11_TLS_KEY_INIT(var) Py_tss_t var = Py_tss_NEEDS_INIT;
+#    define PYBIND11_TLS_KEY_REF Py_tss_t &
+#    if defined(__clang__)
+#        define PYBIND11_TLS_KEY_INIT(var)                                                        \
+            _Pragma("clang diagnostic push")                                         /**/         \
+                _Pragma("clang diagnostic ignored \"-Wmissing-field-initializers\"") /**/         \
+                Py_tss_t var = Py_tss_NEEDS_INIT;                                                 \
+            _Pragma("clang diagnostic pop")
+#    elif defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#        define PYBIND11_TLS_KEY_INIT(var)                                                        \
+            _Pragma("GCC diagnostic push")                                         /**/           \
+                _Pragma("GCC diagnostic ignored \"-Wmissing-field-initializers\"") /**/           \
+                Py_tss_t var = Py_tss_NEEDS_INIT;                                                 \
+            _Pragma("GCC diagnostic pop")
+#    else
+#        define PYBIND11_TLS_KEY_INIT(var) Py_tss_t var = Py_tss_NEEDS_INIT;
+#    endif
+#    define PYBIND11_TLS_KEY_CREATE(var) (PyThread_tss_create(&(var)) == 0)
+#    define PYBIND11_TLS_GET_VALUE(key) PyThread_tss_get(&(key))
+#    define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_tss_set(&(key), (value))
+#    define PYBIND11_TLS_DELETE_VALUE(key) PyThread_tss_set(&(key), nullptr)
+#    define PYBIND11_TLS_FREE(key) PyThread_tss_delete(&(key))
 #endif
-#define PYBIND11_TLS_KEY_CREATE(var) (PyThread_tss_create(&(var)) == 0)
-#define PYBIND11_TLS_GET_VALUE(key) PyThread_tss_get(&(key))
-#define PYBIND11_TLS_REPLACE_VALUE(key, value) PyThread_tss_set(&(key), (value))
-#define PYBIND11_TLS_DELETE_VALUE(key) PyThread_tss_set(&(key), nullptr)
-#define PYBIND11_TLS_FREE(key) PyThread_tss_delete(&(key))
 
 /// A smart-pointer-like wrapper around a thread-specific value. get/set of the pointer applies to
 /// the current thread only.
@@ -205,6 +229,9 @@ void translate_exception(std::exception_ptr p);
 inline PyThreadState *get_thread_state_unchecked() {
 #if defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
     return PyThreadState_GET();
+#elif defined(Py_LIMITED_API)
+    // PyThreadState_GetUnchecked() is not part of the stable ABI.
+    return PyGILState_GetThisThreadState();
 #elif PY_VERSION_HEX < 0x030D0000
     return _PyThreadState_UncheckedGet();
 #else
@@ -212,9 +239,17 @@ inline PyThreadState *get_thread_state_unchecked() {
 #endif
 }
 
+inline PyInterpreterState *get_interpreter(PyThreadState *tstate) {
+#if defined(PYPY_VERSION) // No PyThreadState_GetInterpreter()
+    return tstate->interp;
+#else
+    return PyThreadState_GetInterpreter(tstate);
+#endif
+}
+
 inline PyInterpreterState *get_interpreter_state_unchecked() {
     auto *tstate = get_thread_state_unchecked();
-    return tstate ? tstate->interp : nullptr;
+    return tstate ? get_interpreter(tstate) : nullptr;
 }
 
 object get_python_state_dict();
@@ -271,7 +306,34 @@ struct override_hash {
 
 using instance_map = std::unordered_multimap<const void *, instance *>;
 
-#ifdef Py_GIL_DISABLED
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+// PyMutex is not part of the stable ABI, but critical sections are (3.15+). The lock is the
+// per-object mutex of a plain `object()`, which is kept for the lifetime of the process.
+class pymutex {
+    friend class pycritical_section;
+    PyObject *lock_object;
+
+public:
+    pymutex()
+        : lock_object(PyObject_CallNoArgs(reinterpret_cast<PyObject *>(&PyBaseObject_Type))) {
+        if (lock_object == nullptr) {
+            throw error_already_set();
+        }
+    }
+};
+
+class pycritical_section {
+    PyCriticalSection cs{};
+
+public:
+    explicit pycritical_section(pymutex &m) { PyCriticalSection_Begin(&cs, m.lock_object); }
+    ~pycritical_section() { PyCriticalSection_End(&cs); }
+    pycritical_section(const pycritical_section &) = delete;
+    pycritical_section &operator=(const pycritical_section &) = delete;
+    pycritical_section(pycritical_section &&) = delete;
+    pycritical_section &operator=(pycritical_section &&) = delete;
+};
+#elif defined(Py_GIL_DISABLED)
 // Wrapper around PyMutex to provide BasicLockable semantics
 class pymutex {
     friend class pycritical_section;
@@ -313,7 +375,9 @@ public:
     pycritical_section(pycritical_section &&) = delete;
     pycritical_section &operator=(pycritical_section &&) = delete;
 };
+#endif
 
+#ifdef Py_GIL_DISABLED
 // Instance map shards are used to reduce mutex contention in free-threaded Python.
 struct instance_map_shard {
     instance_map registered_instances;
@@ -369,6 +433,11 @@ struct internals {
     PyTypeObject *static_property_type = nullptr;
     PyTypeObject *default_metaclass = nullptr;
     PyObject *instance_base = nullptr;
+#if defined(Py_LIMITED_API)
+    // Replacement for PyInstanceMethod_Type, which is not part of the stable ABI. Shared so
+    // that every module recognizes the methods of every other module's classes.
+    PyTypeObject *instancemethod_type = nullptr;
+#endif
     // Unused if PYBIND11_SIMPLE_GIL_MANAGEMENT is defined:
     thread_specific_storage<PyThreadState> tstate;
 #if PYBIND11_INTERNALS_VERSION <= 11
@@ -464,6 +533,12 @@ struct type_info {
     std::forward_list<const std::type_info *> alias_chain;
 #endif
 
+#if defined(Py_LIMITED_API)
+    /* Offset of the `__dict__` slot of instances for `py::dynamic_attr()` types (0 if none);
+     * `_PyObject_GetDictPtr` is not available under the stable ABI. */
+    Py_ssize_t dictoffset = 0;
+#endif
+
     /* A simple type never occurs as a (direct or indirect) parent
      * of a class that makes use of multiple inheritance.
      * A type can be simple even if it has non-simple ancestors as long as it has no descendants.
@@ -493,13 +568,28 @@ struct native_enum_record {
     static const char *attribute_name() { return "__pybind11_native_enum__"; }
 };
 
+// Modules built for the Python stable ABI (Py_LIMITED_API) use a different `internals` layout
+// (opaque TSS keys, different type-object access), so they must not share internals with
+// regular modules in the same process. The tag keeps the two universes apart. It is deliberately
+// not part of PYBIND11_PLATFORM_ABI_ID: the C++ ABI is the same, so the cpp_conduit protocol
+// still bridges the two.
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+#    define PYBIND11_INTERNALS_SABI_TAG "_stable_ft" // abi3t modules also load on GIL builds
+#elif defined(Py_LIMITED_API)
+#    define PYBIND11_INTERNALS_SABI_TAG "_stable"
+#else
+#    define PYBIND11_INTERNALS_SABI_TAG ""
+#endif
+
 #define PYBIND11_INTERNALS_ID                                                                     \
     "__pybind11_internals_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                        \
-        PYBIND11_COMPILER_TYPE_LEADING_UNDERSCORE PYBIND11_PLATFORM_ABI_ID "__"
+        PYBIND11_COMPILER_TYPE_LEADING_UNDERSCORE                                                 \
+            PYBIND11_PLATFORM_ABI_ID PYBIND11_INTERNALS_SABI_TAG "__"
 
 #define PYBIND11_MODULE_LOCAL_ID                                                                  \
     "__pybind11_module_local_v" PYBIND11_TOSTRING(PYBIND11_INTERNALS_VERSION)                     \
-        PYBIND11_COMPILER_TYPE_LEADING_UNDERSCORE PYBIND11_PLATFORM_ABI_ID "__"
+        PYBIND11_COMPILER_TYPE_LEADING_UNDERSCORE                                                 \
+            PYBIND11_PLATFORM_ABI_ID PYBIND11_INTERNALS_SABI_TAG "__"
 
 /// We use this to figure out if there are or have been multiple subinterpreters active at any
 /// point. This must never go from true to false while any interpreter may be running in any
@@ -645,7 +735,7 @@ public:
             // internals_pp so that it can be pulled from the interpreter's state dict.  That is
             // slow, so we use the current PyThreadState to check if it is necessary.
             auto *tstate = get_thread_state_unchecked();
-            if (!tstate || tstate->interp != last_istate_tls()) {
+            if (!tstate || get_interpreter(tstate) != last_istate_tls()) {
                 gil_scoped_acquire_simple gil;
                 if (!tstate) {
                     tstate = get_thread_state_unchecked();
@@ -653,7 +743,7 @@ public:
                 // Update the cache only on success; a stale interp with a null pp would make
                 // later calls return nullptr.
                 auto *pp = get_or_create_pp_in_state_dict();
-                last_istate_tls() = tstate->interp;
+                last_istate_tls() = get_interpreter(tstate);
                 internals_p_tls() = pp;
             }
             return internals_p_tls();
@@ -683,7 +773,7 @@ public:
         if (has_seen_non_main_interpreter()) {
             auto *tstate = get_thread_state_unchecked();
             // this could be called without an active interpreter, just use what was cached
-            if (!tstate || tstate->interp == last_istate_tls()) {
+            if (!tstate || get_interpreter(tstate) == last_istate_tls()) {
                 auto tpp = internals_p_tls();
                 {
                     std::lock_guard<std::mutex> lock(pp_set_mutex_);
@@ -888,7 +978,13 @@ inline auto with_instance_map(const void *ptr, const F &cb)
     auto idx = static_cast<size_t>(hash & internals.instance_shards_mask);
 
     auto &shard = internals.instance_shards[idx];
+#    if defined(PYBIND11_OPAQUE_PYOBJECT)
+    // A critical section is suspended while `cb` waits for another one (e.g. the internals
+    // lock): `cb` must not keep iterators or instance pointers across such calls.
+    pycritical_section lock(shard.mutex);
+#    else
     std::unique_lock<pymutex> lock(shard.mutex);
+#    endif
     return cb(shard.registered_instances);
 #else
     (void) ptr;

@@ -254,6 +254,8 @@ TEST_SUBMODULE(call_policies, m) {
 #if !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)
     // `py::call_guard<py::gil_scoped_release>()` should work in PyPy/GraalPy as well,
     // but it's unclear how to test it without `PyGILState_GetThisThreadState`.
+    // (Not under the stable ABI either: get_thread_state_unchecked() then requires the GIL.)
+#    if !defined(Py_LIMITED_API)
     auto report_gil_status = []() {
         auto is_gil_held = false;
         if (auto *tstate = py::detail::get_thread_state_unchecked()) {
@@ -277,6 +279,7 @@ TEST_SUBMODULE(call_policies, m) {
             return report_gil_status();
         },
         py::call_guard<ConversionGuard, py::gil_scoped_release>());
+#    endif
 #endif
 
     // test_keep_alive_failed_overload

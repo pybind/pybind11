@@ -54,6 +54,14 @@ std::string type_id() {
     return detail::clean_type_id(typeid(T).name());
 }
 
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+// typeid() needs a complete type; PyObject is opaque under the abi3t stable ABI.
+template <>
+inline std::string type_id<PyObject>() {
+    return "PyObject";
+}
+#endif
+
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
 
 #ifndef PYBIND11_PRECOMPILED

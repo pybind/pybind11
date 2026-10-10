@@ -35,6 +35,7 @@
    advanced/cast/index
    advanced/pycpp/index
    advanced/embedding
+   advanced/stable_abi
    advanced/misc
    advanced/deprecated
 

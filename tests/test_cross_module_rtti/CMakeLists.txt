@@ -40,7 +40,10 @@ target_compile_features(test_cross_module_rtti_lib PUBLIC cxx_std_11)
 
 generate_export_header(test_cross_module_rtti_lib)
 
-pybind11_add_module(test_cross_module_rtti_bindings SHARED bindings.cpp)
+# The embedding executable cannot use the stable ABI, and must share internals with the bindings;
+# the precompiled library would be built for the stable ABI too.
+pybind11_add_module(test_cross_module_rtti_bindings SHARED NO_STABLE_ABI NO_PRECOMPILE
+                    bindings.cpp)
 target_link_libraries(test_cross_module_rtti_bindings
                       PUBLIC test_cross_module_rtti_lib::test_cross_module_rtti_lib)
 

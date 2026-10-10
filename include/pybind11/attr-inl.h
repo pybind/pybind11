@@ -49,7 +49,9 @@ PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void type_record::add_base(const std::typ
 
     bases.append(reinterpret_cast<PyObject *>(base_info->type));
 
-#ifdef PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET
+#if defined(Py_LIMITED_API)
+    dynamic_attr |= base_info->dictoffset != 0;
+#elif defined(PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET)
     dynamic_attr |= base_info->type->tp_dictoffset != 0;
 #else
     dynamic_attr |= (PyType_GetFlags(base_info->type) & Py_TPFLAGS_MANAGED_DICT) != 0;

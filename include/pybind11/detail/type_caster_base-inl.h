@@ -85,7 +85,7 @@ PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void
 all_type_info_populate(PyTypeObject *t, std::vector<type_info *> &bases) {
     assert(bases.empty());
     std::vector<PyTypeObject *> check;
-    for (handle parent : reinterpret_borrow<tuple>(t->tp_bases)) {
+    for (handle parent : get_bases(t)) {
         check.push_back(reinterpret_cast<PyTypeObject *>(parent.ptr()));
     }
     auto const &type_dict = get_internals().registered_types_py;
@@ -118,9 +118,13 @@ all_type_info_populate(PyTypeObject *t, std::vector<type_info *> &bases) {
                     all_type_info_add_base_most_derived_first(bases, tinfo);
                 }
             }
-        } else if (type->tp_bases) {
+        } else {
             // It's some python type, so keep follow its bases classes to look for one or more
             // registered types
+            tuple parents = get_bases(type);
+            if (parents.empty()) {
+                continue;
+            }
             if (i + 1 == check.size()) {
                 // When we're at the end, we can pop off the current element to avoid growing
                 // `check` when adding just one base (which is typical--i.e. when there is no
@@ -128,7 +132,7 @@ all_type_info_populate(PyTypeObject *t, std::vector<type_info *> &bases) {
                 check.pop_back();
                 i--;
             }
-            for (handle parent : reinterpret_borrow<tuple>(type->tp_bases)) {
+            for (handle parent : parents) {
                 check.push_back(reinterpret_cast<PyTypeObject *>(parent.ptr()));
             }
         }
@@ -234,11 +238,12 @@ PYBIND11_NOINLINE_ATTR PYBIND11_INLINE handle get_type_handle(const std::type_in
     return handle(type_info ? (reinterpret_cast<PyObject *>(type_info->type)) : nullptr);
 }
 
+#if !defined(PYBIND11_OPAQUE_PYOBJECT) // the registry goes through PyWeakref_GetRef() instead
 PYBIND11_INLINE bool try_incref(PyObject *obj) {
     // Tries to increment the reference count of an object if it's not zero.
-#if defined(Py_GIL_DISABLED) && PY_VERSION_HEX >= 0x030E00A4
+#    if defined(Py_GIL_DISABLED) && PY_VERSION_HEX >= 0x030E00A4
     return PyUnstable_TryIncRef(obj);
-#elif defined(Py_GIL_DISABLED)
+#    elif defined(Py_GIL_DISABLED)
     // See
     // https://github.com/python/cpython/blob/d05140f9f77d7dfc753dd1e5ac3a5962aaa03eff/Include/internal/pycore_object.h#L761
     uint32_t local = _Py_atomic_load_uint32_relaxed(&obj->ob_ref_local);
@@ -249,9 +254,9 @@ PYBIND11_INLINE bool try_incref(PyObject *obj) {
     }
     if (_Py_IsOwnedByCurrentThread(obj)) {
         _Py_atomic_store_uint32_relaxed(&obj->ob_ref_local, local);
-#    ifdef Py_REF_DEBUG
+#        ifdef Py_REF_DEBUG
         _Py_INCREF_IncRefTotal();
-#    endif
+#        endif
         return true;
     }
     Py_ssize_t shared = _Py_atomic_load_ssize_relaxed(&obj->ob_ref_shared);
@@ -264,27 +269,53 @@ PYBIND11_INLINE bool try_incref(PyObject *obj) {
 
         if (_Py_atomic_compare_exchange_ssize(
                 &obj->ob_ref_shared, &shared, shared + (1 << _Py_REF_SHARED_SHIFT))) {
-#    ifdef Py_REF_DEBUG
+#        ifdef Py_REF_DEBUG
             _Py_INCREF_IncRefTotal();
-#    endif
+#        endif
             return true;
         }
     }
-#else
+#    else
     assert(Py_REFCNT(obj) > 0);
     Py_INCREF(obj);
     return true;
-#endif
+#    endif
 }
+#endif
 
 PYBIND11_NOINLINE_ATTR PYBIND11_INLINE handle
 find_registered_python_instance(void *src, const detail::type_info *tinfo) {
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+    // all_type_info() takes the internals lock, which can suspend the instance map's critical
+    // section: take strong references first, then check the types without the map lock.
+    std::vector<object> candidates = with_instance_map(src, [&](instance_map &instances) {
+        std::vector<object> found;
+        auto it_instances = instances.equal_range(src);
+        for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
+            PyObject *wrapper = nullptr;
+            if (it_i->second->registry_weakref != nullptr
+                && PyWeakref_GetRef(it_i->second->registry_weakref, &wrapper) == 1) {
+                found.emplace_back(reinterpret_steal<object>(wrapper));
+            }
+        }
+        return found;
+    });
+    for (auto &wrapper : candidates) {
+        for (auto *instance_type : detail::all_type_info(Py_TYPE(wrapper.ptr()))) {
+            if (instance_type && same_type(*instance_type->cpptype, *tinfo->cpptype)) {
+                return wrapper.release();
+            }
+        }
+    }
+    return handle();
+#else
     return with_instance_map(src, [&](instance_map &instances) {
         auto it_instances = instances.equal_range(src);
         for (auto it_i = it_instances.first; it_i != it_instances.second; ++it_i) {
-            for (auto *instance_type : detail::all_type_info(Py_TYPE(it_i->second))) {
+            for (auto *instance_type :
+                 detail::all_type_info(Py_TYPE(instance_object(it_i->second)))) {
                 if (instance_type && same_type(*instance_type->cpptype, *tinfo->cpptype)) {
-                    auto *wrapper = reinterpret_cast<PyObject *>(it_i->second);
+                    auto *wrapper = instance_object(it_i->second);
                     if (try_incref(wrapper)) {
                         return handle(wrapper);
                     }
@@ -293,13 +324,14 @@ find_registered_python_instance(void *src, const detail::type_info *tinfo) {
         }
         return handle();
     });
+#endif
 }
 
 PYBIND11_NOINLINE_ATTR PYBIND11_INLINE value_and_holder
 instance::get_value_and_holder(const type_info *find_type /*= nullptr default in common.h*/,
                                bool throw_if_missing /*= true in common.h*/) {
     // Optimize common case:
-    if (!find_type || Py_TYPE(this) == find_type->type) {
+    if (!find_type || Py_TYPE(instance_object(this)) == find_type->type) {
         return value_and_holder(this, find_type, 0, 0);
     }
 
@@ -317,7 +349,7 @@ instance::get_value_and_holder(const type_info *find_type /*= nullptr default in
     pybind11_fail("pybind11::detail::instance::get_value_and_holder: `"
                   + get_fully_qualified_tp_name(find_type->type)
                   + "' is not a pybind11 base of the given `"
-                  + get_fully_qualified_tp_name(Py_TYPE(this)) + "' instance");
+                  + get_fully_qualified_tp_name(Py_TYPE(instance_object(this))) + "' instance");
 #else
     pybind11_fail(
         "pybind11::detail::instance::get_value_and_holder: "
@@ -327,7 +359,7 @@ instance::get_value_and_holder(const type_info *find_type /*= nullptr default in
 }
 
 PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void instance::allocate_layout() {
-    const auto &tinfo = all_type_info(Py_TYPE(this));
+    const auto &tinfo = all_type_info(Py_TYPE(instance_object(this)));
 
     const size_t n_types = tinfo.size();
 
@@ -391,19 +423,47 @@ PYBIND11_NOINLINE_ATTR PYBIND11_INLINE bool isinstance_generic(handle obj,
     return isinstance(obj, type);
 }
 
-PYBIND11_NOINLINE_ATTR PYBIND11_INLINE handle get_object_handle(const void *ptr,
+PYBIND11_NOINLINE_ATTR PYBIND11_INLINE object get_object_handle(const void *ptr,
                                                                 const detail::type_info *type) {
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+    // values_and_holders() takes the internals lock, which can suspend the instance map's
+    // critical section: take strong references first, then inspect them without the map lock.
+    std::vector<object> candidates = with_instance_map(ptr, [&](instance_map &instances) {
+        std::vector<object> found;
+        auto range = instances.equal_range(ptr);
+        for (auto it = range.first; it != range.second; ++it) {
+            PyObject *wrapper = nullptr;
+            if (it->second->registry_weakref != nullptr
+                && PyWeakref_GetRef(it->second->registry_weakref, &wrapper) == 1) {
+                found.emplace_back(reinterpret_steal<object>(wrapper));
+            }
+        }
+        return found;
+    });
+    for (auto &wrapper : candidates) {
+        for (const auto &vh : values_and_holders(wrapper.ptr())) {
+            if (vh.type == type) {
+                return std::move(wrapper);
+            }
+        }
+    }
+    return object();
+#else
     return with_instance_map(ptr, [&](instance_map &instances) {
         auto range = instances.equal_range(ptr);
         for (auto it = range.first; it != range.second; ++it) {
             for (const auto &vh : values_and_holders(it->second)) {
                 if (vh.type == type) {
-                    return handle(reinterpret_cast<PyObject *>(it->second));
+                    auto *wrapper = instance_object(it->second);
+                    if (try_incref(wrapper)) {
+                        return reinterpret_steal<object>(wrapper);
+                    }
                 }
             }
         }
-        return handle();
+        return object();
     });
+#endif
 }
 
 PYBIND11_INLINE object cpp_conduit_method(handle self,
@@ -479,7 +539,7 @@ type_caster_generic::cast(const cast_sources &srcs,
     }
 
     auto inst = reinterpret_steal<object>(make_new_instance(tinfo->type));
-    auto *wrapper = reinterpret_cast<instance *>(inst.ptr());
+    auto *wrapper = get_instance(inst.ptr());
     wrapper->owned = false;
     void *&valueptr = values_and_holders(wrapper).begin()->value_ptr();
 
