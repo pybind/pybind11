@@ -1156,12 +1156,14 @@ public:
     }
 #endif
 
-    /// Dimension along a given axis
+    /// Dimension along a given axis. Negative axes count from the end.
+    /// Throws if dim is outside [-ndim(), ndim()).
     ssize_t shape(ssize_t dim) const {
-        if (dim >= ndim()) {
+        const ssize_t axis = dim < 0 ? dim + ndim() : dim;
+        if (static_cast<size_t>(axis) >= static_cast<size_t>(ndim())) {
             fail_dim_check(dim, "invalid axis");
         }
-        return shape()[dim];
+        return shape()[axis];
     }
 
     /// Strides of the array
@@ -1174,12 +1176,14 @@ public:
     }
 #endif
 
-    /// Stride along a given axis
+    /// Stride along a given axis. Negative axes count from the end.
+    /// Throws if dim is outside [-ndim(), ndim()).
     ssize_t strides(ssize_t dim) const {
-        if (dim >= ndim()) {
+        const ssize_t axis = dim < 0 ? dim + ndim() : dim;
+        if (static_cast<size_t>(axis) >= static_cast<size_t>(ndim())) {
             fail_dim_check(dim, "invalid axis");
         }
-        return strides()[dim];
+        return strides()[axis];
     }
 
     /// Return the NumPy array flags
@@ -1196,15 +1200,16 @@ public:
     }
 
     /// Pointer to the contained data. If index is not provided, points to the
-    /// beginning of the buffer. May throw if the index would lead to out of bounds access.
+    /// beginning of the buffer. Negative indices count from the end of each dimension.
+    /// Throws if an index is out of bounds.
     template <typename... Ix>
     const void *data(Ix... index) const {
         return static_cast<const void *>(detail::array_proxy(m_ptr)->data + offset_at(index...));
     }
 
     /// Mutable pointer to the contained data. If index is not provided, points to the
-    /// beginning of the buffer. May throw if the index would lead to out of bounds access.
-    /// May throw if the array is not writeable.
+    /// beginning of the buffer. Negative indices count from the end of each dimension.
+    /// Throws if an index is out of bounds or the array is not writeable.
     template <typename... Ix>
     void *mutable_data(Ix... index) {
         check_writeable();
@@ -1212,7 +1217,7 @@ public:
     }
 
     /// Byte offset from beginning of the array to a given index (full or partial).
-    /// May throw if the index would lead to out of bounds access.
+    /// Negative indices count from the end of each dimension. Throws if an index is out of bounds.
     template <typename... Ix>
     ssize_t offset_at(Ix... index) const {
         if ((ssize_t) sizeof...(index) > ndim()) {
@@ -1224,7 +1229,7 @@ public:
     ssize_t offset_at() const { return 0; }
 
     /// Item count from beginning of the array to a given index (full or partial).
-    /// May throw if the index would lead to out of bounds access.
+    /// Negative indices count from the end of each dimension. Throws if an index is out of bounds.
     template <typename... Ix>
     ssize_t index_at(Ix... index) const {
         return offset_at(index...) / itemsize();
@@ -1337,8 +1342,7 @@ protected:
 
     template <typename... Ix>
     ssize_t byte_offset(Ix... index) const {
-        check_dimensions(index...);
-        return detail::byte_offset_unsafe(strides(), ssize_t(index)...);
+        return byte_offset_impl(ssize_t(0), shape(), strides(), ssize_t(index)...);
     }
 
     void check_writeable() const {
@@ -1347,21 +1351,20 @@ protected:
         }
     }
 
-    template <typename... Ix>
-    void check_dimensions(Ix... index) const {
-        check_dimensions_impl(ssize_t(0), shape(), ssize_t(index)...);
-    }
-
-    void check_dimensions_impl(ssize_t, const ssize_t *) const {}
+    ssize_t byte_offset_impl(ssize_t, const ssize_t *, const ssize_t *) const { return 0; }
 
     template <typename... Ix>
-    void check_dimensions_impl(ssize_t axis, const ssize_t *shape, ssize_t i, Ix... index) const {
-        if (i >= *shape) {
+    ssize_t byte_offset_impl(
+        ssize_t axis, const ssize_t *shape, const ssize_t *strides, ssize_t i, Ix... index) const {
+        const ssize_t normalized = i < 0 ? i + *shape : i;
+        // Unsigned comparison also rejects indices that remain negative after normalization.
+        if (static_cast<size_t>(normalized) >= static_cast<size_t>(*shape)) {
             throw index_error(std::string("index ") + std::to_string(i)
                               + " is out of bounds for axis " + std::to_string(axis)
                               + " with size " + std::to_string(*shape));
         }
-        check_dimensions_impl(axis + 1, shape + 1, index...);
+        const ssize_t remaining = byte_offset_impl(axis + 1, shape + 1, strides + 1, index...);
+        return normalized * *strides + remaining;
     }
 
     /// Create array from any object -- always returns a new reference
@@ -1449,7 +1452,8 @@ public:
         return static_cast<T *>(array::mutable_data(index...));
     }
 
-    // Reference to element at a given index
+    // Reference to element at a given index. Negative indices count from the end of each
+    // dimension. Throws if out of bounds.
     template <typename... Ix>
     const T &at(Ix... index) const {
         if ((ssize_t) sizeof...(index) != ndim()) {
@@ -1459,7 +1463,8 @@ public:
                  + byte_offset(ssize_t(index)...) / itemsize());
     }
 
-    // Mutable reference to element at a given index
+    // Mutable reference to element at a given index. Negative indices count from the end of each
+    // dimension. Throws if out of bounds.
     template <typename... Ix>
     T &mutable_at(Ix... index) {
         if ((ssize_t) sizeof...(index) != ndim()) {
