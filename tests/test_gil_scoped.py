@@ -160,6 +160,37 @@ def test_all_basic_tests_completeness():
     assert len(ALL_BASIC_TESTS) == num_found
 
 
+# Defined after ALL_BASIC_TESTS on purpose: this test is a regression for the
+# `gil_scoped_release` + factory `py::init` path, not a deadlock check, so it should not
+# run in the _run_in_process parametrizations above (whose subprocesses impose a 10s
+# timeout; on Windows this test is much slower there due to sleep timer granularity and
+# GIL handoff costs).
+@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
+def test_init_factory_gil_released_concurrent_construction():
+    """Concurrent construction via a factory `py::init` with `call_guard<gil_scoped_release>`.
+
+    `init_instance` runs while the GIL is released and must internally acquire the GIL
+    before touching the instance map. Without that fix this aborts with
+    "pybind11_object_dealloc(): Tried to deallocate unregistered instance!" (races on
+    `internals.registered_instances`, which is unguarded on GIL builds). On free-threaded
+    builds the detached thread state instead segfaults in `PyCriticalSection_BeginMutex`
+    (via `get_type_info`), even without concurrency.
+    """
+    num_threads = 8
+    iterations = 100
+
+    def construct_many():
+        for _ in range(iterations):
+            instance = m.SlowInit(0)
+            del instance  # Destructor runs with the GIL held (deregistration).
+
+    threads = [threading.Thread(target=construct_many) for _ in range(num_threads)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+
 def _intentional_deadlock():
     m.intentional_deadlock()
 

@@ -2162,17 +2162,17 @@ public:
 
     bool load_args(function_call &call) { return load_impl_sequence(call, indices{}); }
 
-    template <typename Return, typename Guard, typename Func>
+    template <typename Return, typename Guard, typename Func, typename Precall>
     // NOLINTNEXTLINE(readability-const-return-type)
-    enable_if_t<!std::is_void<Return>::value, Return> call(Func &&f) && {
-        return std::move(*this).template call_impl<remove_cv_t<Return>>(
-            std::forward<Func>(f), indices{}, Guard{});
+    enable_if_t<!std::is_void<Return>::value, Return> call(Func &&f, Precall &&precall) && {
+        return std::move(*this).template call_impl<remove_cv_t<Return>, Guard>(
+            std::forward<Func>(f), std::forward<Precall>(precall), indices{});
     }
 
-    template <typename Return, typename Guard, typename Func>
-    enable_if_t<std::is_void<Return>::value, void_type> call(Func &&f) && {
-        std::move(*this).template call_impl<remove_cv_t<Return>>(
-            std::forward<Func>(f), indices{}, Guard{});
+    template <typename Return, typename Guard, typename Func, typename Precall>
+    enable_if_t<std::is_void<Return>::value, void_type> call(Func &&f, Precall &&precall) && {
+        std::move(*this).template call_impl<remove_cv_t<Return>, Guard>(
+            std::forward<Func>(f), std::forward<Precall>(precall), indices{});
         return void_type();
     }
 
@@ -2201,9 +2201,12 @@ private:
         return true;
     }
 
-    template <typename Return, typename Func, size_t... Is, typename Guard>
-    Return call_impl(Func &&f, index_sequence<Is...>, Guard &&) && {
-        return std::forward<Func>(f)(cast_op<Args>(std::move(std::get<Is>(argcasters)))...);
+    template <typename Return, typename Guard, typename Func, typename Precall, size_t... Is>
+    Return call_impl(Func &&f, Precall &&precall, index_sequence<Is...>) && {
+        // Func provides function_ref::invoke_with_guard, whose typed parameters finish conversion
+        // before precall. Direct casts and returns preserve copy elision (see issue #6142).
+        return std::forward<Func>(f).template invoke_with_guard<Guard>(
+            std::forward<Precall>(precall), cast_op<Args>(std::move(std::get<Is>(argcasters)))...);
     }
 
     std::tuple<make_caster<Args>...> argcasters;

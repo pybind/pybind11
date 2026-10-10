@@ -875,6 +875,12 @@ The ``__setstate__`` part of the ``py::pickle()`` definition follows the same
 rules as the single-argument version of ``py::init()``. The return type can be
 a value, pointer or holder type. See :ref:`custom_constructors` for details.
 
+Calling ``__new__`` directly creates the Python wrapper without constructing its C++ value.
+Outside deprecated placement-new constructor dispatch, passing such an uninitialized wrapper to
+bound C++ code raises ``ValueError``. Calling its ``__init__`` or a pickle-generated
+``__setstate__`` can still finish construction normally. See :ref:`old_style_placement_new` for
+the compatibility behavior and safety limitations of deprecated placement-new callbacks.
+
 An instance can now be pickled as follows:
 
 .. code-block:: python
@@ -1426,5 +1432,13 @@ You can do that using ``py::custom_type_setup``:
    cls.def("at", &ContainerOwnsPythonObjects::at);
    cls.def("size", &ContainerOwnsPythonObjects::size);
    cls.def("clear", &ContainerOwnsPythonObjects::clear);
+
+.. note::
+
+   The ``py::detail::is_holder_constructed()`` guards above are required. During garbage
+   collection, ``tp_traverse`` and ``tp_clear`` may be handed an instance whose C++ value has
+   not been constructed yet -- for example one created with ``__new__`` before ``__init__``
+   has run. Casting such an instance raises ``ValueError``, and an exception must not be
+   allowed to escape either of these slots.
 
 .. versionadded:: 2.8

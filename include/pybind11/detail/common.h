@@ -18,16 +18,16 @@
 // See also: https://github.com/python/cpython/blob/HEAD/Include/patchlevel.h
 /* -- start version constants -- */
 #define PYBIND11_VERSION_MAJOR 3
-#define PYBIND11_VERSION_MINOR 1
+#define PYBIND11_VERSION_MINOR 2
 #define PYBIND11_VERSION_MICRO 0
 // ALPHA = 0xA, BETA = 0xB, GAMMA = 0xC (release candidate), FINAL = 0xF (stable release)
 // - The release level is set to "alpha" for development versions.
 //   Use 0xA0 (LEVEL=0xA, SERIAL=0) for development versions.
 // - For stable releases, set the serial to 0.
-#define PYBIND11_VERSION_RELEASE_LEVEL PY_RELEASE_LEVEL_FINAL
+#define PYBIND11_VERSION_RELEASE_LEVEL PY_RELEASE_LEVEL_ALPHA
 #define PYBIND11_VERSION_RELEASE_SERIAL 0
 // String version of (micro, release level, release serial), e.g.: 0a0, 0b1, 0rc1, 0
-#define PYBIND11_VERSION_PATCH 0
+#define PYBIND11_VERSION_PATCH 0a0
 /* -- end version constants -- */
 
 #if !defined(Py_PACK_FULL_VERSION)
@@ -160,11 +160,22 @@
 // In contrast, FORWARD DECLARATIONS should never use this macro:
 // https://stackoverflow.com/questions/9317473/forward-declaration-of-inline-functions
 #if defined(PYBIND11_NOINLINE_DISABLED) // Option for maximum portability and experimentation.
-#    define PYBIND11_NOINLINE inline
+#    define PYBIND11_NOINLINE_ATTR
 #elif defined(_MSC_VER)
-#    define PYBIND11_NOINLINE __declspec(noinline) inline
+#    define PYBIND11_NOINLINE_ATTR __declspec(noinline)
 #else
-#    define PYBIND11_NOINLINE __attribute__((noinline)) inline
+#    define PYBIND11_NOINLINE_ATTR __attribute__((noinline))
+#endif
+#define PYBIND11_NOINLINE PYBIND11_NOINLINE_ATTR inline
+
+// PYBIND11_INLINE marks function definitions that live in a `-inl.h` file. It is `inline` in
+// the default header-only mode. Defining PYBIND11_PRECOMPILED makes it empty: the definitions
+// are then compiled once (into a static library linked into each extension module) and the
+// headers only provide declarations.
+#if defined(PYBIND11_PRECOMPILED)
+#    define PYBIND11_INLINE
+#else
+#    define PYBIND11_INLINE inline
 #endif
 
 #if defined(_MSC_VER)
@@ -370,8 +381,7 @@
 #define PYBIND11_CONCAT(first, second) first##second
 #define PYBIND11_ENSURE_INTERNALS_READY                                                           \
     {                                                                                             \
-        pybind11::detail::get_internals_pp_manager().unref();                                     \
-        pybind11::detail::get_internals();                                                        \
+        pybind11::detail::ensure_internals();                                                     \
     }
 
 #if !defined(GRAALVM_PYTHON)
@@ -433,6 +443,7 @@
     static PyObject *pybind11_init();                                                             \
     PYBIND11_PLUGIN_IMPL(name) {                                                                  \
         PYBIND11_CHECK_PYTHON_VERSION                                                             \
+        PYBIND11_PRECOMPILED_CONFIG_GUARD                                                         \
         PYBIND11_ENSURE_INTERNALS_READY                                                           \
         try {                                                                                     \
             return pybind11_init();                                                               \
@@ -457,8 +468,8 @@ PyModuleDef_Init should be treated like any other PyObject (so not shared across
     static int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject *);                                 \
     PYBIND11_PLUGIN_IMPL(name) {                                                                  \
         PYBIND11_CHECK_PYTHON_VERSION                                                             \
+        PYBIND11_PRECOMPILED_CONFIG_GUARD                                                         \
         try {                                                                                     \
-            pybind11::detail::ensure_internals();                                                 \
             static ::pybind11::detail::slots_array mod_def_slots                                  \
                 = ::pybind11::detail::init_slots(                                                 \
                     &PYBIND11_CONCAT(pybind11_exec_, name), ##__VA_ARGS__);                       \
@@ -481,7 +492,7 @@ PyModuleDef_Init should be treated like any other PyObject (so not shared across
     static void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ &);                     \
     int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject * pm) {                                    \
         try {                                                                                     \
-            pybind11::detail::ensure_internals();                                                 \
+            PYBIND11_ENSURE_INTERNALS_READY                                                       \
             auto m = pybind11::reinterpret_borrow<::pybind11::module_>(pm);                       \
             if (!pybind11::detail::get_cached_module(m.attr("__spec__").attr("name"))) {          \
                 PYBIND11_CONCAT(pybind11_init_, name)(m);                                         \
@@ -676,6 +687,14 @@ struct instance {
     bool has_patients : 1;
     /// If true, this Python object needs to be kept alive for the lifetime of the C++ value.
     bool is_alias : 1;
+    /// If true, this instance is being dispatched through a constructor chain containing a
+    /// deprecated old-style placement-new `__init__`/`__setstate__`. Such chains retain the
+    /// historical ability to lazily allocate C++ value storage. This is an instance-wide
+    /// compatibility marker, not per-value construction state or a synchronization mechanism.
+    /// Its intentionally retained safety limitations are documented under
+    /// `old_style_placement_new` in `docs/upgrade.rst` and referenced from
+    /// `docs/advanced/classes.rst`.
+    bool old_style_init_active : 1;
 
     /// Initializes all of the above type/values/holders data (but not the instance values
     /// themselves)
@@ -1148,14 +1167,8 @@ PYBIND11_RUNTIME_EXCEPTION(cast_error, PyExc_RuntimeError) /// Thrown when pybin
                                                            /// casting error
 PYBIND11_RUNTIME_EXCEPTION(reference_cast_error, PyExc_RuntimeError) /// Used internally
 
-[[noreturn]] PYBIND11_NOINLINE void pybind11_fail(const char *reason) {
-    assert(!PyErr_Occurred());
-    throw std::runtime_error(reason);
-}
-[[noreturn]] PYBIND11_NOINLINE void pybind11_fail(const std::string &reason) {
-    assert(!PyErr_Occurred());
-    throw std::runtime_error(reason);
-}
+[[noreturn]] void pybind11_fail(const char *reason);
+[[noreturn]] void pybind11_fail(const std::string &reason);
 
 template <typename T, typename SFINAE = void>
 struct format_descriptor {};
@@ -1417,3 +1430,7 @@ inline void silence_unused_warnings(Args &&...) {}
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
+
+#ifndef PYBIND11_PRECOMPILED
+#    include "common-inl.h" // IWYU pragma: export
+#endif
