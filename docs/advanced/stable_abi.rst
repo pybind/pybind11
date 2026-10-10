@@ -101,7 +101,9 @@ available and in how a few things are implemented.
    * - ``py::metaclass(handle)``
      - restricted
      - The metaclass must not define ``__new__``, and a metaclass less
-       derived than ``pybind11_type`` resolves to ``pybind11_type``.
+       derived than ``pybind11_type`` resolves to ``pybind11_type``. The
+       metaclass of every base must be ``pybind11_type`` or a base of the
+       requested metaclass (``PyType_FromMetaclass()`` rejects a conflict).
    * - ``py::custom_type_setup``
      - not available
      - Its callback receives a ``PyHeapTypeObject *``, which is opaque.

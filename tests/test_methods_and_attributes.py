@@ -270,6 +270,17 @@ def test_metaclass_override():
     assert isinstance(m.MetaclassOverride.__dict__["readonly"], int)
 
 
+@pytest.mark.skipif(
+    not hasattr(m, "MetaclassConflictBase"), reason="Not available under Py_LIMITED_API"
+)
+def test_metaclass_base_conflict():
+    """A base with an unrelated metaclass does not block binding a derived class"""
+
+    assert type(m.MetaclassConflictBase).__name__ == "CustomMeta"
+    assert type(m.MetaclassConflictDerived).__name__ == "pybind11_type"
+    assert isinstance(m.MetaclassConflictDerived(), m.MetaclassConflictBase)
+
+
 def test_no_mixed_overloads():
     from pybind11_tests import detailed_error_messages_enabled
 

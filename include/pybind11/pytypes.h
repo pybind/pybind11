@@ -2647,6 +2647,10 @@ inline tuple get_bases(PyTypeObject *type) {
 /// `type.__mro__` as a tuple.
 inline tuple get_mro(PyTypeObject *type) { return reinterpret_borrow<tuple>(type->tp_mro); }
 
+/// `type.__dictoffset__` / `type.__basicsize__` (tp_dictoffset and tp_basicsize).
+inline Py_ssize_t type_dictoffset(PyTypeObject *type) { return type->tp_dictoffset; }
+inline Py_ssize_t type_basicsize(PyTypeObject *type) { return type->tp_basicsize; }
+
 /// Look `name` up along the MRO of `type` without invoking descriptors, like `_PyType_Lookup`.
 /// Returns a null handle if the attribute is not found; never raises. (Borrowed here; the
 /// stable-ABI version below returns an owning `object`.)
