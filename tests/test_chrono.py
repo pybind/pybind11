@@ -5,7 +5,7 @@ import time
 
 import pytest
 
-import env  # noqa: F401
+import env
 from pybind11_tests import chrono as m
 
 
@@ -102,60 +102,76 @@ def epoch_us(utc):
     return (delta.days * 86400 + delta.seconds) * 1_000_000 + delta.microseconds
 
 
-# POSIX rules make the core cases independent of the host's IANA timezone data.
+# POSIX rules avoid a dependency on the host's IANA timezone data. GraalPy's
+# Java timezone parser requires named zones instead of POSIX rule strings.
+PACIFIC_TZ = "America/Los_Angeles" if env.GRAALPY else "PST8PDT,M3.2.0/2,M11.1.0/2"
+HALF_HOUR_TZ = (
+    "Australia/Lord_Howe" if env.GRAALPY else "XST-10:30XDT-11,M10.1.0/2,M4.1.0/2"
+)
+
+
 DST_CASES = [
     pytest.param(
-        "PST8PDT,M3.2.0/2,M11.1.0/2",
+        PACIFIC_TZ,
         datetime.datetime(2026, 11, 1, 1, 30, 42, 123456, fold=0),
         datetime.timedelta(hours=-7),
+        0,
         id="fall-first",
     ),
     pytest.param(
-        "PST8PDT,M3.2.0/2,M11.1.0/2",
+        PACIFIC_TZ,
         datetime.datetime(2026, 11, 1, 1, 30, 42, 123456, fold=1),
         datetime.timedelta(hours=-8),
+        0,
         id="fall-second",
     ),
     pytest.param(
-        "PST8PDT,M3.2.0/2,M11.1.0/2",
+        PACIFIC_TZ,
         datetime.datetime(2026, 3, 8, 2, 30, 42, 654321, fold=0),
         datetime.timedelta(hours=-8),
+        1,
         id="spring-gap-first",
     ),
     pytest.param(
-        "PST8PDT,M3.2.0/2,M11.1.0/2",
+        PACIFIC_TZ,
         datetime.datetime(2026, 3, 8, 2, 30, 42, 654321, fold=1),
         datetime.timedelta(hours=-7),
+        -1,
         id="spring-gap-second",
     ),
     pytest.param(
-        "XST-10XDT-10:30,M3.2.0/2,M11.1.0/2",
-        datetime.datetime(2026, 11, 1, 1, 45, 42, 123456, fold=0),
-        datetime.timedelta(hours=10, minutes=30),
+        HALF_HOUR_TZ,
+        datetime.datetime(2026, 4, 5, 1, 45, 42, 123456, fold=0),
+        datetime.timedelta(hours=11),
+        0,
         id="half-hour-first",
     ),
     pytest.param(
-        "XST-10XDT-10:30,M3.2.0/2,M11.1.0/2",
-        datetime.datetime(2026, 11, 1, 1, 45, 42, 123456, fold=1),
-        datetime.timedelta(hours=10),
+        HALF_HOUR_TZ,
+        datetime.datetime(2026, 4, 5, 1, 45, 42, 123456, fold=1),
+        datetime.timedelta(hours=10, minutes=30),
+        0,
         id="half-hour-second",
     ),
 ]
 
 
-@pytest.mark.parametrize(("tz", "local", "offset"), DST_CASES)
-def test_chrono_system_clock_load_dst(tz, local, offset, local_timezone):
+@pytest.mark.parametrize(("tz", "local", "offset", "_gap_hours"), DST_CASES)
+def test_chrono_system_clock_load_dst(tz, local, offset, _gap_hours, local_timezone):
     local_timezone(tz)
     assert m.test_chrono_system_clock_as_us(local) == epoch_us(local - offset)
 
 
-@pytest.mark.parametrize(("tz", "local", "offset"), DST_CASES)
-def test_chrono_system_clock_cast_dst(tz, local, offset, local_timezone):
+@pytest.mark.parametrize(("tz", "local", "offset", "gap_hours"), DST_CASES)
+def test_chrono_system_clock_cast_dst(tz, local, offset, gap_hours, local_timezone):
     local_timezone(tz)
     value = epoch_us(local - offset)
-    seconds, microseconds = divmod(value, 1_000_000)
-    expected = datetime.datetime.fromtimestamp(seconds).replace(
-        microsecond=microseconds
+    # Use known wall times rather than Python's conversion as the oracle, so
+    # an unsupported TZ cannot make both conversions silently agree in UTC.
+    expected = (
+        (local + datetime.timedelta(hours=gap_hours)).replace(fold=0)
+        if gap_hours
+        else local
     )
     result = m.test_chrono_system_clock_from_us(value)
     assert result == expected
