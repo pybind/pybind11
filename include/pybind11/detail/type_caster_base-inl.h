@@ -427,6 +427,30 @@ PYBIND11_NOINLINE_ATTR PYBIND11_INLINE bool isinstance_generic(handle obj,
 
 PYBIND11_NOINLINE_ATTR PYBIND11_INLINE handle get_object_handle(const void *ptr,
                                                                 const detail::type_info *type) {
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+    // values_and_holders() takes the internals lock, which can suspend the instance map's
+    // critical section: take strong references first, then inspect them without the map lock.
+    std::vector<object> candidates = with_instance_map(ptr, [&](instance_map &instances) {
+        std::vector<object> found;
+        auto range = instances.equal_range(ptr);
+        for (auto it = range.first; it != range.second; ++it) {
+            PyObject *wrapper = nullptr;
+            if (it->second->registry_weakref != nullptr
+                && PyWeakref_GetRef(it->second->registry_weakref, &wrapper) == 1) {
+                found.emplace_back(reinterpret_steal<object>(wrapper));
+            }
+        }
+        return found;
+    });
+    for (auto &wrapper : candidates) {
+        for (const auto &vh : values_and_holders(wrapper.ptr())) {
+            if (vh.type == type) {
+                return wrapper;
+            }
+        }
+    }
+    return handle();
+#else
     return with_instance_map(ptr, [&](instance_map &instances) {
         auto range = instances.equal_range(ptr);
         for (auto it = range.first; it != range.second; ++it) {
@@ -438,6 +462,7 @@ PYBIND11_NOINLINE_ATTR PYBIND11_INLINE handle get_object_handle(const void *ptr,
         }
         return handle();
     });
+#endif
 }
 
 PYBIND11_INLINE object cpp_conduit_method(handle self,

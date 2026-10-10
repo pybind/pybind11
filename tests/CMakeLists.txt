@@ -211,6 +211,10 @@ if(PYBIND11_TEST_OVERRIDE)
   # Instead of doing a direct override here, we iterate over the overrides without extension and
   # match them against entries from the PYBIND11_TEST_FILES, anything that not matches goes into the filter list.
   string(REGEX REPLACE "\\.[^.;]*;" ";" TEST_OVERRIDE_NO_EXT "${PYBIND11_TEST_OVERRIDE};")
+  # test_chrono.py imports the module built from this second translation unit.
+  if(test_chrono IN_LIST TEST_OVERRIDE_NO_EXT)
+    list(APPEND TEST_OVERRIDE_NO_EXT test_chrono_second_tu)
+  endif()
   string(REGEX REPLACE "\\.[^.;]*;" ";" TEST_FILES_NO_EXT "${PYBIND11_TEST_FILES};")
   # This allows the override to be done with extensions, preserving backwards compatibility.
   foreach(test_name ${TEST_FILES_NO_EXT})
