@@ -280,7 +280,8 @@ private:
     bool was_active_ = false;
 };
 
-handle get_object_handle(const void *ptr, const detail::type_info *type);
+/// The registered Python wrapper of `ptr` for `type` (a new reference), or a null object.
+object get_object_handle(const void *ptr, const detail::type_info *type);
 
 // Information about how type_caster_generic::cast() can obtain its source object
 struct cast_sources {

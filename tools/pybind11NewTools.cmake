@@ -275,9 +275,10 @@ set(PYBIND11_ABI3T
 
 # True if the interpreter is a free-threaded build (needs the abi3t variant of the stable ABI).
 function(_pybind11_python_is_free_threaded out_var)
+  # SOABI is cpython-315t-... on POSIX and cp315t-win_amd64 on Windows.
   if(${_Python}_FREE_THREADED
-     OR "${${_Python}_SOABI}" MATCHES "^cpython-[0-9]+t"
-     OR "${PYTHON_MODULE_EXTENSION}" MATCHES "^\\.cpython-[0-9]+t")
+     OR "${${_Python}_SOABI}" MATCHES "^(cpython-|cp)[0-9]+t"
+     OR "${PYTHON_MODULE_EXTENSION}" MATCHES "^\\.(cpython-|cp)[0-9]+t")
     set(${out_var}
         ON
         PARENT_SCOPE)
@@ -336,11 +337,24 @@ function(_pybind11_stable_abi_setup target_name)
   if(_abi3t
      AND NOT _free_threaded
      AND WIN32)
-    # Python::SABIModule is python3.lib here, but abi3t needs python3t.lib from the same directory.
-    target_include_directories(${target_name} SYSTEM PRIVATE ${${_Python}_INCLUDE_DIRS})
+    # Python::SABIModule is python3.lib here, but abi3t needs python3t.lib from the same
+    # directory. Read it from the imported target: FindPython's variables are not visible when
+    # pybind11 was found in a subdirectory. (The headers come from pybind11::python_headers.)
+    set(_python3_lib "")
+    foreach(_prop IMPORTED_IMPLIB_RELEASE IMPORTED_IMPLIB IMPORTED_LOCATION_RELEASE
+                  IMPORTED_LOCATION)
+      get_property(
+        _python3_lib
+        TARGET ${_Python}::SABIModule
+        PROPERTY ${_prop})
+      if(_python3_lib)
+        break()
+      endif()
+    endforeach()
+    get_filename_component(_python3_lib_dir "${_python3_lib}" DIRECTORY)
     find_library(
       _pybind11_python3t_lib python3t
-      PATHS ${${_Python}_SABI_LIBRARY_DIRS}
+      PATHS ${_python3_lib_dir} ${${_Python}_SABI_LIBRARY_DIRS}
       NO_DEFAULT_PATH REQUIRED)
     target_link_libraries(${target_name} PRIVATE "${_pybind11_python3t_lib}")
   else()

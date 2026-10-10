@@ -493,6 +493,19 @@ TEST_SUBMODULE(methods_and_attributes, m) {
     py::class_<MetaclassOverride>(m, "MetaclassOverride", py::metaclass((PyObject *) &PyType_Type))
         .def_property_readonly_static("readonly", [](const py::object &) { return 1; });
 
+#if !defined(Py_LIMITED_API)
+    // test_metaclass_base_conflict: a derived class whose base has a metaclass that is neither a
+    // base nor a subtype of pybind11_type (rejected by PyType_FromMetaclass()).
+    auto type_type = py::reinterpret_borrow<py::object>((PyObject *) &PyType_Type);
+    py::object custom_meta = type_type("CustomMeta", py::make_tuple(type_type), py::dict());
+    struct MetaclassConflictBase {};
+    struct MetaclassConflictDerived : MetaclassConflictBase {};
+    py::class_<MetaclassConflictBase>(m, "MetaclassConflictBase", py::metaclass(custom_meta))
+        .def(py::init<>());
+    py::class_<MetaclassConflictDerived, MetaclassConflictBase>(m, "MetaclassConflictDerived")
+        .def(py::init<>());
+#endif
+
     // test_overload_ordering
     m.def("overload_order", [](const std::string &) { return 1; });
     m.def("overload_order", [](const std::string &) { return 2; });

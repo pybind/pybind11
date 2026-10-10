@@ -1076,10 +1076,14 @@ PYBIND11_INLINE PyObject *make_new_python_type(const type_record &rec) {
                                           : internals.default_metaclass;
 
     // PyType_FromMetaclass() cannot run a pre-PyType_Ready callback, rejects metaclasses with a
-    // custom tp_new, and (correctly) refuses a metaclass that is less derived than the one of
-    // the base; the legacy path accepts all three.
+    // custom tp_new, and (correctly) refuses a metaclass that is not at least as derived as the
+    // metaclass of each base; the legacy path accepts all three.
 #    if !defined(Py_LIMITED_API)
-    if (rec.custom_type_setup_callback
+    bool base_metaclass_mismatch = false;
+    for (handle b : rec.bases) {
+        base_metaclass_mismatch |= !PyType_IsSubtype(metaclass, Py_TYPE(b.ptr()));
+    }
+    if (rec.custom_type_setup_callback || base_metaclass_mismatch
         || PyType_GetSlot(metaclass, Py_tp_new) != PyType_GetSlot(&PyType_Type, Py_tp_new)
         || (metaclass != internals.default_metaclass
             && !PyType_IsSubtype(metaclass, internals.default_metaclass))) {
