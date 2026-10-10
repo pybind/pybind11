@@ -72,6 +72,16 @@ def test_chrono_system_clock_roundtrip_date():
     assert time2.microsecond == 0
 
 
+def test_chrono_system_clock_roundtrip_daylight_savings():
+    # naive datetime - AEDST clock will change
+    datetime1 = datetime.datetime(2021, 10, 3, 2, 18, 46, 677734)
+
+    # Roundtrip the time
+    datetime2 = m.test_chrono2(datetime1)
+
+    assert datetime2.hour == datetime1.hour
+
+
 SKIP_TZ_ENV_ON_WIN = pytest.mark.skipif(
     "env.WIN", reason="TZ environment variable only supported on POSIX"
 )
