@@ -16,7 +16,6 @@
 #include <cmath>
 #include <ctime>
 #include <datetime.h>
-#include <mutex>
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -101,22 +100,6 @@ public:
     PYBIND11_TYPE_CASTER(type, const_name("datetime.timedelta"));
 };
 
-inline std::tm *localtime_thread_safe(const std::time_t *time, std::tm *buf) {
-#if (defined(__STDC_LIB_EXT1__) && defined(__STDC_WANT_LIB_EXT1__)) || defined(_MSC_VER)
-    if (localtime_s(buf, time))
-        return nullptr;
-    return buf;
-#else
-    static std::mutex mtx;
-    std::lock_guard<std::mutex> lock(mtx);
-    std::tm *tm_ptr = std::localtime(time);
-    if (tm_ptr != nullptr) {
-        *buf = *tm_ptr;
-    }
-    return tm_ptr;
-#endif
-}
-
 // This is for casting times on the system clock into datetime.datetime instances
 template <typename Duration>
 class type_caster<std::chrono::time_point<std::chrono::system_clock, Duration>> {
@@ -134,8 +117,9 @@ public:
             return false;
         }
 
-        std::tm cal;
+        std::tm cal{};
         microseconds msecs;
+        int fold = 0;
 
         if (PyDateTime_Check(src.ptr())) {
             cal.tm_sec = PyDateTime_DATE_GET_SECOND(src.ptr());
@@ -146,6 +130,7 @@ public:
             cal.tm_year = PyDateTime_GET_YEAR(src.ptr()) - 1900;
             cal.tm_isdst = -1;
             msecs = microseconds(PyDateTime_DATE_GET_MICROSECOND(src.ptr()));
+            fold = PyDateTime_DATE_GET_FOLD(src.ptr());
         } else if (PyDate_Check(src.ptr())) {
             cal.tm_sec = 0;
             cal.tm_min = 0;
@@ -164,11 +149,41 @@ public:
             cal.tm_year = 70; // earliest available date for Python's datetime
             cal.tm_isdst = -1;
             msecs = microseconds(PyDateTime_TIME_GET_MICROSECOND(src.ptr()));
+            fold = PyDateTime_TIME_GET_FOLD(src.ptr());
         } else {
             return false;
         }
 
-        value = time_point_cast<Duration>(system_clock::from_time_t(std::mktime(&cal)) + msecs);
+#if defined(_WIN32)
+        // Python's fold detection probes up to a day before the timestamp. Windows
+        // cannot represent those probes during the first day after the epoch, and
+        // datetime.fromtimestamp() also skips fold detection there.
+        if (cal.tm_year == 70 && cal.tm_mon == 0 && cal.tm_mday <= 2) {
+            std::tm cal_copy = cal;
+            const std::time_t tt = std::mktime(&cal_copy);
+            if (tt >= 0 && tt <= 86400) {
+                value = time_point_cast<Duration>(system_clock::from_time_t(tt) + msecs);
+                return true;
+            }
+        }
+#endif
+
+        // Use Python's local-time disambiguation, preserving fold while ignoring
+        // tzinfo and datetime subclass overrides. Keep microseconds separate to
+        // avoid losing precision through timestamp()'s floating-point result.
+        auto dt = reinterpret_steal<object>(PyDateTime_FromDateAndTimeAndFold(cal.tm_year + 1900,
+                                                                              cal.tm_mon + 1,
+                                                                              cal.tm_mday,
+                                                                              cal.tm_hour,
+                                                                              cal.tm_min,
+                                                                              cal.tm_sec,
+                                                                              0,
+                                                                              fold));
+        if (!dt) {
+            throw error_already_set();
+        }
+        const auto tt = int_(dt.attr("timestamp")()).cast<std::time_t>();
+        value = time_point_cast<Duration>(system_clock::from_time_t(tt) + msecs);
         return true;
     }
 
@@ -196,18 +211,20 @@ public:
         std::time_t tt
             = system_clock::to_time_t(time_point_cast<system_clock::duration>(src - us));
 
-        std::tm localtime;
-        std::tm *localtime_ptr = localtime_thread_safe(&tt, &localtime);
-        if (!localtime_ptr) {
-            throw cast_error("Unable to represent system_clock in local time");
+        // Python determines the local calendar fields and fold from whole seconds.
+        auto args = make_tuple(tt);
+        auto dt = reinterpret_steal<object>(PyDateTime_FromTimestamp(args.ptr()));
+        if (!dt) {
+            throw error_already_set();
         }
-        return PyDateTime_FromDateAndTime(localtime.tm_year + 1900,
-                                          localtime.tm_mon + 1,
-                                          localtime.tm_mday,
-                                          localtime.tm_hour,
-                                          localtime.tm_min,
-                                          localtime.tm_sec,
-                                          us.count());
+        return PyDateTime_FromDateAndTimeAndFold(PyDateTime_GET_YEAR(dt.ptr()),
+                                                 PyDateTime_GET_MONTH(dt.ptr()),
+                                                 PyDateTime_GET_DAY(dt.ptr()),
+                                                 PyDateTime_DATE_GET_HOUR(dt.ptr()),
+                                                 PyDateTime_DATE_GET_MINUTE(dt.ptr()),
+                                                 PyDateTime_DATE_GET_SECOND(dt.ptr()),
+                                                 us.count(),
+                                                 PyDateTime_DATE_GET_FOLD(dt.ptr()));
     }
     PYBIND11_TYPE_CASTER(type, const_name("datetime.datetime"));
 };
