@@ -1,7 +1,12 @@
 from __future__ import annotations
 
 import datetime
+import os
+import subprocess
+import sys
+import tempfile
 import time
+import xml.etree.ElementTree as ET
 
 import pytest
 
@@ -82,15 +87,51 @@ def test_chrono_system_clock_roundtrip_date():
 
 
 @pytest.fixture
-def local_timezone(monkeypatch):
+def local_timezone(monkeypatch, request):
+    """Select a timezone, returning True if the test ran in a subprocess."""
     if not hasattr(time, "tzset"):
         pytest.skip("Changing the local timezone requires time.tzset")
     try:
         with monkeypatch.context() as patch:
 
             def set_timezone(tz):
+                # GraalPy before 25.1 keeps its startup timezone after tzset().
+                # Run the same test in a fresh interpreter to retain coverage.
+                if env.GRAALPY and sys.graalpy_version_info < (25, 1):
+                    if os.environ.get("PYBIND11_TEST_CHRONO_IN_SUBPROCESS"):
+                        assert os.environ.get("TZ") == tz
+                    else:
+                        child_env = os.environ.copy()
+                        child_env["TZ"] = tz
+                        child_env["PYBIND11_TEST_CHRONO_IN_SUBPROCESS"] = "1"
+                        child_env["PYTHONPATH"] = os.pathsep.join(
+                            os.path.abspath(path) for path in sys.path
+                        )
+                        child_env.pop("PYTEST_ADDOPTS", None)
+                        with tempfile.TemporaryDirectory() as directory:
+                            report_path = os.path.join(directory, "pytest.xml")
+                            subprocess.run(
+                                [
+                                    sys.executable,
+                                    "-m",
+                                    "pytest",
+                                    "-q",
+                                    "-o",
+                                    "addopts=",
+                                    "--junitxml",
+                                    report_path,
+                                    request.node.nodeid,
+                                ],
+                                cwd=request.config.rootpath,
+                                env=child_env,
+                                check=True,
+                            )
+                            for skipped in ET.parse(report_path).iter("skipped"):
+                                pytest.skip(skipped.get("message"))
+                        return True
                 patch.setenv("TZ", tz)
                 time.tzset()
+                return False
 
             yield set_timezone
     finally:
@@ -158,13 +199,15 @@ DST_CASES = [
 
 @pytest.mark.parametrize(("tz", "local", "offset", "_gap_hours"), DST_CASES)
 def test_chrono_system_clock_load_dst(tz, local, offset, _gap_hours, local_timezone):
-    local_timezone(tz)
+    if local_timezone(tz):
+        return
     assert m.test_chrono_system_clock_as_us(local) == epoch_us(local - offset)
 
 
 @pytest.mark.parametrize(("tz", "local", "offset", "gap_hours"), DST_CASES)
 def test_chrono_system_clock_cast_dst(tz, local, offset, gap_hours, local_timezone):
-    local_timezone(tz)
+    if local_timezone(tz):
+        return
     value = epoch_us(local - offset)
     # Use known wall times rather than Python's conversion as the oracle, so
     # an unsupported TZ cannot make both conversions silently agree in UTC.
@@ -182,7 +225,8 @@ def test_chrono_system_clock_cast_dst(tz, local, offset, gap_hours, local_timezo
 
 @pytest.mark.parametrize("fold", [0, 1])
 def test_chrono_system_clock_non_dst_fold(fold, local_timezone):
-    local_timezone("Europe/Kyiv")
+    if local_timezone("Europe/Kyiv"):
+        return
     first = epoch_us(datetime.datetime(1990, 6, 30, 21, 30))
     second = first + 3600_000_000
     # Both sides of this political offset change are daylight time. Skip if
@@ -213,7 +257,8 @@ def test_chrono_system_clock_non_dst_fold(fold, local_timezone):
     ],
 )
 def test_chrono_system_clock_microseconds(value, local_timezone):
-    local_timezone("UTC0")
+    if local_timezone("UTC0"):
+        return
     try:
         datetime.datetime.fromtimestamp(value // 1_000_000)
     except (OverflowError, OSError):
@@ -267,7 +312,8 @@ class DatetimeWithOverriddenTimestamp(datetime.datetime):
     ],
 )
 def test_chrono_system_clock_input_fields(source, expected, local_timezone):
-    local_timezone("UTC0")
+    if local_timezone("UTC0"):
+        return
     assert m.test_chrono_system_clock_as_us(source) == epoch_us(expected)
 
 
@@ -300,7 +346,9 @@ SKIP_TZ_ENV_ON_WIN = pytest.mark.skipif(
 )
 def test_chrono_system_clock_roundtrip_time(time1, tz, request):
     if tz is not None:
-        request.getfixturevalue("local_timezone")(f"/usr/share/zoneinfo/{tz}")
+        local_tz = tz if env.GRAALPY else f"/usr/share/zoneinfo/{tz}"
+        if request.getfixturevalue("local_timezone")(local_tz):
+            return
 
     # Roundtrip the time
     datetime2 = m.test_chrono2(time1)
