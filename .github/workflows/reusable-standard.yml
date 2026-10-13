@@ -13,6 +13,10 @@ on:
       runs-on:
         required: true
         type: string
+      fuzz-replay:
+        required: false
+        type: boolean
+        default: false
 
 env:
   PYTHONDEVMODE: 1
@@ -93,6 +97,10 @@ jobs:
 
       - name: Interface test
         run: cmake --build build --target test_cmake_build
+
+      - name: Fuzz corpus replay
+        if: inputs.fuzz-replay
+        run: cmake --build build --target fuzz_replay
 
       - name: Visibility test
         run: cmake --build build --target test_cross_module_rtti
