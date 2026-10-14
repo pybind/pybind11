@@ -33,7 +33,7 @@ struct ImplicitReturnValues : std::vector<std::shared_ptr<ImplicitReturnItem>> {
     } counter;
 };
 int ImplicitReturnValues::instances = 0;
-PYBIND11_MAKE_OPAQUE(ImplicitReturnValues);
+PYBIND11_MAKE_OPAQUE(ImplicitReturnValues)
 
 struct ImplicitReturnProvider {
     virtual ~ImplicitReturnProvider() = default;
