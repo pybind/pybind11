@@ -62,7 +62,7 @@ struct PyImplicitReturnProvider : ImplicitReturnProvider {
 #endif
 };
 
-PYBIND11_EMBEDDED_MODULE(implicit_return_module, m) {
+PYBIND11_EMBEDDED_MODULE(implicit_return_module, m, py::multiple_interpreters::not_supported()) {
     py::class_<ImplicitReturnItem, std::shared_ptr<ImplicitReturnItem>>(m, "Item").def(
         py::init<int>());
     py::bind_vector<ImplicitReturnValues>(m, "Values");
