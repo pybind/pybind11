@@ -1,6 +1,7 @@
 #include <pybind11/critical_section.h>
 #include <pybind11/embed.h>
 #include <pybind11/pybind11.h>
+#include <pybind11/stl_bind.h>
 
 // Silence MSVC C++17 deprecation warning from Catch regarding std::uncaught_exceptions (up to
 // catch 2.0.1; this should be fixed in the next catch release after 2.0.1).
@@ -17,6 +18,122 @@ PYBIND11_WARNING_DISABLE_MSVC(4996)
 
 namespace py = pybind11;
 using namespace py::literals;
+
+struct ImplicitReturnItem {
+    explicit ImplicitReturnItem(int value) : value(value) {}
+    int value;
+};
+struct ImplicitReturnValues : std::vector<std::shared_ptr<ImplicitReturnItem>> {
+    using std::vector<std::shared_ptr<ImplicitReturnItem>>::vector;
+    static int instances;
+    struct Counter {
+        Counter() { ++instances; }
+        Counter(const Counter &) { ++instances; }
+        ~Counter() { --instances; }
+    } counter;
+};
+int ImplicitReturnValues::instances = 0;
+PYBIND11_MAKE_OPAQUE(ImplicitReturnValues);
+
+struct ImplicitReturnProvider {
+    virtual ~ImplicitReturnProvider() = default;
+    virtual ImplicitReturnValues values() = 0;
+    virtual const ImplicitReturnValues &reference() = 0;
+    virtual ImplicitReturnValues *pointer() = 0;
+#ifdef PYBIND11_HAS_STRING_VIEW
+    virtual std::u16string_view view() = 0;
+#endif
+};
+
+struct PyImplicitReturnProvider : ImplicitReturnProvider {
+    ImplicitReturnValues values() override {
+        PYBIND11_OVERRIDE_PURE(ImplicitReturnValues, ImplicitReturnProvider, values, );
+    }
+    const ImplicitReturnValues &reference() override {
+        PYBIND11_OVERRIDE_PURE(const ImplicitReturnValues &, ImplicitReturnProvider, reference, );
+    }
+    ImplicitReturnValues *pointer() override {
+        PYBIND11_OVERRIDE_PURE(ImplicitReturnValues *, ImplicitReturnProvider, pointer, );
+    }
+#ifdef PYBIND11_HAS_STRING_VIEW
+    std::u16string_view view() override {
+        PYBIND11_OVERRIDE_PURE(std::u16string_view, ImplicitReturnProvider, view, );
+    }
+#endif
+};
+
+PYBIND11_EMBEDDED_MODULE(implicit_return_module, m) {
+    py::class_<ImplicitReturnItem, std::shared_ptr<ImplicitReturnItem>>(m, "Item").def(
+        py::init<int>());
+    py::bind_vector<ImplicitReturnValues>(m, "Values");
+    py::implicitly_convertible<py::list, ImplicitReturnValues>();
+    py::class_<ImplicitReturnProvider, PyImplicitReturnProvider>(m, "Provider").def(py::init<>());
+}
+
+TEST_CASE("Implicit conversions in native trampoline returns") {
+    py::dict locals;
+    py::exec(R"(
+        from implicit_return_module import Item, Provider
+        class PythonProvider(Provider):
+            def __init__(self):
+                super().__init__()
+                self.result = [Item(17), Item(-4), Item(99)]
+                self.fresh = False
+            def values(self):
+                return list(self.result) if self.fresh else self.result
+            def reference(self):
+                return self.result
+            def pointer(self):
+                return self.result
+            def view(self):
+                return "hello"
+        provider = PythonProvider()
+    )",
+             locals);
+    py::object provider = locals["provider"];
+    auto *cpp_provider = provider.cast<ImplicitReturnProvider *>();
+
+    SECTION("Copy from a retained Python return value") { provider.attr("fresh") = false; }
+    SECTION("Move from a temporary Python return value") { provider.attr("fresh") = true; }
+
+    REQUIRE(ImplicitReturnValues::instances == 0);
+    // An enclosing bound call already owns its conversion temporaries. They must
+    // not be destroyed earlier by a nested return-conversion frame.
+    auto bound_call = py::cpp_function([&]() {
+        auto result = cpp_provider->values();
+        return ImplicitReturnValues::instances;
+    });
+    REQUIRE(bound_call().cast<int>() == 2);
+    REQUIRE(ImplicitReturnValues::instances == 0);
+
+    // A short-lived return-conversion frame cannot support a borrowed result.
+    REQUIRE_THROWS_AS(cpp_provider->reference(), py::cast_error);
+    REQUIRE_THROWS_AS(cpp_provider->pointer(), py::cast_error);
+#ifdef PYBIND11_HAS_STRING_VIEW
+    REQUIRE_THROWS_AS(cpp_provider->view(), py::cast_error);
+#endif
+
+    // Calling from native C++ is essential: a bound function would already provide
+    // a loader frame and hide the missing life support during return conversion.
+    for (int i = 0; i < 3; ++i) {
+        auto result = cpp_provider->values();
+        REQUIRE(ImplicitReturnValues::instances == 1);
+        REQUIRE(result.size() == 3);
+        REQUIRE(result[0]->value == 17);
+        REQUIRE(result[1]->value == -4);
+        REQUIRE(result[2]->value == 99);
+    }
+    REQUIRE_THROWS_AS(cpp_provider->reference(), py::cast_error);
+
+    auto retained = cpp_provider->values();
+    provider.attr("result").attr("clear")();
+    REQUIRE(retained[0]->value == 17);
+    REQUIRE(retained[1]->value == -4);
+    REQUIRE(retained[2]->value == 99);
+
+    provider.attr("result") = py::make_tuple("invalid");
+    REQUIRE_THROWS_AS(cpp_provider->values(), py::cast_error);
+}
 
 size_t get_sys_path_size() {
     auto sys_path = py::module::import("sys").attr("path");

@@ -67,6 +67,9 @@ public:
     /// ... and destroyed after it returns
     ~loader_life_support();
 
+    /// Whether a caller already provides a frame for temporary objects.
+    static bool is_active();
+
     /// Keep `h` alive until the current patient frame is destroyed, if there is one.
     /// Returns false when called outside a bound function (no frame). Use this, rather
     /// than `add_patient`, when failing to register is acceptable because the caller

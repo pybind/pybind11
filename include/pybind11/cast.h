@@ -1910,6 +1910,13 @@ enable_if_t<detail::none_of<cast_is_temporary_value_reference<T>,
                             std::is_void<T>>::value,
             T>
 cast_safe(object &&o) {
+    // A registered type returned by value is copied or moved before this frame ends.
+    // Preserve an enclosing frame, and never shorten the lifetime of borrowed results.
+    if (std::is_base_of<type_caster_generic, make_caster<T>>::value && !std::is_reference<T>::value
+        && !std::is_pointer<T>::value && !loader_life_support::is_active()) {
+        loader_life_support life_support;
+        return pybind11::cast<T>(std::move(o));
+    }
     return pybind11::cast<T>(std::move(o));
 }
 
