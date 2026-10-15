@@ -284,6 +284,22 @@ def test_redirect_both(capfd):
     assert stream2.getvalue() == msg2
 
 
+def test_redirect_reentry(capfd):
+    # Re-entering the same ``ostream_redirect`` (``__enter__`` twice with no ``__exit__``
+    # in between, e.g. nesting the same context manager) must not leave std::cout bound
+    # to a freed streambuf. Before the fix the inner redirect recorded a pointer to the
+    # buffer owned by the outer redirect that was about to be destroyed, so a later write
+    # to std::cout was a use-after-free.
+    redirect = m.ostream_redirect(stdout=True, stderr=False)
+    redirect.__enter__()
+    redirect.__enter__()
+    redirect.__exit__()
+    m.raw_output("alive")
+    stdout, stderr = capfd.readouterr()
+    assert stdout == "alive"
+    assert not stderr
+
+
 def test_move_redirect(capsys):
     m.move_redirect_output("before_move", "after_move")
     stdout, stderr = capsys.readouterr()
