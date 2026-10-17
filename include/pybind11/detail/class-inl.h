@@ -408,8 +408,11 @@ PYBIND11_INLINE void clear_patients(PyObject *self) {
 }
 
 PYBIND11_INLINE PyObject **instance_dict_ptr(PyObject *self) {
-#if defined(PYPY_VERSION)
-    // PyPy 3.12's _PyObject_GetDictPtr() aborts if called from tp_dealloc.
+#if defined(PYPY_VERSION_NUM) && (PYPY_VERSION_NUM & 0xFFFF0000) == 0x08000000
+    // PyPy 8.0.0's _PyObject_GetDictPtr() can abort when called from tp_dealloc.
+    // The bug was fixed in 8.0.1, but all 8.0.x releases share an extension ABI,
+    // so an extension built against a fixed release can still run on 8.0.0.
+    // Keep this workaround for the entire 8.0.x series.
     auto offset = Py_TYPE(self)->tp_dictoffset;
     return offset > 0 ? reinterpret_cast<PyObject **>(reinterpret_cast<char *>(self) + offset)
                       : nullptr;
