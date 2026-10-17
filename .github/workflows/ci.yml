@@ -48,8 +48,9 @@ jobs:
             python-version: '3.14t'
             cmake-args: -DCMAKE_CXX_STANDARD=17 -DPYBIND11_TEST_SMART_HOLDER=ON
           - runs-on: ubuntu-latest
-            python-version: 'pypy-3.11-v8.0.0'
+            python-version: 'pypy-3.11-v8.0.1'
             cmake-args: -DCMAKE_CXX_STANDARD=17
+          # Keep 8.0.0 to test the deallocation and memoryview workarounds (PR #6197).
           - runs-on: ubuntu-latest
             python-version: 'pypy-3.12-v8.0.0'
             cmake-args: -DCMAKE_CXX_STANDARD=20
@@ -141,7 +142,7 @@ jobs:
             python-version: '3.15'
             cmake-args: -DCMAKE_CXX_STANDARD=17
           - runs-on: macos-latest
-            python-version: 'pypy-3.12-v8.0.0'
+            python-version: 'pypy-3.12-v8.0.1'
           - runs-on: macos-latest
             python-version: 'graalpy-25.0'
           - runs-on: macos-latest
