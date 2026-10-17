@@ -345,6 +345,9 @@ private:
     // Cast implementation
     template <typename CType>
     static handle cast_impl(CType *src, return_value_policy policy, handle parent) {
+        if (!src) {
+            return none().release();
+        }
         switch (policy) {
             case return_value_policy::take_ownership:
             case return_value_policy::automatic:

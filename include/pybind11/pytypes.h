@@ -563,9 +563,7 @@ class PYBIND11_EXPORT_EXCEPTION error_already_set : public std::exception {
 public:
     /// Fetches the current Python exception (using PyErr_Fetch()), which will clear the
     /// current Python error indicator.
-    error_already_set()
-        : m_fetched_error{new detail::error_fetch_and_normalize("pybind11::error_already_set"),
-                          m_fetched_error_deleter} {}
+    error_already_set();
 
     /// The what() result is built lazily on demand.
     /// WARNING: This member function needs to acquire the Python GIL. This can lead to

@@ -104,6 +104,16 @@ PYBIND11_EMBEDDED_MODULE(throw_error_already_set, , py::multiple_interpreters::n
     d["missing"].cast<py::object>();
 }
 
+static int internals_init_module_executions = 0;
+
+PYBIND11_EMBEDDED_MODULE(internals_init_module,
+                         m,
+                         py::mod_gil_not_used(),
+                         py::multiple_interpreters::per_interpreter_gil()) {
+    ++internals_init_module_executions;
+    m.def("answer", []() { return 42; });
+}
+
 TEST_CASE("PYTHONPATH is used to update sys.path") {
     // The setup for this TEST_CASE is in catch.cpp!
     auto sys_path = py::str(py::module_::import("sys").attr("path")).cast<std::string>();
@@ -293,7 +303,38 @@ TEST_CASE("Add program dir to path using PyConfig") {
     py::initialize_interpreter();
 }
 
-TEST_CASE("Restart the interpreter") {
+TEST_CASE("Internals are initialized when a module executes", "[internals_init]") {
+    // Use a fresh interpreter so that another module cannot have populated its internals.
+    py::finalize_interpreter();
+    py::initialize_interpreter();
+    internals_init_module_executions = 0;
+    REQUIRE_FALSE(has_state_dict_internals_obj());
+    REQUIRE(py::detail::get_local_internals_capsule() == nullptr);
+
+    auto *definition = PyInit_internals_init_module();
+    REQUIRE(definition != nullptr);
+    REQUIRE_FALSE(has_state_dict_internals_obj());
+    REQUIRE(py::detail::get_local_internals_capsule() == nullptr);
+
+    auto spec = py::module_::import("importlib.util")
+                    .attr("spec_from_loader")("internals_init_module", py::none());
+    auto *module_def = reinterpret_cast<PyModuleDef *>(definition);
+    auto module
+        = py::reinterpret_steal<py::module_>(PyModule_FromDefAndSpec(module_def, spec.ptr()));
+    REQUIRE(module);
+    module.attr("__spec__") = spec;
+    REQUIRE_FALSE(has_state_dict_internals_obj());
+    REQUIRE(py::detail::get_local_internals_capsule() == nullptr);
+    REQUIRE(internals_init_module_executions == 0);
+
+    REQUIRE(PyModule_ExecDef(module.ptr(), module_def) == 0);
+    REQUIRE(has_state_dict_internals_obj());
+    REQUIRE(py::detail::get_local_internals_capsule() != nullptr);
+    REQUIRE(internals_init_module_executions == 1);
+    REQUIRE(module.attr("answer")().cast<int>() == 42);
+}
+
+TEST_CASE("Restart the interpreter", "[internals_init]") {
     // Verify pre-restart state.
     REQUIRE(py::module_::import("widget_module").attr("add")(1, 2).cast<int>() == 3);
     REQUIRE(has_state_dict_internals_obj());
@@ -319,6 +360,8 @@ TEST_CASE("Restart the interpreter") {
     REQUIRE(get_details_as_uintptr() != 0);
     REQUIRE(get_details_as_uintptr()
             == py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>());
+    REQUIRE(py::module_::import("external_module").attr("A")(321).attr("value").cast<int>()
+            == 321);
 
     // Make sure that an interpreter with no get_internals() created until finalize still gets the
     // internals destroyed

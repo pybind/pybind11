@@ -6,5 +6,6 @@
 #    error "pybind11 library sources must be compiled with PYBIND11_PRECOMPILED defined."
 #endif
 
+#include <pybind11/detail/cpp_conduit-inl.h>
 #include <pybind11/detail/type_caster_base-inl.h>
 #include <pybind11/pybind11.h>

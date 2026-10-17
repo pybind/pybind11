@@ -17,9 +17,11 @@ from pathlib import Path
 
 # Same in the library and in the modules that link it.
 ENVIRONMENT_MACROS = {
+    "GRAALPY_VERSION_NUM",
     "GRAALVM_PYTHON",
     "NDEBUG",
     "PYBIND11_BUILTIN_QUALNAME",
+    "PYBIND11_HAS_CXXABI_H",
     "PYBIND11_HAS_STRING_VIEW",
     "PYBIND11_PRECOMPILED",
     "PYPY_VERSION",

@@ -367,17 +367,7 @@ struct value_and_holder_helper {
 
     smart_holder &holder() const { return loaded_v_h.holder<smart_holder>(); }
 
-    void throw_if_uninitialized_or_disowned_holder(const char *typeid_name) const {
-        static const std::string missing_value_msg = "Missing value for wrapped C++ type `";
-        if (!holder().is_populated) {
-            throw value_error(missing_value_msg + clean_type_id(typeid_name)
-                              + "`: Python instance is uninitialized.");
-        }
-        if (!holder().has_pointee()) {
-            throw value_error(missing_value_msg + clean_type_id(typeid_name)
-                              + "`: Python instance was disowned.");
-        }
-    }
+    void throw_if_uninitialized_or_disowned_holder(const char *typeid_name) const;
 
     void throw_if_uninitialized_or_disowned_holder(const std::type_info &type_info) const {
         throw_if_uninitialized_or_disowned_holder(type_info.name());
@@ -826,37 +816,11 @@ public:
     void check_holder_compat() {}
     bool set_foreign_holder(handle) { return true; }
 
-    PYBIND11_NOINLINE static void *local_load(PyObject *src, const type_info *ti) {
-        auto caster = type_caster_generic(ti);
-        if (caster.load(src, false)) {
-            return caster.value;
-        }
-        return nullptr;
-    }
+    static void *local_load(PyObject *src, const type_info *ti);
 
     /// Try to load with foreign typeinfo, if available. Used when there is no
     /// native typeinfo, or when the native one wasn't able to produce a value.
-    PYBIND11_NOINLINE bool try_load_foreign_module_local(handle src) {
-        constexpr auto *local_key = PYBIND11_MODULE_LOCAL_ID;
-        const auto pytype = type::handle_of(src);
-        if (!hasattr(pytype, local_key)) {
-            return false;
-        }
-
-        type_info *foreign_typeinfo = reinterpret_borrow<capsule>(getattr(pytype, local_key));
-        // Only consider this foreign loader if actually foreign and is a loader of the correct cpp
-        // type
-        if (foreign_typeinfo->module_local_load == &local_load
-            || (cpptype && !same_type(*cpptype, *foreign_typeinfo->cpptype))) {
-            return false;
-        }
-
-        if (auto *result = foreign_typeinfo->module_local_load(src.ptr(), foreign_typeinfo)) {
-            value = result;
-            return true;
-        }
-        return false;
-    }
+    bool try_load_foreign_module_local(handle src);
 
     // Implementation of `load`; this takes the type of `this` so that it can dispatch the relevant
     // bits of code between here and copyable_holder_caster where the two classes need different
