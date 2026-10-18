@@ -46,6 +46,23 @@ def test_dense():
     assert_equal_ref(m.dense_copy_c(m.dense_r()))
 
 
+@pytest.mark.parametrize("matrix_type", ["matrix", "const_matrix"])
+@pytest.mark.parametrize(
+    "policy",
+    [
+        "automatic",
+        "automatic_reference",
+        "take_ownership",
+        "copy",
+        "move",
+        "reference",
+        "reference_internal",
+    ],
+)
+def test_null_matrix(matrix_type, policy):
+    assert getattr(getattr(m.null_matrix, policy), matrix_type)() is None
+
+
 def test_partially_fixed():
     ref2 = np.array([[0.0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]])
     np.testing.assert_array_equal(m.partial_copy_four_rm_r(ref2), ref2)

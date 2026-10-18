@@ -13,6 +13,9 @@ Changes will be added here periodically from the "Suggested changelog
 entry" block in pull request descriptions.
 
 
+## Version 3.2.0 (IN DEVELOPMENT)
+
+
 ## Version 3.1.0 (August 6, 2026)
 
 New Features:

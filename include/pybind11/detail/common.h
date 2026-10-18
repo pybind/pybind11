@@ -18,16 +18,16 @@
 // See also: https://github.com/python/cpython/blob/HEAD/Include/patchlevel.h
 /* -- start version constants -- */
 #define PYBIND11_VERSION_MAJOR 3
-#define PYBIND11_VERSION_MINOR 1
+#define PYBIND11_VERSION_MINOR 2
 #define PYBIND11_VERSION_MICRO 0
 // ALPHA = 0xA, BETA = 0xB, GAMMA = 0xC (release candidate), FINAL = 0xF (stable release)
 // - The release level is set to "alpha" for development versions.
 //   Use 0xA0 (LEVEL=0xA, SERIAL=0) for development versions.
 // - For stable releases, set the serial to 0.
-#define PYBIND11_VERSION_RELEASE_LEVEL PY_RELEASE_LEVEL_FINAL
+#define PYBIND11_VERSION_RELEASE_LEVEL PY_RELEASE_LEVEL_ALPHA
 #define PYBIND11_VERSION_RELEASE_SERIAL 0
 // String version of (micro, release level, release serial), e.g.: 0a0, 0b1, 0rc1, 0
-#define PYBIND11_VERSION_PATCH 0
+#define PYBIND11_VERSION_PATCH 0a0
 /* -- end version constants -- */
 
 #if !defined(Py_PACK_FULL_VERSION)
@@ -381,8 +381,7 @@
 #define PYBIND11_CONCAT(first, second) first##second
 #define PYBIND11_ENSURE_INTERNALS_READY                                                           \
     {                                                                                             \
-        pybind11::detail::get_internals_pp_manager().unref();                                     \
-        pybind11::detail::get_internals();                                                        \
+        pybind11::detail::ensure_internals();                                                     \
     }
 
 #if !defined(GRAALVM_PYTHON)
@@ -471,7 +470,6 @@ PyModuleDef_Init should be treated like any other PyObject (so not shared across
         PYBIND11_CHECK_PYTHON_VERSION                                                             \
         PYBIND11_PRECOMPILED_CONFIG_GUARD                                                         \
         try {                                                                                     \
-            pybind11::detail::ensure_internals();                                                 \
             static ::pybind11::detail::slots_array mod_def_slots                                  \
                 = ::pybind11::detail::init_slots(                                                 \
                     &PYBIND11_CONCAT(pybind11_exec_, name), ##__VA_ARGS__);                       \
@@ -494,7 +492,7 @@ PyModuleDef_Init should be treated like any other PyObject (so not shared across
     static void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ &);                     \
     int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject * pm) {                                    \
         try {                                                                                     \
-            pybind11::detail::ensure_internals();                                                 \
+            PYBIND11_ENSURE_INTERNALS_READY                                                       \
             auto m = pybind11::reinterpret_borrow<::pybind11::module_>(pm);                       \
             if (!pybind11::detail::get_cached_module(m.attr("__spec__").attr("name"))) {          \
                 PYBIND11_CONCAT(pybind11_init_, name)(m);                                         \

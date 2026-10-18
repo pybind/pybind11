@@ -207,12 +207,17 @@ PYBIND11_INLINE PyObject *get_local_internals_capsule() {
 }
 
 PYBIND11_INLINE void ensure_internals() {
-    pybind11::detail::get_internals_pp_manager().unref();
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
     if (PyInterpreterState_Get() != PyInterpreterState_Main()) {
         has_seen_non_main_interpreter() = true;
     }
 #endif
+    /* In an embedded app the main interpreter could be finalized and re-initialized and a pybind11
+     * extension module would hold a pointer to a deleted internals.  The only way to prevent
+     * access to that is to re-fetch everything from the state dict here.  So we first null it out
+     * of our global copy and then fetch it (creating it if it does not already exist). */
+    pybind11::detail::get_internals_pp_manager().unref();
+    pybind11::detail::get_local_internals_pp_manager().unref();
     pybind11::detail::get_internals();
 }
 
@@ -256,4 +261,19 @@ PYBIND11_INLINE void PYBIND11_PRECOMPILED_CONFIG_CHECK() {}
 #endif
 
 PYBIND11_NAMESPACE_END(detail)
+
+PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void *get_shared_data(const std::string &name) {
+    return detail::with_internals([&](detail::internals &internals) {
+        auto it = internals.shared_data.find(name);
+        return it != internals.shared_data.end() ? it->second : nullptr;
+    });
+}
+
+PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void *set_shared_data(const std::string &name, void *data) {
+    return detail::with_internals([&](detail::internals &internals) {
+        internals.shared_data[name] = data;
+        return data;
+    });
+}
+
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

@@ -650,8 +650,11 @@ public:
                 if (!tstate) {
                     tstate = get_thread_state_unchecked();
                 }
+                // Update the cache only on success; a stale interp with a null pp would make
+                // later calls return nullptr.
+                auto *pp = get_or_create_pp_in_state_dict();
                 last_istate_tls() = tstate->interp;
-                internals_p_tls() = get_or_create_pp_in_state_dict();
+                internals_p_tls() = pp;
             }
             return internals_p_tls();
         }
@@ -917,20 +920,10 @@ PYBIND11_NAMESPACE_END(detail)
 /// Returns a named pointer that is shared among all extension modules (using the same
 /// pybind11 version) running in the current interpreter. Names starting with underscores
 /// are reserved for internal usage. Returns `nullptr` if no matching entry was found.
-PYBIND11_NOINLINE void *get_shared_data(const std::string &name) {
-    return detail::with_internals([&](detail::internals &internals) {
-        auto it = internals.shared_data.find(name);
-        return it != internals.shared_data.end() ? it->second : nullptr;
-    });
-}
+void *get_shared_data(const std::string &name);
 
 /// Set the shared data that can be later recovered by `get_shared_data()`.
-PYBIND11_NOINLINE void *set_shared_data(const std::string &name, void *data) {
-    return detail::with_internals([&](detail::internals &internals) {
-        internals.shared_data[name] = data;
-        return data;
-    });
-}
+void *set_shared_data(const std::string &name, void *data);
 
 /// Returns a typed reference to a shared data entry (by using `get_shared_data()`) if
 /// such entry exists. Otherwise, a new object of default-constructible type `T` is

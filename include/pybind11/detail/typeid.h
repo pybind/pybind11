@@ -42,27 +42,9 @@ inline void erase_all(std::string &string, const std::string &search) {
     }
 }
 
-PYBIND11_NOINLINE void clean_type_id(std::string &name) {
-#if defined(PYBIND11_HAS_CXXABI_H)
-    int status = 0;
-    std::unique_ptr<char, void (*)(void *)> res{
-        abi::__cxa_demangle(name.c_str(), nullptr, nullptr, &status), std::free};
-    if (status == 0) {
-        name = res.get();
-    }
-#else
-    detail::erase_all(name, "class ");
-    detail::erase_all(name, "struct ");
-    detail::erase_all(name, "enum ");
-#endif
-    detail::erase_all(name, "pybind11::");
-}
+void clean_type_id(std::string &name);
 
-inline std::string clean_type_id(const char *typeid_name) {
-    std::string name(typeid_name);
-    detail::clean_type_id(name);
-    return name;
-}
+std::string clean_type_id(const char *typeid_name);
 
 PYBIND11_NAMESPACE_END(detail)
 
@@ -73,3 +55,7 @@ std::string type_id() {
 }
 
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
+
+#ifndef PYBIND11_PRECOMPILED
+#    include "typeid-inl.h" // IWYU pragma: export
+#endif

@@ -209,7 +209,8 @@ Post-release work
   alpha, a next-minor alpha, or whether no immediate bump is wanted. If a bump
   is selected, update all version macros consistently, add the corresponding
   ``IN DEVELOPMENT`` changelog section, run ``nox -s tests_packaging``, and use
-  a PR against the selected base.
+  a PR against the selected base. The nightly wheel upload fails while
+  ``master`` has a final version.
 
 - After a prerelease, normally leave the version on the same release line and
   do not make an automatic development bump.
