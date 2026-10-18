@@ -638,6 +638,45 @@ def test_complex_index_handling():
     assert result.imag == 0.0
 
 
+@pytest.mark.parametrize("base", [object, int, float])
+def test_complex_method_precedence(base):
+    class ComplexAndIndex(base):
+        def __complex__(self):
+            return 3.0 + 4.0j
+
+        def __index__(self):
+            return 42
+
+    value = ComplexAndIndex()
+    assert m.complex_convert(value) == 3.0 + 4.0j
+    if base is object:
+        with pytest.raises(TypeError):
+            m.complex_noconvert(value)
+    else:
+        assert m.complex_noconvert(value) == 3.0 + 4.0j
+
+
+@pytest.mark.parametrize("function", [m.complex_convert, m.complex_noconvert])
+def test_complex_subclass_with_index(function):
+    class ComplexWithIndex(complex):
+        def __index__(self):
+            return 42
+
+    assert function(ComplexWithIndex(3.0, 4.0)) == 3.0 + 4.0j
+
+
+def test_complex_method_error_with_index():
+    class ComplexAndIndex:
+        def __complex__(self):
+            raise ValueError("complex conversion failed")
+
+        def __index__(self):
+            return 42
+
+    with pytest.raises(TypeError):
+        m.complex_convert(ComplexAndIndex())
+
+
 def test_overload_resolution_float_int():
     """
     Test overload resolution behavior when int can match float (added with PR #5879).
