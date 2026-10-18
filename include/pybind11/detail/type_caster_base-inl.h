@@ -45,6 +45,8 @@ PYBIND11_INLINE loader_life_support::~loader_life_support() {
     }
 }
 
+PYBIND11_INLINE bool loader_life_support::is_active() { return tls_current_frame() != nullptr; }
+
 PYBIND11_NOINLINE_ATTR PYBIND11_INLINE bool loader_life_support::try_add_patient(handle h) {
     loader_life_support *frame = tls_current_frame();
     if (!frame) {
