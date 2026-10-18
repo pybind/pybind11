@@ -122,6 +122,9 @@ void add_patient(PyObject *nurse, PyObject *patient);
 
 void clear_patients(PyObject *self);
 
+/// Returns the address of the instance `__dict__` slot, or nullptr if there is none.
+PyObject **instance_dict_ptr(PyObject *self);
+
 /// Clears all internal data from the instance and removes it from registered instances in
 /// preparation for deallocation.
 void clear_instance(PyObject *self);
