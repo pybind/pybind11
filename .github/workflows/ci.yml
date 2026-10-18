@@ -47,6 +47,10 @@ jobs:
           - runs-on: ubuntu-latest
             python-version: '3.14t'
             cmake-args: -DCMAKE_CXX_STANDARD=17 -DPYBIND11_TEST_SMART_HOLDER=ON
+          # Keep one PyPy 7 job while that runtime remains supported.
+          - runs-on: ubuntu-latest
+            python-version: 'pypy-3.11-v7.3.23'
+            cmake-args: -DCMAKE_CXX_STANDARD=17
           - runs-on: ubuntu-latest
             python-version: 'pypy-3.11-v8.0.1'
             cmake-args: -DCMAKE_CXX_STANDARD=17
