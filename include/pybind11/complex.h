@@ -59,7 +59,7 @@ public:
         handle src_or_index = src;
         // Older PyPy versions need explicit __index__ conversion before PyComplex_AsCComplex().
         // Preserve complex values and __complex__ precedence.
-#if defined(PYPY_VERSION)
+#if defined(PYPY_VERSION_NUM) && PYPY_VERSION_NUM < 0x08000000
         object index;
         if (!PyComplex_Check(src.ptr()) && !hasattr(type::handle_of(src), "__complex__")
             && PYBIND11_INDEX_CHECK(src.ptr())) {
