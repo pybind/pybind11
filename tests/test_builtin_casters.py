@@ -247,7 +247,8 @@ def test_integer_casting():
     assert "incompatible function arguments" in str(excinfo.value)
 
 
-def test_int_convert(doc):
+@pytest.mark.parametrize("prefix", ["int", "uint"])
+def test_int_convert(doc, prefix):
     class Int:
         def __int__(self):
             return 42
@@ -284,13 +285,14 @@ def test_int_convert(doc):
         def __int__(self):
             return 42
 
-    convert, noconvert = m.int_passthrough, m.int_passthrough_noconvert
+    convert = getattr(m, f"{prefix}_passthrough")
+    noconvert = getattr(m, f"{prefix}_passthrough_noconvert")
 
     assert (
         doc(convert)
-        == "int_passthrough(arg0: typing.SupportsInt | typing.SupportsIndex) -> int"
+        == f"{prefix}_passthrough(arg0: typing.SupportsInt | typing.SupportsIndex) -> int"
     )
-    assert doc(noconvert) == "int_passthrough_noconvert(arg0: int) -> int"
+    assert doc(noconvert) == f"{prefix}_passthrough_noconvert(arg0: int) -> int"
 
     def requires_conversion(v):
         pytest.raises(TypeError, noconvert, v)
@@ -302,7 +304,7 @@ def test_int_convert(doc):
     assert noconvert(7) == 7
     cant_convert(3.14159)
     # TODO: Avoid DeprecationWarning in `PyLong_AsLong` (and similar)
-    if sys.version_info < (3, 10) and env.CPYTHON:
+    if sys.version_info < (3, 10) and env.CPYTHON and prefix == "int":
         with pytest.deprecated_call():
             assert convert(Int()) == 42
     else:
@@ -402,10 +404,12 @@ def test_float_convert(doc):
     cant_convert(Int())
 
 
-def test_numpy_int_convert():
+@pytest.mark.parametrize("prefix", ["int", "uint"])
+def test_numpy_int_convert(prefix):
     np = pytest.importorskip("numpy")
 
-    convert, noconvert = m.int_passthrough, m.int_passthrough_noconvert
+    convert = getattr(m, f"{prefix}_passthrough")
+    noconvert = getattr(m, f"{prefix}_passthrough_noconvert")
 
     def require_implicit(v):
         pytest.raises(TypeError, noconvert, v)
@@ -417,7 +421,7 @@ def test_numpy_int_convert():
     # The implicit conversion from np.float32 is undesirable but currently accepted.
     # TODO: Avoid DeprecationWarning in `PyLong_AsLong` (and similar)
     # https://github.com/pybind/pybind11/issues/3408
-    if sys.version_info < (3, 10) and env.CPYTHON:
+    if sys.version_info < (3, 10) and env.CPYTHON and prefix == "int":
         with pytest.deprecated_call():
             assert convert(np.float32(3.14159)) == 3
     else:
@@ -632,6 +636,45 @@ def test_complex_index_handling():
     assert isinstance(result, complex)
     assert result.real == 42.0
     assert result.imag == 0.0
+
+
+@pytest.mark.parametrize("base", [object, int, float])
+def test_complex_method_precedence(base):
+    class ComplexAndIndex(base):
+        def __complex__(self):
+            return 3.0 + 4.0j
+
+        def __index__(self):
+            return 42
+
+    value = ComplexAndIndex()
+    assert m.complex_convert(value) == 3.0 + 4.0j
+    if base is object:
+        with pytest.raises(TypeError):
+            m.complex_noconvert(value)
+    else:
+        assert m.complex_noconvert(value) == 3.0 + 4.0j
+
+
+@pytest.mark.parametrize("function", [m.complex_convert, m.complex_noconvert])
+def test_complex_subclass_with_index(function):
+    class ComplexWithIndex(complex):
+        def __index__(self):
+            return 42
+
+    assert function(ComplexWithIndex(3.0, 4.0)) == 3.0 + 4.0j
+
+
+def test_complex_method_error_with_index():
+    class ComplexAndIndex:
+        def __complex__(self):
+            raise ValueError("complex conversion failed")
+
+        def __index__(self):
+            return 42
+
+    with pytest.raises(TypeError):
+        m.complex_convert(ComplexAndIndex())
 
 
 def test_overload_resolution_float_int():

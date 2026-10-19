@@ -259,22 +259,20 @@ public:
             return false;
         } else {
             handle src_or_index = src;
-            // PyPy: 7.3.7's 3.8 does not implement PyLong_*'s __index__ calls.
-#if defined(PYPY_VERSION)
             object index;
-            // If not a PyLong, we need to call PyNumber_Index explicitly on PyPy.
-            // When convert is false, we only reach here if PYBIND11_INDEX_CHECK passed above.
-            if (!PYBIND11_LONG_CHECK(src.ptr())) {
+            // PyLong_AsUnsignedLong[Long] never calls __index__, so call PyNumber_Index here.
+            if (std::is_unsigned<py_type>::value && !PYBIND11_LONG_CHECK(src.ptr())
+                && PYBIND11_INDEX_CHECK(src.ptr())) {
                 index = reinterpret_steal<object>(PyNumber_Index(src.ptr()));
                 if (!index) {
                     PyErr_Clear();
-                    if (!convert)
+                    if (!convert) {
                         return false;
+                    }
                 } else {
                     src_or_index = index;
                 }
             }
-#endif
             if (std::is_unsigned<py_type>::value) {
                 py_value = as_unsigned<py_type>(src_or_index.ptr());
             } else { // signed integer:

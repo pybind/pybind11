@@ -230,6 +230,26 @@ def test_enum_to_int():
     m.test_enum_to_long_long(m.ScopedBoolEnum.TRUE)
 
 
+@pytest.mark.parametrize("enum_name", ["UnscopedInt32Enum", "UnscopedUInt32Enum"])
+def test_scalar_comparison_with_index_object(enum_name):
+    # An unsigned underlying type must compare like a signed one against objects
+    # that only implement __index__ (e.g. numpy integers).
+    class Index:
+        def __index__(self):
+            return 3
+
+    three = getattr(m, enum_name).Three
+    assert three == 3
+    assert three == Index()
+    assert not three != Index()
+    assert three != 4
+    np = pytest.importorskip("numpy")
+    assert three == np.int32(3)
+    assert three == np.uint64(3)
+    assert not three != np.int64(3)
+    assert three != np.int32(4)
+
+
 def test_duplicate_enum_name():
     with pytest.raises(ValueError) as excinfo:
         m.register_bad_enum()
