@@ -265,8 +265,21 @@ PYBIND11_INLINE memoryview memoryview::from_buffer(void *ptr,
     view.itemsize = itemsize;
     view.format = const_cast<char *>(format);
     view.ndim = static_cast<int>(ndim);
+#if defined(PYPY_VERSION)
+    // PyPy (at least up to 8.0.0) only copies shape and strides that point to its inline arrays.
+    if (ndim > PyBUF_MAX_NDIM) {
+        pybind11_fail("memoryview: too many dimensions");
+    }
+    for (size_t i = 0; i < ndim; ++i) {
+        view._shape[i] = (*shape)[i];
+        view._strides[i] = (*strides)[i];
+    }
+    view.shape = view._shape;
+    view.strides = view._strides;
+#else
     view.shape = shape->data();
     view.strides = strides->data();
+#endif
     view.suboffsets = nullptr;
     view.internal = nullptr;
     PyObject *obj = PyMemoryView_FromBuffer(&view);
