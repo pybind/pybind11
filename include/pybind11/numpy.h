@@ -72,7 +72,10 @@ template <typename type, typename SFINAE = void>
 struct npy_format_descriptor;
 
 // NumPy 2.5.2+ aligns the first field after PyObject_HEAD to 8 bytes on Python 3.15+.
-// This changes the layout on 32-bit free-threaded builds, where sizeof(PyObject) == 20.
+// NumPy 2.5.2, the first release supporting Python 3.15, aligns the first
+// field after PyObject_HEAD to 8 bytes on Python 3.15+.
+// This assumes a supported NumPy/Python pairing: older NumPy builds on
+// 32-bit free-threaded Python 3.15 have an incompatible layout.
 #if PY_VERSION_HEX >= 0x030F0000
 #    define PYBIND11_NPY_FIRST_FIELD alignas(8)
 #else
