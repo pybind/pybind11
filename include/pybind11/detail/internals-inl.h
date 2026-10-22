@@ -143,6 +143,10 @@ PYBIND11_INLINE void translate_local_exception(std::exception_ptr p) {
 
 PYBIND11_INLINE void check_internals_local_exception_translator(internals *internals_ptr) {
     if (internals_ptr) {
+#    ifdef Py_GIL_DISABLED
+        // Not with_exception_translators(): that calls get_internals(), which runs this hook.
+        pycritical_section lock(internals_ptr->exception_translator_mutex);
+#    endif
         for (auto et : internals_ptr->registered_exception_translators) {
             if (et == &translate_local_exception) {
                 return;

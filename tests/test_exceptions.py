@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import importlib
 import re
 import sys
+import threading
 
 import pytest
 from custom_exceptions import PythonMyException7
@@ -442,3 +444,31 @@ def test_return_exception_void():
     with pytest.raises(TypeError) as excinfo:
         m.return_exception_void()
     assert "Exception" in str(excinfo.value)
+
+
+@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
+def test_local_translator_registration_vs_internals_fetch():
+    # Nothing to assert: the race only shows up under TSan, and only with libc++ or
+    # MSVC (the hook isn't built with libstdc++).
+    if "mod_concurrent_import" in sys.modules:
+        pytest.skip("The first import can only be exercised once per process")
+
+    stop = threading.Event()
+    errors = []
+
+    def ensure_internals_loop():
+        try:
+            while not stop.is_set():
+                m.ensure_internals()
+        except Exception as e:
+            errors.append(e)
+
+    reader = threading.Thread(target=ensure_internals_loop)
+    reader.start()
+    try:
+        importlib.import_module("mod_concurrent_import")
+    finally:
+        stop.set()
+        reader.join()
+    if errors:
+        raise errors[0]
