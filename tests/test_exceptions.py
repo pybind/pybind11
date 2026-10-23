@@ -446,7 +446,7 @@ def test_return_exception_void():
     assert "Exception" in str(excinfo.value)
 
 
-@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
+@pytest.mark.skipif("not env.PY_GIL_DISABLED", reason="Only relevant without the GIL")
 def test_local_translator_registration_vs_internals_fetch():
     # Nothing to assert: the race only shows up under TSan, and only with libc++ or
     # MSVC (the hook isn't built with libstdc++).
