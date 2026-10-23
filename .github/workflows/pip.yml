@@ -43,8 +43,8 @@ jobs:
   # This runs the packaging tests and also builds and saves the packages as
   # artifacts.
   packaging:
-    name: 🐍 3.9 • 📦 & 📦 tests • ubuntu-latest
-    runs-on: ubuntu-latest
+    name: 🐍 3.9 • 📦 & 📦 tests • ubuntu-24.04
+    runs-on: ubuntu-24.04
 
     steps:
     - uses: actions/checkout@v7
