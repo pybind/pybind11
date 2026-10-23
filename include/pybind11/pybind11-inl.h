@@ -801,7 +801,7 @@ PYBIND11_INLINE PyObject *cpp_function::dispatcher(PyObject *self,
                                                    size_t nargsf,
                                                    PyObject *kwnames_in) {
     using namespace detail;
-    const function_record *overloads = function_record_ptr_from_PyObject(self);
+    const function_record *overloads = function_record_ptr_from_dispatcher_self(self);
     assert(overloads != nullptr);
 
     /* Iterator over the list of potentially admissible overloads */
