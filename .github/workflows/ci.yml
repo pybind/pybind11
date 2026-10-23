@@ -113,7 +113,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runs-on: ubuntu-latest
+          - runs-on: ubuntu-24.04
             python-version: '3.9'
             cmake-args: -DPYBIND11_FINDPYTHON=ON -DCMAKE_CXX_STANDARD=17
           - runs-on: ubuntu-latest
@@ -200,7 +200,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runs-on: ubuntu-latest
+          - runs-on: ubuntu-24.04
             python-version: '3.9'
           - runs-on: macos-latest
             python-version: '3.12'
@@ -761,7 +761,9 @@ jobs:
   install-classic:
     if: github.event.pull_request.draft == false
     name: "🐍 3.11 • Debian • x86 •  Install"
-    runs-on: ubuntu-latest
+    # Ubuntu 26.04's Docker 29.4.2 breaks i386 networking:
+    # https://github.com/actions/runner-images/issues/14790
+    runs-on: ubuntu-24.04
     container: i386/debian:bookworm
     timeout-minutes: 90
 
