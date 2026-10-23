@@ -195,7 +195,10 @@ def _intentional_deadlock():
     m.intentional_deadlock()
 
 
-ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK = (*ALL_BASIC_TESTS, _intentional_deadlock)
+ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK = (
+    *ALL_BASIC_TESTS,
+    pytest.param(_intentional_deadlock, marks=skipif_not_free_threaded),
+)
 
 
 def _run_in_process(target, *args, **kwargs):
