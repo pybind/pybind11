@@ -151,6 +151,16 @@ ALL_BASIC_TESTS = (
 )
 
 
+# Keep first-use initialization of the helper module's private internals isolated,
+# both with and without the GIL held. Batched cases intentionally share an interpreter;
+# their first call into the helper is test_cross_module_gil_released.
+PROCESS_TEST_CASES = (
+    pytest.param((test_cross_module_gil_released,), id="first_use_gil_released"),
+    pytest.param((test_cross_module_gil_acquired,), id="first_use_gil_acquired"),
+    pytest.param(ALL_BASIC_TESTS, id="all_basic_tests"),
+)
+
+
 def test_all_basic_tests_completeness():
     num_found = 0
     for key, value in VARS_BEFORE_ALL_BASIC_TESTS.items():
@@ -163,9 +173,8 @@ def test_all_basic_tests_completeness():
 
 # Defined after ALL_BASIC_TESTS on purpose: this test is a regression for the
 # `gil_scoped_release` + factory `py::init` path, not a deadlock check, so it should not
-# run in the _run_in_process parametrizations above (whose subprocesses impose a 10s
-# timeout; on Windows this test is much slower there due to sleep timer granularity and
-# GIL handoff costs).
+# run in the subprocess batches (whose cases get at least a 10s execution allowance;
+# on Windows this test is much slower due to sleep timer granularity and GIL handoff costs).
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
 def test_init_factory_gil_released_concurrent_construction():
     """Concurrent construction via a factory `py::init` with `call_guard<gil_scoped_release>`.
@@ -203,7 +212,7 @@ def _run_in_process_target(target, args, kwargs, status_writer):
         status_writer.send("finished")
 
 
-def _run_in_process(target, *args, timeout=10, **kwargs):
+def _run_in_process(target, *args, timeout=10, progress=None, **kwargs):
     if env.ANDROID or env.IOS or sys.platform.startswith("emscripten"):
         pytest.skip("Requires subprocess support")
 
@@ -232,11 +241,23 @@ def _run_in_process(target, *args, timeout=10, **kwargs):
             child_started = (
                 status_reader.poll(timeout=10) and status_reader.recv() == "started"
             )
-            child_finished = (
-                child_started
-                and status_reader.poll(timeout=timeout)
-                and status_reader.recv() == "finished"
-            )
+            child_finished = False
+            if child_started:
+                while True:
+                    previous_progress = None if progress is None else progress.value
+                    child_finished = (
+                        status_reader.poll(timeout=timeout)
+                        and status_reader.recv() == "finished"
+                    )
+                    if (
+                        child_finished
+                        or process.exitcode is not None
+                        or progress is None
+                        or progress.value == previous_progress
+                    ):
+                        break
+                    # Give a newly started case a full execution allowance.
+                    # A deadlock may take one extra wait interval to detect.
             # A returned test must not look deadlocked while the process shuts down.
             process.join(timeout=10 if child_finished else 0)
             if timeout >= 100:
@@ -305,6 +326,43 @@ def _run_in_threads(test_fn, num_threads, parallel):
         raise exceptions.get()
 
 
+def _run_test_cases(test_fns, current_test, num_threads, parallel):
+    for index, test_fn in enumerate(test_fns):
+        current_test.value = index
+        if num_threads is None:
+            test_fn()
+        else:
+            # Fresh threads per case preserve thread-state creation and cleanup.
+            _run_in_threads(test_fn, num_threads=num_threads, parallel=parallel)
+
+
+def _run_test_cases_in_process(test_fns, *, num_threads=None, parallel=False):
+    if env.ANDROID or env.IOS or sys.platform.startswith("emscripten"):
+        pytest.skip("Requires subprocess support")
+
+    # Only the child writes this progress hint. Avoid a lock it could leave held on failure.
+    current_test = multiprocessing.Value("i", -1, lock=False)
+
+    def current_test_name():
+        index = current_test.value
+        return test_fns[index].__name__ if index >= 0 else "before the first case"
+
+    try:
+        exitcode = _run_in_process(
+            _run_test_cases,
+            test_fns,
+            current_test,
+            num_threads,
+            parallel,
+            progress=current_test,
+        )
+    except RuntimeError as error:
+        raise RuntimeError(f"{error} (while running {current_test_name()})") from error
+    assert exitcode == 0, (
+        f"Subprocess exited with {exitcode} while running {current_test_name()}"
+    )
+
+
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
 @pytest.mark.parametrize("parallel", [False, True], ids=["sequential", "parallel"])
 def test_run_in_threads_propagates_exception(parallel):
@@ -315,61 +373,45 @@ def test_run_in_threads_propagates_exception(parallel):
         _run_in_threads(fail, num_threads=2, parallel=parallel)
 
 
-@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
-@pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS)
-@pytest.mark.skipif(
-    "env.GRAALPY",
-    reason="GraalPy transiently complains about unfinished threads at process exit",
-)
-def test_run_in_process_one_thread(test_fn):
-    """Makes sure there is no GIL deadlock when running in a thread.
-
-    It runs in a separate process to be able to stop and assert if it deadlocks.
-    """
-    assert _run_in_process(_run_in_threads, test_fn, num_threads=1, parallel=False) == 0
-
-
 @skipif_free_threaded
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
-@pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS)
+@pytest.mark.parametrize("test_fns", PROCESS_TEST_CASES)
 @pytest.mark.skipif(
     "env.GRAALPY",
     reason="GraalPy transiently complains about unfinished threads at process exit",
 )
-def test_run_in_process_multiple_threads_parallel(test_fn):
+def test_run_in_process_multiple_threads_parallel(test_fns):
     """Makes sure there is no GIL deadlock when running in a thread multiple times in parallel.
 
     It runs in a separate process to be able to stop and assert if it deadlocks.
     """
-    assert _run_in_process(_run_in_threads, test_fn, num_threads=8, parallel=True) == 0
+    _run_test_cases_in_process(test_fns, num_threads=8, parallel=True)
 
 
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
-@pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS)
+@pytest.mark.parametrize("test_fns", PROCESS_TEST_CASES)
 @pytest.mark.skipif(
     "env.GRAALPY",
     reason="GraalPy transiently complains about unfinished threads at process exit",
 )
-def test_run_in_process_multiple_threads_sequential(test_fn):
+def test_run_in_process_multiple_threads_sequential(test_fns):
     """Makes sure there is no GIL deadlock when running in a thread multiple times sequentially.
 
     It runs in a separate process to be able to stop and assert if it deadlocks.
     """
-    assert _run_in_process(_run_in_threads, test_fn, num_threads=8, parallel=False) == 0
+    # Its first worker also covers the former one-thread parametrization.
+    _run_test_cases_in_process(test_fns, num_threads=8, parallel=False)
 
 
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
-@pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS)
+@pytest.mark.parametrize("test_fns", PROCESS_TEST_CASES)
 @pytest.mark.skipif(
     "env.GRAALPY",
     reason="GraalPy transiently complains about unfinished threads at process exit",
 )
-def test_run_in_process_direct(test_fn):
-    """Makes sure there is no GIL deadlock when using processes.
-
-    This test is for completion, but it was never an issue.
-    """
-    assert _run_in_process(test_fn) == 0
+def test_run_in_process_direct(test_fns):
+    """Exercise the main thread of a fresh interpreter, including its initial GIL state."""
+    _run_test_cases_in_process(test_fns)
 
 
 @pytest.mark.skipif(
