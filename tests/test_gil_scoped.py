@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import multiprocessing
+import queue
 import sys
 import sysconfig
 import threading
@@ -263,9 +264,17 @@ def _run_in_process(target, *args, timeout=10, **kwargs):
 
 
 def _run_in_threads(test_fn, num_threads, parallel):
+    exceptions = queue.SimpleQueue()
+
+    def run_test():
+        try:
+            test_fn()
+        except BaseException as error:
+            exceptions.put(error)
+
     threads = []
     for _ in range(num_threads):
-        thread = threading.Thread(target=test_fn)
+        thread = threading.Thread(target=run_test)
         thread.daemon = True
         thread.start()
         if parallel:
@@ -274,6 +283,19 @@ def _run_in_threads(test_fn, num_threads, parallel):
             thread.join()
     for thread in threads:
         thread.join()
+    # Thread exceptions otherwise only print a traceback, leaving a successful process.
+    if not exceptions.empty():
+        raise exceptions.get()
+
+
+@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
+@pytest.mark.parametrize("parallel", [False, True], ids=["sequential", "parallel"])
+def test_run_in_threads_propagates_exception(parallel):
+    def fail():
+        raise AssertionError("worker failure")
+
+    with pytest.raises(AssertionError, match="worker failure"):
+        _run_in_threads(fail, num_threads=2, parallel=parallel)
 
 
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
