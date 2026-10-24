@@ -71,10 +71,21 @@ struct handle_type_name<array> {
 template <typename type, typename SFINAE = void>
 struct npy_format_descriptor;
 
+// NumPy 2.5.2+ aligns the first field after PyObject_HEAD to 8 bytes on Python 3.15+.
+// NumPy 2.5.2, the first release supporting Python 3.15, aligns the first
+// field after PyObject_HEAD to 8 bytes on Python 3.15+.
+// This assumes a supported NumPy/Python pairing: older NumPy builds on
+// 32-bit free-threaded Python 3.15 have an incompatible layout.
+#if PY_VERSION_HEX >= 0x030F0000
+#    define PYBIND11_NPY_FIRST_FIELD alignas(8)
+#else
+#    define PYBIND11_NPY_FIRST_FIELD
+#endif
+
 /* NumPy 1 proxy (always includes legacy fields) */
 struct PyArrayDescr1_Proxy {
     PyObject_HEAD
-    PyObject *typeobj;
+    PYBIND11_NPY_FIRST_FIELD PyObject *typeobj;
     char kind;
     char type;
     char byteorder;
@@ -89,7 +100,7 @@ struct PyArrayDescr1_Proxy {
 
 struct PyArrayDescr_Proxy {
     PyObject_HEAD
-    PyObject *typeobj;
+    PYBIND11_NPY_FIRST_FIELD PyObject *typeobj;
     char kind;
     char type;
     char byteorder;
@@ -101,7 +112,7 @@ struct PyArrayDescr_Proxy {
 /* NumPy 2 proxy, including legacy fields */
 struct PyArrayDescr2_Proxy {
     PyObject_HEAD
-    PyObject *typeobj;
+    PYBIND11_NPY_FIRST_FIELD PyObject *typeobj;
     char kind;
     char type;
     char byteorder;
@@ -121,7 +132,7 @@ struct PyArrayDescr2_Proxy {
 
 struct PyArray_Proxy {
     PyObject_HEAD
-    char *data;
+    PYBIND11_NPY_FIRST_FIELD char *data;
     int nd;
     ssize_t *dimensions;
     ssize_t *strides;
@@ -129,6 +140,8 @@ struct PyArray_Proxy {
     PyObject *descr;
     int flags;
 };
+
+#undef PYBIND11_NPY_FIRST_FIELD
 
 struct PyVoidScalarObject_Proxy {
     PyObject_VAR_HEAD char *obval;
