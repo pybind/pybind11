@@ -124,7 +124,7 @@ def test_nested_acquire():
 def test_multi_acquire_release_cross_module():
     for bits in range(16 * 8):
         internals_ids = m.test_multi_acquire_release_cross_module(bits)
-        assert len(internals_ids) == 2 if bits % 8 else 1
+        assert len(internals_ids) == (2 if bits % 8 else 1)
 
 
 # Intentionally putting human review in the loop here, to guard against accidents.
