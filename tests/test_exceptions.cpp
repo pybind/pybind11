@@ -424,4 +424,8 @@ TEST_SUBMODULE(exceptions, m) {
             PyErr_SetObject(PyExc_Exception, exc_inst.ptr());
         }
     });
+
+    // The on-fetch hook (check_internals_local_exception_translator) only runs when a module is
+    // imported; test_local_translator_registration_vs_internals_fetch needs to keep running it.
+    m.def("ensure_internals", []() { py::detail::ensure_internals(); });
 }

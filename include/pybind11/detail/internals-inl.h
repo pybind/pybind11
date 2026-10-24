@@ -143,6 +143,11 @@ PYBIND11_INLINE void translate_local_exception(std::exception_ptr p) {
 
 PYBIND11_INLINE void check_internals_local_exception_translator(internals *internals_ptr) {
     if (internals_ptr) {
+#    if defined(Py_GIL_DISABLED) && PY_VERSION_HEX >= 0x030E00C1
+        // The pre-3.14rc1 fallback mutex can deadlock on reentrant imports.
+        // Not with_exception_translators(): that calls get_internals(), which runs this hook.
+        pycritical_section lock(internals_ptr->exception_translator_mutex);
+#    endif
         for (auto et : internals_ptr->registered_exception_translators) {
             if (et == &translate_local_exception) {
                 return;
