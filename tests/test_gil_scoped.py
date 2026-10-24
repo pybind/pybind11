@@ -212,7 +212,7 @@ def _run_in_process_target(target, args, kwargs, status_writer):
         status_writer.send("finished")
 
 
-def _run_in_process(target, *args, timeout=10, progress=None, **kwargs):
+def _run_in_process(target, *args, timeout=10, get_progress=None, **kwargs):
     if env.ANDROID or env.IOS or sys.platform.startswith("emscripten"):
         pytest.skip("Requires subprocess support")
 
@@ -244,7 +244,7 @@ def _run_in_process(target, *args, timeout=10, progress=None, **kwargs):
             child_finished = False
             if child_started:
                 while True:
-                    previous_progress = None if progress is None else progress.value
+                    previous_progress = None if get_progress is None else get_progress()
                     child_finished = (
                         status_reader.poll(timeout=timeout)
                         and status_reader.recv() == "finished"
@@ -252,8 +252,8 @@ def _run_in_process(target, *args, timeout=10, progress=None, **kwargs):
                     if (
                         child_finished
                         or process.exitcode is not None
-                        or progress is None
-                        or progress.value == previous_progress
+                        or get_progress is None
+                        or get_progress() == previous_progress
                     ):
                         break
                     # Give a newly started case a full execution allowance.
@@ -326,9 +326,9 @@ def _run_in_threads(test_fn, num_threads, parallel):
         raise exceptions.get()
 
 
-def _run_test_cases(test_fns, current_test, num_threads, parallel):
+def _run_test_cases(test_fns, progress_writer, num_threads, parallel):
     for index, test_fn in enumerate(test_fns):
-        current_test.value = index
+        progress_writer.send(index)
         if num_threads is None:
             test_fn()
         else:
@@ -340,27 +340,40 @@ def _run_test_cases_in_process(test_fns, *, num_threads=None, parallel=False):
     if env.ANDROID or env.IOS or sys.platform.startswith("emscripten"):
         pytest.skip("Requires subprocess support")
 
-    # Only the child writes this progress hint. Avoid a lock it could leave held on failure.
-    current_test = multiprocessing.Value("i", -1, lock=False)
+    # Shared ctypes can fail on Windows PyPy: https://github.com/pypy/pypy/issues/3488.
+    progress_reader, progress_writer = multiprocessing.Pipe(duplex=False)
+    with progress_reader, progress_writer:
+        current_test = -1
 
-    def current_test_name():
-        index = current_test.value
-        return test_fns[index].__name__ if index >= 0 else "before the first case"
+        def get_progress():
+            nonlocal current_test
+            try:
+                while progress_reader.poll():
+                    current_test = progress_reader.recv()
+            except EOFError:
+                pass
+            return current_test
 
-    try:
-        exitcode = _run_in_process(
-            _run_test_cases,
-            test_fns,
-            current_test,
-            num_threads,
-            parallel,
-            progress=current_test,
+        def current_test_name():
+            index = get_progress()
+            return test_fns[index].__name__ if index >= 0 else "before the first case"
+
+        try:
+            exitcode = _run_in_process(
+                _run_test_cases,
+                test_fns,
+                progress_writer,
+                num_threads,
+                parallel,
+                get_progress=get_progress,
+            )
+        except RuntimeError as error:
+            raise RuntimeError(
+                f"{error} (while running {current_test_name()})"
+            ) from error
+        assert exitcode == 0, (
+            f"Subprocess exited with {exitcode} while running {current_test_name()}"
         )
-    except RuntimeError as error:
-        raise RuntimeError(f"{error} (while running {current_test_name()})") from error
-    assert exitcode == 0, (
-        f"Subprocess exited with {exitcode} while running {current_test_name()}"
-    )
 
 
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
@@ -412,6 +425,18 @@ def test_run_in_process_multiple_threads_sequential(test_fns):
 def test_run_in_process_direct(test_fns):
     """Exercise the main thread of a fresh interpreter, including its initial GIL state."""
     _run_test_cases_in_process(test_fns)
+
+
+@pytest.mark.skipif(
+    env.GRAALPY,
+    reason="GraalPy transiently complains about unfinished threads at process exit",
+)
+def test_run_in_process_batch_without_sharedctypes(monkeypatch):
+    def unavailable_value(*_args, **_kwargs):
+        raise FileExistsError("Cannot find name for new mmap")
+
+    monkeypatch.setattr(multiprocessing, "Value", unavailable_value)
+    _run_test_cases_in_process((test_callback_py_obj,))
 
 
 @pytest.mark.skipif(
