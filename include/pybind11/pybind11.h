@@ -1732,11 +1732,12 @@ private:
         // by the critical section inside `get_type_info`.
         gil_scoped_acquire gil;
         auto v_h = inst->get_value_and_holder(detail::get_type_info(typeid(type)));
-        if (!v_h.instance_registered()) {
-            register_instance(inst, v_h.value_ptr(), v_h.type);
-            v_h.set_instance_registered();
-        }
         init_holder(inst, v_h, (const holder_type *) holder_ptr, v_h.value_ptr<type>());
+        // Register last since that makes `inst` visible to other threads under free threading.
+        if (!v_h.instance_registered()) {
+            v_h.set_instance_registered();
+            register_instance(inst, v_h.value_ptr(), v_h.type);
+        }
     }
 
     template <typename WrappedType>
@@ -1775,10 +1776,6 @@ private:
         gil_scoped_acquire gil;
 
         auto v_h = inst->get_value_and_holder(detail::get_type_info(typeid(type)));
-        if (!v_h.instance_registered()) {
-            register_instance(inst, v_h.value_ptr(), v_h.type);
-            v_h.set_instance_registered();
-        }
         auto *uninitialized_location = std::addressof(v_h.holder<holder_type>());
         auto *value_ptr_w_t = v_h.value_ptr<type>();
         // Try downcast from `type` to `type_alias`:
@@ -1799,6 +1796,11 @@ private:
             }
         }
         v_h.set_holder_constructed();
+        // Register last since that makes `inst` visible to other threads under free threading.
+        if (!v_h.instance_registered()) {
+            v_h.set_instance_registered();
+            register_instance(inst, v_h.value_ptr(), v_h.type);
+        }
     }
 
     // Deallocates an instance; via holder, if constructed; otherwise via operator delete.
