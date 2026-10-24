@@ -14,7 +14,7 @@ from pybind11_tests import gil_scoped as m
 # Test collection seems to hold the gil
 # These tests have rare flakes in nogil; since they
 # are testing the gil, they are skipped at the moment.
-skipif_not_free_threaded = pytest.mark.skipif(
+skipif_free_threaded = pytest.mark.skipif(
     sysconfig.get_config_var("Py_GIL_DISABLED"),
     reason="Flaky without the GIL",
 )
@@ -290,7 +290,7 @@ def test_run_in_process_one_thread(test_fn):
     assert _run_in_process(_run_in_threads, test_fn, num_threads=1, parallel=False) == 0
 
 
-@skipif_not_free_threaded
+@skipif_free_threaded
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
 @pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS)
 @pytest.mark.skipif(
