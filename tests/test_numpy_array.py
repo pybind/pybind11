@@ -69,12 +69,10 @@ def test_array_attributes():
     with pytest.raises(IndexError) as excinfo:
         m.strides(a, 2)
     assert str(excinfo.value) == "invalid axis: 2 (ndim = 2)"
-    with pytest.raises(IndexError) as excinfo:
-        m.shape(a, -1)
-    assert str(excinfo.value) == "invalid axis: -1 (ndim = 2)"
-    with pytest.raises(IndexError) as excinfo:
-        m.strides(a, -1)
-    assert str(excinfo.value) == "invalid axis: -1 (ndim = 2)"
+    assert m.shape(a, -1) == 3
+    assert m.shape(a, -2) == 2
+    assert m.strides(a, -1) == 2
+    assert m.strides(a, -2) == 6
     assert not m.writeable(a)
     assert m.size(a) == 6
     assert m.itemsize(a) == 2
@@ -225,19 +223,110 @@ def test_bounds_check(arr):
         with pytest.raises(IndexError) as excinfo:
             func(arr, 0, 4)
         assert str(excinfo.value) == "index 4 is out of bounds for axis 1 with size 3"
-        # Negative indices are not wrapped like in NumPy
         with pytest.raises(IndexError) as excinfo:
-            func(arr, -1, 0)
-        assert (
-            str(excinfo.value)
-            == "index -1 is out of bounds for axis 0 with size 2 (negative indices are not supported)"
-        )
+            func(arr, -3, 0)
+        assert str(excinfo.value) == "index -3 is out of bounds for axis 0 with size 2"
         with pytest.raises(IndexError) as excinfo:
-            func(arr, 0, -1)
-        assert (
-            str(excinfo.value)
-            == "index -1 is out of bounds for axis 1 with size 3 (negative indices are not supported)"
+            func(arr, 0, -4)
+        assert str(excinfo.value) == "index -4 is out of bounds for axis 1 with size 3"
+
+
+@pytest.mark.parametrize("shape", [(), (0,), (2, 0), (2, 3)])
+def test_negative_axes(shape):
+    a = np.empty(shape, dtype="=u2")
+    for func, values in ((m.shape, a.shape), (m.strides, a.strides)):
+        for axis in range(-a.ndim, a.ndim):
+            assert func(a, axis) == values[axis]
+        for axis in (-sys.maxsize - 1, -a.ndim - 1, a.ndim, sys.maxsize):
+            with pytest.raises(IndexError) as excinfo:
+                func(a, axis)
+            assert str(excinfo.value) == f"invalid axis: {axis} (ndim = {a.ndim})"
+
+
+@pytest.mark.parametrize(
+    "indices", [(-1,), (-2,), (-1, 0), (0, -1), (-2, 0), (0, -3), (-2, -3), (-1, -1)]
+)
+def test_negative_indices(arr, indices):
+    normalized = tuple(i + n if i < 0 else i for i, n in zip(indices, arr.shape))
+    funcs = (
+        m.index_at,
+        m.index_at_t,
+        m.offset_at,
+        m.offset_at_t,
+        m.data,
+        m.data_t,
+        m.mutate_data,
+        m.mutate_data_t,
+    )
+    if len(indices) == arr.ndim:
+        funcs += (m.at_t, m.mutate_at_t)
+    for func in funcs:
+        actual = arr.copy()
+        expected = arr.copy()
+        np.testing.assert_array_equal(
+            func(actual, *indices), func(expected, *normalized)
         )
+        np.testing.assert_array_equal(actual, expected)
+
+
+@pytest.mark.parametrize("shape", [(0,), (2, 0), (2, 3)])
+def test_negative_index_boundaries(shape):
+    a = np.zeros(shape, dtype="=u2")
+    for func in (
+        m.index_at,
+        m.index_at_t,
+        m.offset_at,
+        m.offset_at_t,
+        m.data,
+        m.data_t,
+        m.mutate_data,
+        m.mutate_data_t,
+        m.at_t,
+        m.mutate_at_t,
+    ):
+        for axis, size in enumerate(shape):
+            for value in (-sys.maxsize - 1, -size - 1, size, sys.maxsize):
+                indices = [0] * len(shape)
+                indices[axis] = value
+                bad_axis = next(
+                    dim
+                    for dim, (i, n) in enumerate(zip(indices, shape))
+                    if i < -n or i >= n
+                )
+                with pytest.raises(IndexError) as excinfo:
+                    func(a, *indices)
+                assert str(excinfo.value) == (
+                    f"index {indices[bad_axis]} is out of bounds for axis {bad_axis} "
+                    f"with size {shape[bad_axis]}"
+                )
+
+
+@pytest.mark.parametrize("layout", ["C", "F", "reversed", "broadcast"])
+def test_negative_indices_strided(layout):
+    a = np.arange(6, dtype="=u2").reshape(2, 3)
+    if layout == "F":
+        a = np.asfortranarray(a)
+    elif layout == "reversed":
+        a = a[::-1, ::-1]
+    elif layout == "broadcast":
+        a = np.broadcast_to(a[:1, :], (2, 3))
+    for i in range(-2, 2):
+        for j in range(-3, 3):
+            assert m.at_t(a, i, j) == a[i, j]
+            offset = (i + 2 if i < 0 else i) * a.strides[0]
+            offset += (j + 3 if j < 0 else j) * a.strides[1]
+            assert m.offset_at(a, i, j) == offset
+            assert m.offset_at_t(a, i, j) == offset
+            assert m.index_at(a, i, j) == offset // a.itemsize
+            assert m.index_at_t(a, i, j) == offset // a.itemsize
+            if a.flags.writeable:
+                expected = int(a[i, j]) + 1
+                m.mutate_at_t(a, i, j)
+                assert a[i, j] == expected
+    a.flags.writeable = False
+    for func in (m.mutate_data, m.mutate_data_t, m.mutate_at_t):
+        with pytest.raises(ValueError, match="array is not writeable"):
+            func(a, -1, -1)
 
 
 def test_make_c_f_array():

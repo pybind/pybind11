@@ -135,9 +135,10 @@ arr_t &mutate_at_t(arr_t &a, Ix... idx) {
 
 #define def_index_fn(name, type)                                                                  \
     sm.def(#name, [](type a) { return name(a); });                                                \
-    sm.def(#name, [](type a, int i) { return name(a, i); });                                      \
-    sm.def(#name, [](type a, int i, int j) { return name(a, i, j); });                            \
-    sm.def(#name, [](type a, int i, int j, int k) { return name(a, i, j, k); });
+    sm.def(#name, [](type a, py::ssize_t i) { return name(a, i); });                              \
+    sm.def(#name, [](type a, py::ssize_t i, py::ssize_t j) { return name(a, i, j); });            \
+    sm.def(#name,                                                                                 \
+           [](type a, py::ssize_t i, py::ssize_t j, py::ssize_t k) { return name(a, i, j, k); });
 
 template <typename T, typename T2>
 py::handle auxiliaries(T &&r, T2 &&r2) {
