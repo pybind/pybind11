@@ -195,17 +195,22 @@ def _intentional_deadlock():
     m.intentional_deadlock()
 
 
-ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK = (*ALL_BASIC_TESTS, _intentional_deadlock)
+def _run_in_process_target(target, args, kwargs, event_started, event_finished):
+    event_started.set()
+    target(*args, **kwargs)
+    event_finished.set()
 
 
-def _run_in_process(target, *args, **kwargs):
+def _run_in_process(target, *args, timeout=10, **kwargs):
     if env.ANDROID or env.IOS or sys.platform.startswith("emscripten"):
         pytest.skip("Requires subprocess support")
 
-    test_fn = target if len(args) == 0 else args[0]
-    # Do not need to wait much, 10s should be more than enough.
-    timeout = 0.1 if test_fn is _intentional_deadlock else 10
-    process = multiprocessing.Process(target=target, args=args, kwargs=kwargs)
+    event_started = multiprocessing.Event()
+    event_finished = multiprocessing.Event()
+    process = multiprocessing.Process(
+        target=_run_in_process_target,
+        args=(target, args, kwargs, event_started, event_finished),
+    )
     process.daemon = True
     try:
         t_start = time.time()
@@ -215,7 +220,11 @@ def _run_in_process(target, *args, **kwargs):
                 "\nprocess.pid STARTED", process.pid, (sys.argv, target, args, kwargs)
             )
             print(f"COPY-PASTE-THIS: gdb {sys.argv[0]} -p {process.pid}", flush=True)
-        process.join(timeout=timeout)
+        # Imports can take longer than the execution timeout, especially with spawn.
+        child_started = event_started.wait(timeout=10)
+        child_finished = child_started and event_finished.wait(timeout=timeout)
+        # A returned test must not look deadlocked while the process shuts down.
+        process.join(timeout=10 if child_finished else 0)
         if timeout >= 100:
             print("\nprocess.pid JOINED", process.pid, flush=True)
         t_delta = time.time() - t_start
@@ -226,9 +235,12 @@ def _run_in_process(target, *args, **kwargs):
             pytest.skip(
                 "ThreadSanitizer: starting new threads after multi-threaded fork is not supported."
             )
-        elif test_fn is _intentional_deadlock:
-            assert process.exitcode is None
-            return 0
+        if not child_started:
+            raise RuntimeError("Subprocess did not start within 10 seconds.")
+        if child_finished and process.exitcode is None:
+            raise RuntimeError(
+                "Subprocess did not exit within 10 seconds after the test returned."
+            )
 
         if process.exitcode is None:
             assert t_delta > 0.9 * timeout
@@ -246,6 +258,8 @@ def _run_in_process(target, *args, **kwargs):
     finally:
         if process.is_alive():
             process.terminate()
+        if process.pid is not None:
+            process.join()
 
 
 def _run_in_threads(test_fn, num_threads, parallel):
@@ -263,7 +277,7 @@ def _run_in_threads(test_fn, num_threads, parallel):
 
 
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
-@pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK)
+@pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS)
 @pytest.mark.skipif(
     "env.GRAALPY",
     reason="GraalPy transiently complains about unfinished threads at process exit",
@@ -278,7 +292,7 @@ def test_run_in_process_one_thread(test_fn):
 
 @skipif_not_free_threaded
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
-@pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK)
+@pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS)
 @pytest.mark.skipif(
     "env.GRAALPY",
     reason="GraalPy transiently complains about unfinished threads at process exit",
@@ -292,7 +306,7 @@ def test_run_in_process_multiple_threads_parallel(test_fn):
 
 
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
-@pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK)
+@pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS)
 @pytest.mark.skipif(
     "env.GRAALPY",
     reason="GraalPy transiently complains about unfinished threads at process exit",
@@ -306,13 +320,7 @@ def test_run_in_process_multiple_threads_sequential(test_fn):
 
 
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
-@pytest.mark.parametrize(
-    "test_fn",
-    [
-        *ALL_BASIC_TESTS,
-        pytest.param(_intentional_deadlock, marks=skipif_not_free_threaded),
-    ],
-)
+@pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS)
 @pytest.mark.skipif(
     "env.GRAALPY",
     reason="GraalPy transiently complains about unfinished threads at process exit",
@@ -323,3 +331,35 @@ def test_run_in_process_direct(test_fn):
     This test is for completion, but it was never an issue.
     """
     assert _run_in_process(test_fn) == 0
+
+
+@pytest.mark.skipif(env.PY_GIL_DISABLED, reason="Requires the GIL to deadlock")
+@pytest.mark.skipif(
+    env.GRAALPY, reason="GraalPy can leave unfinished threads at process exit"
+)
+def test_run_in_process_detects_deadlock():
+    # Known platform exceptions still indicate that the deadlock was detected.
+    with pytest.raises((RuntimeError, pytest.xfail.Exception), match="DEADLOCK"):
+        _run_in_process(_intentional_deadlock, timeout=0.1)
+
+
+def _run_with_delay(target, args, delay_before):
+    if delay_before:
+        time.sleep(0.2)
+    target(*args)
+    if not delay_before:
+        time.sleep(0.2)
+
+
+@pytest.mark.parametrize("delay_before", [True, False], ids=["startup", "shutdown"])
+def test_run_in_process_slow_start_or_exit(monkeypatch, delay_before):
+    """Slow startup and shutdown must not look like a deadlock in the test itself."""
+    original_process = multiprocessing.Process
+
+    def delayed_process(*, target, args):
+        return original_process(
+            target=_run_with_delay, args=(target, args, delay_before)
+        )
+
+    monkeypatch.setattr(multiprocessing, "Process", delayed_process)
+    assert _run_in_process(test_callback_py_obj, timeout=0.1) == 0
