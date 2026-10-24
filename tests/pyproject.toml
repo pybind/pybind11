@@ -35,6 +35,7 @@ environment.PIP_PREFER_BINARY = "1"
 
 android.environment.ANDROID_API_LEVEL = "24"  # Needed to include libc++ in the wheel.
 pyodide.test-groups = ["numpy", "scipy"]
+pyodide.config-settings = { "cmake.define.PYBIND11_USE_CROSSCOMPILING" = "ON" }
 ios.test-groups = ["numpy"]
 ios.xbuild-tools = ["cmake", "ninja"]
 ios.environment.PIP_EXTRA_INDEX_URL = "https://pypi.anaconda.org/beeware/simple"

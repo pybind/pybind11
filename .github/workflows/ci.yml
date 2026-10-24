@@ -47,9 +47,17 @@ jobs:
           - runs-on: ubuntu-latest
             python-version: '3.14t'
             cmake-args: -DCMAKE_CXX_STANDARD=17 -DPYBIND11_TEST_SMART_HOLDER=ON
+          # Keep one PyPy 7 job while that runtime remains supported.
           - runs-on: ubuntu-latest
             python-version: 'pypy-3.11-v7.3.23'
             cmake-args: -DCMAKE_CXX_STANDARD=17
+          - runs-on: ubuntu-latest
+            python-version: 'pypy-3.11-v8.0.1'
+            cmake-args: -DCMAKE_CXX_STANDARD=17
+          # Keep 8.0.0 to test the deallocation and memoryview workarounds (PR #6197).
+          - runs-on: ubuntu-latest
+            python-version: 'pypy-3.12-v8.0.0'
+            cmake-args: -DCMAKE_CXX_STANDARD=20
           - runs-on: ubuntu-latest
             python-version: 'graalpy-25.0'
             cmake-args: -DCMAKE_CXX_STANDARD=20
@@ -105,7 +113,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runs-on: ubuntu-latest
+          - runs-on: ubuntu-24.04
             python-version: '3.9'
             cmake-args: -DPYBIND11_FINDPYTHON=ON -DCMAKE_CXX_STANDARD=17
           - runs-on: ubuntu-latest
@@ -138,7 +146,7 @@ jobs:
             python-version: '3.15'
             cmake-args: -DCMAKE_CXX_STANDARD=17
           - runs-on: macos-latest
-            python-version: 'pypy-3.11-v7.3.23'
+            python-version: 'pypy-3.12-v8.0.1'
           - runs-on: macos-latest
             python-version: 'graalpy-25.0'
           - runs-on: macos-latest
@@ -172,6 +180,9 @@ jobs:
           - runs-on: windows-latest
             python-version: 'pypy3.11'
             cmake-args: -DCMAKE_CXX_STANDARD=20
+          - runs-on: windows-latest
+            python-version: 'pypy3.12'
+            cmake-args: -DCMAKE_CXX_STANDARD=17
           # The setup-python action currently doesn't have graalpy for windows
           # See https://github.com/actions/setup-python/pull/880
 
@@ -189,7 +200,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runs-on: ubuntu-latest
+          - runs-on: ubuntu-24.04
             python-version: '3.9'
           - runs-on: macos-latest
             python-version: '3.12'
@@ -210,7 +221,7 @@ jobs:
         allow-prereleases: true
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v10.0.1
+      uses: astral-sh/setup-uv@v10.2.0
       with:
         enable-cache: true
 
@@ -750,7 +761,9 @@ jobs:
   install-classic:
     if: github.event.pull_request.draft == false
     name: "🐍 3.11 • Debian • x86 •  Install"
-    runs-on: ubuntu-latest
+    # Ubuntu 26.04's Docker 29.4.2 breaks i386 networking:
+    # https://github.com/actions/runner-images/issues/14790
+    runs-on: ubuntu-24.04
     container: i386/debian:bookworm
     timeout-minutes: 90
 

@@ -233,6 +233,12 @@ is equivalent to the following pseudocode:
         return foo(args...); // forwarded arguments
     });
 
+Argument conversion, including extraction from type casters, finishes before
+the guards are constructed. A candidate rejected during argument conversion
+does not construct its guards. Call-policy ``precall`` hooks also run before
+guard construction, and the guards are destroyed before Python return-value
+conversion.
+
 The only requirement is that ``T`` is default-constructible, but otherwise any
 scope guard will work. This is very useful in combination with ``gil_scoped_release``.
 See :ref:`gil`.

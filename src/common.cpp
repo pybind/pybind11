@@ -7,4 +7,5 @@
 #endif
 
 #include <pybind11/detail/common-inl.h>
+#include <pybind11/detail/typeid-inl.h>
 #include <pybind11/pybind11.h>

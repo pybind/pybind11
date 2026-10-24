@@ -282,9 +282,7 @@ struct function_record {
 
 /// Special data structure which (temporarily) holds metadata about a bound class
 struct type_record {
-    PYBIND11_NOINLINE type_record()
-        : multiple_inheritance(false), dynamic_attr(false), buffer_protocol(false),
-          module_local(false), is_final(false), release_gil_before_calling_cpp_dtor(false) {}
+    type_record();
 
     /// Handle to the parent scope
     handle scope;
@@ -351,40 +349,7 @@ struct type_record {
 
     holder_enum_t holder_enum_v = holder_enum_t::undefined;
 
-    PYBIND11_NOINLINE void add_base(const std::type_info &base, void *(*caster)(void *) ) {
-        auto *base_info = detail::get_type_info(base, false);
-        if (!base_info) {
-            std::string tname(base.name());
-            detail::clean_type_id(tname);
-            pybind11_fail("generic_type: type \"" + std::string(name)
-                          + "\" referenced unknown base type \"" + tname + "\"");
-        }
-
-        // SMART_HOLDER_BAKEIN_FOLLOW_ON: Refine holder compatibility checks.
-        bool this_has_unique_ptr_holder = (holder_enum_v == holder_enum_t::std_unique_ptr);
-        bool base_has_unique_ptr_holder
-            = (base_info->holder_enum_v == holder_enum_t::std_unique_ptr);
-        if (this_has_unique_ptr_holder != base_has_unique_ptr_holder) {
-            std::string tname(base.name());
-            detail::clean_type_id(tname);
-            pybind11_fail("generic_type: type \"" + std::string(name) + "\" "
-                          + (this_has_unique_ptr_holder ? "does not have" : "has")
-                          + " a non-default holder type while its base \"" + tname + "\" "
-                          + (base_has_unique_ptr_holder ? "does not" : "does"));
-        }
-
-        bases.append(reinterpret_cast<PyObject *>(base_info->type));
-
-#ifdef PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET
-        dynamic_attr |= base_info->type->tp_dictoffset != 0;
-#else
-        dynamic_attr |= (PyType_GetFlags(base_info->type) & Py_TPFLAGS_MANAGED_DICT) != 0;
-#endif
-
-        if (caster) {
-            base_info->implicit_casts.emplace_back(type, caster);
-        }
-    }
+    void add_base(const std::type_info &base, void *(*caster)(void *) );
 };
 
 inline function_call::function_call(const function_record &f, handle p) : func(f), parent(p) {
@@ -409,7 +374,9 @@ struct process_attribute_default {
     /// Default implementation: do nothing
     static void init(const T &, function_record *) {}
     static void init(const T &, type_record *) {}
+    /// Runs after argument conversion succeeded, before the call.
     static void precall(function_call &) {}
+    /// Runs after the call succeeded. The handle is null if return-value conversion failed.
     static void postcall(function_call &, handle) {}
 };
 
@@ -650,8 +617,8 @@ struct process_attribute<call_guard<Ts...>> : process_attribute_default<call_gua
 
 /**
  * Process a keep_alive call policy -- invokes keep_alive_impl during the
- * pre-call handler if both Nurse, Patient != 0 and use the post-call handler
- * otherwise
+ * pre-call handler (after argument conversion succeeded) if both Nurse,
+ * Patient != 0 and use the post-call handler otherwise
  */
 template <size_t Nurse, size_t Patient>
 struct process_attribute<keep_alive<Nurse, Patient>>
@@ -728,3 +695,7 @@ constexpr bool expected_num_args(size_t nargs, bool has_args, bool has_kwargs) {
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
+
+#ifndef PYBIND11_PRECOMPILED
+#    include "attr-inl.h" // IWYU pragma: export
+#endif

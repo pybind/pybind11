@@ -45,6 +45,8 @@ PYBIND11_INLINE loader_life_support::~loader_life_support() {
     }
 }
 
+PYBIND11_INLINE bool loader_life_support::is_active() { return tls_current_frame() != nullptr; }
+
 PYBIND11_NOINLINE_ATTR PYBIND11_INLINE bool loader_life_support::try_add_patient(handle h) {
     loader_life_support *frame = tls_current_frame();
     if (!frame) {
@@ -548,6 +550,51 @@ type_caster_generic::cast(const cast_sources &srcs,
     tinfo->init_instance(wrapper, existing_holder);
 
     return inst.release();
+}
+
+PYBIND11_INLINE void smart_holder_type_caster_support::value_and_holder_helper::
+    throw_if_uninitialized_or_disowned_holder(const char *typeid_name) const {
+    static const std::string missing_value_msg = "Missing value for wrapped C++ type `";
+    if (!holder().is_populated) {
+        throw value_error(missing_value_msg + clean_type_id(typeid_name)
+                          + "`: Python instance is uninitialized.");
+    }
+    if (!holder().has_pointee()) {
+        throw value_error(missing_value_msg + clean_type_id(typeid_name)
+                          + "`: Python instance was disowned.");
+    }
+}
+
+PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void *type_caster_generic::local_load(PyObject *src,
+                                                                             const type_info *ti) {
+    auto caster = type_caster_generic(ti);
+    if (caster.load(src, false)) {
+        return caster.value;
+    }
+    return nullptr;
+}
+
+PYBIND11_NOINLINE_ATTR PYBIND11_INLINE bool
+type_caster_generic::try_load_foreign_module_local(handle src) {
+    constexpr auto *local_key = PYBIND11_MODULE_LOCAL_ID;
+    const auto pytype = type::handle_of(src);
+    if (!hasattr(pytype, local_key)) {
+        return false;
+    }
+
+    type_info *foreign_typeinfo = reinterpret_borrow<capsule>(getattr(pytype, local_key));
+    // Only consider this foreign loader if actually foreign and is a loader of the correct cpp
+    // type
+    if (foreign_typeinfo->module_local_load == &local_load
+        || (cpptype && !same_type(*cpptype, *foreign_typeinfo->cpptype))) {
+        return false;
+    }
+
+    if (auto *result = foreign_typeinfo->module_local_load(src.ptr(), foreign_typeinfo)) {
+        value = result;
+        return true;
+    }
+    return false;
 }
 
 PYBIND11_NAMESPACE_END(detail)

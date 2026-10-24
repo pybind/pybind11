@@ -43,6 +43,7 @@ Cflags: -I${{includedir}}
 
 
 main_headers = {
+    "include/pybind11/attr-inl.h",
     "include/pybind11/attr.h",
     "include/pybind11/buffer_info.h",
     "include/pybind11/cast.h",
@@ -54,6 +55,7 @@ main_headers = {
     "include/pybind11/embed.h",
     "include/pybind11/eval.h",
     "include/pybind11/functional.h",
+    "include/pybind11/gil-inl.h",
     "include/pybind11/gil.h",
     "include/pybind11/gil_safe_call_once.h",
     "include/pybind11/gil_simple.h",
@@ -88,6 +90,7 @@ detail_headers = {
     "include/pybind11/detail/class.h",
     "include/pybind11/detail/common-inl.h",
     "include/pybind11/detail/common.h",
+    "include/pybind11/detail/cpp_conduit-inl.h",
     "include/pybind11/detail/cpp_conduit.h",
     "include/pybind11/detail/descr.h",
     "include/pybind11/detail/dynamic_raw_ptr_cast_if_possible.h",
@@ -102,6 +105,7 @@ detail_headers = {
     "include/pybind11/detail/struct_smart_holder.h",
     "include/pybind11/detail/type_caster_base-inl.h",
     "include/pybind11/detail/type_caster_base.h",
+    "include/pybind11/detail/typeid-inl.h",
     "include/pybind11/detail/typeid.h",
     "include/pybind11/detail/using_smart_holder.h",
     "include/pybind11/detail/value_and_holder.h",

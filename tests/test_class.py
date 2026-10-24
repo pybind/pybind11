@@ -622,6 +622,8 @@ def test_non_final_final():
 def test_exception_rvalue_abort():
     with pytest.raises(RuntimeError):
         m.PyPrintDestructor().throw_something()
+    # The destructor calls Python; on PyPy, a later GC at an arbitrary point can abort
+    pytest.gc_collect()
 
 
 # https://github.com/pybind/pybind11/issues/1568

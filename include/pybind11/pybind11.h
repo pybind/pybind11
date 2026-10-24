@@ -319,7 +319,9 @@ private:
     // actual function lambda so that we can get code reuse for
     // functions with the same Return, Args, and Guard.
     template <typename Return, typename Guard, typename ArgsConverter, typename... Args>
-    static handle call_impl(detail::function_call &call, detail::function_ref<Return(Args...)> f) {
+    static handle call_impl(detail::function_call &call,
+                            detail::function_ref<Return(Args...)> f,
+                            void (*precall)(detail::function_call &)) {
         using namespace detail;
         // Static assertion: function_ref must be trivially copyable to ensure safe pass-by-value.
         // Lifetime safety: The function_ref is created from cap->f which lives in the capture
@@ -335,6 +337,10 @@ private:
             return PYBIND11_TRY_NEXT_OVERLOAD;
         }
 
+        // cast_op can reject an argument after load_args succeeds. Run the hook after those
+        // conversions, but before constructing the guard, which may release the GIL.
+        auto precall_hook = [&] { precall(call); };
+
         /* Override policy for rvalues -- usually to enforce rvp::move on an rvalue */
         return_value_policy policy
             = return_value_policy_override<Return>::policy(call.func.policy);
@@ -342,11 +348,13 @@ private:
         /* Perform the function call */
         handle result;
         if (call.func.is_setter) {
-            (void) std::move(args_converter).template call<Return, Guard>(f);
+            (void) std::move(args_converter).template call<Return, Guard>(f, precall_hook);
             result = none().release();
         } else {
             result = cast_out::cast(
-                std::move(args_converter).template call<Return, Guard>(f), policy, call.parent);
+                std::move(args_converter).template call<Return, Guard>(f, precall_hook),
+                policy,
+                call.parent);
         }
 
         return result;
@@ -415,9 +423,6 @@ protected:
 
         /* Dispatch code which converts function arguments and performs the actual function call */
         rec->impl = [](function_call &call) -> handle {
-            /* Invoke call policy pre-call hook */
-            process_attributes<Extra...>::precall(call);
-
             /* Get a pointer to the capture object */
             const auto *data = (sizeof(capture) <= sizeof(call.func.data) ? &call.func.data
                                                                           : call.func.data[0]);
@@ -427,12 +432,18 @@ protected:
                                     /* Function scope guard -- defaults to the compile-to-nothing
                                        `void_type` */
                                     extract_guard_t<Extra...>,
-                                    cast_in>(call, detail::function_ref<Return(Args...)>(cap->f));
+                                    cast_in>(call,
+                                             detail::function_ref<Return(Args...)>(cap->f),
+                                             &process_attributes<Extra...>::precall);
 
-            /* Invoke call policy post-call hook */
-            process_attributes<Extra...>::postcall(call, result);
+            if (result.ptr() == PYBIND11_TRY_NEXT_OVERLOAD) {
+                return result;
+            }
 
-            return result;
+            // Own the result while running postcall so any throwing hook releases it.
+            auto result_guard = reinterpret_steal<object>(result);
+            process_attributes<Extra...>::postcall(call, result_guard);
+            return result_guard.release();
         };
 
         rec->nargs_pos = cast_in::args_pos >= 0
@@ -678,7 +689,8 @@ PyObject *cached_create_module(PyObject *spec, PyModuleDef *);
 /// the sentinel (0) end slot.
 using slots_array = std::array<PyModuleDef_Slot, 5>;
 
-/// Initialize an array of slots based on the supplied exec slot and options.
+/** Initialize an array of slots based on the supplied exec slot and options. This code may not
+ * assume the GIL and may not use pybind11 internals because this runs early during module init. */
 template <typename... Options>
 inline slots_array init_slots(int (*exec_fn)(PyObject *), Options &&...options) noexcept {
     /* NOTE: slots_array MUST be large enough to hold all possible options.  If you add an option
@@ -750,59 +762,13 @@ public:
             py::module_ m2 = m.def_submodule("sub", "A submodule of 'example'");
             py::module_ m3 = m2.def_submodule("subsub", "A submodule of 'example.sub'");
     \endrst */
-    module_ def_submodule(const char *name, const char *doc = nullptr) {
-        const char *this_name = PyModule_GetName(m_ptr);
-        if (this_name == nullptr) {
-            throw error_already_set();
-        }
-        std::string full_name = std::string(this_name) + '.' + name;
-        handle submodule = PyImport_AddModule(full_name.c_str());
-        if (!submodule) {
-            throw error_already_set();
-        }
-        auto result = reinterpret_borrow<module_>(submodule);
-        if (doc && options::show_user_defined_docstrings()) {
-            result.attr("__doc__") = pybind11::str(doc);
-        }
-
-#if defined(GRAALVM_PYTHON) && (!defined(GRAALPY_VERSION_NUM) || GRAALPY_VERSION_NUM < 0x190000)
-        // GraalPy doesn't support PyModule_GetFilenameObject,
-        // so getting by attribute (see PR #5584)
-        handle this_module = m_ptr;
-        if (object this_file = getattr(this_module, "__file__", none())) {
-            result.attr("__file__") = this_file;
-        }
-#else
-        handle this_file = PyModule_GetFilenameObject(m_ptr);
-        if (this_file) {
-            result.attr("__file__") = this_file;
-        } else if (PyErr_ExceptionMatches(PyExc_SystemError) != 0) {
-            PyErr_Clear();
-        } else {
-            throw error_already_set();
-        }
-#endif
-        attr(name) = result;
-        return result;
-    }
+    module_ def_submodule(const char *name, const char *doc = nullptr);
 
     /// Import and return a module or throws `error_already_set`.
-    static module_ import(const char *name) {
-        PyObject *obj = PyImport_ImportModule(name);
-        if (!obj) {
-            throw error_already_set();
-        }
-        return reinterpret_steal<module_>(obj);
-    }
+    static module_ import(const char *name);
 
     /// Reload the module or throws `error_already_set`.
-    void reload() {
-        PyObject *obj = PyImport_ReloadModule(ptr());
-        if (!obj) {
-            throw error_already_set();
-        }
-        *this = reinterpret_steal<module_>(obj);
-    }
+    void reload();
 
     /** \rst
         Adds an object to the module using the given name.  Throws if an object with the given name
@@ -811,15 +777,7 @@ public:
         ``overwrite`` should almost always be false: attempting to overwrite objects that pybind11
         has established will, in most cases, break things.
     \endrst */
-    PYBIND11_NOINLINE void add_object(const char *name, handle obj, bool overwrite = false) {
-        if (!overwrite && hasattr(*this, name)) {
-            pybind11_fail(
-                "Error during initialization: multiple incompatible definitions with name \""
-                + std::string(name) + "\"");
-        }
-
-        PyModule_AddObject(ptr(), name, obj.inc_ref().ptr() /* steals a reference */);
-    }
+    void add_object(const char *name, handle obj, bool overwrite = false);
 
     // DEPRECATED (since PR #5688): Use PyModuleDef directly instead.
     using module_def = PyModuleDef;
@@ -832,34 +790,7 @@ public:
     static module_ create_extension_module(const char *name,
                                            const char *doc,
                                            PyModuleDef *def,
-                                           mod_gil_not_used gil_not_used = mod_gil_used()) {
-        // Placement new (not an allocation).
-        new (def) PyModuleDef{/* m_base */ PyModuleDef_HEAD_INIT,
-                              /* m_name */ name,
-                              /* m_doc */ options::show_user_defined_docstrings() ? doc : nullptr,
-                              /* m_size */ -1,
-                              /* m_methods */ nullptr,
-                              /* m_slots */ nullptr,
-                              /* m_traverse */ nullptr,
-                              /* m_clear */ nullptr,
-                              /* m_free */ nullptr};
-        auto *m = PyModule_Create(def);
-        if (m == nullptr) {
-            if (PyErr_Occurred()) {
-                throw error_already_set();
-            }
-            pybind11_fail("Internal error in module_::create_extension_module()");
-        }
-        if (gil_not_used.flag()) {
-#ifdef Py_GIL_DISABLED
-            PyUnstable_Module_SetGIL(m, Py_MOD_GIL_NOT_USED);
-#endif
-        }
-        // TODO: Should be reinterpret_steal for Python 3, but Python also steals it again when
-        //       returned from PyInit_...
-        //       For Python 2, reinterpret_borrow was correct.
-        return reinterpret_borrow<module_>(m);
-    }
+                                           mod_gil_not_used gil_not_used = mod_gil_used());
 };
 
 PYBIND11_NAMESPACE_BEGIN(detail)

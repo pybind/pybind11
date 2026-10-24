@@ -248,9 +248,16 @@ public:
 
     void enter() {
         if (do_stdout_) {
+            // Release any existing redirect first so the stream's original buffer is
+            // restored before the new redirect captures it. Otherwise a second enter()
+            // (e.g. re-entering the same context manager) would record a pointer to the
+            // buffer owned by the redirect that reset() is about to destroy, leaving a
+            // dangling streambuf behind on exit().
+            redirect_stdout.reset();
             redirect_stdout.reset(new scoped_ostream_redirect());
         }
         if (do_stderr_) {
+            redirect_stderr.reset();
             redirect_stderr.reset(new scoped_estream_redirect());
         }
     }
