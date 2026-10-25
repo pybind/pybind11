@@ -23,7 +23,7 @@ jobs:
   cmake:
     if: >-
       (github.event.pull_request.draft == false) &&
-      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:intentional'))
     strategy:
       fail-fast: false
       matrix:

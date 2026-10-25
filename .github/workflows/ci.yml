@@ -35,7 +35,7 @@ jobs:
   standard-small:
     if: >-
       (github.event.action != 'ready_for_review') &&
-      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:intentional'))
     strategy:
       fail-fast: false
       matrix:
@@ -89,7 +89,7 @@ jobs:
   precompile:
     if: >-
       (github.event.pull_request.draft == false) &&
-      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:intentional'))
     strategy:
       fail-fast: false
       matrix:
@@ -114,7 +114,7 @@ jobs:
   standard-large:
     if: >-
       (github.event.pull_request.draft == false) &&
-      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:intentional'))
     strategy:
       fail-fast: false
       matrix:
@@ -203,7 +203,7 @@ jobs:
   inplace:
     if: >-
       (github.event.pull_request.draft == false) &&
-      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:intentional'))
     strategy:
       fail-fast: false
       matrix:
@@ -281,7 +281,7 @@ jobs:
     name: Manylinux on 🐍 ${{ matrix.python-version }} (${{ matrix.container }})
     if: >-
       (github.event.pull_request.draft == false) &&
-      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:intentional'))
     strategy:
       fail-fast: false
       matrix:
@@ -317,7 +317,7 @@ jobs:
   clang:
     if: >-
       (github.event.pull_request.draft == false) &&
-      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:intentional'))
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -389,7 +389,7 @@ jobs:
 
   # Testing NVCC; forces sources to behave like .cu files
   cuda:
-    if: (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
+    if: (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:intentional'))
     runs-on: ubuntu-latest
     name: "🐍 3.10 • CUDA 12.2 • Ubuntu 22.04"
     container: nvidia/cuda:12.2.0-devel-ubuntu22.04
@@ -460,7 +460,7 @@ jobs:
   ubuntu-nvhpc:
     if: >-
       (github.event.pull_request.draft == false) &&
-      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:intentional'))
     runs-on: ubuntu-24.04
     name: "🐍 3 • NVHPC 26.5 • C++17 • x64"
     timeout-minutes: 90
@@ -526,7 +526,7 @@ jobs:
   gcc:
     if: >-
       (github.event.pull_request.draft == false) &&
-      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:intentional'))
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -603,7 +603,7 @@ jobs:
   icc:
     if: >-
       (github.event.pull_request.draft == false) &&
-      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:intentional'))
     runs-on: ubuntu-22.04
     timeout-minutes: 90
 
@@ -713,7 +713,7 @@ jobs:
   centos:
     if: >-
       (github.event.pull_request.draft == false) &&
-      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:intentional'))
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -782,7 +782,7 @@ jobs:
   install-classic:
     if: >-
       (github.event.pull_request.draft == false) &&
-      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:intentional'))
     name: "🐍 3.11 • Debian • x86 •  Install"
     # Ubuntu 26.04's Docker 29.4.2 breaks i386 networking:
     # https://github.com/actions/runner-images/issues/14790
@@ -832,7 +832,7 @@ jobs:
   doxygen:
     if: >-
       (github.event.pull_request.draft == false) &&
-      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:intentional'))
     name: "Documentation build test"
     runs-on: ubuntu-latest
     timeout-minutes: 90
@@ -870,7 +870,7 @@ jobs:
   win32:
     if: >-
       (github.event.pull_request.draft == false) &&
-      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:intentional'))
     strategy:
       fail-fast: false
       matrix:
@@ -925,7 +925,7 @@ jobs:
   win32-debug:
     if: >-
       (github.event.pull_request.draft == false) &&
-      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:intentional'))
     strategy:
       fail-fast: false
       matrix:
@@ -977,7 +977,7 @@ jobs:
   windows-2022:
     if: >-
       (github.event.pull_request.draft == false) &&
-      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:intentional'))
     strategy:
       fail-fast: false
       matrix:
@@ -1044,7 +1044,7 @@ jobs:
   mingw:
     if: >-
       (github.event.pull_request.draft == false) &&
-      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:intentional'))
     name: "🐍 3 • windows-latest • ${{ matrix.sys }}"
     runs-on: windows-latest
     timeout-minutes: 90
@@ -1158,7 +1158,7 @@ jobs:
   windows_clang:
     if: >-
       (github.event.pull_request.draft == false) &&
-      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:intentional'))
 
     strategy:
       matrix:
@@ -1233,7 +1233,7 @@ jobs:
   windows_arm_clang_msvc:
     if: >-
       (github.event.pull_request.draft == false) &&
-      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:intentional'))
 
     strategy:
       fail-fast: false
@@ -1303,7 +1303,7 @@ jobs:
   windows_arm_clang_msys2:
     if: >-
       (github.event.pull_request.draft == false) &&
-      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:intentional'))
 
     strategy:
       fail-fast: false

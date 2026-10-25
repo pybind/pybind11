@@ -23,7 +23,7 @@ jobs:
     # Only runs when the  'python dev' label is selected
     if: >-
       (contains(github.event.pull_request.labels.*.name, 'python dev')) &&
-      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:intentional'))
 
     steps:
     - uses: actions/checkout@v7

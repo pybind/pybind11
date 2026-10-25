@@ -23,7 +23,7 @@ async function run({command = '/ci full', pr = {}, commenter = 'rwgk', status} =
   const github = {rest: {
     pulls: {async get() { return {data: {
       number: 123, state: 'open', user: {login: 'rwgk'},
-      labels: [{name: 'ci:manual'}],
+      labels: [{name: 'ci:intentional'}],
       head: {sha: '1'.repeat(40)}, base: {sha: '2'.repeat(40)}, ...pr,
     }}; }},
     actions: {async createWorkflowDispatch(request) {
@@ -60,7 +60,7 @@ for (const command of ['/ci', '/ci all', '/ci full extra', '> /ci full', '/ci fu
   });
 }
 
-for (const pr of [{state: 'closed'}, {user: {login: 'someone-else'}}, {labels: []}]) {
+for (const pr of [{state: 'closed'}, {user: {login: 'someone-else'}}, {labels: []}, {labels: [{name: 'ci:manual'}]}]) {
   test(`ignore PR outside the pilot: ${JSON.stringify(pr)}`, async () => {
     assert.deepEqual((await run({pr})).requests, []);
   });

@@ -35,11 +35,11 @@ jobs:
               pull_number: context.issue.number,
             });
             if (pr.state !== 'open' || pr.user.login !== context.payload.comment.user.login
-                || !pr.labels.some(label => label.name === 'ci:manual')) return;
+                || !pr.labels.some(label => label.name === 'ci:intentional')) return;
 
             if (match[1] === 'help') {
               await core.summary.addHeading('Intentional CI experiment')
-                .addRaw('Use `/ci full` or `/ci quick` on a PR labeled `ci:manual`. '
+                .addRaw('Use `/ci full` or `/ci quick` on a PR labeled `ci:intentional`. '
                   + 'PR authors can request runs on their own PRs during this pilot. '
                   + 'The development worker must be installed first; see '
                   + '`.github/intentional-ci.md`.').write();

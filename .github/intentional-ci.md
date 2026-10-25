@@ -1,6 +1,6 @@
 # Intentional CI development pilot
 
-The `ci:manual` label opts a PR out of automatic GitHub Actions test jobs,
+The `ci:intentional` label opts a PR out of automatic GitHub Actions test jobs,
 independently of draft or ready-for-review state. Other PRs retain their current
 behavior. Scheduled, branch-push, release, and existing manual runs retain their
 current conditions. Skipped workflow entries can still appear in GitHub.
@@ -20,7 +20,7 @@ named `request`. The bootstrap worker only reports that no tests were executed;
 it does not implement either test profile or publish a CI result for the PR.
 
 Any PR author is welcome to join the pilot. On their own open PR labeled
-`ci:manual`, they can post:
+`ci:intentional`, they can post:
 
 * `/ci full`
 * `/ci quick`

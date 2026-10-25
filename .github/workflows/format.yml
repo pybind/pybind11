@@ -22,7 +22,7 @@ env:
 
 jobs:
   pre-commit:
-    if: (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
+    if: (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:intentional'))
     name: Format
     runs-on: ubuntu-latest
     steps:
@@ -38,7 +38,7 @@ jobs:
       run: node --test .github/tests/intentional-ci.test.cjs
 
   clang-tidy:
-    if: (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
+    if: (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:intentional'))
     # When making changes here, please also review the "Clang-Tidy" section
     # in .github/CONTRIBUTING.md and update as needed.
     name: Clang-Tidy

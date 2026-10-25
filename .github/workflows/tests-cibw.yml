@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   build-wasm-emscripten:
-    if: (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
+    if: (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:intentional'))
     name: Pyodide wheel
     runs-on: ubuntu-latest
     steps:
@@ -34,7 +34,7 @@ jobs:
         only: cp314-pyodide_wasm32
 
   build-ios:
-    if: (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
+    if: (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:intentional'))
     name: iOS wheel ${{ matrix.runs-on }}
     runs-on: ${{ matrix.runs-on }}
     strategy:
@@ -57,7 +57,7 @@ jobs:
         package-dir: tests
 
   build-android:
-    if: (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
+    if: (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:intentional'))
     name: Android wheel ${{ matrix.runs-on }}
     runs-on: ${{ matrix.runs-on }}
     strategy:
