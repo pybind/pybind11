@@ -293,6 +293,13 @@ def test_optional():
     assert int(props.access_by_copy) == 42
 
 
+@pytest.mark.skipif(not hasattr(m, "has_optional"), reason="no <optional>")
+def test_optional_reference_wrapper_to_converted_value():
+    # #5637: used to refer to a value owned by an already destroyed caster
+    assert m.optional_refwrap_value(None) is None
+    assert m.optional_refwrap_value(7) == 7
+
+
 @pytest.mark.skipif(
     not hasattr(m, "has_exp_optional"), reason="no <experimental/optional>"
 )

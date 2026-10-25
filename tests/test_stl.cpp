@@ -18,6 +18,7 @@
 
 #include <pybind11/typing.h>
 
+#include <set>
 #include <string>
 #include <vector>
 
@@ -34,6 +35,40 @@ struct type_caster<boost::none_t> : void_caster<boost::none_t> {};
 } // namespace detail
 } // namespace PYBIND11_NAMESPACE
 #endif
+
+// Converted by value (not a registered class) and tracks which instances are alive, to check
+// that a loaded std::optional<std::reference_wrapper<T>> does not refer to a destroyed object.
+struct LiveTracked {
+    static std::set<const LiveTracked *> &live() {
+        static std::set<const LiveTracked *> instances;
+        return instances;
+    }
+    int value = 0;
+    LiveTracked() { live().insert(this); }
+    LiveTracked(const LiveTracked &other) : value(other.value) { live().insert(this); }
+    LiveTracked &operator=(const LiveTracked &) = default;
+    ~LiveTracked() { live().erase(this); }
+    bool is_alive() const { return live().count(this) != 0; }
+};
+
+namespace PYBIND11_NAMESPACE {
+namespace detail {
+template <>
+struct type_caster<LiveTracked> {
+    PYBIND11_TYPE_CASTER(LiveTracked, const_name("int"));
+    bool load(handle src, bool) {
+        if (!isinstance<int_>(src)) {
+            return false;
+        }
+        value.value = src.cast<int>();
+        return true;
+    }
+    static handle cast(const LiveTracked &src, return_value_policy, handle) {
+        return int_(src.value).release();
+    }
+};
+} // namespace detail
+} // namespace PYBIND11_NAMESPACE
 
 // Test with `std::variant` in C++17 mode, or with `boost::variant` in C++11/14
 #if defined(PYBIND11_HAS_VARIANT)
@@ -357,6 +392,18 @@ TEST_SUBMODULE(stl, m) {
         .def(pybind11::init<>())
         .def_property_readonly("access_by_ref", &opt_props::access_by_ref)
         .def_property_readonly("access_by_copy", &opt_props::access_by_copy);
+
+    // #5637: the referenced value must outlive the inner caster used during load
+    m.def("optional_refwrap_value",
+          [](std::optional<std::reference_wrapper<LiveTracked>> x) -> py::object {
+              if (!x) {
+                  return py::none();
+              }
+              if (!x->get().is_alive()) {
+                  return py::str("dangling");
+              }
+              return py::int_(x->get().value);
+          });
 #endif
 
 #ifdef PYBIND11_HAS_EXP_OPTIONAL

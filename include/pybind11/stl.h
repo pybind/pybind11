@@ -548,7 +548,6 @@ struct optional_caster {
         if (src.is_none()) {
             return true; // default-constructed value is already empty
         }
-        value_conv inner_caster;
         if (!inner_caster.load(src, convert)) {
             return false;
         }
@@ -558,6 +557,12 @@ struct optional_caster {
     }
 
     PYBIND11_TYPE_CASTER(Type, value_conv::name | make_caster<none>::name);
+
+private:
+    // A member rather than a local in load(): the loaded value may refer to data owned by the
+    // inner caster (e.g. std::optional<std::reference_wrapper<T>> with a by-value caster for T),
+    // so the inner caster must live as long as this caster.
+    value_conv inner_caster;
 };
 
 #if defined(PYBIND11_HAS_OPTIONAL)
