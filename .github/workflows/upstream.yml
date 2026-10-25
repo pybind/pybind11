@@ -21,7 +21,9 @@ jobs:
     name: "🐍 3.15 latest • ubuntu-latest • x64"
     runs-on: ubuntu-latest
     # Only runs when the  'python dev' label is selected
-    if: "contains(github.event.pull_request.labels.*.name, 'python dev')"
+    if: >-
+      (contains(github.event.pull_request.labels.*.name, 'python dev')) &&
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
 
     steps:
     - uses: actions/checkout@v7

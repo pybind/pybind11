@@ -22,6 +22,7 @@ env:
 
 jobs:
   pre-commit:
+    if: (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
     name: Format
     runs-on: ubuntu-latest
     steps:
@@ -33,7 +34,11 @@ jobs:
       run: echo "::add-matcher::$GITHUB_WORKSPACE/.github/matchers/pylint.json"
     - uses: pre-commit/action@v3.0.1
 
+    - name: Test intentional CI bootstrap
+      run: node --test .github/tests/intentional-ci.test.cjs
+
   clang-tidy:
+    if: (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
     # When making changes here, please also review the "Clang-Tidy" section
     # in .github/CONTRIBUTING.md and update as needed.
     name: Clang-Tidy

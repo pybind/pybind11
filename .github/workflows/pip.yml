@@ -19,6 +19,7 @@ jobs:
   # This builds the sdists and wheels and makes sure the files are exactly as
   # expected.
   test-packaging:
+    if: (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
     name: 🐍 3.9 • 📦 tests • windows-latest
     runs-on: windows-latest
 
@@ -43,6 +44,7 @@ jobs:
   # This runs the packaging tests and also builds and saves the packages as
   # artifacts.
   packaging:
+    if: (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
     name: 🐍 3.9 • 📦 & 📦 tests • ubuntu-24.04
     runs-on: ubuntu-24.04
 

@@ -33,7 +33,9 @@ jobs:
   # versions of default compilers and Python versions in GitHub Actions.
   # It is in two parts: one that always runs, and one that runs on non-draft
   standard-small:
-    if: github.event.action != 'ready_for_review'
+    if: >-
+      (github.event.action != 'ready_for_review') &&
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
     strategy:
       fail-fast: false
       matrix:
@@ -85,7 +87,9 @@ jobs:
   # Build the test suite against the precompiled pybind11 static library; a
   # definition missing from the -inl.h split shows up here as a link error.
   precompile:
-    if: github.event.pull_request.draft == false
+    if: >-
+      (github.event.pull_request.draft == false) &&
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
     strategy:
       fail-fast: false
       matrix:
@@ -108,7 +112,9 @@ jobs:
       cmake-args: -DPYBIND11_TEST_PRECOMPILE=ON
 
   standard-large:
-    if: github.event.pull_request.draft == false
+    if: >-
+      (github.event.pull_request.draft == false) &&
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
     strategy:
       fail-fast: false
       matrix:
@@ -195,7 +201,9 @@ jobs:
 
   # This checks inplace builds with C++11
   inplace:
-    if: github.event.pull_request.draft == false
+    if: >-
+      (github.event.pull_request.draft == false) &&
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
     strategy:
       fail-fast: false
       matrix:
@@ -271,7 +279,9 @@ jobs:
 
   manylinux:
     name: Manylinux on 🐍 ${{ matrix.python-version }} (${{ matrix.container }})
-    if: github.event.pull_request.draft == false
+    if: >-
+      (github.event.pull_request.draft == false) &&
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
     strategy:
       fail-fast: false
       matrix:
@@ -305,7 +315,9 @@ jobs:
 
   # Testing on clang using the excellent silkeh clang docker images
   clang:
-    if: github.event.pull_request.draft == false
+    if: >-
+      (github.event.pull_request.draft == false) &&
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -377,6 +389,7 @@ jobs:
 
   # Testing NVCC; forces sources to behave like .cu files
   cuda:
+    if: (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
     runs-on: ubuntu-latest
     name: "🐍 3.10 • CUDA 12.2 • Ubuntu 22.04"
     container: nvidia/cuda:12.2.0-devel-ubuntu22.04
@@ -445,7 +458,9 @@ jobs:
 
   # Testing on Ubuntu + NVHPC (previous PGI) compilers, which seems to require more workarounds
   ubuntu-nvhpc:
-    if: github.event.pull_request.draft == false
+    if: >-
+      (github.event.pull_request.draft == false) &&
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
     runs-on: ubuntu-24.04
     name: "🐍 3 • NVHPC 26.5 • C++17 • x64"
     timeout-minutes: 90
@@ -509,7 +524,9 @@ jobs:
 
   # Testing on GCC using the GCC docker images (only recent images supported)
   gcc:
-    if: github.event.pull_request.draft == false
+    if: >-
+      (github.event.pull_request.draft == false) &&
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -584,7 +601,9 @@ jobs:
 
   # Testing on ICC using the oneAPI apt repo
   icc:
-    if: github.event.pull_request.draft == false
+    if: >-
+      (github.event.pull_request.draft == false) &&
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
     runs-on: ubuntu-22.04
     timeout-minutes: 90
 
@@ -692,7 +711,9 @@ jobs:
 
   # Testing on CentOS (manylinux uses a centos base).
   centos:
-    if: github.event.pull_request.draft == false
+    if: >-
+      (github.event.pull_request.draft == false) &&
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -759,7 +780,9 @@ jobs:
 
   # This tests an "install" with the CMake tools
   install-classic:
-    if: github.event.pull_request.draft == false
+    if: >-
+      (github.event.pull_request.draft == false) &&
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
     name: "🐍 3.11 • Debian • x86 •  Install"
     # Ubuntu 26.04's Docker 29.4.2 breaks i386 networking:
     # https://github.com/actions/runner-images/issues/14790
@@ -807,7 +830,9 @@ jobs:
   # This verifies that the documentation is not horribly broken, and does a
   # basic validation check on the SDist.
   doxygen:
-    if: github.event.pull_request.draft == false
+    if: >-
+      (github.event.pull_request.draft == false) &&
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
     name: "Documentation build test"
     runs-on: ubuntu-latest
     timeout-minutes: 90
@@ -843,7 +868,9 @@ jobs:
         diff -rq $installed ./pybind11
 
   win32:
-    if: github.event.pull_request.draft == false
+    if: >-
+      (github.event.pull_request.draft == false) &&
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
     strategy:
       fail-fast: false
       matrix:
@@ -896,7 +923,9 @@ jobs:
       run: cmake --build build -t pytest
 
   win32-debug:
-    if: github.event.pull_request.draft == false
+    if: >-
+      (github.event.pull_request.draft == false) &&
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
     strategy:
       fail-fast: false
       matrix:
@@ -946,7 +975,9 @@ jobs:
 
 
   windows-2022:
-    if: github.event.pull_request.draft == false
+    if: >-
+      (github.event.pull_request.draft == false) &&
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
     strategy:
       fail-fast: false
       matrix:
@@ -1011,7 +1042,9 @@ jobs:
       run: cmake --build build_partial --target pytest
 
   mingw:
-    if: github.event.pull_request.draft == false
+    if: >-
+      (github.event.pull_request.draft == false) &&
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
     name: "🐍 3 • windows-latest • ${{ matrix.sys }}"
     runs-on: windows-latest
     timeout-minutes: 90
@@ -1123,7 +1156,9 @@ jobs:
       run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build3 --target test_cross_module_rtti
 
   windows_clang:
-    if: github.event.pull_request.draft == false
+    if: >-
+      (github.event.pull_request.draft == false) &&
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
 
     strategy:
       matrix:
@@ -1196,7 +1231,9 @@ jobs:
 
   # Clang with MSVC/Windows SDK toolchain + python.org CPython (Windows ARM)
   windows_arm_clang_msvc:
-    if: github.event.pull_request.draft == false
+    if: >-
+      (github.event.pull_request.draft == false) &&
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
 
     strategy:
       fail-fast: false
@@ -1264,7 +1301,9 @@ jobs:
 
   # Clang in MSYS2/MinGW-w64 CLANGARM64 toolchain + MSYS2 Python (Windows ARM)
   windows_arm_clang_msys2:
-    if: github.event.pull_request.draft == false
+    if: >-
+      (github.event.pull_request.draft == false) &&
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:manual'))
 
     strategy:
       fail-fast: false
