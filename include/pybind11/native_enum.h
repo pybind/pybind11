@@ -52,7 +52,8 @@ public:
     native_enum &value(char const *name, EnumType value, const char *doc = nullptr) {
         // Disarm for the case that the native_enum_data dtor runs during exception unwinding.
         disarm_finalize_check("value after finalize");
-        auto member_name = str(name);
+        auto new_member = make_tuple(name, static_cast<Underlying>(value));
+        object member_name = new_member[0];
         for (auto member : members) {
             if (member_name.equal(member[int_(0)])) {
                 pybind11_fail("pybind11::native_enum<...>(\"" + enum_name_encoded + "\").value(\""
@@ -60,7 +61,7 @@ public:
                               + "\"): a member with that name is already defined");
             }
         }
-        members.append(make_tuple(member_name, static_cast<Underlying>(value)));
+        members.append(new_member);
         if (doc) {
             member_docs.append(make_tuple(name, doc));
         }
