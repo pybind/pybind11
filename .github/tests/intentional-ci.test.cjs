@@ -10,7 +10,7 @@ const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 const dispatch = new AsyncFunction('github', 'context', 'core',
   block.split('\n').map(line => line.slice(12)).join('\n'));
 
-async function run({command = '/ci full', pr = {}, status} = {}) {
+async function run({command = '/ci full', pr = {}, commenter = 'rwgk', status} = {}) {
   const requests = [];
   const failures = [];
   const summaries = [];
@@ -33,7 +33,7 @@ async function run({command = '/ci full', pr = {}, status} = {}) {
   }};
   const context = {
     repo: {owner: 'pybind', repo: 'pybind11'}, issue: {number: 123},
-    payload: {comment: {body: command, id: 456}},
+    payload: {comment: {body: command, id: 456, user: {login: commenter}}},
   };
   await dispatch(github, context, {summary, setFailed(message) { failures.push(message); }});
   return {requests, failures, summaries};
@@ -46,7 +46,7 @@ for (const profile of ['full', 'quick']) {
     const {inputs, ...destination} = requests[0];
     assert.deepEqual(destination, {
       owner: 'pybind', repo: 'pybind11', workflow_id: 'intentional-ci.yml',
-      ref: 'rwgk/intentional-ci-dev',
+      ref: 'intentional-ci-experiment',
     });
     assert.deepEqual(JSON.parse(inputs.request), {
       pr: 123, profile, head_sha: '1'.repeat(40), base_sha: '2'.repeat(40), comment_id: 456,
@@ -66,6 +66,16 @@ for (const pr of [{state: 'closed'}, {user: {login: 'someone-else'}}, {labels: [
   });
 }
 
+test('other PR authors can request CI on their own opted-in PRs', async () => {
+  const result = await run({commenter: 'contributor', pr: {user: {login: 'contributor'}}});
+  assert.equal(result.requests.length, 1);
+  assert.deepEqual(result.failures, []);
+});
+
+test('reject requests from someone other than the PR author', async () => {
+  assert.deepEqual((await run({commenter: 'someone-else'})).requests, []);
+});
+
 test('help explains the pilot without dispatching', async () => {
   const result = await run({command: '/ci help'});
   assert.deepEqual(result.requests, []);
@@ -76,7 +86,7 @@ for (const status of [404, 422]) {
   test(`missing or incompatible worker fails clearly (${status})`, async () => {
     const result = await run({status});
     assert.deepEqual(result.requests, []);
-    assert.match(result.failures[0], /rwgk\/intentional-ci-dev/);
+    assert.match(result.failures[0], /intentional-ci-experiment/);
     assert.deepEqual(result.summaries, []);
   });
 }

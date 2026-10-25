@@ -13,13 +13,14 @@ services and do not honor this GitHub Actions opt-out.
 
 ## Experimental commands
 
-After this bootstrap merges, create `rwgk/intentional-ci-dev` in
+After this bootstrap merges, create `intentional-ci-experiment` in
 `pybind/pybind11` from `master`. Implement the worker there, retaining
 `.github/workflows/intentional-ci.yml` and its `workflow_dispatch` string input
 named `request`. The bootstrap worker only reports that no tests were executed;
 it does not implement either test profile or publish a CI result for the PR.
 
-On an open PR authored by `rwgk` and labeled `ci:manual`, `rwgk` can post:
+Any PR author is welcome to join the pilot. On their own open PR labeled
+`ci:manual`, they can post:
 
 * `/ci full`
 * `/ci quick`
@@ -34,8 +35,8 @@ branch produces an actionable failure in the listener; no PR tests run.
 Keep experimental workflow/check names, concurrency groups, and cache keys
 separate from ordinary CI. Test the captured revisions with read-only
 permissions and no secrets; keep result publishing in a separate trusted job.
-The listener itself never checks out PR code. Extend pilot participation only
-by explicitly updating its requester and PR-author checks.
+The listener itself never checks out PR code. It accepts requests only from
+the PR author; the label is the explicit opt-in to the evolving experiment.
 
 Implementation changes can stay on the development branch while the listener
 and ordinary workflows on `master` remain stable. Submit the completed design

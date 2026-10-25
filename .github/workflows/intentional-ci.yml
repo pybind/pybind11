@@ -18,7 +18,6 @@ jobs:
       github.repository == 'pybind/pybind11' &&
       github.event_name == 'issue_comment' &&
       github.event.issue.pull_request &&
-      github.event.comment.user.login == 'rwgk' &&
       startsWith(github.event.comment.body, '/ci ')
     runs-on: ubuntu-latest
     permissions:
@@ -35,13 +34,13 @@ jobs:
               ...context.repo,
               pull_number: context.issue.number,
             });
-            if (pr.state !== 'open' || pr.user.login !== 'rwgk'
+            if (pr.state !== 'open' || pr.user.login !== context.payload.comment.user.login
                 || !pr.labels.some(label => label.name === 'ci:manual')) return;
 
             if (match[1] === 'help') {
               await core.summary.addHeading('Intentional CI experiment')
                 .addRaw('Use `/ci full` or `/ci quick` on a PR labeled `ci:manual`. '
-                  + 'Only rwgk can request runs on their own PRs during this pilot. '
+                  + 'PR authors can request runs on their own PRs during this pilot. '
                   + 'The development worker must be installed first; see '
                   + '`.github/intentional-ci.md`.').write();
               return;
@@ -58,13 +57,13 @@ jobs:
               await github.rest.actions.createWorkflowDispatch({
                 ...context.repo,
                 workflow_id: 'intentional-ci.yml',
-                ref: 'rwgk/intentional-ci-dev',
+                ref: 'intentional-ci-experiment',
                 inputs: {request: JSON.stringify(request)},
               });
             } catch (error) {
               if (error.status !== 404 && error.status !== 422) throw error;
               core.setFailed('Cannot dispatch the experimental worker. Create '
-                + 'rwgk/intentional-ci-dev from master after this bootstrap merges '
+                + 'intentional-ci-experiment from master after this bootstrap merges '
                 + 'and keep intentional-ci.yml with its workflow_dispatch input. '
                 + error.message);
               return;
@@ -82,6 +81,6 @@ jobs:
         with:
           script: |
             await core.summary.addHeading('Bootstrap only: no tests executed')
-              .addRaw('Implement the dispatch worker on `rwgk/intentional-ci-dev`. '
+              .addRaw('Implement the dispatch worker on `intentional-ci-experiment`. '
                 + 'This placeholder does not publish a CI result for the PR.')
               .addCodeBlock(process.env.REQUEST, 'json').write();
