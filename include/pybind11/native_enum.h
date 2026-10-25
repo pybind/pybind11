@@ -52,7 +52,15 @@ public:
     native_enum &value(char const *name, EnumType value, const char *doc = nullptr) {
         // Disarm for the case that the native_enum_data dtor runs during exception unwinding.
         disarm_finalize_check("value after finalize");
-        members.append(make_tuple(name, static_cast<Underlying>(value)));
+        auto member_name = str(name);
+        for (auto member : members) {
+            if (member_name.equal(member[int_(0)])) {
+                pybind11_fail("pybind11::native_enum<...>(\"" + enum_name_encoded + "\").value(\""
+                              + std::string(name)
+                              + "\"): a member with that name is already defined");
+            }
+        }
+        members.append(make_tuple(member_name, static_cast<Underlying>(value)));
         if (doc) {
             member_docs.append(make_tuple(name, doc));
         }
