@@ -41,9 +41,3 @@ the PR author; the label is the explicit opt-in to the evolving experiment.
 Implementation changes can stay on the development branch while the listener
 and ordinary workflows on `master` remain stable. Submit the completed design
 and any proposed project-wide rollout together for review.
-
-Run the listener regression tests locally with:
-
-```sh
-node --test .github/tests/intentional-ci.test.cjs
-```
