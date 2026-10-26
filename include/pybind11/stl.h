@@ -548,21 +548,25 @@ struct optional_caster {
         if (src.is_none()) {
             return true; // default-constructed value is already empty
         }
-        if (!inner_caster.load(src, convert)) {
+        // Constructed only for non-None values: some casters have costly or failing
+        // constructors (e.g. py::array_t imports NumPy).
+        inner_caster.reset(new value_conv());
+        if (!inner_caster->load(src, convert)) {
             return false;
         }
 
-        value.emplace(cast_op<Value &&>(std::move(inner_caster)));
+        value.emplace(cast_op<Value &&>(std::move(*inner_caster)));
         return true;
     }
 
     PYBIND11_TYPE_CASTER(Type, value_conv::name | make_caster<none>::name);
 
 private:
-    // A member rather than a local in load(): the loaded value may refer to data owned by the
-    // inner caster (e.g. std::optional<std::reference_wrapper<T>> with a by-value caster for T),
-    // so the inner caster must live as long as this caster.
-    value_conv inner_caster;
+    // Kept alive with this caster rather than as a local in load(): the loaded value may refer
+    // to data owned by the inner caster (e.g. std::optional<std::reference_wrapper<T>> with a
+    // by-value caster for T). Held by pointer so this caster stays movable (and the reference
+    // stays valid after a move) even if the inner caster is not movable.
+    std::unique_ptr<value_conv> inner_caster;
 };
 
 #if defined(PYBIND11_HAS_OPTIONAL)

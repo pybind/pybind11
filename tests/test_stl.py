@@ -300,6 +300,18 @@ def test_optional_reference_wrapper_to_converted_value():
     assert m.optional_refwrap_value(7) == 7
 
 
+@pytest.mark.skipif(not hasattr(m, "has_optional"), reason="no <optional>")
+def test_optional_inner_caster_lazy_and_nonmovable():
+    count = m.optional_nonmovable_caster_constructions
+    before = count()
+    assert m.optional_nonmovable_caster_arg(None) is None
+    assert m.optional_nonmovable_caster_cast(None) is None
+    assert count() == before  # no inner caster for None
+    assert m.optional_nonmovable_caster_arg(3) == 3
+    assert m.optional_nonmovable_caster_cast(4) == 4
+    assert count() == before + 2
+
+
 @pytest.mark.skipif(
     not hasattr(m, "has_exp_optional"), reason="no <experimental/optional>"
 )

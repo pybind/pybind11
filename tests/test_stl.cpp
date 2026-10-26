@@ -70,6 +70,41 @@ struct type_caster<LiveTracked> {
 } // namespace detail
 } // namespace PYBIND11_NAMESPACE
 
+// Converted by value with a caster that counts its constructions and is not movable, to check
+// that std::optional<T> constructs the inner caster only for non-None values and stays movable.
+struct NonMovableCasterItem {
+    int value = 0;
+};
+
+namespace PYBIND11_NAMESPACE {
+namespace detail {
+template <>
+struct type_caster<NonMovableCasterItem> {
+    PYBIND11_TYPE_CASTER(NonMovableCasterItem, const_name("int"));
+    static int &constructions() {
+        static int count = 0;
+        return count;
+    }
+    type_caster() { ++constructions(); }
+    type_caster(const type_caster &) = delete;
+    type_caster(type_caster &&) = delete;
+    type_caster &operator=(const type_caster &) = delete;
+    type_caster &operator=(type_caster &&) = delete;
+    ~type_caster() = default;
+    bool load(handle src, bool) {
+        if (!isinstance<int_>(src)) {
+            return false;
+        }
+        value.value = src.cast<int>();
+        return true;
+    }
+    static handle cast(const NonMovableCasterItem &src, return_value_policy, handle) {
+        return int_(src.value).release();
+    }
+};
+} // namespace detail
+} // namespace PYBIND11_NAMESPACE
+
 // Test with `std::variant` in C++17 mode, or with `boost::variant` in C++11/14
 #if defined(PYBIND11_HAS_VARIANT)
 using std::variant;
@@ -404,6 +439,16 @@ TEST_SUBMODULE(stl, m) {
               }
               return py::int_(x->get().value);
           });
+
+    // The inner caster is constructed lazily (not for None) and held so that the optional caster
+    // stays movable, as required by cast<std::optional<T>>(), even if the inner caster is not.
+    m.def("optional_nonmovable_caster_constructions",
+          []() { return py::detail::make_caster<NonMovableCasterItem>::constructions(); });
+    m.def("optional_nonmovable_caster_arg", [](std::optional<NonMovableCasterItem> x) {
+        return x ? py::object(py::int_(x->value)) : py::object(py::none());
+    });
+    m.def("optional_nonmovable_caster_cast",
+          [](const py::object &o) { return o.cast<std::optional<NonMovableCasterItem>>(); });
 #endif
 
 #ifdef PYBIND11_HAS_EXP_OPTIONAL
