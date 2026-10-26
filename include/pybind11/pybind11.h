@@ -1714,6 +1714,13 @@ private:
         }
     }
 
+    static void register_instance_once(detail::instance *inst, detail::value_and_holder &v_h) {
+        if (!v_h.instance_registered()) {
+            v_h.set_instance_registered();
+            register_instance(inst, v_h.value_ptr(), v_h.type);
+        }
+    }
+
     /// Performs instance initialization including constructing a holder and registering the known
     /// instance.  Should be called as soon as the `type` value_ptr is set for an instance.  Takes
     /// an optional pointer to an existing holder to use; if not specified and the instance is
@@ -1732,11 +1739,18 @@ private:
         // by the critical section inside `get_type_info`.
         gil_scoped_acquire gil;
         auto v_h = inst->get_value_and_holder(detail::get_type_info(typeid(type)));
+        // Registering publishes `inst` to other threads, so it should come last. Holders that
+        // may run user code still register first, since that code can look `inst` up on this
+        // thread (e.g. via PYBIND11_OVERRIDE). Other threads can then find such an instance before
+        // its holder is constructed. A custom unique_ptr deleter counts as user code.
+        constexpr bool register_first = !std::is_same<holder_type, std::unique_ptr<type>>::value
+                                        && !detail::is_shared_ptr<holder_type>::value;
+        if (register_first) {
+            register_instance_once(inst, v_h);
+        }
         init_holder(inst, v_h, (const holder_type *) holder_ptr, v_h.value_ptr<type>());
-        // Register last since that makes `inst` visible to other threads under free threading.
-        if (!v_h.instance_registered()) {
-            v_h.set_instance_registered();
-            register_instance(inst, v_h.value_ptr(), v_h.type);
+        if (!register_first) {
+            register_instance_once(inst, v_h);
         }
     }
 
@@ -1796,11 +1810,8 @@ private:
             }
         }
         v_h.set_holder_constructed();
-        // Register last since that makes `inst` visible to other threads under free threading.
-        if (!v_h.instance_registered()) {
-            v_h.set_instance_registered();
-            register_instance(inst, v_h.value_ptr(), v_h.type);
-        }
+        // Nothing above runs user code, so registering last is always safe here.
+        register_instance_once(inst, v_h);
     }
 
     // Deallocates an instance; via holder, if constructed; otherwise via operator delete.

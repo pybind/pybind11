@@ -392,3 +392,14 @@ def test_shared_ptr_cast_for_custom_holder_throws(cast_shared_ptr):
         ),
     ):
         cast_shared_ptr()
+
+
+def test_holder_ctor_calls_python_override():
+    calls = []
+
+    class PyNotifier(m.RetainNotifier):
+        def on_retain(self):
+            calls.append("retain")
+
+    PyNotifier()
+    assert calls == ["retain"]

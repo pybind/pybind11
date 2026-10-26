@@ -352,6 +352,45 @@ struct ElementList {
     std::vector<std::shared_ptr<ElementBase>> l;
 };
 
+// test_holder_ctor_calls_python_override
+class RetainNotifier {
+public:
+    virtual ~RetainNotifier() = default;
+    virtual void on_retain() {}
+    void add_ref() {
+        ++ref_count_;
+        on_retain();
+    }
+    void release() {
+        if (--ref_count_ == 0) {
+            delete this;
+        }
+    }
+
+private:
+    int ref_count_ = 0;
+};
+
+class PyRetainNotifier : public RetainNotifier {
+public:
+    void on_retain() override { PYBIND11_OVERRIDE(void, RetainNotifier, on_retain, ); }
+};
+
+// Holder whose constructor calls back into the object, so constructing it runs user code
+// (including Python overrides of on_retain()).
+template <typename T>
+class notifying_intrusive_ptr {
+    T *ptr_;
+
+public:
+    explicit notifying_intrusive_ptr(T *p) : ptr_(p) { ptr_->add_ref(); }
+    notifying_intrusive_ptr(const notifying_intrusive_ptr &other)
+        : notifying_intrusive_ptr(other.ptr_) {}
+    notifying_intrusive_ptr &operator=(const notifying_intrusive_ptr &) = delete;
+    ~notifying_intrusive_ptr() { ptr_->release(); }
+    T *get() const { return ptr_; }
+};
+
 } // namespace
 
 // ref<T> is a wrapper for 'Object' which uses intrusive reference counting
@@ -377,6 +416,7 @@ PYBIND11_DECLARE_HOLDER_TYPE(T, huge_unique_ptr<T>, )
 PYBIND11_DECLARE_HOLDER_TYPE(T, custom_unique_ptr<T>, )
 PYBIND11_DECLARE_HOLDER_TYPE(T, shared_ptr_with_addressof_operator<T>, )
 PYBIND11_DECLARE_HOLDER_TYPE(T, unique_ptr_with_addressof_operator<T>, )
+PYBIND11_DECLARE_HOLDER_TYPE(T, notifying_intrusive_ptr<T>, true)
 
 namespace holder_caster_traits_test {
 struct example_base {};
@@ -657,6 +697,11 @@ TEST_SUBMODULE(smart_ptr, m) {
         .def(py::init<>())
         .def_readwrite("ptr",
                        &ContainerUsingPrivateESFT::ptr); // <- access ESFT through shared_ptr
+
+    // test_holder_ctor_calls_python_override
+    py::class_<RetainNotifier, PyRetainNotifier, notifying_intrusive_ptr<RetainNotifier>>(
+        m, "RetainNotifier")
+        .def(py::init<>());
 
     holder_caster_traits_test::wrap(m);
 }
