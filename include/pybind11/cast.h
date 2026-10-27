@@ -188,6 +188,9 @@ public:
     template <typename T>
     using cast_op_type = std::reference_wrapper<type>;
     explicit operator std::reference_wrapper<type>() { return cast_op<type &>(subcaster); }
+    // The loaded reference points into `subcaster` unless `type` is a registered class.
+    static constexpr bool value_refers_to_caster
+        = !std::is_base_of<type_caster_generic, caster_t>::value;
 };
 
 #define PYBIND11_TYPE_CASTER(type, py_name)                                                       \
@@ -1619,15 +1622,27 @@ struct move_if_unreferenced<
 template <typename T>
 using move_never = none_of<move_always<T>, move_if_unreferenced<T>>;
 
+// Whether a value loaded by make_caster<T> can refer to data owned by that caster, so that the
+// caster must outlive the value. Casters opt in with `static constexpr bool
+// value_refers_to_caster = true;`: type_caster<std::reference_wrapper<U>> when U is converted by
+// value, and the STL casters (optional, variant, containers) holding such elements.
+template <typename T, typename SFINAE = void>
+struct loaded_value_refers_to_caster : std::false_type {};
+template <typename T>
+struct loaded_value_refers_to_caster<T, enable_if_t<make_caster<T>::value_refers_to_caster>>
+    : std::true_type {};
+
 // Detect whether returning a `type` from a cast on type's type_caster is going to result in a
 // reference or pointer to a local variable of the type_caster.  Basically, only
 // non-reference/pointer `type`s and reference/pointers from a type_caster_generic are safe;
-// everything else returns a reference/pointer to a local variable.
+// everything else returns a reference/pointer to a local variable.  The same holds for values
+// that refer into their caster, e.g. `std::optional<std::reference_wrapper<std::string>>`.
 template <typename type>
 using cast_is_temporary_value_reference
-    = bool_constant<(std::is_reference<type>::value || std::is_pointer<type>::value)
-                    && !std::is_base_of<type_caster_generic, make_caster<type>>::value
-                    && !std::is_same<intrinsic_t<type>, void>::value>;
+    = bool_constant<((std::is_reference<type>::value || std::is_pointer<type>::value)
+                     && !std::is_base_of<type_caster_generic, make_caster<type>>::value
+                     && !std::is_same<intrinsic_t<type>, void>::value)
+                    || loaded_value_refers_to_caster<type>::value>;
 
 // When a value returned from a C++ function is being cast back to Python, we almost always want to
 // force `policy = move`, regardless of the return value policy the function/method was declared

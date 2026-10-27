@@ -18,6 +18,9 @@
 
 #include <pybind11/typing.h>
 
+#include <algorithm>
+#include <array>
+#include <map>
 #include <set>
 #include <string>
 #include <vector>
@@ -36,20 +39,66 @@ struct type_caster<boost::none_t> : void_caster<boost::none_t> {};
 } // namespace PYBIND11_NAMESPACE
 #endif
 
-// Converted by value (not a registered class) and tracks which instances are alive, to check
-// that a loaded std::optional<std::reference_wrapper<T>> does not refer to a destroyed object.
+// Converted by value (not a registered class), to check that a loaded
+// std::reference_wrapper<LiveTracked> (in an optional, variant or container) does not refer to a
+// destroyed object. Each instance gets a new id; the live instances are tracked by address and id,
+// so a reference is checked without reading the object, and an address reused by a later
+// instance is not mistaken for the original. Instances are created and destroyed on the thread
+// of the call, hence thread_local rather than shared state.
 struct LiveTracked {
-    static std::set<const LiveTracked *> &live() {
-        static std::set<const LiveTracked *> instances;
+    static std::map<const LiveTracked *, unsigned> &live() {
+        static thread_local std::map<const LiveTracked *, unsigned> instances;
         return instances;
     }
+    // Ids of the instances filled by type_caster<LiveTracked>::load(), in load order.
+    static std::vector<unsigned> &loaded() {
+        static thread_local std::vector<unsigned> ids;
+        return ids;
+    }
+    static unsigned next_id() {
+        static thread_local unsigned id = 0;
+        return ++id;
+    }
     int value = 0;
-    LiveTracked() { live().insert(this); }
-    LiveTracked(const LiveTracked &other) : value(other.value) { live().insert(this); }
-    LiveTracked &operator=(const LiveTracked &) = default;
+    LiveTracked() { live()[this] = next_id(); }
+    LiveTracked(const LiveTracked &other) : value(other.value) { live()[this] = next_id(); }
+    LiveTracked &operator=(const LiveTracked &other) {
+        value = other.value;
+        return *this;
+    }
     ~LiveTracked() { live().erase(this); }
-    bool is_alive() const { return live().count(this) != 0; }
 };
+
+static bool operator<(const LiveTracked &a, const LiveTracked &b) { return a.value < b.value; }
+
+// The values of `refs`, or "dangling" unless each one refers to a distinct live instance that was
+// loaded since the previous check.
+static py::object live_values(const std::vector<const LiveTracked *> &refs) {
+    std::vector<unsigned> loaded;
+    loaded.swap(LiveTracked::loaded());
+    std::set<unsigned> seen;
+    py::list values;
+    for (const auto *ref : refs) {
+        auto it = LiveTracked::live().find(ref);
+        if (it == LiveTracked::live().end()
+            || std::find(loaded.begin(), loaded.end(), it->second) == loaded.end()
+            || !seen.insert(it->second).second) {
+            return py::str("dangling");
+        }
+        values.append(ref->value);
+    }
+    return std::move(values);
+}
+
+// live_values() of a container of std::reference_wrapper<LiveTracked>
+template <typename Container>
+py::object live_values_of(const Container &refs) {
+    std::vector<const LiveTracked *> ptrs;
+    for (const auto &ref : refs) {
+        ptrs.push_back(&ref.get());
+    }
+    return live_values(ptrs);
+}
 
 namespace PYBIND11_NAMESPACE {
 namespace detail {
@@ -61,6 +110,7 @@ struct type_caster<LiveTracked> {
             return false;
         }
         value.value = src.cast<int>();
+        LiveTracked::loaded().push_back(LiveTracked::live().at(&value));
         return true;
     }
     static handle cast(const LiveTracked &src, return_value_policy, handle) {
@@ -82,7 +132,7 @@ template <>
 struct type_caster<NonMovableCasterItem> {
     PYBIND11_TYPE_CASTER(NonMovableCasterItem, const_name("int"));
     static int &constructions() {
-        static int count = 0;
+        static thread_local int count = 0;
         return count;
     }
     type_caster() { ++constructions(); }
@@ -434,14 +484,45 @@ TEST_SUBMODULE(stl, m) {
               if (!x) {
                   return py::none();
               }
-              if (!x->get().is_alive()) {
-                  return py::str("dangling");
+              return live_values({&x->get()});
+          });
+    m.def("vector_optional_refwrap_values",
+          [](const std::vector<std::optional<std::reference_wrapper<LiveTracked>>> &v) {
+              std::vector<const LiveTracked *> refs;
+              for (const auto &x : v) {
+                  if (x) {
+                      refs.push_back(&x->get());
+                  }
               }
-              return py::int_(x->get().value);
+              return live_values(refs);
           });
 
-    // The inner caster is constructed lazily (not for None) and held so that the optional caster
-    // stays movable, as required by cast<std::optional<T>>(), even if the inner caster is not.
+    // Loading None into a caster that holds a value releases the value and its inner caster
+    m.def("optional_refwrap_reload", []() {
+        auto live_before = LiveTracked::live().size();
+        py::detail::make_caster<std::optional<std::reference_wrapper<LiveTracked>>> caster;
+        auto &value
+            = py::detail::cast_op<std::optional<std::reference_wrapper<LiveTracked>> &>(caster);
+        bool loaded_int = caster.load(py::int_(5), true) && value && value->get().value == 5;
+        bool loaded_none = caster.load(py::none(), true) && !value;
+        LiveTracked::loaded().clear();
+        return py::make_tuple(loaded_int, loaded_none, LiveTracked::live().size() == live_before);
+    });
+
+    // Without a reference_wrapper element, the optional caster holds no inner caster and stays
+    // copyable (e.g. for user casters derived from it).
+    static_assert(std::is_copy_constructible<py::detail::make_caster<std::optional<int>>>::value,
+                  "");
+    static_assert(
+        !py::detail::cast_is_temporary_value_reference<std::optional<std::string>>::value, "");
+    // py::cast<T>() would return a value referring into a destroyed caster, so it is rejected at
+    // compile time (by the same static_assert as for references to by-value types).
+    static_assert(py::detail::cast_is_temporary_value_reference<
+                      std::optional<std::reference_wrapper<std::string>>>::value,
+                  "");
+
+    // The inner caster is constructed lazily (not for None) and the optional caster stays
+    // movable, as required by cast<std::optional<T>>(), even if the inner caster is not.
     m.def("optional_nonmovable_caster_constructions",
           []() { return py::detail::make_caster<NonMovableCasterItem>::constructions(); });
     m.def("optional_nonmovable_caster_arg", [](std::optional<NonMovableCasterItem> x) {
@@ -629,6 +710,18 @@ TEST_SUBMODULE(stl, m) {
     });
 
 #    if defined(PYBIND11_HAS_VARIANT)
+    // #5637: same for a std::reference_wrapper alternative
+    m.def("variant_refwrap_value",
+          [](const std::variant<std::string, std::reference_wrapper<LiveTracked>> &v) {
+              if (v.index() == 0) {
+                  return py::object(py::str(std::get<0>(v)));
+              }
+              return live_values({&std::get<1>(v).get()});
+          });
+    static_assert(py::detail::cast_is_temporary_value_reference<
+                      std::variant<int, std::reference_wrapper<std::string>>>::value,
+                  "");
+
     // std::monostate tests.
     m.def("load_monostate_variant",
           [](const variant<std::monostate, int, std::string> &v) -> const char * {
@@ -663,6 +756,37 @@ TEST_SUBMODULE(stl, m) {
         return std::vector<std::reference_wrapper<UserType>>{
             std::ref(p1), std::ref(p2), std::ref(p3), p4};
     });
+
+    // #5637: containers of std::reference_wrapper to by-value types keep the element casters
+    m.def("vector_refwrap_values", [](const std::vector<std::reference_wrapper<LiveTracked>> &v) {
+        return live_values_of(v);
+    });
+    m.def("array_refwrap_values", [](const std::array<std::reference_wrapper<LiveTracked>, 3> &a) {
+        return live_values_of(a);
+    });
+    m.def("set_refwrap_values", [](const std::set<std::reference_wrapper<const LiveTracked>> &s) {
+        return live_values_of(s);
+    });
+    m.def("map_refwrap_values",
+          [](const std::map<std::string, std::reference_wrapper<LiveTracked>> &d) {
+              std::vector<const LiveTracked *> refs;
+              for (const auto &kv : d) {
+                  refs.push_back(&kv.second.get());
+              }
+              return live_values(refs);
+          });
+    static_assert(py::detail::cast_is_temporary_value_reference<
+                      std::vector<std::reference_wrapper<std::string>>>::value,
+                  "");
+    static_assert(py::detail::cast_is_temporary_value_reference<
+                      std::map<int, std::reference_wrapper<std::string>>>::value,
+                  "");
+    // References to registered types point to the Python object, not into the caster
+    static_assert(!py::detail::cast_is_temporary_value_reference<
+                      std::vector<std::reference_wrapper<UserType>>>::value,
+                  "");
+    static_assert(std::is_copy_constructible<py::detail::make_caster<std::vector<int>>>::value,
+                  "");
 
     // test_stl_pass_by_pointer
     m.def("stl_pass_by_pointer", [](std::vector<int> *v) { return *v; }, "v"_a = nullptr);
