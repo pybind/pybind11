@@ -204,6 +204,33 @@ def test_valarray(doc):
     )
 
 
+class _MutatingLen:
+    """A sequence whose reported length changes between calls to __len__."""
+
+    def __init__(self, first, rest, item):
+        self._lens = iter([first])
+        self._rest = rest
+        self._item = item
+
+    def __len__(self):
+        return next(self._lens, self._rest)
+
+    def __getitem__(self, i):
+        if i >= self._rest:
+            raise IndexError(i)
+        return self._item
+
+
+def test_array_mutating_len():
+    # The reported length must not let conversion write/read outside the storage
+    # that was sized from the first __len__ call. See array_caster::convert_elements.
+    # Fixed-size std::array: a shrinking length is rejected rather than read OOB.
+    with pytest.raises(TypeError):
+        m.load_array(_MutatingLen(2, 0, 1))
+    # Resizable std::valarray: a growing length does not write past the storage.
+    assert not m.load_valarray(_MutatingLen(3, 1000, 1))
+
+
 def test_map(doc):
     """std::map <-> dict"""
     d = m.cast_map()
