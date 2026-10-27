@@ -15,6 +15,7 @@
 
 #include <chrono>
 #include <condition_variable>
+#include <memory>
 #include <mutex>
 #include <stdexcept>
 #include <string>
@@ -39,6 +40,18 @@ struct IntStruct {
 
 struct EmptyStruct {};
 EmptyStruct SharedInstance;
+
+// Templated so each holder kind gets its own C++ type, since a type can only be bound once.
+template <int>
+struct SharedObject {
+    int value() const { return 42; }
+};
+
+template <typename T>
+std::shared_ptr<T> get_shared() {
+    static const auto instance = std::make_shared<T>();
+    return instance;
+}
 
 #ifdef Py_GIL_DISABLED
 
@@ -212,6 +225,14 @@ TEST_SUBMODULE(thread, m) {
 
     py::class_<EmptyStruct>(m, "EmptyStruct")
         .def_readonly_static("SharedInstance", &SharedInstance);
+
+    using SharedObjectClassic = SharedObject<0>;
+    using SharedObjectSh = SharedObject<1>;
+    py::class_<SharedObjectClassic, std::shared_ptr<SharedObjectClassic>>(m, "SharedObjectClassic")
+        .def("value", &SharedObjectClassic::value);
+    m.def("get_shared_object_classic", &get_shared<SharedObjectClassic>);
+    py::classh<SharedObjectSh>(m, "SharedObjectSh").def("value", &SharedObjectSh::value);
+    m.def("get_shared_object_sh", &get_shared<SharedObjectSh>);
 
 #if defined(PYBIND11_HAS_STD_BARRIER)
     // In the free-threaded build, during PyThreadState_Clear, removing the thread from the biased

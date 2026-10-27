@@ -74,6 +74,28 @@ def test_bind_shared_instance():
 
 
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
+@pytest.mark.parametrize(
+    "get_shared", [m.get_shared_object_classic, m.get_shared_object_sh]
+)
+def test_concurrent_cast_of_shared_cpp_object(get_shared):
+    # Only fails under ThreadSanitizer on free-threaded builds; otherwise the race is silent.
+    nb_threads = 4
+    b = threading.Barrier(nb_threads)
+
+    def cast_shared_object():
+        b.wait()
+        for _ in range(1000):
+            # get_shared() alone never reads the wrapper's flags. Calling value() does.
+            get_shared().value()
+
+    threads = [threading.Thread(target=cast_shared_object) for _ in range(nb_threads)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+
+@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
 @pytest.mark.skipif(not m.defined_PYBIND11_HAS_STD_BARRIER, reason="no <barrier>")
 @pytest.mark.skipif(env.sys_is_gil_enabled(), reason="Deadlock with the GIL")
 def test_pythread_state_clear_destructor():
