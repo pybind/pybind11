@@ -24,6 +24,8 @@ import pytest
 # Early diagnostic for failed imports
 try:
     import pybind11_tests
+except ModuleNotFoundError:
+    pybind11_tests = None
 except Exception:
     # pytest does not show the traceback without this.
     traceback.print_exc()
@@ -260,6 +262,8 @@ def pytest_configure():
 
 
 def pytest_report_header():
+    if pybind11_tests is None:
+        return None
     assert pybind11_tests.compiler_info is not None, (
         "Please update pybind11_tests.cpp if this assert fails."
     )
