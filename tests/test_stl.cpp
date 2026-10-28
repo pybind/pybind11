@@ -62,10 +62,7 @@ struct LiveTracked {
     int value = 0;
     LiveTracked() { live()[this] = next_id(); }
     LiveTracked(const LiveTracked &other) : value(other.value) { live()[this] = next_id(); }
-    LiveTracked &operator=(const LiveTracked &other) {
-        value = other.value;
-        return *this;
-    }
+    LiveTracked &operator=(const LiveTracked &) = default;
     ~LiveTracked() { live().erase(this); }
 };
 
@@ -87,13 +84,14 @@ static py::object live_values(const std::vector<const LiveTracked *> &refs) {
         }
         values.append(ref->value);
     }
-    return std::move(values);
+    return py::object(std::move(values));
 }
 
 // live_values() of a container of std::reference_wrapper<LiveTracked>
 template <typename Container>
 py::object live_values_of(const Container &refs) {
     std::vector<const LiveTracked *> ptrs;
+    ptrs.reserve(refs.size());
     for (const auto &ref : refs) {
         ptrs.push_back(&ref.get());
     }
@@ -770,6 +768,7 @@ TEST_SUBMODULE(stl, m) {
     m.def("map_refwrap_values",
           [](const std::map<std::string, std::reference_wrapper<LiveTracked>> &d) {
               std::vector<const LiveTracked *> refs;
+              refs.reserve(d.size());
               for (const auto &kv : d) {
                   refs.push_back(&kv.second.get());
               }
