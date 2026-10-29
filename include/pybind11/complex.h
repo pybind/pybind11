@@ -82,18 +82,21 @@ public:
         value = std::complex<T>((T) result.real, (T) result.imag);
 #else
         // Py_complex is not part of the stable ABI. Before 3.13, PyComplex_RealAsDouble() does
-        // not call __complex__ itself.
-        if (!PyComplex_Check(src_or_index.ptr()) && hasattr(src_or_index, "__complex__")) {
-            index = reinterpret_steal<object>(
-                PyObject_CallMethod(src_or_index.ptr(), "__complex__", nullptr));
-            if (!index) {
-                PyErr_Clear();
-                return false;
+        // not call __complex__ itself. Look the method up on the type, like Python does.
+        if (!PyComplex_Check(src_or_index.ptr())) {
+            object method = getattr(type::handle_of(src_or_index), "__complex__", none());
+            if (!method.is_none()) {
+                index = reinterpret_steal<object>(
+                    PyObject_CallFunctionObjArgs(method.ptr(), src_or_index.ptr(), nullptr));
+                if (!index) {
+                    PyErr_Clear();
+                    return false;
+                }
+                if (!PyComplex_Check(index.ptr())) {
+                    return false;
+                }
+                src_or_index = index;
             }
-            if (!PyComplex_Check(index.ptr())) {
-                return false;
-            }
-            src_or_index = index;
         }
         double real = PyComplex_RealAsDouble(src_or_index.ptr());
         if (real == -1.0 && PyErr_Occurred()) {

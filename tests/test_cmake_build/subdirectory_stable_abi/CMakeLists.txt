@@ -16,6 +16,9 @@ add_subdirectory("${pybind11_SOURCE_DIR}" pybind11)
 pybind11_add_module(test_subdirectory_stable_abi STABLE_ABI ../main.cpp)
 set_target_properties(test_subdirectory_stable_abi PROPERTIES OUTPUT_NAME test_cmake_build)
 
+# WITH_SOABI must be consumed when pybind11 sets up the stable ABI itself (SHARED).
+pybind11_add_module(test_subdirectory_stable_abi_shared SHARED STABLE_ABI WITH_SOABI ../main.cpp)
+
 if(DEFINED Python_EXECUTABLE)
   set(_Python_EXECUTABLE "${Python_EXECUTABLE}")
 elseif(DEFINED PYTHON_EXECUTABLE)
@@ -34,4 +37,4 @@ add_custom_target(
   ${_Python_EXECUTABLE}
   ${PROJECT_SOURCE_DIR}/../test.py
   ${PROJECT_NAME}
-  DEPENDS test_subdirectory_stable_abi)
+  DEPENDS test_subdirectory_stable_abi test_subdirectory_stable_abi_shared)
