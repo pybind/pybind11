@@ -71,19 +71,25 @@ endif()
 if(NOT DEFINED PYTHON_EXECUTABLE)
   if(DEFINED ENV{VIRTUAL_ENV})
     find_program(
-      PYTHON_EXECUTABLE python
+      PYTHON_EXECUTABLE
+      python
       PATHS "$ENV{VIRTUAL_ENV}" "$ENV{VIRTUAL_ENV}/bin"
-      NO_DEFAULT_PATH)
+      NO_DEFAULT_PATH
+    )
   elseif(DEFINED ENV{CONDA_PREFIX})
     find_program(
-      PYTHON_EXECUTABLE python
+      PYTHON_EXECUTABLE
+      python
       PATHS "$ENV{CONDA_PREFIX}" "$ENV{CONDA_PREFIX}/bin"
-      NO_DEFAULT_PATH)
+      NO_DEFAULT_PATH
+    )
   elseif(DEFINED ENV{pythonLocation})
     find_program(
-      PYTHON_EXECUTABLE python
+      PYTHON_EXECUTABLE
+      python
       PATHS "$ENV{pythonLocation}" "$ENV{pythonLocation}/bin"
-      NO_DEFAULT_PATH)
+      NO_DEFAULT_PATH
+    )
   endif()
   if(NOT PYTHON_EXECUTABLE)
     unset(PYTHON_EXECUTABLE)
@@ -100,19 +106,24 @@ if(NOT CMAKE_VERSION VERSION_LESS "3.27")
   if(NOT _pybind11_cmp0148)
     message(
       AUTHOR_WARNING
-        "Policy CMP0148 is not set: The FindPythonInterp and FindPythonLibs "
-        "modules are removed.  Run \"cmake --help-policy CMP0148\" for policy "
-        "details.  Use the cmake_policy command to set the policy and suppress "
-        "this warning, or preferably upgrade to using FindPython, either by "
-        "calling it explicitly before pybind11, or by setting "
-        "PYBIND11_FINDPYTHON ON before pybind11.")
+      "Policy CMP0148 is not set: The FindPythonInterp and FindPythonLibs "
+      "modules are removed.  Run \"cmake --help-policy CMP0148\" for policy "
+      "details.  Use the cmake_policy command to set the policy and suppress "
+      "this warning, or preferably upgrade to using FindPython, either by "
+      "calling it explicitly before pybind11, or by setting "
+      "PYBIND11_FINDPYTHON ON before pybind11."
+    )
   endif()
   cmake_policy(SET CMP0148 OLD)
   unset(_pybind11_cmp0148)
 endif()
 
-find_package(PythonInterp ${PythonLibsNew_FIND_VERSION} ${_pythonlibs_required}
-             ${_pythonlibs_quiet})
+find_package(
+  PythonInterp
+  ${PythonLibsNew_FIND_VERSION}
+  ${_pythonlibs_required}
+  ${_pythonlibs_quiet}
+)
 
 if(NOT PYTHONINTERP_FOUND)
   set(PYTHONLIBS_FOUND FALSE)
@@ -128,7 +139,8 @@ endif()
 # VERSION. VERSION will typically be like "2.7" on unix, and "27" on windows.
 execute_process(
   COMMAND
-    "${PYTHON_EXECUTABLE}" "-c" "
+    "${PYTHON_EXECUTABLE}" "-c"
+    "
 import sys;import struct;
 import sysconfig as s
 USE_SYSCONFIG = sys.version_info >= (3, 10)
@@ -156,7 +168,8 @@ print(s.get_config_var('MULTIARCH') or '');
 "
   RESULT_VARIABLE _PYTHON_SUCCESS
   OUTPUT_VARIABLE _PYTHON_VALUES
-  ERROR_VARIABLE _PYTHON_ERROR_VALUE)
+  ERROR_VARIABLE _PYTHON_ERROR_VALUE
+)
 
 if(NOT _PYTHON_SUCCESS MATCHES 0)
   if(PythonLibsNew_FIND_REQUIRED)
@@ -170,7 +183,8 @@ endif()
 option(
   PYBIND11_PYTHONLIBS_OVERWRITE
   "Overwrite cached values read from Python library (classic search). Turn off if cross-compiling and manually setting these values."
-  ON)
+  ON
+)
 # Can manually set values when cross-compiling
 macro(_PYBIND11_GET_IF_UNDEF lst index name)
   if(PYBIND11_PYTHONLIBS_OVERWRITE OR NOT DEFINED "${name}")
@@ -184,15 +198,15 @@ if(WIN32)
 endif()
 string(REGEX REPLACE ";" "\\\\;" _PYTHON_VALUES ${_PYTHON_VALUES})
 string(REGEX REPLACE "\n" ";" _PYTHON_VALUES ${_PYTHON_VALUES})
-_pybind11_get_if_undef(_PYTHON_VALUES 0 _PYTHON_VERSION_LIST)
-_pybind11_get_if_undef(_PYTHON_VALUES 1 PYTHON_PREFIX)
-_pybind11_get_if_undef(_PYTHON_VALUES 2 PYTHON_INCLUDE_DIR)
-_pybind11_get_if_undef(_PYTHON_VALUES 3 PYTHON_SITE_PACKAGES)
-_pybind11_get_if_undef(_PYTHON_VALUES 5 PYTHON_IS_DEBUG)
-_pybind11_get_if_undef(_PYTHON_VALUES 6 PYTHON_SIZEOF_VOID_P)
-_pybind11_get_if_undef(_PYTHON_VALUES 7 PYTHON_LIBRARY_SUFFIX)
-_pybind11_get_if_undef(_PYTHON_VALUES 8 PYTHON_LIBDIR)
-_pybind11_get_if_undef(_PYTHON_VALUES 9 PYTHON_MULTIARCH)
+_PYBIND11_GET_IF_UNDEF(_PYTHON_VALUES 0 _PYTHON_VERSION_LIST)
+_PYBIND11_GET_IF_UNDEF(_PYTHON_VALUES 1 PYTHON_PREFIX)
+_PYBIND11_GET_IF_UNDEF(_PYTHON_VALUES 2 PYTHON_INCLUDE_DIR)
+_PYBIND11_GET_IF_UNDEF(_PYTHON_VALUES 3 PYTHON_SITE_PACKAGES)
+_PYBIND11_GET_IF_UNDEF(_PYTHON_VALUES 5 PYTHON_IS_DEBUG)
+_PYBIND11_GET_IF_UNDEF(_PYTHON_VALUES 6 PYTHON_SIZEOF_VOID_P)
+_PYBIND11_GET_IF_UNDEF(_PYTHON_VALUES 7 PYTHON_LIBRARY_SUFFIX)
+_PYBIND11_GET_IF_UNDEF(_PYTHON_VALUES 8 PYTHON_LIBDIR)
+_PYBIND11_GET_IF_UNDEF(_PYTHON_VALUES 9 PYTHON_MULTIARCH)
 
 list(GET _PYTHON_VALUES 4 _PYTHON_MODULE_EXT_SUFFIX)
 if(PYBIND11_PYTHONLIBS_OVERWRITE OR NOT DEFINED PYTHON_MODULE_DEBUG_POSTFIX)
@@ -200,29 +214,37 @@ if(PYBIND11_PYTHONLIBS_OVERWRITE OR NOT DEFINED PYTHON_MODULE_DEBUG_POSTFIX)
 endif()
 if(PYBIND11_PYTHONLIBS_OVERWRITE OR NOT DEFINED PYTHON_MODULE_EXTENSION)
   get_filename_component(PYTHON_MODULE_EXTENSION "${_PYTHON_MODULE_EXT_SUFFIX}" EXT)
-  if((NOT "$ENV{SETUPTOOLS_EXT_SUFFIX}" STREQUAL "") AND (NOT "$ENV{SETUPTOOLS_EXT_SUFFIX}"
-                                                          STREQUAL "${PYTHON_MODULE_EXTENSION}"))
+  if(
+    (NOT "$ENV{SETUPTOOLS_EXT_SUFFIX}" STREQUAL "")
+    AND (NOT "$ENV{SETUPTOOLS_EXT_SUFFIX}" STREQUAL "${PYTHON_MODULE_EXTENSION}")
+  )
     message(
       AUTHOR_WARNING,
       "SETUPTOOLS_EXT_SUFFIX is set to \"$ENV{SETUPTOOLS_EXT_SUFFIX}\", "
       "but the auto-calculated Python extension suffix is \"${PYTHON_MODULE_EXTENSION}\". "
       "This may cause problems when importing the Python extensions. "
       "If you are using cross-compiling Python, you may need to "
-      "set PYTHON_MODULE_EXTENSION manually.")
+      "set PYTHON_MODULE_EXTENSION manually."
+    )
   endif()
 endif()
 
 # Make sure the Python has the same pointer-size as the chosen compiler
 # Skip if CMAKE_SIZEOF_VOID_P is not defined
 # This should be skipped for (non-Apple) cross-compiles (like EMSCRIPTEN)
-if(NOT _PYBIND11_CROSSCOMPILING
-   AND CMAKE_SIZEOF_VOID_P
-   AND (NOT "${PYTHON_SIZEOF_VOID_P}" STREQUAL "${CMAKE_SIZEOF_VOID_P}"))
+if(
+  NOT _PYBIND11_CROSSCOMPILING
+  AND CMAKE_SIZEOF_VOID_P
+  AND (NOT "${PYTHON_SIZEOF_VOID_P}" STREQUAL "${CMAKE_SIZEOF_VOID_P}")
+)
   if(PythonLibsNew_FIND_REQUIRED)
     math(EXPR _PYTHON_BITS "${PYTHON_SIZEOF_VOID_P} * 8")
     math(EXPR _CMAKE_BITS "${CMAKE_SIZEOF_VOID_P} * 8")
-    message(FATAL_ERROR "Python config failure: Python is ${_PYTHON_BITS}-bit, "
-                        "chosen compiler is  ${_CMAKE_BITS}-bit")
+    message(
+      FATAL_ERROR
+      "Python config failure: Python is ${_PYTHON_BITS}-bit, "
+      "chosen compiler is  ${_CMAKE_BITS}-bit"
+    )
   endif()
   set(PYTHONLIBS_FOUND FALSE)
   set(PythonLibsNew_FOUND FALSE)
@@ -254,9 +276,7 @@ elseif(CMAKE_HOST_WIN32)
   endif()
 
   # if we are in MSYS & MINGW, and we didn't find windows python lib, look for system python lib
-  if(DEFINED ENV{MSYSTEM}
-     AND MINGW
-     AND NOT EXISTS "${PYTHON_LIBRARY}")
+  if(DEFINED ENV{MSYSTEM} AND MINGW AND NOT EXISTS "${PYTHON_LIBRARY}")
     if(PYTHON_MULTIARCH)
       set(_PYTHON_LIBS_SEARCH "${PYTHON_LIBDIR}/${PYTHON_MULTIARCH}" "${PYTHON_LIBDIR}")
     else()
@@ -267,7 +287,8 @@ elseif(CMAKE_HOST_WIN32)
       PYTHON_LIBRARY
       NAMES "python${PYTHON_LIBRARY_SUFFIX}"
       PATHS ${_PYTHON_LIBS_SEARCH}
-      NO_DEFAULT_PATH)
+      NO_DEFAULT_PATH
+    )
   endif()
 
   # raise an error if the python libs are still not found.
@@ -288,7 +309,8 @@ else()
     PYTHON_LIBRARY
     NAMES "python${PYTHON_LIBRARY_SUFFIX}"
     PATHS ${_PYTHON_LIBS_SEARCH}
-    NO_DEFAULT_PATH)
+    NO_DEFAULT_PATH
+  )
 
   # If all else fails, just set the name/version and let the linker figure out the path.
   if(NOT PYTHON_LIBRARY)
@@ -309,8 +331,11 @@ if(NOT PYTHON_DEBUG_LIBRARY)
 endif()
 set(PYTHON_DEBUG_LIBRARIES "${PYTHON_DEBUG_LIBRARY}")
 
-find_package_message(PYTHON "Found PythonLibs: ${PYTHON_LIBRARIES}"
-                     "${PYTHON_EXECUTABLE}${PYTHON_VERSION_STRING}")
+find_package_message(
+  PYTHON
+  "Found PythonLibs: ${PYTHON_LIBRARIES}"
+  "${PYTHON_EXECUTABLE}${PYTHON_VERSION_STRING}"
+)
 
 set(PYTHONLIBS_FOUND TRUE)
 set(PythonLibsNew_FOUND TRUE)

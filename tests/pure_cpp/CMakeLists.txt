@@ -3,8 +3,11 @@ find_package(Catch 2.13.10)
 if(CATCH_FOUND)
   message(STATUS "Building pure C++ tests (not depending on Python) using Catch v${CATCH_VERSION}")
 else()
-  message(STATUS "Catch not detected. Interpreter tests will be skipped. Install Catch headers"
-                 " manually or use `cmake -DDOWNLOAD_CATCH=ON` to fetch them automatically.")
+  message(
+    STATUS
+    "Catch not detected. Interpreter tests will be skipped. Install Catch headers"
+    " manually or use `cmake -DDOWNLOAD_CATCH=ON` to fetch them automatically."
+  )
   return()
 endif()
 

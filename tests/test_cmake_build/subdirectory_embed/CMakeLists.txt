@@ -2,9 +2,7 @@ cmake_minimum_required(VERSION 3.15...4.2)
 
 project(test_subdirectory_embed CXX)
 
-set(PYBIND11_INSTALL
-    ON
-    CACHE BOOL "")
+set(PYBIND11_INSTALL ON CACHE BOOL "")
 set(PYBIND11_EXPORT_NAME test_export)
 
 # Allow PYTHON_EXECUTABLE if in FINDPYTHON mode and building pybind11's tests
@@ -23,7 +21,8 @@ set_target_properties(test_subdirectory_embed PROPERTIES OUTPUT_NAME test_cmake_
 add_custom_target(
   check_subdirectory_embed
   $<TARGET_FILE:test_subdirectory_embed> "${PROJECT_SOURCE_DIR}/../test.py"
-  DEPENDS test_subdirectory_embed)
+  DEPENDS test_subdirectory_embed
+)
 
 # Test custom export group -- PYBIND11_EXPORT_NAME
 add_library(test_with_catch_lib ../embed.cpp)
@@ -34,5 +33,6 @@ install(
   EXPORT test_export
   ARCHIVE DESTINATION bin
   LIBRARY DESTINATION lib
-  RUNTIME DESTINATION lib)
+  RUNTIME DESTINATION lib
+)
 install(EXPORT test_export DESTINATION lib/cmake/test_export/test_export-Targets.cmake)

@@ -15,30 +15,35 @@ endif()
 
 # If this is the first run, PYTHON_VERSION can stand in for PYBIND11_PYTHON_VERSION
 if(NOT DEFINED PYBIND11_PYTHON_VERSION AND DEFINED PYTHON_VERSION)
-  message(WARNING "Set PYBIND11_PYTHON_VERSION to search for a specific version, not "
-                  "PYTHON_VERSION (which is an output). Assuming that is what you "
-                  "meant to do and continuing anyway.")
-  set(PYBIND11_PYTHON_VERSION
-      "${PYTHON_VERSION}"
-      CACHE STRING "Python version to use for compiling modules")
+  message(
+    WARNING
+    "Set PYBIND11_PYTHON_VERSION to search for a specific version, not "
+    "PYTHON_VERSION (which is an output). Assuming that is what you "
+    "meant to do and continuing anyway."
+  )
+  set(
+    PYBIND11_PYTHON_VERSION
+    "${PYTHON_VERSION}"
+    CACHE STRING
+    "Python version to use for compiling modules"
+  )
   unset(PYTHON_VERSION)
   unset(PYTHON_VERSION CACHE)
 elseif(DEFINED PYBIND11_PYTHON_VERSION)
   # If this is set as a normal variable, promote it
-  set(PYBIND11_PYTHON_VERSION
-      "${PYBIND11_PYTHON_VERSION}"
-      CACHE STRING "Python version to use for compiling modules")
+  set(
+    PYBIND11_PYTHON_VERSION
+    "${PYBIND11_PYTHON_VERSION}"
+    CACHE STRING
+    "Python version to use for compiling modules"
+  )
 else()
   # Make an empty cache variable.
-  set(PYBIND11_PYTHON_VERSION
-      ""
-      CACHE STRING "Python version to use for compiling modules")
+  set(PYBIND11_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling modules")
 endif()
 
 # A user can set versions manually too
-set(Python_ADDITIONAL_VERSIONS
-    "3.15;3.14;3.13;3.12;3.11;3.10;3.9"
-    CACHE INTERNAL "")
+set(Python_ADDITIONAL_VERSIONS "3.15;3.14;3.13;3.12;3.11;3.10;3.9" CACHE INTERNAL "")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
 find_package(PythonLibsNew ${PYBIND11_PYTHON_VERSION} MODULE REQUIRED ${_pybind11_quiet})
@@ -49,9 +54,7 @@ macro(_PYBIND11_PROMOTE_TO_CACHE NAME)
   set(_tmp_ptc "${${NAME}}")
   # CMake 3.21 complains if a cached variable is shadowed by a normal one
   unset(${NAME})
-  set(${NAME}
-      "${_tmp_ptc}"
-      CACHE INTERNAL "")
+  set(${NAME} "${_tmp_ptc}" CACHE INTERNAL "")
 endmacro()
 
 # Cache variables so pybind11_add_module can be used in parent projects
@@ -69,12 +72,12 @@ if(PYBIND11_MASTER_PROJECT)
   if(PYTHON_MODULE_EXTENSION MATCHES "pypy")
     if(NOT DEFINED PYPY_VERSION)
       execute_process(
-        COMMAND ${PYTHON_EXECUTABLE} -c
-                [=[import sys; sys.stdout.write(".".join(map(str, sys.pypy_version_info[:3])))]=]
-        OUTPUT_VARIABLE pypy_version)
-      set(PYPY_VERSION
-          ${pypy_version}
-          CACHE INTERNAL "")
+        COMMAND
+          ${PYTHON_EXECUTABLE} -c
+          [=[import sys; sys.stdout.write(".".join(map(str, sys.pypy_version_info[:3])))]=]
+        OUTPUT_VARIABLE pypy_version
+      )
+      set(PYPY_VERSION ${pypy_version} CACHE INTERNAL "")
     endif()
     message(STATUS "PYPY ${PYPY_VERSION} (Py ${PYTHON_VERSION})")
   else()
@@ -89,25 +92,29 @@ endif()
 # directory, just in case there are multiple versions of pybind11, we want the
 # one we expect.
 add_library(pybind11::python_headers INTERFACE IMPORTED)
-set_property(TARGET pybind11::python_headers PROPERTY INTERFACE_INCLUDE_DIRECTORIES
-                                                      "$<BUILD_INTERFACE:${PYTHON_INCLUDE_DIRS}>")
+set_property(
+  TARGET pybind11::python_headers
+  PROPERTY INTERFACE_INCLUDE_DIRECTORIES "$<BUILD_INTERFACE:${PYTHON_INCLUDE_DIRS}>"
+)
 set_property(
   TARGET pybind11::pybind11
   APPEND
-  PROPERTY INTERFACE_LINK_LIBRARIES pybind11::python_headers)
+  PROPERTY INTERFACE_LINK_LIBRARIES pybind11::python_headers
+)
 
-set(pybind11_INCLUDE_DIRS
-    "${pybind11_INCLUDE_DIR}" "${PYTHON_INCLUDE_DIRS}"
-    CACHE INTERNAL "Directories where pybind11 and possibly Python headers are located")
+set(
+  pybind11_INCLUDE_DIRS
+  "${pybind11_INCLUDE_DIR}"
+  "${PYTHON_INCLUDE_DIRS}"
+  CACHE INTERNAL
+  "Directories where pybind11 and possibly Python headers are located"
+)
 
 # A debug build of Python needs Py_DEBUG to select the matching ABI.
 # https://docs.python.org/3/c-api/intro.html#debugging-builds
 # https://stackoverflow.com/questions/39161202/how-to-work-around-missing-pymodule-create2-in-amd64-win-python35-d-lib
 if(PYTHON_IS_DEBUG)
-  set_property(
-    TARGET pybind11::pybind11
-    APPEND
-    PROPERTY INTERFACE_COMPILE_DEFINITIONS Py_DEBUG)
+  set_property(TARGET pybind11::pybind11 APPEND PROPERTY INTERFACE_COMPILE_DEFINITIONS Py_DEBUG)
 endif()
 
 # The IMPORTED INTERFACE library here is to ensure that "debug" and "release" get processed outside
@@ -122,16 +129,20 @@ target_link_libraries(
     "$<$<OR:$<PLATFORM_ID:Windows>,$<PLATFORM_ID:Cygwin>,$<PLATFORM_ID:Android>>:pybind11::_ClassicPythonLibraries>"
 )
 
-target_link_libraries(pybind11::embed INTERFACE pybind11::pybind11
-                                                pybind11::_ClassicPythonLibraries)
+target_link_libraries(
+  pybind11::embed
+  INTERFACE pybind11::pybind11 pybind11::_ClassicPythonLibraries
+)
 
 function(pybind11_extension name)
   # The prefix and extension are provided by FindPythonLibsNew.cmake
   set_target_properties(
     ${name}
-    PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}"
-               DEBUG_POSTFIX "${PYTHON_MODULE_DEBUG_POSTFIX}"
-               SUFFIX "${PYTHON_MODULE_EXTENSION}")
+    PROPERTIES
+      PREFIX "${PYTHON_MODULE_PREFIX}"
+      DEBUG_POSTFIX "${PYTHON_MODULE_DEBUG_POSTFIX}"
+      SUFFIX "${PYTHON_MODULE_EXTENSION}"
+  )
 endfunction()
 
 # Build a Python extension module:
@@ -139,8 +150,10 @@ endfunction()
 #                     [NO_EXTRAS] [THIN_LTO] [OPT_SIZE] source1 [source2 ...])
 #
 function(pybind11_add_module target_name)
-  set(options
-      "MODULE;SHARED;EXCLUDE_FROM_ALL;NO_EXTRAS;SYSTEM;THIN_LTO;OPT_SIZE;PRECOMPILE;NO_PRECOMPILE")
+  set(
+    options
+    "MODULE;SHARED;EXCLUDE_FROM_ALL;NO_EXTRAS;SYSTEM;THIN_LTO;OPT_SIZE;PRECOMPILE;NO_PRECOMPILE"
+  )
   cmake_parse_arguments(ARG "${options}" "" "" ${ARGN})
 
   if(ARG_MODULE AND ARG_SHARED)
@@ -166,7 +179,7 @@ function(pybind11_add_module target_name)
   if(ARG_SYSTEM)
     message(
       STATUS
-        "Warning: this does not have an effect - use NO_SYSTEM_FROM_IMPORTED if using imported targets"
+      "Warning: this does not have an effect - use NO_SYSTEM_FROM_IMPORTED if using imported targets"
     )
   endif()
 
@@ -204,6 +217,4 @@ function(pybind11_add_module target_name)
 endfunction()
 
 # Provide general way to call common Python commands in "common" file.
-set(_Python
-    PYTHON
-    CACHE INTERNAL "" FORCE)
+set(_Python PYTHON CACHE INTERNAL "" FORCE)

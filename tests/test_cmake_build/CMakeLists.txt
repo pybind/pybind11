@@ -22,8 +22,11 @@ function(pybind11_add_build_test name)
 
   # Forward option-driven defines so the nested projects can verify they propagate
   # through the pybind11_headers usage requirements.
-  foreach(opt IN ITEMS PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION
-                       PYBIND11_SIMPLE_GIL_MANAGEMENT)
+  foreach(
+    opt
+    IN
+    ITEMS PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION PYBIND11_SIMPLE_GIL_MANAGEMENT
+  )
     if(${opt})
       list(APPEND build_options "-D${opt}=ON")
     endif()
@@ -37,23 +40,12 @@ function(pybind11_add_build_test name)
 
   add_custom_target(
     test_build_${name}
-    ${CMAKE_CTEST_COMMAND}
-    --build-and-test
-    "${CMAKE_CURRENT_SOURCE_DIR}/${name}"
-    "${CMAKE_CURRENT_BINARY_DIR}/${name}"
-    --build-config
-    Release
-    --build-noclean
-    --build-generator
-    ${CMAKE_GENERATOR}
-    $<$<BOOL:${CMAKE_GENERATOR_PLATFORM}>:--build-generator-platform>
-    ${CMAKE_GENERATOR_PLATFORM}
-    --build-makeprogram
-    ${CMAKE_MAKE_PROGRAM}
-    --build-target
-    check_${name}
-    --build-options
-    ${build_options})
+    ${CMAKE_CTEST_COMMAND} --build-and-test "${CMAKE_CURRENT_SOURCE_DIR}/${name}"
+    "${CMAKE_CURRENT_BINARY_DIR}/${name}" --build-config Release --build-noclean --build-generator
+    ${CMAKE_GENERATOR} $<$<BOOL:${CMAKE_GENERATOR_PLATFORM}>:--build-generator-platform>
+    ${CMAKE_GENERATOR_PLATFORM} --build-makeprogram ${CMAKE_MAKE_PROGRAM} --build-target
+    check_${name} --build-options ${build_options}
+  )
   if(ARG_INSTALL)
     add_dependencies(test_build_${name} mock_install)
   endif()
@@ -62,7 +54,8 @@ endfunction()
 
 if(PYBIND11_TEST_SMART_HOLDER)
   add_compile_definitions(
-    -DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE)
+    -DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE
+  )
 endif()
 
 possibly_uninitialized(PYTHON_MODULE_EXTENSION Python_INTERPRETER_ID)
@@ -70,9 +63,11 @@ possibly_uninitialized(PYTHON_MODULE_EXTENSION Python_INTERPRETER_ID)
 pybind11_add_build_test(subdirectory_function)
 pybind11_add_build_test(subdirectory_target)
 pybind11_add_build_test(subdirectory_precompile)
-if("${PYTHON_MODULE_EXTENSION}" MATCHES "pypy"
-   OR "${Python_INTERPRETER_ID}" STREQUAL "PyPy"
-   OR "${PYTHON_MODULE_EXTENSION}" MATCHES "graalpy")
+if(
+  "${PYTHON_MODULE_EXTENSION}" MATCHES "pypy"
+  OR "${Python_INTERPRETER_ID}" STREQUAL "PyPy"
+  OR "${PYTHON_MODULE_EXTENSION}" MATCHES "graalpy"
+)
   message(STATUS "Skipping embed test on PyPy or GraalPy")
 else()
   pybind11_add_build_test(subdirectory_embed)
@@ -80,18 +75,24 @@ endif()
 
 if(PYBIND11_INSTALL)
   add_custom_target(
-    mock_install ${CMAKE_COMMAND} "-DCMAKE_INSTALL_PREFIX=${pybind11_BINARY_DIR}/mock_install" -P
-                 "${pybind11_BINARY_DIR}/cmake_install.cmake")
+    mock_install
+    ${CMAKE_COMMAND} "-DCMAKE_INSTALL_PREFIX=${pybind11_BINARY_DIR}/mock_install" -P
+    "${pybind11_BINARY_DIR}/cmake_install.cmake"
+  )
 
   if(NOT "${PYTHON_MODULE_EXTENSION}" MATCHES "graalpy")
     pybind11_add_build_test(installed_function INSTALL)
   endif()
   pybind11_add_build_test(installed_target INSTALL)
   pybind11_add_build_test(installed_precompile INSTALL)
-  if(NOT
-     ("${PYTHON_MODULE_EXTENSION}" MATCHES "pypy"
-      OR "${Python_INTERPRETER_ID}" STREQUAL "PyPy"
-      OR "${PYTHON_MODULE_EXTENSION}" MATCHES "graalpy"))
+  if(
+    NOT
+      (
+        "${PYTHON_MODULE_EXTENSION}" MATCHES "pypy"
+        OR "${Python_INTERPRETER_ID}" STREQUAL "PyPy"
+        OR "${PYTHON_MODULE_EXTENSION}" MATCHES "graalpy"
+      )
+  )
     pybind11_add_build_test(installed_embed INSTALL)
   endif()
 endif()

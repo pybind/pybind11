@@ -22,11 +22,7 @@ endif()
 
 add_custom_target(
   check_subdirectory_precompile
-  ${CMAKE_COMMAND}
-  -E
-  env
-  PYTHONPATH=$<TARGET_FILE_DIR:test_subdirectory_precompile>
-  ${_Python_EXECUTABLE}
-  ${PROJECT_SOURCE_DIR}/../test.py
-  ${PROJECT_NAME}
-  DEPENDS test_subdirectory_precompile)
+  ${CMAKE_COMMAND} -E env PYTHONPATH=$<TARGET_FILE_DIR:test_subdirectory_precompile>
+  ${_Python_EXECUTABLE} ${PROJECT_SOURCE_DIR}/../test.py ${PROJECT_NAME}
+  DEPENDS test_subdirectory_precompile
+)

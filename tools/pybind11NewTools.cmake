@@ -7,10 +7,7 @@
 
 include_guard(DIRECTORY)
 
-get_property(
-  is_config
-  TARGET pybind11::headers
-  PROPERTY IMPORTED)
+get_property(is_config TARGET pybind11::headers PROPERTY IMPORTED)
 
 if(pybind11_FIND_QUIETLY)
   set(_pybind11_quiet QUIET)
@@ -52,14 +49,19 @@ if(NOT Python_FOUND AND NOT Python3_FOUND)
   endif()
 
   find_package(
-    Python 3.9 REQUIRED COMPONENTS ${_pybind11_interp_component} ${_pybind11_dev_component}
-                                   ${_pybind11_quiet} ${_pybind11_global_keyword})
+    Python
+    3.9
+    REQUIRED
+    COMPONENTS
+      ${_pybind11_interp_component}
+      ${_pybind11_dev_component}
+      ${_pybind11_quiet}
+      ${_pybind11_global_keyword}
+  )
 
   # If we are in submodule mode, export the Python targets to global targets.
   # If this behavior is not desired, FindPython _before_ pybind11.
-  if(NOT is_config
-     AND Python_ARTIFACTS_INTERACTIVE
-     AND _pybind11_global_keyword STREQUAL "")
+  if(NOT is_config AND Python_ARTIFACTS_INTERACTIVE AND _pybind11_global_keyword STREQUAL "")
     if(TARGET Python::Python)
       set_property(TARGET Python::Python PROPERTY IMPORTED_GLOBAL TRUE)
     endif()
@@ -73,29 +75,17 @@ if(NOT Python_FOUND AND NOT Python3_FOUND)
 
   # Explicitly export version for callers (including our own functions)
   if(NOT is_config AND Python_ARTIFACTS_INTERACTIVE)
-    set(Python_VERSION
-        "${Python_VERSION}"
-        CACHE INTERNAL "")
-    set(Python_VERSION_MAJOR
-        "${Python_VERSION_MAJOR}"
-        CACHE INTERNAL "")
-    set(Python_VERSION_MINOR
-        "${Python_VERSION_MINOR}"
-        CACHE INTERNAL "")
-    set(Python_VERSION_PATCH
-        "${Python_VERSION_PATCH}"
-        CACHE INTERNAL "")
+    set(Python_VERSION "${Python_VERSION}" CACHE INTERNAL "")
+    set(Python_VERSION_MAJOR "${Python_VERSION_MAJOR}" CACHE INTERNAL "")
+    set(Python_VERSION_MINOR "${Python_VERSION_MINOR}" CACHE INTERNAL "")
+    set(Python_VERSION_PATCH "${Python_VERSION_PATCH}" CACHE INTERNAL "")
   endif()
 endif()
 
 if(Python_FOUND)
-  set(_Python
-      Python
-      CACHE INTERNAL "" FORCE)
+  set(_Python Python CACHE INTERNAL "" FORCE)
 elseif(Python3_FOUND)
-  set(_Python
-      Python3
-      CACHE INTERNAL "" FORCE)
+  set(_Python Python3 CACHE INTERNAL "" FORCE)
 endif()
 
 if(PYBIND11_MASTER_PROJECT)
@@ -107,27 +97,31 @@ if(PYBIND11_MASTER_PROJECT)
 endif()
 
 if(NOT _PYBIND11_CROSSCOMPILING AND DEFINED ${_Python}_EXECUTABLE)
-  if(DEFINED PYBIND11_PYTHON_EXECUTABLE_LAST AND NOT ${_Python}_EXECUTABLE STREQUAL
-                                                 PYBIND11_PYTHON_EXECUTABLE_LAST)
+  if(
+    DEFINED PYBIND11_PYTHON_EXECUTABLE_LAST
+    AND NOT ${_Python}_EXECUTABLE STREQUAL PYBIND11_PYTHON_EXECUTABLE_LAST
+  )
     # Detect changes to the Python version/binary in subsequent CMake runs, and refresh config if needed
     unset(PYTHON_IS_DEBUG CACHE)
     unset(PYTHON_MODULE_EXTENSION CACHE)
     unset(PYTHON_MODULE_DEBUG_POSTFIX CACHE)
   endif()
 
-  set(PYBIND11_PYTHON_EXECUTABLE_LAST
-      "${${_Python}_EXECUTABLE}"
-      CACHE INTERNAL "Python executable during the last CMake run")
+  set(
+    PYBIND11_PYTHON_EXECUTABLE_LAST
+    "${${_Python}_EXECUTABLE}"
+    CACHE INTERNAL
+    "Python executable during the last CMake run"
+  )
 
   if(NOT DEFINED PYTHON_IS_DEBUG)
     # Debug check - see https://stackoverflow.com/questions/646518/python-how-to-detect-debug-Interpreter
     execute_process(
-      COMMAND "${${_Python}_EXECUTABLE}" "-c"
-              "import sys; sys.exit(hasattr(sys, 'gettotalrefcount'))"
-      RESULT_VARIABLE _PYTHON_IS_DEBUG)
-    set(PYTHON_IS_DEBUG
-        "${_PYTHON_IS_DEBUG}"
-        CACHE INTERNAL "Python debug status")
+      COMMAND
+        "${${_Python}_EXECUTABLE}" "-c" "import sys; sys.exit(hasattr(sys, 'gettotalrefcount'))"
+      RESULT_VARIABLE _PYTHON_IS_DEBUG
+    )
+    set(PYTHON_IS_DEBUG "${_PYTHON_IS_DEBUG}" CACHE INTERNAL "Python debug status")
   endif()
 
   # Get the suffix - SO is deprecated, should use EXT_SUFFIX, but this is
@@ -139,56 +133,62 @@ if(NOT _PYBIND11_CROSSCOMPILING AND DEFINED ${_Python}_EXECUTABLE)
         "import sys, importlib; s = importlib.import_module('distutils.sysconfig' if sys.version_info < (3, 10) else 'sysconfig'); print(s.get_config_var('EXT_SUFFIX') or s.get_config_var('SO'))"
       OUTPUT_VARIABLE _PYTHON_MODULE_EXT_SUFFIX
       ERROR_VARIABLE _PYTHON_MODULE_EXT_SUFFIX_ERR
-      OUTPUT_STRIP_TRAILING_WHITESPACE)
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
 
     if(_PYTHON_MODULE_EXT_SUFFIX STREQUAL "")
       message(
         FATAL_ERROR
-          "pybind11 could not query the module file extension, likely the 'distutils'"
-          "package is not installed. Full error message:\n${_PYTHON_MODULE_EXT_SUFFIX_ERR}")
+        "pybind11 could not query the module file extension, likely the 'distutils'"
+        "package is not installed. Full error message:\n${_PYTHON_MODULE_EXT_SUFFIX_ERR}"
+      )
     endif()
 
     # This needs to be available for the pybind11_extension function
     if(NOT DEFINED PYTHON_MODULE_DEBUG_POSTFIX)
       get_filename_component(_PYTHON_MODULE_DEBUG_POSTFIX "${_PYTHON_MODULE_EXT_SUFFIX}" NAME_WE)
-      set(PYTHON_MODULE_DEBUG_POSTFIX
-          "${_PYTHON_MODULE_DEBUG_POSTFIX}"
-          CACHE INTERNAL "")
+      set(PYTHON_MODULE_DEBUG_POSTFIX "${_PYTHON_MODULE_DEBUG_POSTFIX}" CACHE INTERNAL "")
     endif()
 
     if(NOT DEFINED PYTHON_MODULE_EXTENSION)
       get_filename_component(_PYTHON_MODULE_EXTENSION "${_PYTHON_MODULE_EXT_SUFFIX}" EXT)
-      set(PYTHON_MODULE_EXTENSION
-          "${_PYTHON_MODULE_EXTENSION}"
-          CACHE INTERNAL "")
-      if((NOT "$ENV{SETUPTOOLS_EXT_SUFFIX}" STREQUAL "")
-         AND (NOT "$ENV{SETUPTOOLS_EXT_SUFFIX}" STREQUAL "${PYTHON_MODULE_EXTENSION}"))
+      set(PYTHON_MODULE_EXTENSION "${_PYTHON_MODULE_EXTENSION}" CACHE INTERNAL "")
+      if(
+        (NOT "$ENV{SETUPTOOLS_EXT_SUFFIX}" STREQUAL "")
+        AND (NOT "$ENV{SETUPTOOLS_EXT_SUFFIX}" STREQUAL "${PYTHON_MODULE_EXTENSION}")
+      )
         message(
           AUTHOR_WARNING,
           "SETUPTOOLS_EXT_SUFFIX is set to \"$ENV{SETUPTOOLS_EXT_SUFFIX}\", "
           "but the auto-calculated Python extension suffix is \"${PYTHON_MODULE_EXTENSION}\". "
           "This may cause problems when importing the Python extensions. "
           "If you are using cross-compiling Python, you may need to "
-          "set PYTHON_MODULE_EXTENSION manually.")
+          "set PYTHON_MODULE_EXTENSION manually."
+        )
       endif()
     endif()
   endif()
 else()
-  if(NOT DEFINED PYTHON_IS_DEBUG
-     OR NOT DEFINED PYTHON_MODULE_EXTENSION
-     OR NOT DEFINED PYTHON_MODULE_DEBUG_POSTFIX)
+  if(
+    NOT DEFINED PYTHON_IS_DEBUG
+    OR NOT DEFINED PYTHON_MODULE_EXTENSION
+    OR NOT DEFINED PYTHON_MODULE_DEBUG_POSTFIX
+  )
     include("${CMAKE_CURRENT_LIST_DIR}/pybind11GuessPythonExtSuffix.cmake")
     pybind11_guess_python_module_extension("${_Python}")
   endif()
-  if(NOT DEFINED PYTHON_IS_DEBUG
-     OR NOT DEFINED PYTHON_MODULE_EXTENSION
-     OR NOT DEFINED PYTHON_MODULE_DEBUG_POSTFIX)
+  if(
+    NOT DEFINED PYTHON_IS_DEBUG
+    OR NOT DEFINED PYTHON_MODULE_EXTENSION
+    OR NOT DEFINED PYTHON_MODULE_DEBUG_POSTFIX
+  )
     message(
       FATAL_ERROR
-        "A Python interpreter was not found, or you are cross-compiling, and the "
-        "PYTHON_IS_DEBUG, PYTHON_MODULE_EXTENSION and PYTHON_MODULE_DEBUG_POSTFIX "
-        "variables could not be guessed. Set these variables appropriately before "
-        "loading pybind11 (e.g. in your CMake toolchain file)")
+      "A Python interpreter was not found, or you are cross-compiling, and the "
+      "PYTHON_IS_DEBUG, PYTHON_MODULE_EXTENSION and PYTHON_MODULE_DEBUG_POSTFIX "
+      "variables could not be guessed. Set these variables appropriately before "
+      "loading pybind11 (e.g. in your CMake toolchain file)"
+    )
   endif()
 endif()
 
@@ -196,10 +196,7 @@ endif()
 # https://docs.python.org/3/c-api/intro.html#debugging-builds
 # https://stackoverflow.com/questions/39161202/how-to-work-around-missing-pymodule-create2-in-amd64-win-python35-d-lib
 if(PYTHON_IS_DEBUG)
-  set_property(
-    TARGET pybind11::pybind11
-    APPEND
-    PROPERTY INTERFACE_COMPILE_DEFINITIONS Py_DEBUG)
+  set_property(TARGET pybind11::pybind11 APPEND PROPERTY INTERFACE_COMPILE_DEFINITIONS Py_DEBUG)
 endif()
 
 # Check on every access - since Python can change - do nothing in that case.
@@ -213,23 +210,26 @@ if(DEFINED ${_Python}_INCLUDE_DIRS)
   # next to Python's includes. It also ensures Python is a SYSTEM library.
   add_library(pybind11::python_headers INTERFACE IMPORTED)
   set_property(
-    TARGET pybind11::python_headers PROPERTY INTERFACE_INCLUDE_DIRECTORIES
-                                             "$<BUILD_INTERFACE:${${_Python}_INCLUDE_DIRS}>")
+    TARGET pybind11::python_headers
+    PROPERTY INTERFACE_INCLUDE_DIRECTORIES "$<BUILD_INTERFACE:${${_Python}_INCLUDE_DIRS}>"
+  )
   set_property(
     TARGET pybind11::pybind11
     APPEND
-    PROPERTY INTERFACE_LINK_LIBRARIES pybind11::python_headers)
-  set(pybind11_INCLUDE_DIRS
-      "${pybind11_INCLUDE_DIR}" "${${_Python}_INCLUDE_DIRS}"
-      CACHE INTERNAL "Directories where pybind11 and possibly Python headers are located")
+    PROPERTY INTERFACE_LINK_LIBRARIES pybind11::python_headers
+  )
+  set(
+    pybind11_INCLUDE_DIRS
+    "${pybind11_INCLUDE_DIR}"
+    "${${_Python}_INCLUDE_DIRS}"
+    CACHE INTERNAL
+    "Directories where pybind11 and possibly Python headers are located"
+  )
 endif()
 
 # In CMake 3.18+, you can find these separately, so include an if
 if(TARGET ${_Python}::Python)
-  set_property(
-    TARGET pybind11::embed
-    APPEND
-    PROPERTY INTERFACE_LINK_LIBRARIES ${_Python}::Python)
+  set_property(TARGET pybind11::embed APPEND PROPERTY INTERFACE_LINK_LIBRARIES ${_Python}::Python)
 endif()
 
 if(TARGET ${_Python}::Module)
@@ -241,24 +241,25 @@ if(TARGET ${_Python}::Module)
     target_link_libraries(${_Python}::Module INTERFACE ${${_Python}_LIBRARIES})
   endif()
 
-  set_property(
-    TARGET pybind11::module
-    APPEND
-    PROPERTY INTERFACE_LINK_LIBRARIES ${_Python}::Module)
+  set_property(TARGET pybind11::module APPEND PROPERTY INTERFACE_LINK_LIBRARIES ${_Python}::Module)
 else()
   set_property(
     TARGET pybind11::module
     APPEND
-    PROPERTY INTERFACE_LINK_LIBRARIES pybind11::python_link_helper)
+    PROPERTY INTERFACE_LINK_LIBRARIES pybind11::python_link_helper
+  )
 endif()
 
 # WITHOUT_SOABI and WITH_SOABI will disable the custom extension handling used by pybind11.
 # WITH_SOABI is passed on to python_add_library.
 function(pybind11_add_module target_name)
   cmake_parse_arguments(
-    PARSE_ARGV 1 ARG
-    "STATIC;SHARED;MODULE;THIN_LTO;OPT_SIZE;NO_EXTRAS;WITHOUT_SOABI;PRECOMPILE;NO_PRECOMPILE" ""
-    "")
+    PARSE_ARGV 1
+    ARG
+    "STATIC;SHARED;MODULE;THIN_LTO;OPT_SIZE;NO_EXTRAS;WITHOUT_SOABI;PRECOMPILE;NO_PRECOMPILE"
+    ""
+    ""
+  )
 
   if(ARG_STATIC)
     set(lib_type STATIC)
@@ -327,7 +328,9 @@ function(pybind11_extension name)
   # The extension is precomputed
   set_target_properties(
     ${name}
-    PROPERTIES PREFIX ""
-               DEBUG_POSTFIX "${PYTHON_MODULE_DEBUG_POSTFIX}"
-               SUFFIX "${PYTHON_MODULE_EXTENSION}")
+    PROPERTIES
+      PREFIX ""
+      DEBUG_POSTFIX "${PYTHON_MODULE_DEBUG_POSTFIX}"
+      SUFFIX "${PYTHON_MODULE_EXTENSION}"
+  )
 endfunction()
