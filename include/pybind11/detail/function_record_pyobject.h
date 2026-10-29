@@ -109,8 +109,6 @@ inline PyTypeObject *get_function_record_PyTypeObject() {
     return py_type_obj;
 }
 
-// This works across extension modules, and does not need the internals lock.
-// Note that tp_name is versioned.
 // This works across extension modules. Note that tp_name is versioned.
 inline bool function_record_PyTypeObject_name_matches(PyTypeObject *obj_type) {
     return tp_name_equals(obj_type, function_record_PyTypeObject_methods::tp_qualname_impl)

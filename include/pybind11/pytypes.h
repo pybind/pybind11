@@ -539,9 +539,10 @@ inline std::string utf8_or_empty(const object &o) {
     return std::string(data, static_cast<size_t>(size));
 }
 
-/// Reconstructs `tp_name`, which is not readable under the stable ABI: `__module__.__name__`
-/// for static types outside builtins and for pybind11 types, the bare `__name__` otherwise
-/// (builtins and Python heap types).
+/// Reconstructs `tp_name`, which is not readable under the stable ABI, for messages:
+/// `__module__.__name__` for static types outside builtins and for pybind11 types, the bare
+/// `__name__` otherwise (builtins and Python heap types). Heap types of other C extensions come
+/// out without their module; compare names with tp_name_is_one_of(), not with this.
 inline std::string get_tp_name(PyTypeObject *type) {
     std::string name = utf8_or_empty(reinterpret_steal<object>(PyType_GetName(type)));
     if (PyType_HasFeature(type, Py_TPFLAGS_HEAPTYPE) && !type_is_managed_by_our_internals(type)) {
@@ -555,8 +556,10 @@ inline std::string get_tp_name(PyTypeObject *type) {
     return module_ + '.' + name;
 }
 
-/// True if `get_tp_name(type)` is one of `names`. The unqualified `__name__` is fetched once and
-/// compared first; the full name is only reconstructed on a match.
+/// True if `tp_name` is one of `names`. A dotted name (`numpy.bool`) matches `__module__` and
+/// `__name__` separately, whether the type is static or a heap type created from a spec. A bare
+/// name matches a builtin or a Python class, whose tp_name has no module. `__name__` is compared
+/// first, so a mismatch costs one attribute read.
 inline bool tp_name_is_one_of(PyTypeObject *type, std::initializer_list<const char *> names) {
     auto type_name = reinterpret_steal<object>(PyType_GetName(type));
     const char *type_name_utf8
@@ -565,9 +568,26 @@ inline bool tp_name_is_one_of(PyTypeObject *type, std::initializer_list<const ch
         PyErr_Clear();
         return false;
     }
+    std::string module_;
+    bool have_module = false;
     for (const char *name : names) {
         const char *dot = std::strrchr(name, '.');
-        if (std::strcmp(type_name_utf8, dot ? dot + 1 : name) == 0 && get_tp_name(type) == name) {
+        if (std::strcmp(type_name_utf8, dot ? dot + 1 : name) != 0) {
+            continue;
+        }
+        if (!have_module) {
+            module_ = utf8_or_empty(reinterpret_steal<object>(
+                PyObject_GetAttrString(reinterpret_cast<PyObject *>(type), "__module__")));
+            have_module = true;
+        }
+        if (dot != nullptr) {
+            if (module_.compare(0, std::string::npos, name, static_cast<size_t>(dot - name))
+                == 0) {
+                return true;
+            }
+        } else if (module_.empty() || module_ == PYBIND11_BUILTINS_MODULE
+                   || (PyType_HasFeature(type, Py_TPFLAGS_HEAPTYPE)
+                       && !type_is_managed_by_our_internals(type))) {
             return true;
         }
     }

@@ -825,6 +825,12 @@ struct instance {
     /// Weak reference used by the instance registry: the limited API has no PyUnstable_TryIncRef.
     PyObject *registry_weakref;
 #endif
+#if defined(Py_LIMITED_API)
+    /// The `__dict__` slot of `py::dynamic_attr()` types, null for all others. The stable ABI
+    /// has no Py_TPFLAGS_MANAGED_DICT; every type reserves the slot so that all pybind11 types
+    /// keep one instance size (PyType_FromMetaclass() rejects bases of different sizes).
+    PyObject *dict;
+#endif
 
     /// Initializes all of the above type/values/holders data (but not the instance values
     /// themselves)

@@ -16,8 +16,6 @@
 
 #include "class.h"
 
-#include <algorithm>
-
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
@@ -91,7 +89,7 @@ pybind11_static_set(PyObject *self, PyObject *obj, PyObject *value) {
 
 #    if PYBIND11_TYPE_CREATION_VIA_SPEC
 
-#        if defined(Py_LIMITED_API) || defined(PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET)
+#        if defined(Py_LIMITED_API)
 // Without Py_TPFLAGS_MANAGED_DICT the `__dict__` slot follows the property object. These two
 // functions find it through the type's `__dictoffset__`.
 PYBIND11_INLINE PyObject **static_property_dict_ptr(PyObject *self) {
@@ -113,7 +111,7 @@ extern "C" PYBIND11_INLINE int pybind11_static_property_clear(PyObject *self) {
 PYBIND11_INLINE PyTypeObject *make_static_property_type() {
     // Since Python-3.12 property-derived types are required to have dynamic attributes (to set
     // `__doc__`), hence the GC and dict slots.
-#        if !defined(Py_LIMITED_API) && !defined(PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET)
+#        if !defined(Py_LIMITED_API)
     static PyType_Slot slots[] = {{Py_tp_descr_get, reinterpret_cast<void *>(pybind11_static_get)},
                                   {Py_tp_descr_set, reinterpret_cast<void *>(pybind11_static_set)},
                                   {Py_tp_traverse, reinterpret_cast<void *>(pybind11_traverse)},
@@ -589,42 +587,41 @@ extern "C" PYBIND11_INLINE void instancemethod_dealloc(PyObject *self) {
     Py_DECREF(reinterpret_cast<PyObject *>(type));
 }
 
+// Called from the internals constructor, like the other internals types.
+PYBIND11_INLINE PyTypeObject *make_instancemethod_type() {
+    static PyMemberDef members[] = {{"__func__",
+                                     Py_T_OBJECT_EX,
+                                     offsetof(instancemethod_object, func),
+                                     Py_READONLY | PYBIND11_MEMBER_OFFSET_FLAGS,
+                                     nullptr},
+                                    {"__vectorcalloffset__",
+                                     Py_T_PYSSIZET,
+                                     offsetof(instancemethod_object, vectorcall),
+                                     Py_READONLY | PYBIND11_MEMBER_OFFSET_FLAGS,
+                                     nullptr},
+                                    {nullptr, 0, 0, 0, nullptr}};
+    static PyType_Slot slots[]
+        = {{Py_tp_descr_get, reinterpret_cast<void *>(instancemethod_descr_get)},
+           {Py_tp_call, reinterpret_cast<void *>(instancemethod_call)},
+           {Py_tp_getattro, reinterpret_cast<void *>(instancemethod_getattro)},
+           {Py_tp_repr, reinterpret_cast<void *>(instancemethod_repr)},
+           {Py_tp_traverse, reinterpret_cast<void *>(instancemethod_traverse)},
+           {Py_tp_clear, reinterpret_cast<void *>(instancemethod_clear)},
+           {Py_tp_dealloc, reinterpret_cast<void *>(instancemethod_dealloc)},
+           {Py_tp_members, reinterpret_cast<void *>(members)},
+           {0, nullptr}};
+    static PyType_Spec spec
+        = {PYBIND11_DUMMY_MODULE_NAME ".instancemethod",
+           PYBIND11_TYPE_DATA_SIZE(instancemethod_object),
+           0,
+           Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_DISALLOW_INSTANTIATION
+               | Py_TPFLAGS_METHOD_DESCRIPTOR | Py_TPFLAGS_HAVE_VECTORCALL,
+           slots};
+    return type_from_spec("make_instancemethod_type()", nullptr, &spec, nullptr);
+}
+
 PYBIND11_INLINE PyTypeObject *get_instancemethod_type() {
-    return with_internals([](internals &internals) {
-        if (internals.instancemethod_type == nullptr) {
-            static PyMemberDef members[] = {{"__func__",
-                                             Py_T_OBJECT_EX,
-                                             offsetof(instancemethod_object, func),
-                                             Py_READONLY | PYBIND11_MEMBER_OFFSET_FLAGS,
-                                             nullptr},
-                                            {"__vectorcalloffset__",
-                                             Py_T_PYSSIZET,
-                                             offsetof(instancemethod_object, vectorcall),
-                                             Py_READONLY | PYBIND11_MEMBER_OFFSET_FLAGS,
-                                             nullptr},
-                                            {nullptr, 0, 0, 0, nullptr}};
-            static PyType_Slot slots[]
-                = {{Py_tp_descr_get, reinterpret_cast<void *>(instancemethod_descr_get)},
-                   {Py_tp_call, reinterpret_cast<void *>(instancemethod_call)},
-                   {Py_tp_getattro, reinterpret_cast<void *>(instancemethod_getattro)},
-                   {Py_tp_repr, reinterpret_cast<void *>(instancemethod_repr)},
-                   {Py_tp_traverse, reinterpret_cast<void *>(instancemethod_traverse)},
-                   {Py_tp_clear, reinterpret_cast<void *>(instancemethod_clear)},
-                   {Py_tp_dealloc, reinterpret_cast<void *>(instancemethod_dealloc)},
-                   {Py_tp_members, reinterpret_cast<void *>(members)},
-                   {0, nullptr}};
-            static PyType_Spec spec
-                = {PYBIND11_DUMMY_MODULE_NAME ".instancemethod",
-                   PYBIND11_TYPE_DATA_SIZE(instancemethod_object),
-                   0,
-                   Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_DISALLOW_INSTANTIATION
-                       | Py_TPFLAGS_METHOD_DESCRIPTOR | Py_TPFLAGS_HAVE_VECTORCALL,
-                   slots};
-            internals.instancemethod_type
-                = type_from_spec("get_instancemethod_type()", nullptr, &spec, nullptr);
-        }
-        return internals.instancemethod_type;
-    });
+    return get_internals().instancemethod_type;
 }
 
 PYBIND11_INLINE bool is_instancemethod(PyObject *obj) {
@@ -677,18 +674,22 @@ PYBIND11_INLINE PyObject **instance_dict_ptr(PyObject *self) {
 #elif !defined(Py_LIMITED_API)
     return _PyObject_GetDictPtr(self);
 #else
-    // Only `py::dynamic_attr()` types have a `__dict__` slot pybind11 manages (recorded in the
-    // type_info of the pybind11 type that introduced it); Python subclasses that add a managed
-    // dict clear it themselves before calling the base tp_dealloc.
-    for (const auto *tinfo : all_type_info(Py_TYPE(self))) {
-        if (tinfo->dictoffset > 0) {
-            return reinterpret_cast<PyObject **>(reinterpret_cast<char *>(self)
-                                                 + tinfo->dictoffset);
-        }
-    }
-    return nullptr;
+    // The slot every pybind11 instance reserves; only `py::dynamic_attr()` types point their
+    // `__dictoffset__` at it, so it stays null for the others. Python subclasses that add a
+    // managed dict clear that themselves before calling the base tp_dealloc.
+    return &get_instance(self)->dict;
 #endif
 }
+
+#if defined(Py_LIMITED_API)
+PYBIND11_INLINE Py_ssize_t instance_dict_offset() {
+#    if defined(PYBIND11_OPAQUE_PYOBJECT)
+    return instance_data_offset() + static_cast<Py_ssize_t>(offsetof(instance, dict));
+#    else
+    return static_cast<Py_ssize_t>(offsetof(instance, dict));
+#    endif
+}
+#endif
 
 #if defined(PYBIND11_OPAQUE_PYOBJECT)
 PYBIND11_INLINE Py_ssize_t instance_data_offset() {
@@ -1108,11 +1109,11 @@ PYBIND11_INLINE PyObject *make_new_python_type(const type_record &rec) {
 #    endif
 
     object module_ = get_module_name_if_available(rec.scope);
-    // Persistent: the type keeps pointing at it as tp_name. PyType_FromMetaclass() derives
-    // __module__ from the part before the last dot and warns if there is none.
-    const auto *full_name
-        = c_str((module_ ? str(module_).cast<std::string>() : PYBIND11_DUMMY_MODULE_NAME) + "."
-                + rec.name);
+    // PyType_FromMetaclass() copies the name, derives __module__ from the part before the last
+    // dot, and warns if there is none.
+    const std::string full_name
+        = (module_ ? str(module_).cast<std::string>() : PYBIND11_DUMMY_MODULE_NAME) + "."
+          + rec.name;
 
     auto bases = tuple(rec.bases);
     if (bases.empty()) {
@@ -1130,31 +1131,21 @@ PYBIND11_INLINE PyObject *make_new_python_type(const type_record &rec) {
     if (!rec.is_final) {
         flags |= Py_TPFLAGS_BASETYPE;
     }
-    int basicsize = 0; // inherit the instance layout from the base
-#    if defined(Py_LIMITED_API) || defined(PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET)
-    // Without Py_TPFLAGS_MANAGED_DICT (not in the stable ABI) the `__dict__` slot is appended to
-    // the base layout unless a base has one already. (PEP 697 relative offsets are not applied to
-    // `__dictoffset__` on 3.12, so the offset is absolute.)
-    PyMemberDef dict_member[] = {{"__dictoffset__", Py_T_PYSSIZET, 0, Py_READONLY, nullptr},
-                                 {nullptr, 0, 0, 0, nullptr}};
+#    if defined(Py_LIMITED_API)
+    // No Py_TPFLAGS_MANAGED_DICT in the stable ABI: `__dict__` is the slot every instance
+    // reserves (instance::dict), so the instance size is the same for all pybind11 types. The
+    // offset is absolute: the size is inherited from the base, and PEP 697 relative offsets are
+    // not applied to `__dictoffset__` on 3.12.
+    PyMemberDef dict_member[]
+        = {{"__dictoffset__", Py_T_PYSSIZET, instance_dict_offset(), Py_READONLY, nullptr},
+           {nullptr, 0, 0, 0, nullptr}};
 #    endif
     if (rec.dynamic_attr) {
         flags |= Py_TPFLAGS_HAVE_GC;
-#    if !defined(Py_LIMITED_API) && !defined(PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET)
+#    if !defined(Py_LIMITED_API)
         flags |= Py_TPFLAGS_MANAGED_DICT;
 #    else
-        bool base_has_dict = false;
-        int base_basicsize = 0;
-        for (handle b : bases) {
-            auto *b_type = reinterpret_cast<PyTypeObject *>(b.ptr());
-            base_has_dict |= type_dictoffset(b_type) != 0;
-            base_basicsize = std::max(base_basicsize, static_cast<int>(type_basicsize(b_type)));
-        }
-        if (!base_has_dict) {
-            dict_member[0].offset = base_basicsize;
-            basicsize = base_basicsize + static_cast<int>(sizeof(PyObject *));
-            slots.push_back({Py_tp_members, reinterpret_cast<void *>(dict_member)});
-        }
+        slots.push_back({Py_tp_members, reinterpret_cast<void *>(dict_member)});
 #    endif
         slots.push_back({Py_tp_traverse, reinterpret_cast<void *>(pybind11_traverse)});
         slots.push_back({Py_tp_clear, reinterpret_cast<void *>(pybind11_clear)});
@@ -1166,7 +1157,8 @@ PYBIND11_INLINE PyObject *make_new_python_type(const type_record &rec) {
     }
     slots.push_back({0, nullptr});
 
-    PyType_Spec spec = {full_name, basicsize, 0, flags, slots.data()};
+    // basicsize 0: inherit the instance layout from the base
+    PyType_Spec spec = {full_name.c_str(), 0, 0, flags, slots.data()};
     auto *type
         = reinterpret_cast<PyObject *>(type_from_spec(rec.name, metaclass, &spec, base.ptr()));
     assert(!rec.dynamic_attr
