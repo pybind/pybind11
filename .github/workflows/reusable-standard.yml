@@ -78,6 +78,7 @@ jobs:
           -DPYBIND11_PYTEST_ARGS=-v
           -DDOWNLOAD_CATCH=ON
           -DDOWNLOAD_EIGEN=ON
+          -DPYBIND11_EIGEN_REPO=https://github.com/eigen-mirror/eigen.git
           -DPYTHON_EXECUTABLE=${{ steps.python.outputs.python-path }}
           ${{ inputs.cmake-args }}
 
