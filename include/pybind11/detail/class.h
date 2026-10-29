@@ -132,6 +132,7 @@ void type_free(PyTypeObject *type, PyObject *self);
 /// Stand-ins for the instancemethod and method C APIs (see detail/class-inl.h). The
 /// `is_*`/`*_function` functions are also declared in pytypes.h.
 PyTypeObject *get_bound_method_type();
+PyTypeObject *make_instancemethod_type();
 PyTypeObject *get_instancemethod_type();
 struct instancemethod_object;
 instancemethod_object *instancemethod_data(PyObject *self);
@@ -148,6 +149,12 @@ extern "C" void instancemethod_dealloc(PyObject *self);
 
 /// Pointer to the `__dict__` slot of an instance, or nullptr if its type has none.
 PyObject **instance_dict_ptr(PyObject *self);
+
+#if defined(Py_LIMITED_API)
+/// Offset of `instance::dict` from the start of the Python object (the `__dictoffset__` of
+/// `py::dynamic_attr()` types).
+Py_ssize_t instance_dict_offset();
+#endif
 
 /// Instance creation function for all pybind11 types. It allocates the internal instance layout
 /// for holding C++ objects and holders.  Allocation is done lazily (the first time the instance is

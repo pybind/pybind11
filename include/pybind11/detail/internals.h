@@ -224,6 +224,9 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 PyTypeObject *make_static_property_type();
 PyTypeObject *make_default_metaclass();
 PyObject *make_object_base_type(PyTypeObject *metaclass);
+#if defined(Py_LIMITED_API)
+PyTypeObject *make_instancemethod_type();
+#endif
 void translate_exception(std::exception_ptr p);
 
 inline PyThreadState *get_thread_state_unchecked() {
@@ -450,7 +453,11 @@ struct internals {
 
     internals()
         : static_property_type(make_static_property_type()),
-          default_metaclass(make_default_metaclass()), istate(get_interpreter_state_unchecked()) {
+          default_metaclass(make_default_metaclass()),
+#if defined(Py_LIMITED_API)
+          instancemethod_type(make_instancemethod_type()),
+#endif
+          istate(get_interpreter_state_unchecked()) {
         tstate.set(nullptr); // See PR #5870
         registered_exception_translators.push_front(&translate_exception);
 #ifdef Py_GIL_DISABLED
@@ -531,12 +538,6 @@ struct type_info {
     // nb_alias_chain` added in
     // https://github.com/wjakob/nanobind/commit/b515b1f7f2f4ecc0357818e6201c94a9f4cbfdc2
     std::forward_list<const std::type_info *> alias_chain;
-#endif
-
-#if defined(Py_LIMITED_API)
-    /* Offset of the `__dict__` slot of instances for `py::dynamic_attr()` types (0 if none);
-     * `_PyObject_GetDictPtr` is not available under the stable ABI. */
-    Py_ssize_t dictoffset = 0;
 #endif
 
     /* A simple type never occurs as a (direct or indirect) parent

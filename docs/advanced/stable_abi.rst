@@ -89,8 +89,9 @@ available and in how a few things are implemented.
        array fields through NumPy's abi3t accessors).
    * - ``py::dynamic_attr()``
      - supported
-     - The ``__dict__`` slot is appended to the instance (no
-       ``Py_TPFLAGS_MANAGED_DICT``).
+     - Every instance reserves a ``__dict__`` slot (one pointer) that
+       ``py::dynamic_attr()`` types use; there is no
+       ``Py_TPFLAGS_MANAGED_DICT`` in the stable ABI.
    * - Buffer protocol
      - supported
      - Through the ``Py_bf_*`` type slots.
@@ -134,7 +135,9 @@ Under abi3t, ``PyObject`` and ``PyModuleDef`` are incomplete types and
   ``py::module_::create_extension_module()`` is not available;
 * locks its internals with critical sections on a private object, and keeps
   one weak reference per registered instance so that the instance registry
-  can hand out strong references safely (``PyWeakref_GetRef()``).
+  can hand out strong references safely (``PyWeakref_GetRef()``). This weak
+  reference is visible from Python: ``weakref.getweakrefcount()`` counts it,
+  and ``weakref.ref(obj)`` without a callback returns that same object.
 
 ``pybind11/numpy.h`` reads NumPy's object fields through the accessors NumPy
 2.5 added for abi3t, so older NumPy versions are rejected at run time. The
@@ -167,7 +170,7 @@ to specific operations:
   fills in the ``PyHeapTypeObject`` fields directly.
 * Instance allocation and deallocation look up ``tp_alloc``/``tp_free`` with
   ``PyType_GetSlot()``; the ``__dict__`` of ``py::dynamic_attr()`` instances
-  is found through the type's cached dictionary offset.
+  is a fixed slot in the instance layout.
 * Attribute *assignment* on bound classes (``Type.static_prop = value``) walks
   ``__mro__`` and the class dictionaries instead of using ``_PyType_Lookup()``;
   attribute reads use the metaclass default and are not affected.

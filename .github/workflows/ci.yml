@@ -107,8 +107,8 @@ jobs:
       python-version: ${{ matrix.python-version }}
       cmake-args: -DPYBIND11_TEST_PRECOMPILE=ON
 
-  # Opt-in PyType_FromMetaclass type creation (the future default on CPython 3.12+
-  # and the only path under the stable ABI).
+  # PyType_FromMetaclass type creation is the default on CPython 3.12+ (and the only
+  # path under the stable ABI); this job covers the legacy opt-out.
   type-creation-legacy:
     if: github.event.pull_request.draft == false
     strategy:
