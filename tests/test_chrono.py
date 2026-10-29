@@ -32,6 +32,21 @@ def test_chrono_system_clock():
     assert diff.seconds <= diff_python.seconds
 
 
+def test_chrono_datetime_subclass_overrides_ignored():
+    # Conversion must read the stored fields, not attributes a subclass overrides.
+    class Weird(datetime.datetime):
+        @property
+        def year(self):
+            return 2001
+
+        @property
+        def minute(self):
+            return 59
+
+    value = Weird(2020, 1, 2, 3, 4, 5)
+    assert m.test_chrono2(value) == datetime.datetime(2020, 1, 2, 3, 4, 5)
+
+
 def test_chrono_second_translation_unit():
     """The datetime C API import must work per translation unit (two-TU crash)"""
     delta = datetime.timedelta(seconds=1, microseconds=5)

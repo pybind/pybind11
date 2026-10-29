@@ -90,6 +90,9 @@ public:
                 PyErr_Clear();
                 return false;
             }
+            if (!PyComplex_Check(index.ptr())) {
+                return false;
+            }
             src_or_index = index;
         }
         double real = PyComplex_RealAsDouble(src_or_index.ptr());

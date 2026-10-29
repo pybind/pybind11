@@ -53,18 +53,20 @@ inline bool is_date(handle h) {
 inline bool is_time(handle h) {
     return PyObject_TypeCheck(h.ptr(), get_datetime_types().time) != 0;
 }
-inline int datetime_field(handle h, PyObject *name) {
-    auto value = reinterpret_steal<object>(PyObject_GetAttr(h.ptr(), name));
-    if (!value) {
-        throw error_already_set();
-    }
-    return value.cast<int>();
+// Reads the stored field through the base type's descriptor, so a subclass that overrides the
+// attribute does not change the converted value (matching the C macros).
+// The getter is kept for the lifetime of the process, like the type objects.
+inline handle datetime_field_getter(PyTypeObject *type, const char *name) {
+    return object(reinterpret_borrow<object>(reinterpret_cast<PyObject *>(type))
+                      .attr(name)
+                      .attr("__get__"))
+        .release();
 }
-// One accessor per field: interned attribute lookup here, the C macro otherwise.
-#    define PYBIND11_DATETIME_ACCESSOR(fn, attr, c_macro)                                         \
+// One accessor per field: the base type's descriptor here, the C macro otherwise.
+#    define PYBIND11_DATETIME_ACCESSOR(fn, type, attr, c_macro)                                   \
         inline int fn(handle h) {                                                                 \
-            static PyObject *name = interned_name(#attr);                                         \
-            return datetime_field(h, name);                                                       \
+            static const handle getter = datetime_field_getter(get_datetime_types().type, #attr); \
+            return getter(h).cast<int>();                                                         \
         }
 
 inline PyObject *make_timedelta(int days, int seconds, int microseconds) {
@@ -99,7 +101,7 @@ static inline bool is_timedelta(handle h) { return PyDelta_Check(h.ptr()); }
 static inline bool is_datetime(handle h) { return PyDateTime_Check(h.ptr()); }
 static inline bool is_date(handle h) { return PyDate_Check(h.ptr()); }
 static inline bool is_time(handle h) { return PyTime_Check(h.ptr()); }
-#    define PYBIND11_DATETIME_ACCESSOR(fn, attr, c_macro)                                         \
+#    define PYBIND11_DATETIME_ACCESSOR(fn, type, attr, c_macro)                                   \
         static inline int fn(handle h) { return c_macro(h.ptr()); }
 static inline PyObject *make_timedelta(int days, int seconds, int microseconds) {
     return PyDelta_FromDSU(days, seconds, microseconds);
@@ -115,22 +117,28 @@ static inline PyObject *datetime_from_timestamp(std::time_t tt) {
 }
 #endif
 
-PYBIND11_DATETIME_ACCESSOR(timedelta_days, days, PyDateTime_DELTA_GET_DAYS)
-PYBIND11_DATETIME_ACCESSOR(timedelta_seconds, seconds, PyDateTime_DELTA_GET_SECONDS)
-PYBIND11_DATETIME_ACCESSOR(timedelta_microseconds, microseconds, PyDateTime_DELTA_GET_MICROSECONDS)
-PYBIND11_DATETIME_ACCESSOR(datetime_year, year, PyDateTime_GET_YEAR)
-PYBIND11_DATETIME_ACCESSOR(datetime_month, month, PyDateTime_GET_MONTH)
-PYBIND11_DATETIME_ACCESSOR(datetime_day, day, PyDateTime_GET_DAY)
-PYBIND11_DATETIME_ACCESSOR(datetime_hour, hour, PyDateTime_DATE_GET_HOUR)
-PYBIND11_DATETIME_ACCESSOR(datetime_minute, minute, PyDateTime_DATE_GET_MINUTE)
-PYBIND11_DATETIME_ACCESSOR(datetime_second, second, PyDateTime_DATE_GET_SECOND)
-PYBIND11_DATETIME_ACCESSOR(datetime_microsecond, microsecond, PyDateTime_DATE_GET_MICROSECOND)
-PYBIND11_DATETIME_ACCESSOR(datetime_fold, fold, PyDateTime_DATE_GET_FOLD)
-PYBIND11_DATETIME_ACCESSOR(time_hour, hour, PyDateTime_TIME_GET_HOUR)
-PYBIND11_DATETIME_ACCESSOR(time_minute, minute, PyDateTime_TIME_GET_MINUTE)
-PYBIND11_DATETIME_ACCESSOR(time_second, second, PyDateTime_TIME_GET_SECOND)
-PYBIND11_DATETIME_ACCESSOR(time_microsecond, microsecond, PyDateTime_TIME_GET_MICROSECOND)
-PYBIND11_DATETIME_ACCESSOR(time_fold, fold, PyDateTime_TIME_GET_FOLD)
+PYBIND11_DATETIME_ACCESSOR(timedelta_days, timedelta, days, PyDateTime_DELTA_GET_DAYS)
+PYBIND11_DATETIME_ACCESSOR(timedelta_seconds, timedelta, seconds, PyDateTime_DELTA_GET_SECONDS)
+PYBIND11_DATETIME_ACCESSOR(timedelta_microseconds,
+                           timedelta,
+                           microseconds,
+                           PyDateTime_DELTA_GET_MICROSECONDS)
+PYBIND11_DATETIME_ACCESSOR(datetime_year, datetime, year, PyDateTime_GET_YEAR)
+PYBIND11_DATETIME_ACCESSOR(datetime_month, datetime, month, PyDateTime_GET_MONTH)
+PYBIND11_DATETIME_ACCESSOR(datetime_day, datetime, day, PyDateTime_GET_DAY)
+PYBIND11_DATETIME_ACCESSOR(datetime_hour, datetime, hour, PyDateTime_DATE_GET_HOUR)
+PYBIND11_DATETIME_ACCESSOR(datetime_minute, datetime, minute, PyDateTime_DATE_GET_MINUTE)
+PYBIND11_DATETIME_ACCESSOR(datetime_second, datetime, second, PyDateTime_DATE_GET_SECOND)
+PYBIND11_DATETIME_ACCESSOR(datetime_microsecond,
+                           datetime,
+                           microsecond,
+                           PyDateTime_DATE_GET_MICROSECOND)
+PYBIND11_DATETIME_ACCESSOR(datetime_fold, datetime, fold, PyDateTime_DATE_GET_FOLD)
+PYBIND11_DATETIME_ACCESSOR(time_hour, time, hour, PyDateTime_TIME_GET_HOUR)
+PYBIND11_DATETIME_ACCESSOR(time_minute, time, minute, PyDateTime_TIME_GET_MINUTE)
+PYBIND11_DATETIME_ACCESSOR(time_second, time, second, PyDateTime_TIME_GET_SECOND)
+PYBIND11_DATETIME_ACCESSOR(time_microsecond, time, microsecond, PyDateTime_TIME_GET_MICROSECOND)
+PYBIND11_DATETIME_ACCESSOR(time_fold, time, fold, PyDateTime_TIME_GET_FOLD)
 #undef PYBIND11_DATETIME_ACCESSOR
 
 template <typename type>
