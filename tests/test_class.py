@@ -218,11 +218,13 @@ def test_qualname(doc):
 )
 def test_class_names_match_type(request, placement, name):
     """Bound classes follow Python's naming rules, including literal dots."""
+    if placement == "custom" and env.LIMITED_API:
+        pytest.skip("py::custom_type_setup is not available under Py_LIMITED_API")
     scopes = {
         "module": m.class_names,
         "nested": m.NestBase,
         "child": getattr(m.class_names, "a[b.c]"),
-        "custom": m.class_names.custom,
+        "custom": getattr(m.class_names, "custom", None),
     }
     scope = scopes[placement]
     cls = getattr(scope, name)

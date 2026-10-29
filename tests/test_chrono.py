@@ -32,6 +32,10 @@ def test_chrono_system_clock():
     assert diff.seconds <= diff_python.seconds
 
 
+@pytest.mark.skipif(
+    "env.PYPY or env.GRAALPY",
+    reason="the datetime C API reads the attributes there, not the stored fields",
+)
 def test_chrono_datetime_subclass_overrides_ignored():
     # Conversion must read the stored fields, not attributes a subclass overrides.
     class Weird(datetime.datetime):
