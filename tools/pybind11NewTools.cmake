@@ -339,7 +339,8 @@ function(_pybind11_stable_abi_setup target_name)
      AND WIN32)
     # Python::SABIModule is python3.lib here, but abi3t needs python3t.lib from the same
     # directory. Read it from the imported target: FindPython's variables are not visible when
-    # pybind11 was found in a subdirectory. (The headers come from pybind11::python_headers.)
+    # pybind11 was found in a subdirectory.
+    target_link_libraries(${target_name} PRIVATE pybind11::python_headers)
     set(_python3_lib "")
     foreach(_prop IMPORTED_IMPLIB_RELEASE IMPORTED_IMPLIB IMPORTED_LOCATION_RELEASE
                   IMPORTED_LOCATION)

@@ -147,7 +147,7 @@ inline function_record *function_record_ptr_from_dispatcher_self(PyObject *self)
     assert(self != nullptr);
     assert(PyType_Check(self) == 0);
     assert(function_record_PyTypeObject_name_matches(Py_TYPE(self)));
-    return (reinterpret_cast<function_record_PyObject *>(self))->cpp_func_rec;
+    return function_record_data(self)->cpp_func_rec;
 }
 
 inline object function_record_PyObject_New() {
