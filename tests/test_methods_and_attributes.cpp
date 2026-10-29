@@ -493,9 +493,10 @@ TEST_SUBMODULE(methods_and_attributes, m) {
     py::class_<MetaclassOverride>(m, "MetaclassOverride", py::metaclass((PyObject *) &PyType_Type))
         .def_property_readonly_static("readonly", [](const py::object &) { return 1; });
 
-#if !defined(Py_LIMITED_API)
+#if !defined(Py_LIMITED_API) && !defined(GRAALVM_PYTHON)
     // test_metaclass_base_conflict: a derived class whose base has a metaclass that is neither a
-    // base nor a subtype of pybind11_type (rejected by PyType_FromMetaclass()).
+    // base nor a subtype of pybind11_type (rejected by PyType_FromMetaclass()). GraalPy cannot
+    // create a weak reference to a type whose metaclass was created with type().
     auto type_type = py::reinterpret_borrow<py::object>((PyObject *) &PyType_Type);
     py::object custom_meta = type_type("CustomMeta", py::make_tuple(type_type), py::dict());
     struct MetaclassConflictBase {};

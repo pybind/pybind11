@@ -271,7 +271,8 @@ def test_metaclass_override():
 
 
 @pytest.mark.skipif(
-    not hasattr(m, "MetaclassConflictBase"), reason="Not available under Py_LIMITED_API"
+    not hasattr(m, "MetaclassConflictBase"),
+    reason="Not available under Py_LIMITED_API or on GraalPy",
 )
 def test_metaclass_base_conflict():
     """A base with an unrelated metaclass does not block binding a derived class"""
