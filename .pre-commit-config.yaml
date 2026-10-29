@@ -52,13 +52,10 @@ repos:
     - types-setuptools
 
 # CMake formatting
-- repo: https://github.com/cheshirekow/cmake-format-precommit
-  rev: "v0.6.13"
+- repo: https://github.com/BlankSpruce/gersemi-pre-commit
+  rev: "0.29.2"
   hooks:
-  - id: cmake-format
-    additional_dependencies: [pyyaml]
-    types: [file]
-    files: (\.cmake|CMakeLists.txt)(.in)?$
+  - id: gersemi
 
 # Standard hooks
 - repo: https://github.com/pre-commit/pre-commit-hooks

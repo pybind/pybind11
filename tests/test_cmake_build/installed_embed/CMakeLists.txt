@@ -16,4 +16,5 @@ set_target_properties(test_installed_embed PROPERTIES NO_SYSTEM_FROM_IMPORTED ON
 add_custom_target(
   check_installed_embed
   $<TARGET_FILE:test_installed_embed> ${PROJECT_SOURCE_DIR}/../test.py
-  DEPENDS test_installed_embed)
+  DEPENDS test_installed_embed
+)

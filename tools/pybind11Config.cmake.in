@@ -250,14 +250,16 @@ include("${CMAKE_CURRENT_LIST_DIR}/pybind11Targets.cmake")
 
 # Easier to use / remember
 add_library(pybind11::headers IMPORTED INTERFACE)
-set_target_properties(pybind11::headers PROPERTIES INTERFACE_LINK_LIBRARIES
-                                                   pybind11::pybind11_headers)
+set_target_properties(
+  pybind11::headers
+  PROPERTIES INTERFACE_LINK_LIBRARIES pybind11::pybind11_headers
+)
 
 include("${CMAKE_CURRENT_LIST_DIR}/pybind11Common.cmake")
 
 if(NOT pybind11_FIND_QUIETLY)
   message(
     STATUS
-      "Found pybind11: ${pybind11_INCLUDE_DIR} (found version \"${pybind11_VERSION}${pybind11_VERSION_TYPE}\")"
+    "Found pybind11: ${pybind11_INCLUDE_DIR} (found version \"${pybind11_VERSION}${pybind11_VERSION_TYPE}\")"
   )
 endif()

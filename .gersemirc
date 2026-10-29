@@ -1,0 +1,12 @@
+definitions:
+  - tools/FindCatch.cmake
+  - tools/FindPythonLibsNew.cmake
+  - tools/JoinPaths.cmake
+  - tools/pybind11Common.cmake
+  - tools/pybind11GuessPythonExtSuffix.cmake
+  - tools/pybind11NewTools.cmake
+  - tests/CMakeLists.txt
+  - tests/test_cmake_build/CMakeLists.txt
+indent: 2
+line_length: 99
+warn_about_unknown_commands: false

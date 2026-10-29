@@ -11,8 +11,11 @@ target_link_libraries(test_installed_target PRIVATE pybind11::module)
 
 # If a pybind11 option is on, main.cpp checks that the matching macro reached this
 # consumer target via the installed pybind11_headers usage requirements.
-foreach(opt IN ITEMS PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION
-                     PYBIND11_SIMPLE_GIL_MANAGEMENT)
+foreach(
+  opt
+  IN
+  ITEMS PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION PYBIND11_SIMPLE_GIL_MANAGEMENT
+)
   if(${opt})
     target_compile_definitions(test_installed_target PRIVATE "EXPECT_${opt}")
   endif()
@@ -36,11 +39,7 @@ endif()
 
 add_custom_target(
   check_installed_target
-  ${CMAKE_COMMAND}
-  -E
-  env
-  PYTHONPATH=$<TARGET_FILE_DIR:test_installed_target>
-  ${_Python_EXECUTABLE}
-  ${PROJECT_SOURCE_DIR}/../test.py
-  ${PROJECT_NAME}
-  DEPENDS test_installed_target)
+  ${CMAKE_COMMAND} -E env PYTHONPATH=$<TARGET_FILE_DIR:test_installed_target> ${_Python_EXECUTABLE}
+  ${PROJECT_SOURCE_DIR}/../test.py ${PROJECT_NAME}
+  DEPENDS test_installed_target
+)
