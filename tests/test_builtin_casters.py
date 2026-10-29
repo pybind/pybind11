@@ -687,6 +687,17 @@ def test_complex_method_wrong_return_type(function):
         function(BadComplex())
 
 
+def test_complex_method_instance_shadow_ignored():
+    # Special-method lookup reads the type, not an instance attribute.
+    class Shadowed:
+        def __complex__(self):
+            return 1.0 + 2.0j
+
+    value = Shadowed()
+    value.__complex__ = lambda: 9.0 + 10.0j
+    assert m.complex_convert(value) == 1.0 + 2.0j
+
+
 def test_overload_resolution_float_int():
     """
     Test overload resolution behavior when int can match float (added with PR #5879).

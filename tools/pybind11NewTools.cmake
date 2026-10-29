@@ -439,6 +439,9 @@ function(pybind11_add_module target_name)
   endif()
 
   if(own_sabi)
+    # python_add_library would consume WITH_SOABI; here it selects the same abi3/abi3t suffix as
+    # the default handling below.
+    list(REMOVE_ITEM ARG_UNPARSED_ARGUMENTS WITH_SOABI)
     add_library(${target_name} ${lib_type} ${ARG_UNPARSED_ARGUMENTS})
     _pybind11_stable_abi_setup(${target_name})
   elseif("${_Python}" STREQUAL "Python")
@@ -470,7 +473,7 @@ function(pybind11_add_module target_name)
   _pybind11_default_hidden_visibility(${target_name})
 
   # If we don't pass a WITH_SOABI or WITHOUT_SOABI, use our own default handling of extensions
-  if(NOT ARG_WITHOUT_SOABI AND NOT "WITH_SOABI" IN_LIST ARG_UNPARSED_ARGUMENTS)
+  if(NOT ARG_WITHOUT_SOABI AND (own_sabi OR NOT "WITH_SOABI" IN_LIST ARG_UNPARSED_ARGUMENTS))
     if(stable_abi)
       pybind11_extension_stable_abi(${target_name})
     else()
