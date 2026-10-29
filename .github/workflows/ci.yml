@@ -243,6 +243,7 @@ jobs:
         -DPYBIND11_PYTEST_ARGS=-v
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
+        -DPYBIND11_EIGEN_REPO=https://github.com/eigen-mirror/eigen.git
         -DCMAKE_CXX_STANDARD=14
         -DPYBIND11_INTERNALS_VERSION=10000000
 
@@ -295,7 +296,7 @@ jobs:
         run: uv tool install ninja
 
       - name: Configure via preset
-        run: cmake --preset venv -DPYBIND11_CREATE_WITH_UV="${{ matrix.python-version }}"
+        run: cmake --preset venv -DPYBIND11_EIGEN_REPO=https://github.com/eigen-mirror/eigen.git -DPYBIND11_CREATE_WITH_UV="${{ matrix.python-version }}"
 
       - name: Build C++11
         run: cmake --build --preset venv
@@ -737,6 +738,7 @@ jobs:
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
+        -DPYBIND11_EIGEN_REPO=https://github.com/eigen-mirror/eigen.git
         -DCMAKE_CXX_STANDARD=11
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
@@ -888,6 +890,7 @@ jobs:
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
+        -DPYBIND11_EIGEN_REPO=https://github.com/eigen-mirror/eigen.git
         ${{ matrix.args }}
     - name: Build C++11
       run: cmake --build build -j 2
@@ -937,6 +940,7 @@ jobs:
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
+        -DPYBIND11_EIGEN_REPO=https://github.com/eigen-mirror/eigen.git
         ${{ matrix.args }}
     - name: Build C++11
       run: cmake --build build --config Debug -j 2
@@ -977,6 +981,7 @@ jobs:
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
+        -DPYBIND11_EIGEN_REPO=https://github.com/eigen-mirror/eigen.git
         -DCMAKE_CXX_STANDARD=20
 
     - name: Build C++20
@@ -1001,6 +1006,7 @@ jobs:
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
+        -DPYBIND11_EIGEN_REPO=https://github.com/eigen-mirror/eigen.git
         -DCMAKE_CXX_STANDARD=20
         "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
 
@@ -1172,6 +1178,7 @@ jobs:
           -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF
           -DDOWNLOAD_CATCH=ON
           -DDOWNLOAD_EIGEN=ON
+          -DPYBIND11_EIGEN_REPO=https://github.com/eigen-mirror/eigen.git
           -DCMAKE_CXX_COMPILER=clang++
           -DCMAKE_CXX_STANDARD=17
 
@@ -1240,6 +1247,7 @@ jobs:
             -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF `
             -DDOWNLOAD_CATCH=ON `
             -DDOWNLOAD_EIGEN=ON `
+            -DPYBIND11_EIGEN_REPO=https://github.com/eigen-mirror/eigen.git `
             -DCMAKE_CXX_COMPILER=clang++ `
             -DCMAKE_CXX_STANDARD=20 `
             -DPython_EXECUTABLE="$pythonExecutable" `
@@ -1315,6 +1323,7 @@ jobs:
         -DPYBIND11_WERROR=OFF
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
+        -DPYBIND11_EIGEN_REPO=https://github.com/eigen-mirror/eigen.git
         -DCMAKE_CXX_COMPILER=clang++
         -DCMAKE_CXX_STANDARD=20
         -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")

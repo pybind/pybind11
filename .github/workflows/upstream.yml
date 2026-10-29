@@ -56,6 +56,7 @@ jobs:
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
+        -DPYBIND11_EIGEN_REPO=https://github.com/eigen-mirror/eigen.git
         -DCMAKE_CXX_STANDARD=11
         -DCMAKE_BUILD_TYPE=Debug
 
@@ -79,6 +80,7 @@ jobs:
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
+        -DPYBIND11_EIGEN_REPO=https://github.com/eigen-mirror/eigen.git
         -DCMAKE_CXX_STANDARD=17
 
     - name: Build C++17
@@ -98,6 +100,7 @@ jobs:
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
+        -DPYBIND11_EIGEN_REPO=https://github.com/eigen-mirror/eigen.git
         -DCMAKE_CXX_STANDARD=17
         -DPYBIND11_INTERNALS_VERSION=10000000
 
