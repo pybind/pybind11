@@ -677,6 +677,16 @@ def test_complex_method_error_with_index():
         m.complex_convert(ComplexAndIndex())
 
 
+@pytest.mark.parametrize("function", [m.complex_convert, m.complex_noconvert])
+def test_complex_method_wrong_return_type(function):
+    class BadComplex:
+        def __complex__(self):
+            return 2.0
+
+    with pytest.raises(TypeError):
+        function(BadComplex())
+
+
 def test_overload_resolution_float_int():
     """
     Test overload resolution behavior when int can match float (added with PR #5879).
