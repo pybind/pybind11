@@ -27,8 +27,7 @@ namespace {
 // Same length split as FuzzedDataProvider::ConsumeRandomLengthString. The
 // checked-in corpus is framed for this split. OSS-Fuzz still consumes with
 // FuzzedDataProvider below; replay an OSS-Fuzz artifact with libFuzzer.
-std::string
-consume_string(const uint8_t *&data, size_t &size) {
+std::string consume_string(const uint8_t *&data, size_t &size) {
     if (size == 0) {
         return {};
     }
@@ -43,9 +42,11 @@ consume_string(const uint8_t *&data, size_t &size) {
     return out;
 }
 
-int
-exercise(const std::string &code, const std::string &attr_name, const std::string &decimal_text,
-         const std::string &decimal_attr, const std::string &text) {
+int exercise(const std::string &code,
+             const std::string &attr_name,
+             const std::string &decimal_text,
+             const std::string &decimal_attr,
+             const std::string &text) {
     static py::scoped_interpreter guard{};
     try {
         auto locals = py::dict();
@@ -80,15 +81,19 @@ exercise(const std::string &code, const std::string &attr_name, const std::strin
 
 } // namespace
 
-extern "C" int
-LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 #ifdef PYBIND11_FUZZER_STANDALONE
-    return exercise(consume_string(data, size), consume_string(data, size), consume_string(data, size),
-                    consume_string(data, size), consume_string(data, size));
+    return exercise(consume_string(data, size),
+                    consume_string(data, size),
+                    consume_string(data, size),
+                    consume_string(data, size),
+                    consume_string(data, size));
 #else
     FuzzedDataProvider fdp(data, size);
-    return exercise(fdp.ConsumeRandomLengthString(), fdp.ConsumeRandomLengthString(),
-                    fdp.ConsumeRandomLengthString(), fdp.ConsumeRandomLengthString(),
+    return exercise(fdp.ConsumeRandomLengthString(),
+                    fdp.ConsumeRandomLengthString(),
+                    fdp.ConsumeRandomLengthString(),
+                    fdp.ConsumeRandomLengthString(),
                     fdp.ConsumeRandomLengthString());
 #endif
 }

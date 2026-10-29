@@ -12,8 +12,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 
 namespace {
 
-std::vector<uint8_t>
-read_file(const std::string &path) {
+std::vector<uint8_t> read_file(const std::string &path) {
     std::ifstream input(path, std::ios::binary);
     if (!input) {
         throw std::runtime_error("failed to open fuzz input: " + path);
@@ -36,8 +35,7 @@ read_file(const std::string &path) {
 
 } // namespace
 
-int
-main(int argc, char **argv) {
+int main(int argc, char **argv) {
     if (argc < 2) {
         std::cerr << "usage: " << argv[0] << " <input>...\n";
         return 2;
