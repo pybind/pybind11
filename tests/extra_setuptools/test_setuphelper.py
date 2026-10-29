@@ -205,6 +205,41 @@ def test_stable_abi_setup_py(monkeypatch, tmpdir, py_limited_api):
     )
 
 
+@pytest.mark.parametrize(
+    ("building", "free_threaded", "value", "expected"),
+    [
+        ((3, 14), False, True, ("Py_LIMITED_API", "0x030C0000")),
+        ((3, 14), False, "3.13", ("Py_LIMITED_API", "0x030D0000")),
+        ((3, 14), False, "cp314", ("Py_LIMITED_API", "0x030E0000")),
+        ((3, 14), False, 0x030C0000, ("Py_LIMITED_API", "0x030C0000")),
+        ((3, 15), False, "3.15t", ("Py_TARGET_ABI3T", "0x030F0000")),
+        ((3, 15), True, True, ("Py_TARGET_ABI3T", "0x030F0000")),
+        ((3, 16), True, "3.15", ("Py_TARGET_ABI3T", "0x030F0000")),
+        ((3, 14), False, "3.11", ValueError),  # below the minimum
+        ((3, 14), False, "3.15", ValueError),  # newer than the headers
+        # Py_TARGET_ABI3T is unknown to the 3.14 headers
+        ((3, 14), False, "3.15t", ValueError),
+        ((3, 14), True, True, ValueError),  # abi3t needs 3.15
+        ((3, 14), False, "later", ValueError),
+    ],
+)
+def test_stable_abi_macro(monkeypatch, building, free_threaded, value, expected):
+    monkeypatch.syspath_prepend(MAIN_DIR)
+    from pybind11.setup_helpers import _stable_abi_macro
+
+    monkeypatch.setattr(sys, "version_info", (*building, 0, "final", 0))
+    monkeypatch.setattr(
+        sysconfig,
+        "get_config_var",
+        lambda name: int(free_threaded) if name == "Py_GIL_DISABLED" else None,
+    )
+    if expected is ValueError:
+        with pytest.raises(ValueError):
+            _stable_abi_macro(value)
+    else:
+        assert _stable_abi_macro(value) == expected
+
+
 def test_intree_extensions(monkeypatch, tmpdir):
     monkeypatch.syspath_prepend(MAIN_DIR)
 

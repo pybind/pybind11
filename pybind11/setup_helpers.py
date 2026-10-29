@@ -115,11 +115,19 @@ def _stable_abi_macro(value: Any) -> tuple[str, str]:
             raise ValueError(msg)
         major, minor = (int(part) for part in match.groups())
         number = (major << 24) | (minor << 16)
-    if (number >> 24, (number >> 16) & 0xFF) < minimum:
-        what = (
-            "the stable ABI for free-threading (abi3t)" if abi3t else "the stable ABI"
-        )
+    what = "the stable ABI for free-threading (abi3t)" if abi3t else "the stable ABI"
+    requested = (number >> 24, (number >> 16) & 0xFF)
+    if requested < minimum:
         msg = f"pybind11 supports {what} from Python {minimum[0]}.{minimum[1]} on, got {value!r}"
+        raise ValueError(msg)
+    # Older headers ignore the define (Py_TARGET_ABI3T is new in 3.15) or lack the API, which
+    # would silently produce a version-specific module with a stable-ABI name.
+    building = tuple(sys.version_info[:2])
+    if building < max(minimum, requested):
+        msg = (
+            f"building for {what} of Python {requested[0]}.{requested[1]} needs the headers of "
+            f"that version or newer, but this is Python {building[0]}.{building[1]}"
+        )
         raise ValueError(msg)
     return ("Py_TARGET_ABI3T" if abi3t else "Py_LIMITED_API", f"0x{number:08X}")
 

@@ -505,8 +505,12 @@ PYBIND11_INLINE function get_type_override(const void *this_ptr,
         auto frame_obj = reinterpret_steal<object>(reinterpret_cast<PyObject *>(frame));
         auto f_code
             = reinterpret_steal<object>(reinterpret_cast<PyObject *>(PyFrame_GetCode(frame)));
-        if (std::string(str(f_code.attr("co_name"))) == name
-            && f_code.attr("co_argcount").cast<int>() > 0) {
+        object co_name = f_code.attr("co_name");
+        const char *co_name_utf8 = PyUnicode_AsUTF8AndSize(co_name.ptr(), nullptr);
+        if (co_name_utf8 == nullptr) {
+            PyErr_Clear();
+        } else if (std::strcmp(co_name_utf8, name) == 0
+                   && f_code.attr("co_argcount").cast<int>() > 0) {
             object self_arg = f_code.attr("co_varnames")[int_(0)];
             object locals = getattr(frame_obj, "f_locals", handle());
             auto self_caller
@@ -1328,9 +1332,6 @@ PYBIND11_INLINE void generic_type::initialize(const type_record &rec) {
     tinfo->simple_ancestors = true;
     tinfo->module_local = rec.module_local;
     tinfo->holder_enum_v = rec.holder_enum_v;
-#if defined(Py_LIMITED_API)
-    tinfo->dictoffset = type_dictoffset(reinterpret_cast<PyTypeObject *>(m_ptr));
-#endif
 
     with_internals([&](internals &internals) {
         auto tindex = std::type_index(*rec.type);
