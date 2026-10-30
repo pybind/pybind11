@@ -29,15 +29,18 @@ struct datetime_types {
 };
 
 inline const datetime_types &get_datetime_types() {
-    // The type objects are kept for the lifetime of the process.
-    static const datetime_types types = [] {
-        module_ m = module_::import("datetime");
-        auto get = [&](const char *name) {
-            return reinterpret_cast<PyTypeObject *>(object(m.attr(name)).release().ptr());
-        };
-        return datetime_types{get("datetime"), get("date"), get("time"), get("timedelta")};
-    }();
-    return types;
+    // Importing Python code can release the GIL, so establish the lock order before
+    // entering the once-only initializer.
+    PYBIND11_CONSTINIT static gil_safe_call_once_and_store<datetime_types> storage;
+    return storage
+        .call_once_and_store_result([] {
+            module_ m = module_::import("datetime");
+            auto get = [&](const char *name) {
+                return reinterpret_cast<PyTypeObject *>(object(m.attr(name)).release().ptr());
+            };
+            return datetime_types{get("datetime"), get("date"), get("time"), get("timedelta")};
+        })
+        .get_stored();
 }
 
 inline void datetime_import() { (void) get_datetime_types(); }
@@ -65,7 +68,12 @@ inline handle datetime_field_getter(PyTypeObject *type, const char *name) {
 // One accessor per field: the base type's descriptor here, the C macro otherwise.
 #    define PYBIND11_DATETIME_ACCESSOR(fn, type, attr, c_macro)                                   \
         inline int fn(handle h) {                                                                 \
-            static const handle getter = datetime_field_getter(get_datetime_types().type, #attr); \
+            PYBIND11_CONSTINIT static gil_safe_call_once_and_store<handle> storage;               \
+            const handle getter                                                                   \
+                = storage                                                                         \
+                      .call_once_and_store_result(                                                \
+                          [] { return datetime_field_getter(get_datetime_types().type, #attr); }) \
+                      .get_stored();                                                              \
             return getter(h).cast<int>();                                                         \
         }
 
