@@ -548,7 +548,6 @@ struct optional_caster {
         if (src.is_none()) {
             return true; // default-constructed value is already empty
         }
-        value_conv inner_caster;
         if (!inner_caster.load(src, convert)) {
             return false;
         }
@@ -556,6 +555,14 @@ struct optional_caster {
         value.emplace(cast_op<Value &&>(std::move(inner_caster)));
         return true;
     }
+
+    // The inner caster is a member rather than a local in load() so that it
+    // outlives the loaded value. For a Value like std::reference_wrapper<T>,
+    // cast_op returns a reference into the inner caster's own storage (e.g. a
+    // temporary T it holds after converting from Python); destroying the caster
+    // at the end of load() would leave `value` with a dangling reference (#5637).
+    // It stays alive here for as long as this caster does, i.e. the bound call.
+    value_conv inner_caster;
 
     PYBIND11_TYPE_CASTER(Type, value_conv::name | make_caster<none>::name);
 };
@@ -611,28 +618,41 @@ template <template <typename...> class V, typename... Ts>
 struct variant_caster<V<Ts...>> {
     static_assert(sizeof...(Ts) > 0, "Variant must consist of at least one alternative.");
 
-    template <typename U, typename... Us>
+    template <size_t I, typename U, typename... Us>
     bool load_alternative(handle src, bool convert, type_list<U, Us...>) {
-        auto caster = make_caster<U>();
+        // The caster lives in `casters` (a member) rather than in this frame so that it
+        // outlives the loaded value. For a U like std::reference_wrapper<T>, cast_op returns
+        // a reference into the caster's own storage (e.g. a temporary T it holds after
+        // converting from Python); a frame-local caster would be destroyed here, leaving
+        // `value` with a dangling reference (#5637). Each caster stays alive for as long as
+        // this variant caster does, i.e. the bound call.
+        auto &caster = std::get<I>(casters);
         if (caster.load(src, convert)) {
             value = cast_op<U>(std::move(caster));
             return true;
         }
-        return load_alternative(src, convert, type_list<Us...>{});
+        return load_alternative<I + 1>(src, convert, type_list<Us...>{});
     }
 
-    bool load_alternative(handle, bool, type_list<>) { return false; }
+    template <size_t I>
+    bool load_alternative(handle, bool, type_list<>) {
+        return false;
+    }
 
     bool load(handle src, bool convert) {
         // Do a first pass without conversions to improve constructor resolution.
         // E.g. `py::int_(1).cast<variant<double, int>>()` needs to fill the `int`
         // slot of the variant. Without two-pass loading `double` would be filled
         // because it appears first and a conversion is possible.
-        if (convert && load_alternative(src, false, type_list<Ts...>{})) {
+        if (convert && load_alternative<0>(src, false, type_list<Ts...>{})) {
             return true;
         }
-        return load_alternative(src, convert, type_list<Ts...>{});
+        return load_alternative<0>(src, convert, type_list<Ts...>{});
     }
+
+    // Held as members (not frame locals) so a successfully loaded alternative outlives the
+    // reference stored in `value`; see the note in load_alternative above (#5637).
+    std::tuple<make_caster<Ts>...> casters;
 
     template <typename Variant>
     static handle cast(Variant &&src, return_value_policy policy, handle parent) {
