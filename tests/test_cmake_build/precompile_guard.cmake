@@ -35,13 +35,14 @@ if(PYBIND11_FINDPYTHON
   endforeach()
 
   if(NOT _guard_free_threaded)
-    # The probes only call the C++ guard; reuse the module's existing Python target rather
-    # than requiring a separate stable ABI import library (not provided by some MinGW builds).
+    # The probes only call the C++ guard. Use headers without Python::Module's link options,
+    # which allow undefined symbols on macOS and would hide the intentional guard mismatch.
     set(_guard_link_options)
     if(MSVC OR CMAKE_CXX_SIMULATE_ID STREQUAL "MSVC")
-      # Limited API headers auto-link python3.lib even though these probes use no Python API.
-      # Py_NO_LINK_LIB cannot disable that on Python 3.13, which the probes also exercise.
-      list(APPEND _guard_link_options LINKER:/NODEFAULTLIB:python3.lib)
+      # Suppress release and debug autolink libraries: these probes call no Python API.
+      # Python 3.13 does not yet provide Py_NO_LINK_LIB to disable the header pragmas.
+      list(APPEND _guard_link_options LINKER:/NODEFAULTLIB:python3.lib
+           "LINKER:/NODEFAULTLIB:python${Python_VERSION_MAJOR}${Python_VERSION_MINOR}_d.lib")
     endif()
     add_library(pybind11_guard_headers INTERFACE IMPORTED)
     set_target_properties(pybind11_guard_headers PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
@@ -63,8 +64,7 @@ if(PYBIND11_FINDPYTHON
         _linked "${_dir}/build"
         SOURCES "${_dir}/provider.cpp" "${_dir}/consumer.cpp"
         LINK_OPTIONS ${_guard_link_options}
-        LINK_LIBRARIES pybind11_guard_headers ${_Python}::Module CXX_STANDARD 11
-                       CXX_STANDARD_REQUIRED ON
+        LINK_LIBRARIES pybind11_guard_headers CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON
         OUTPUT_VARIABLE _out)
       if(_provider_api STREQUAL "0x030c0000")
         if(NOT _linked)
