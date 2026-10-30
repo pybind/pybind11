@@ -118,18 +118,26 @@ def test_simple_setup_py(monkeypatch, tmpdir, parallel, std):
     reason="stable ABI needs CPython 3.12+, or 3.15+ when free-threaded (abi3t)",
 )
 @pytest.mark.parametrize(
-    "py_limited_api",
+    ("py_limited_api", "define_macros"),
     [
-        True,
+        (True, []),
         pytest.param(
             "3.15t",
+            [],
+            marks=pytest.mark.skipif(
+                sys.version_info < (3, 15), reason="abi3t needs CPython 3.15+"
+            ),
+        ),
+        pytest.param(
+            True,
+            [("Py_TARGET_ABI3T", "0x030F0000")],
             marks=pytest.mark.skipif(
                 sys.version_info < (3, 15), reason="abi3t needs CPython 3.15+"
             ),
         ),
     ],
 )
-def test_stable_abi_setup_py(monkeypatch, tmpdir, py_limited_api):
+def test_stable_abi_setup_py(monkeypatch, tmpdir, py_limited_api, define_macros):
     monkeypatch.chdir(tmpdir)
     monkeypatch.syspath_prepend(MAIN_DIR)
 
@@ -148,6 +156,7 @@ def test_stable_abi_setup_py(monkeypatch, tmpdir, py_limited_api):
                     ["main.cpp"],
                     cxx_std=17,
                     py_limited_api={py_limited_api!r},
+                    define_macros={define_macros!r},
                 ),
             ]
 
@@ -187,7 +196,11 @@ def test_stable_abi_setup_py(monkeypatch, tmpdir, py_limited_api):
     built = [f for f in tmpdir.listdir() if f.basename.startswith("stable_abi_setup")]
     assert len(built) == 1
     assert ".abi3" in built[0].basename or built[0].ext == ".pyd"
-    abi3t = py_limited_api == "3.15t" or sysconfig.get_config_var("Py_GIL_DISABLED")
+    abi3t = (
+        py_limited_api == "3.15t"
+        or any(name == "Py_TARGET_ABI3T" for name, _ in define_macros)
+        or sysconfig.get_config_var("Py_GIL_DISABLED")
+    )
     if not WIN:
         assert (".abi3t" in built[0].basename) == bool(abi3t)
 
@@ -238,6 +251,62 @@ def test_stable_abi_macro(monkeypatch, building, free_threaded, value, expected)
             _stable_abi_macro(value)
     else:
         assert _stable_abi_macro(value) == expected
+
+
+@pytest.mark.parametrize(
+    ("py_limited_api", "define_macros", "expected"),
+    [
+        (True, [("Py_TARGET_ABI3T", "0x030F0000")], "PyModExport_example"),
+        (True, [("Py_TARGET_ABI3T", 0x030F0000)], "PyModExport_example"),
+        ("3.15t", [("Py_LIMITED_API", "0x030C0000")], "PyInit_example"),
+        (True, [("Py_TARGET_ABI3T", "0x03100000")], ValueError),
+        (True, [("Py_LIMITED_API", "0x030B0000")], ValueError),
+        (
+            True,
+            [("Py_LIMITED_API", "0x030C0000"), ("Py_TARGET_ABI3T", "0x030F0000")],
+            ValueError,
+        ),
+    ],
+)
+def test_stable_abi_explicit_macros(
+    monkeypatch, py_limited_api, define_macros, expected
+):
+    monkeypatch.syspath_prepend(MAIN_DIR)
+    from setuptools import Distribution
+
+    from pybind11.setup_helpers import Pybind11Extension, build_ext
+
+    get_config_var = sysconfig.get_config_var
+    with monkeypatch.context() as target:
+        target.setattr(sys, "version_info", (3, 15, 0, "final", 0))
+        target.setattr(
+            sysconfig,
+            "get_config_var",
+            lambda name: 0 if name == "Py_GIL_DISABLED" else get_config_var(name),
+        )
+        if expected is ValueError:
+            with pytest.raises(ValueError):
+                Pybind11Extension(
+                    "example",
+                    [],
+                    include_pybind11=False,
+                    cxx_std=17,
+                    py_limited_api=py_limited_api,
+                    define_macros=define_macros,
+                )
+            return
+        extension = Pybind11Extension(
+            "example",
+            [],
+            include_pybind11=False,
+            cxx_std=17,
+            py_limited_api=py_limited_api,
+            define_macros=define_macros,
+        )
+
+    assert extension.define_macros == define_macros
+    command = build_ext(Distribution({"ext_modules": [extension]}))
+    assert command.get_export_symbols(extension) == [expected]
 
 
 def test_intree_extensions(monkeypatch, tmpdir):
