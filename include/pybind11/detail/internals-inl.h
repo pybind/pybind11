@@ -262,7 +262,7 @@ PYBIND11_INLINE size_t num_registered_instances() {
 
 #if defined(PYBIND11_PRECOMPILED)
 // Link-time configuration guard; see the declaration in internals.h.
-PYBIND11_INLINE void PYBIND11_PRECOMPILED_CONFIG_CHECK() {}
+PYBIND11_INLINE void PYBIND11_PRECOMPILED_CONFIG_CHECK(precompiled_limited_api) {}
 #endif
 
 PYBIND11_NAMESPACE_END(detail)
