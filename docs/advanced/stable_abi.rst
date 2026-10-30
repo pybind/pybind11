@@ -46,7 +46,9 @@ With scikit-build-core, set ``wheel.py-api = "cp312"`` in ``pyproject.toml``
 the pybind11 defaults produce the matching module in both cases). This only
 selects the wheel tag, and scikit-build-core ignores it when the build Python
 is too old or is not CPython, so enable ``STABLE_ABI`` from the variables it
-sets, before ``find_package(pybind11)``:
+sets, before ``find_package(pybind11)`` (scikit-build-core 0.11+ sets
+``SKBUILD_SABI_VERSION``; with older versions it is empty and pybind11 uses its
+default):
 
 .. code-block:: cmake
 
@@ -186,6 +188,11 @@ Under abi3t, ``PyObject`` and ``PyModuleDef`` are incomplete types and
 2.5 added for abi3t, so older NumPy versions are rejected at run time. The
 internals tag is ``_stable_ft``: an abi3t module and an abi3 module loaded
 into the same GIL-enabled interpreter do not share internals (see below).
+
+CPython's headers define ``Py_GIL_DISABLED`` for every abi3t build, so the
+macro only says that the code must be thread-safe. To know whether the running
+interpreter is free-threaded, check at run time, for example with
+``sys._is_gil_enabled()`` or ``sysconfig.get_config_var("Py_GIL_DISABLED")``.
 
 ABI isolation
 =============
