@@ -57,17 +57,21 @@ std::shared_ptr<T> get_shared() {
 template <typename T>
 py::tuple instance_lookup_lifetime() {
     auto value = std::make_shared<T>();
+    std::weak_ptr<T> lifetime = value;
     py::object wrapper = py::cast(value);
-    py::weakref weak(wrapper);
+    bool found = false;
     bool retained = false;
     {
         auto selected
             = py::detail::get_object_handle(value.get(), py::detail::get_type_info(typeid(T)));
+        found = selected && selected.is(wrapper);
         wrapper = py::object();
+        value.reset();
         py::module_::import("gc").attr("collect")();
-        retained = selected && !weak().is_none();
+        retained = !lifetime.expired();
     }
-    return py::make_tuple(retained, weak);
+    return py::make_tuple(
+        found, retained, py::cpp_function([lifetime]() { return lifetime.expired(); }));
 }
 
 // The stable-ABI pymutex is a critical section on a plain object: a native thread without a
