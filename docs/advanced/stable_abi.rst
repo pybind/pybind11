@@ -30,7 +30,8 @@ the default for a build tree:
 ``PYBIND11_STABLE_ABI_VERSION`` (default ``3.12``, raised to ``3.15`` for
 ``abi3t``) selects the targeted version. On free-threaded Python the modules
 are always ``abi3t``. Set ``PYBIND11_ABI3T`` to ``ON`` to also build ``abi3t``
-modules with GIL-enabled Python:
+modules with GIL-enabled Python (plain CMake only; wheel builders tag the
+wheel from the build Python, see `Building wheels`_):
 
 .. code-block:: bash
 
@@ -58,14 +59,42 @@ With setuptools, pass ``py_limited_api=True`` (or a version such as
 ``"3.13"``) to ``Pybind11Extension``; the module is named ``*.abi3.so``
 and ``Py_LIMITED_API`` is defined for you. Add a ``t`` (``"3.15t"``) for
 ``abi3t``, which is always used on free-threaded Python; ``Py_TARGET_ABI3T``
-is then defined and the module is named ``*.abi3t.so``. With GIL-enabled
+is then defined and the module is named ``*.abi3t*.so``. With GIL-enabled
 Python, use ``build_ext`` from ``pybind11.setup_helpers`` to get that name.
+Set the wheel tag with ``options={"bdist_wheel": {"py_limited_api": "cp312"}}``
+in ``setup()``; ``bdist_wheel`` rejects ``"cp315t"``, so pass ``"cp315"`` and
+build on free-threaded Python to get the ``abi3.abi3t`` tag.
+
+With meson-python, set ``limited-api = true`` in ``[tool.meson-python]`` and
+pass ``limited_api: '3.12'`` to ``py.extension_module()``. Meson defines
+``Py_LIMITED_API`` from that value, so use ``'3.15'`` when the build Python is
+free-threaded:
+
+.. code-block:: meson
+
+    limited_api = py.get_variable('Py_GIL_DISABLED', 0).to_string() == '1' ? '3.15' : '3.12'
 
 With any other build system, define ``Py_LIMITED_API=0x030C0000`` for every
 translation unit, link no version-specific Python library (``python3.lib`` on
 Windows), and name the module ``<name>.abi3.so`` (``<name>.pyd`` on Windows).
 For ``abi3t``, define ``Py_TARGET_ABI3T=0x030F0000`` instead, link
 ``python3t.lib`` on Windows, and name the module ``<name>.abi3t.so``.
+
+On CPython 3.15+, build tools can also use the platform-tagged suffixes
+``.abi3-<platform>.so`` and ``.abi3t-<platform>.so`` (such as
+``.abi3t-darwin.so``). CPython 3.15+ loads both forms, but CPython 3.12 to
+3.14 only load ``.abi3.so``.
+
+Building wheels
+---------------
+
+* Build ``abi3`` wheels with the CPython version you target. On 3.15+,
+  setuptools and CMake name the module ``.abi3-<platform>.so``, so a module
+  that targets 3.12 to 3.14 but is built with 3.15+ has a suffix that its
+  target versions do not load.
+* Build ``abi3t`` wheels with free-threaded CPython 3.15+. With GIL-enabled
+  Python, scikit-build-core and setuptools tag the wheel ``abi3`` even when
+  the module is ``abi3t``, so the wheel installs where it cannot load.
 
 pybind11 rejects the combination with PyPy, GraalPy, and free-threaded
 CPython before 3.15 at compile time: they have no stable ABI.
@@ -132,7 +161,8 @@ Under abi3t, ``PyObject`` and ``PyModuleDef`` are incomplete types and
   (``PyObject_GetTypeData()``) instead of embedding ``PyObject_HEAD``;
 * exports the module through the :pep:`793` ``PyModExport_<name>`` hook
   instead of ``PyInit_<name>``, so ``PYBIND11_MODULE`` is unchanged but
-  ``py::module_::create_extension_module()`` is not available;
+  ``py::module_::create_extension_module()``, the ``py::module_(name, doc)``
+  constructor, and the deprecated ``PYBIND11_PLUGIN`` are not available;
 * locks its internals with critical sections on a private object, and keeps
   one weak reference per registered instance so that the instance registry
   can hand out strong references safely (``PyWeakref_GetRef()``). This weak
