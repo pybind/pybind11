@@ -26,3 +26,5 @@ add_custom_target(
   ${PROJECT_SOURCE_DIR}/../test.py
   ${PROJECT_NAME}
   DEPENDS test_installed_precompile)
+
+include("${CMAKE_CURRENT_LIST_DIR}/../precompile_guard.cmake")
