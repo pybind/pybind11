@@ -88,15 +88,15 @@ STD_TMPL = "/std:c++{}" if WIN else "-std=c++{}"
 # directory into your path if it sits beside your setup.py.
 
 
-def _stable_abi_macro(value: Any) -> tuple[str, str]:
+def _stable_abi_macro(value: Any, *, abi3t: bool = False) -> tuple[str, str]:
     """
     The define for ``py_limited_api``, as ``(name, hex value)``. True selects
     the minimum pybind11 supports (3.12 for abi3, 3.15 for abi3t), a string
     such as "3.13" or "cp313" selects that version, and an int or hex string is
-    passed through. A "t" suffix ("3.15t", "cp315t") selects abi3t, which is
-    always used on free-threaded Python.
+    passed through. A "t" suffix ("3.15t", "cp315t") or ``abi3t=True`` selects
+    abi3t, which is always used on free-threaded Python.
     """
-    abi3t = bool(sysconfig.get_config_var("Py_GIL_DISABLED"))
+    abi3t = abi3t or bool(sysconfig.get_config_var("Py_GIL_DISABLED"))
     text = str(value)
     if isinstance(value, str) and text.lower().endswith("t"):
         abi3t = True
@@ -189,13 +189,21 @@ class Pybind11Extension(_Extension):
             # setuptools only uses the flag for the .abi3 file name; the
             # define selects the limited API in the headers.
             kwargs["py_limited_api"] = True
-            macro = _stable_abi_macro(py_limited_api)
-            self._abi3t = macro[0] == "Py_TARGET_ABI3T"
             macros = list(kwargs.get("define_macros", []) or [])
-            if not any(
-                name in {"Py_LIMITED_API", "Py_TARGET_ABI3T"} for name, _ in macros
-            ):
+            abi_macros = [
+                (name, value)
+                for name, value in macros
+                if name in {"Py_LIMITED_API", "Py_TARGET_ABI3T"}
+            ]
+            if abi_macros:
+                # Explicit defines decide the ABI, the file name, and the export symbol.
+                abi3t = any(name == "Py_TARGET_ABI3T" for name, _ in abi_macros)
+                for _, value in abi_macros:
+                    macro = _stable_abi_macro(value, abi3t=abi3t)
+            else:
+                macro = _stable_abi_macro(py_limited_api)
                 macros.append(macro)
+            self._abi3t = macro[0] == "Py_TARGET_ABI3T"
             kwargs["define_macros"] = macros
 
         super().__init__(*args, **kwargs)

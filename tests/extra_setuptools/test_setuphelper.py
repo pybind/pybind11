@@ -240,6 +240,62 @@ def test_stable_abi_macro(monkeypatch, building, free_threaded, value, expected)
         assert _stable_abi_macro(value) == expected
 
 
+@pytest.mark.parametrize(
+    ("py_limited_api", "define_macros", "expected"),
+    [
+        (True, [("Py_TARGET_ABI3T", "0x030F0000")], "PyModExport_example"),
+        (True, [("Py_TARGET_ABI3T", 0x030F0000)], "PyModExport_example"),
+        ("3.15t", [("Py_LIMITED_API", "0x030C0000")], "PyInit_example"),
+        (True, [("Py_TARGET_ABI3T", "0x03100000")], ValueError),
+        (True, [("Py_LIMITED_API", "0x030B0000")], ValueError),
+        (
+            True,
+            [("Py_LIMITED_API", "0x030C0000"), ("Py_TARGET_ABI3T", "0x030F0000")],
+            ValueError,
+        ),
+    ],
+)
+def test_stable_abi_explicit_macros(
+    monkeypatch, py_limited_api, define_macros, expected
+):
+    monkeypatch.syspath_prepend(MAIN_DIR)
+    from setuptools import Distribution
+
+    from pybind11.setup_helpers import Pybind11Extension, build_ext
+
+    get_config_var = sysconfig.get_config_var
+    with monkeypatch.context() as target:
+        target.setattr(sys, "version_info", (3, 15, 0, "final", 0))
+        target.setattr(
+            sysconfig,
+            "get_config_var",
+            lambda name: 0 if name == "Py_GIL_DISABLED" else get_config_var(name),
+        )
+        if expected is ValueError:
+            with pytest.raises(ValueError):
+                Pybind11Extension(
+                    "example",
+                    [],
+                    include_pybind11=False,
+                    cxx_std=17,
+                    py_limited_api=py_limited_api,
+                    define_macros=define_macros,
+                )
+            return
+        extension = Pybind11Extension(
+            "example",
+            [],
+            include_pybind11=False,
+            cxx_std=17,
+            py_limited_api=py_limited_api,
+            define_macros=define_macros,
+        )
+
+    assert extension.define_macros == define_macros
+    command = build_ext(Distribution({"ext_modules": [extension]}))
+    assert command.get_export_symbols(extension) == [expected]
+
+
 def test_intree_extensions(monkeypatch, tmpdir):
     monkeypatch.syspath_prepend(MAIN_DIR)
 
