@@ -55,6 +55,15 @@ sets, before ``find_package(pybind11)``:
       set(PYBIND11_STABLE_ABI_VERSION "${SKBUILD_SABI_VERSION}" CACHE STRING "")
     endif()
 
+If your project calls ``find_package(Python)`` itself, add the component that
+scikit-build-core selects (``Development.SABIModule``); pybind11 adds it only
+when it finds Python itself:
+
+.. code-block:: cmake
+
+    find_package(Python REQUIRED COMPONENTS Interpreter Development.Module
+                 ${SKBUILD_SABI_COMPONENT})
+
 With setuptools, pass ``py_limited_api=True`` (or a version such as
 ``"3.13"``) to ``Pybind11Extension``; the module is named ``*.abi3.so``
 and ``Py_LIMITED_API`` is defined for you. Add a ``t`` (``"3.15t"``) for
@@ -115,7 +124,8 @@ available and in how a few things are implemented.
    * - Classes, functions, casters, STL, numpy, Eigen
      - supported
      - Under abi3t, ``numpy.h`` needs NumPy 2.5+ at run time (it reads
-       array fields through NumPy's abi3t accessors).
+       array fields through NumPy's abi3t accessors). Older NumPy versions
+       install on 3.15, so require ``numpy>=2.5`` for abi3t wheels.
    * - ``py::dynamic_attr()``
      - supported
      - Every instance reserves a ``__dict__`` slot (one pointer) that
@@ -162,7 +172,10 @@ Under abi3t, ``PyObject`` and ``PyModuleDef`` are incomplete types and
 * exports the module through the :pep:`793` ``PyModExport_<name>`` hook
   instead of ``PyInit_<name>``, so ``PYBIND11_MODULE`` is unchanged but
   ``py::module_::create_extension_module()``, the ``py::module_(name, doc)``
-  constructor, and the deprecated ``PYBIND11_PLUGIN`` are not available;
+  constructor, and the deprecated ``PYBIND11_PLUGIN`` are not available. If
+  you restrict exported symbols (a linker version script,
+  ``-exported_symbols_list``, or a ``.def`` file), export ``PyModExport_*``
+  too;
 * locks its internals with critical sections on a private object, and keeps
   one weak reference per registered instance so that the instance registry
   can hand out strong references safely (``PyWeakref_GetRef()``). This weak
