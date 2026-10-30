@@ -35,11 +35,11 @@ if(PYBIND11_FINDPYTHON
   endforeach()
 
   if(NOT _guard_free_threaded)
-    # The probes only call the C++ guard. Use headers without Python::Module's link options,
-    # which allow undefined symbols on macOS and would hide the intentional guard mismatch.
+    # Keep strict executable linking on POSIX: Python::Module's macOS link options allow
+    # undefined symbols and would hide the intentional guard mismatch.
     set(_guard_link_options)
     if(MSVC OR CMAKE_CXX_SIMULATE_ID STREQUAL "MSVC")
-      # Suppress release and debug autolink libraries: these probes call no Python API.
+      # Suppress automatic library names; the Windows module target supplies Python imports.
       # Python 3.13 does not yet provide Py_NO_LINK_LIB to disable the header pragmas.
       list(APPEND _guard_link_options LINKER:/NODEFAULTLIB:python3.lib
            "LINKER:/NODEFAULTLIB:python${Python_VERSION_MAJOR}${Python_VERSION_MINOR}_d.lib")
@@ -47,6 +47,11 @@ if(PYBIND11_FINDPYTHON
     add_library(pybind11_guard_headers INTERFACE IMPORTED)
     set_target_properties(pybind11_guard_headers PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
                                                             "${pybind11_INCLUDE_DIRS}")
+    set(_guard_link_libraries pybind11_guard_headers)
+    if(WIN32)
+      # Exported exception methods emit Python references even when the probe does not call them.
+      list(APPEND _guard_link_libraries ${_Python}::Module)
+    endif()
     foreach(_provider_api 0x030c0000 0x030d0000)
       set(_dir "${CMAKE_CURRENT_BINARY_DIR}/guard_link_${_provider_api}")
       file(MAKE_DIRECTORY "${_dir}")
@@ -64,7 +69,7 @@ if(PYBIND11_FINDPYTHON
         _linked "${_dir}/build"
         SOURCES "${_dir}/provider.cpp" "${_dir}/consumer.cpp"
         LINK_OPTIONS ${_guard_link_options}
-        LINK_LIBRARIES pybind11_guard_headers CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON
+        LINK_LIBRARIES ${_guard_link_libraries} CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON
         OUTPUT_VARIABLE _out)
       if(_provider_api STREQUAL "0x030c0000")
         if(NOT _linked)
