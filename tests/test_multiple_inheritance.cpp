@@ -239,6 +239,42 @@ TEST_SUBMODULE(multiple_inheritance, m) {
     py::class_<WithDict2>(m, "WithDict2", py::dynamic_attr()).def(py::init<>());
     py::class_<DictMix12, WithDict, WithDict2>(m, "DictMix12").def(py::init<>());
 
+#if PYBIND11_TYPE_CREATION_VIA_SPEC && !defined(PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET)
+    // Keep these bases separate from the MI fixtures: positional Python bases require
+    // simple C++ inheritance so that inherited methods can load their base pointer.
+    struct PythonDynamicBase {
+        int value() const { return 7; }
+    };
+    struct PythonDynamicDictBase {
+        int value() const { return 7; }
+    };
+    py::class_<PythonDynamicBase>(m, "PythonDynamicBase")
+        .def(py::init<>())
+        .def("value", &PythonDynamicBase::value);
+    py::class_<PythonDynamicDictBase>(m, "PythonDynamicDictBase", py::dynamic_attr())
+        .def(py::init<>())
+        .def("value", &PythonDynamicDictBase::value);
+
+    struct PythonBaseDynamic : PythonDynamicBase {};
+    m.def("make_dynamic_class_with_base", [m](py::object base) {
+        return py::class_<PythonBaseDynamic>(m, "PythonBaseDynamic", base, py::dynamic_attr())
+            .def(py::init<>());
+    });
+
+    struct PythonSlotsDynamic : PythonDynamicBase {};
+    struct PythonDictSlotsDynamic : PythonDynamicDictBase {};
+    m.def("make_dynamic_class_with_slots", [m](py::object base, bool base_has_dict) -> py::object {
+        if (base_has_dict) {
+            return py::class_<PythonDictSlotsDynamic>(
+                       m, "PythonDictSlotsDynamic", base, py::dynamic_attr())
+                .def(py::init<>());
+        }
+        return py::class_<PythonSlotsDynamic>(m, "PythonSlotsDynamic", base, py::dynamic_attr())
+            .def(py::init<>());
+    });
+
+#endif
+
     // test_diamond_inheritance
     // Issue #959: segfault when constructing diamond inheritance instance
     // All of these have int members so that there will be various unequal pointers involved.
