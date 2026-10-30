@@ -167,7 +167,10 @@ to specific operations:
   ``PyType_Spec``. This is also the default for regular builds on CPython
   3.12+; define ``PYBIND11_TYPE_CREATION_VIA_SPEC=0`` (CMake:
   ``-DPYBIND11_TYPE_CREATION_VIA_SPEC=OFF``) to use the previous path, which
-  fills in the ``PyHeapTypeObject`` fields directly.
+  fills in the ``PyHeapTypeObject`` fields directly. In regular builds,
+  ``PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET`` also selects the legacy
+  path for bound classes, even with ``PYBIND11_TYPE_CREATION_VIA_SPEC=1``,
+  so classes with custom type setup retain the same dictionary layout.
 * Instance allocation and deallocation look up ``tp_alloc``/``tp_free`` with
   ``PyType_GetSlot()``; the ``__dict__`` of ``py::dynamic_attr()`` instances
   is a fixed slot in the instance layout.
