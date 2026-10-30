@@ -548,20 +548,27 @@
             return m.ptr();
         }
 \endrst */
-#define PYBIND11_PLUGIN(name)                                                                     \
-    PYBIND11_DEPRECATED("PYBIND11_PLUGIN is deprecated, use PYBIND11_MODULE")                     \
-    static PyObject *pybind11_init();                                                             \
-    PYBIND11_PLUGIN_IMPL(name) {                                                                  \
-        PYBIND11_CHECK_PYTHON_VERSION                                                             \
-        PYBIND11_PRECOMPILED_CONFIG_GUARD                                                         \
-        PYBIND11_ENSURE_INTERNALS_READY                                                           \
-        try {                                                                                     \
-            return pybind11_init();                                                               \
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+#    define PYBIND11_PLUGIN(name)                                                                 \
+        static_assert(false,                                                                      \
+                      "PYBIND11_PLUGIN is not available under abi3t, use PYBIND11_MODULE");       \
+        static PyObject *pybind11_init()
+#else
+#    define PYBIND11_PLUGIN(name)                                                                 \
+        PYBIND11_DEPRECATED("PYBIND11_PLUGIN is deprecated, use PYBIND11_MODULE")                 \
+        static PyObject *pybind11_init();                                                         \
+        PYBIND11_PLUGIN_IMPL(name) {                                                              \
+            PYBIND11_CHECK_PYTHON_VERSION                                                         \
+            PYBIND11_PRECOMPILED_CONFIG_GUARD                                                     \
+            PYBIND11_ENSURE_INTERNALS_READY                                                       \
+            try {                                                                                 \
+                return pybind11_init();                                                           \
+            }                                                                                     \
+            PYBIND11_CATCH_INIT_EXCEPTIONS                                                        \
+            return nullptr;                                                                       \
         }                                                                                         \
-        PYBIND11_CATCH_INIT_EXCEPTIONS                                                            \
-        return nullptr;                                                                           \
-    }                                                                                             \
-    PyObject *pybind11_init()
+        PyObject *pybind11_init()
+#endif
 
 // this push is for the next several macros
 PYBIND11_WARNING_PUSH
