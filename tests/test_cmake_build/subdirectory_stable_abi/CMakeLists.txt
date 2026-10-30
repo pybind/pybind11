@@ -19,6 +19,14 @@ set_target_properties(test_subdirectory_stable_abi PROPERTIES OUTPUT_NAME test_c
 # WITH_SOABI must be consumed when pybind11 sets up the stable ABI itself (SHARED).
 pybind11_add_module(test_subdirectory_stable_abi_shared SHARED STABLE_ABI WITH_SOABI ../main.cpp)
 
+pybind11_add_module(test_subdirectory_stable_abi_without_soabi STABLE_ABI WITHOUT_SOABI
+                    ../main.cpp)
+set_target_properties(
+  test_subdirectory_stable_abi_without_soabi
+  PROPERTIES OUTPUT_NAME test_cmake_build
+             LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/without_soabi"
+             RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/without_soabi")
+
 if(DEFINED Python_EXECUTABLE)
   set(_Python_EXECUTABLE "${Python_EXECUTABLE}")
 elseif(DEFINED PYTHON_EXECUTABLE)
@@ -37,4 +45,9 @@ add_custom_target(
   ${_Python_EXECUTABLE}
   ${PROJECT_SOURCE_DIR}/../test.py
   ${PROJECT_NAME}
-  DEPENDS test_subdirectory_stable_abi test_subdirectory_stable_abi_shared)
+  COMMAND
+    ${CMAKE_COMMAND} -E env
+    PYTHONPATH=$<TARGET_FILE_DIR:test_subdirectory_stable_abi_without_soabi> ${_Python_EXECUTABLE}
+    ${PROJECT_SOURCE_DIR}/../test.py ${PROJECT_NAME}_without_soabi
+  DEPENDS test_subdirectory_stable_abi test_subdirectory_stable_abi_shared
+          test_subdirectory_stable_abi_without_soabi)

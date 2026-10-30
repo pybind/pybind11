@@ -443,6 +443,13 @@ function(pybind11_add_module target_name)
     # the default handling below.
     list(REMOVE_ITEM ARG_UNPARSED_ARGUMENTS WITH_SOABI)
     add_library(${target_name} ${lib_type} ${ARG_UNPARSED_ARGUMENTS})
+    # Match python_add_library's importable module name even with WITHOUT_SOABI.
+    if(lib_type STREQUAL "MODULE")
+      set_target_properties(${target_name} PROPERTIES PREFIX "")
+      if(WIN32)
+        set_target_properties(${target_name} PROPERTIES SUFFIX ".pyd")
+      endif()
+    endif()
     _pybind11_stable_abi_setup(${target_name})
   elseif("${_Python}" STREQUAL "Python")
     python_add_library(${target_name} ${lib_type} ${use_sabi} ${ARG_UNPARSED_ARGUMENTS})
