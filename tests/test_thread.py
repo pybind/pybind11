@@ -32,6 +32,19 @@ class Thread(threading.Thread):
             raise self.e
 
 
+@pytest.mark.parametrize(
+    "lookup", [m.instance_lookup_lifetime_classic, m.instance_lookup_lifetime_sh]
+)
+def test_instance_lookup_owns_wrapper(lookup):
+    # Check the C++ pointee: GraalPy can clear a Python weakref to the managed mirror while
+    # a native reference still keeps the wrapper and its C++ holder alive.
+    found, retained, is_released = lookup()
+    assert found
+    assert retained
+    pytest.gc_collect()
+    assert is_released()
+
+
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
 def test_implicit_conversion():
     a = Thread(m.test)

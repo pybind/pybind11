@@ -53,6 +53,27 @@ std::shared_ptr<T> get_shared() {
     return instance;
 }
 
+// The registry lookup must keep its selected Python wrapper alive independently of its caller.
+template <typename T>
+py::tuple instance_lookup_lifetime() {
+    auto value = std::make_shared<T>();
+    std::weak_ptr<T> lifetime = value;
+    py::object wrapper = py::cast(value);
+    bool found = false;
+    bool retained = false;
+    {
+        auto selected
+            = py::detail::get_object_handle(value.get(), py::detail::get_type_info(typeid(T)));
+        found = selected && selected.is(wrapper);
+        wrapper = py::object();
+        value.reset();
+        py::module_::import("gc").attr("collect")();
+        retained = !lifetime.expired();
+    }
+    return py::make_tuple(
+        found, retained, py::cpp_function([lifetime]() { return lifetime.expired(); }));
+}
+
 // The stable-ABI pymutex is a critical section on a plain object: a native thread without a
 // thread state cannot hold it.
 #if defined(Py_GIL_DISABLED) && !defined(PYBIND11_OPAQUE_PYOBJECT)
@@ -235,6 +256,8 @@ TEST_SUBMODULE(thread, m) {
     m.def("get_shared_object_classic", &get_shared<SharedObjectClassic>);
     py::classh<SharedObjectSh>(m, "SharedObjectSh").def("value", &SharedObjectSh::value);
     m.def("get_shared_object_sh", &get_shared<SharedObjectSh>);
+    m.def("instance_lookup_lifetime_classic", &instance_lookup_lifetime<SharedObjectClassic>);
+    m.def("instance_lookup_lifetime_sh", &instance_lookup_lifetime<SharedObjectSh>);
 
 #if defined(PYBIND11_HAS_STD_BARRIER)
     // In the free-threaded build, during PyThreadState_Clear, removing the thread from the biased
