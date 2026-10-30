@@ -282,6 +282,30 @@ def test_metaclass_base_conflict():
     assert isinstance(m.MetaclassConflictDerived(), m.MetaclassConflictBase)
 
 
+@pytest.mark.skipif("env.PYPY or env.GRAALPY", reason="CPython metaclass descriptors")
+@pytest.mark.parametrize("attribute", ["__bases__", "__mro__", "__dict__"])
+def test_metaclass_structural_attributes(attribute):
+    shadow = {} if attribute == "__dict__" else ()
+    meta = type(
+        "StructuralMeta",
+        (type(m.TestProperties),),
+        {attribute: property(lambda _cls: shadow)},
+    )
+    child = meta("Child", (m.TestProperties,), {"def_readwrite_static": 42})
+    instance = child()
+    assert instance.def_readwrite == m.TestProperties().def_readwrite
+
+    original = m.TestProperties.def_property_static
+    try:
+        child.def_property_static = original + 1
+        assert m.TestProperties.def_property_static == original + 1
+        child.def_readwrite_static = 43
+        assert child.def_readwrite_static == 43
+        assert m.TestProperties.def_property_static == original + 1
+    finally:
+        m.TestProperties.def_property_static = original
+
+
 def test_no_mixed_overloads():
     from pybind11_tests import detailed_error_messages_enabled
 

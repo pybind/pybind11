@@ -2686,11 +2686,25 @@ inline PyObject *interned_name(const char *name) {
     return obj; // kept alive on purpose
 }
 
-// Generic attribute lookup on a type object: resolves the `type.__xxx__` descriptors without
-// going through the metaclass's tp_getattro (pybind11's own metaclass calls back into here).
+// Read structural attributes through type's own descriptors. GenericGetAttr would still
+// invoke descriptors overridden by a custom metaclass (for example, a __bases__ property).
 // Returns a null object if the attribute is not found; never raises.
 inline object type_generic_getattr(PyTypeObject *type, handle name) {
-    auto value = reinterpret_steal<object>(PyObject_GenericGetAttr((PyObject *) type, name.ptr()));
+    auto type_dict = reinterpret_steal<object>(
+        PyObject_GetAttrString(reinterpret_cast<PyObject *>(&PyType_Type), "__dict__"));
+    object value;
+    if (type_dict) {
+        auto descr = reinterpret_steal<object>(PyObject_GetItem(type_dict.ptr(), name.ptr()));
+        if (descr) {
+            auto get = reinterpret_cast<descrgetfunc>(
+                PyType_GetSlot(Py_TYPE(descr.ptr()), Py_tp_descr_get));
+            if (get != nullptr) {
+                value = reinterpret_steal<object>(get(descr.ptr(),
+                                                      reinterpret_cast<PyObject *>(type),
+                                                      reinterpret_cast<PyObject *>(&PyType_Type)));
+            }
+        }
+    }
     if (!value) {
         PyErr_Clear();
     }
@@ -2738,7 +2752,7 @@ inline tuple get_mro(PyTypeObject *type) {
 inline object type_lookup(PyTypeObject *type, handle name) {
     static PyObject *dict_name = interned_name("__dict__");
     for (handle base : get_mro(type)) {
-        auto dict = reinterpret_steal<object>(PyObject_GenericGetAttr(base.ptr(), dict_name));
+        auto dict = type_generic_getattr(reinterpret_cast<PyTypeObject *>(base.ptr()), dict_name);
         if (!dict) {
             PyErr_Clear();
             continue;
