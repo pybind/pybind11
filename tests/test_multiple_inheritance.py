@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import weakref
+
 import pytest
 
 import env
@@ -278,6 +280,72 @@ def test_mi_dynamic_attributes():
         del d
         # The dict must be cleared without crashing (PyPy 3.12)
         pytest.gc_collect()
+
+
+@pytest.mark.skipif(
+    "env.PYPY or env.GRAALPY", reason="CPython dictionary layout and GC"
+)
+@pytest.mark.skipif(
+    not hasattr(m, "make_dynamic_class_with_base"),
+    reason="Requires spec-based class creation",
+)
+def test_dynamic_attributes_inherit_python_dictionary():
+    class PythonBase(m.PythonDynamicBase):
+        __slots__ = ("__dict__", "payload")
+
+    derived = m.make_dynamic_class_with_base(PythonBase)
+
+    class Payload:
+        pass
+
+    for cycle in (False, True):
+        instance = derived()
+        assert instance.value() == 7
+        instance.dynamic = 42
+        assert instance.__dict__["dynamic"] == 42
+        payload = Payload()
+        instance.payload = payload
+        payload_ref = weakref.ref(payload)
+        instance_ref = weakref.ref(instance)
+        if cycle:
+            instance.cycle = instance
+        del payload, instance
+        pytest.gc_collect()
+        assert instance_ref() is None
+        assert payload_ref() is None
+
+
+@pytest.mark.skipif(
+    "env.PYPY or env.GRAALPY", reason="CPython dictionary layout and GC"
+)
+@pytest.mark.skipif(
+    not hasattr(m, "make_dynamic_class_with_base"),
+    reason="Requires spec-based class creation",
+)
+@pytest.mark.parametrize("base_has_dict", [False, True])
+def test_dynamic_attributes_preserve_python_slots(base_has_dict):
+    base = m.PythonDynamicDictBase if base_has_dict else m.PythonDynamicBase
+
+    class PythonBase(base):
+        __slots__ = ("payload",)
+
+    derived = m.make_dynamic_class_with_slots(PythonBase, base_has_dict)
+
+    class Payload:
+        pass
+
+    instance = derived()
+    assert instance.value() == 7
+    slot_payload = Payload()
+    slot_payload.owner = instance
+    instance.payload = slot_payload
+    dict_payload = Payload()
+    dict_payload.owner = instance
+    instance.dynamic = dict_payload
+    refs = [weakref.ref(obj) for obj in (instance, slot_payload, dict_payload)]
+    del instance, slot_payload, dict_payload
+    pytest.gc_collect()
+    assert all(ref() is None for ref in refs)
 
 
 def test_mi_unaligned_base():

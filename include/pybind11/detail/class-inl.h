@@ -1131,6 +1131,25 @@ PYBIND11_INLINE PyObject *make_new_python_type(const type_record &rec) {
     if (!rec.is_final) {
         flags |= Py_TPFLAGS_BASETYPE;
     }
+    bool inherit_gc = false;
+#    if defined(Py_LIMITED_API)
+    bool base_has_dict = false;
+#    endif
+    for (handle b : bases) {
+        auto *b_type = reinterpret_cast<PyTypeObject *>(b.ptr());
+#    if defined(Py_LIMITED_API)
+        base_has_dict |= type_dictoffset(b_type) != 0;
+#    endif
+        const bool bound_base = with_internals([b_type](detail::internals &shared_internals) {
+            auto it = shared_internals.registered_types_py.find(b_type);
+            return it != shared_internals.registered_types_py.end() && it->second.size() == 1
+                   && it->second.front()->type == b_type;
+        });
+        // Python bases may own additional object slots. Their subtype GC handlers also
+        // visit a dictionary added by the derived type. A bound C++ base may instead have
+        // custom GC callbacks that know only its original layout.
+        inherit_gc |= !bound_base && PyType_GetSlot(b_type, Py_tp_traverse) != nullptr;
+    }
 #    if defined(Py_LIMITED_API)
     // No Py_TPFLAGS_MANAGED_DICT in the stable ABI: `__dict__` is the slot every instance
     // reserves (instance::dict), so the instance size is the same for all pybind11 types. The
@@ -1141,15 +1160,20 @@ PYBIND11_INLINE PyObject *make_new_python_type(const type_record &rec) {
            {nullptr, 0, 0, 0, nullptr}};
 #    endif
     if (rec.dynamic_attr) {
-        flags |= Py_TPFLAGS_HAVE_GC;
 #    if !defined(Py_LIMITED_API)
         flags |= Py_TPFLAGS_MANAGED_DICT;
-#    else
-        slots.push_back({Py_tp_members, reinterpret_cast<void *>(dict_member)});
-#    endif
-        slots.push_back({Py_tp_traverse, reinterpret_cast<void *>(pybind11_traverse)});
-        slots.push_back({Py_tp_clear, reinterpret_cast<void *>(pybind11_clear)});
         slots.push_back({Py_tp_getset, reinterpret_cast<void *>(dynamic_attr_getset())});
+#    else
+        if (!base_has_dict) {
+            slots.push_back({Py_tp_members, reinterpret_cast<void *>(dict_member)});
+            slots.push_back({Py_tp_getset, reinterpret_cast<void *>(dynamic_attr_getset())});
+        }
+#    endif
+        if (!inherit_gc) {
+            flags |= Py_TPFLAGS_HAVE_GC;
+            slots.push_back({Py_tp_traverse, reinterpret_cast<void *>(pybind11_traverse)});
+            slots.push_back({Py_tp_clear, reinterpret_cast<void *>(pybind11_clear)});
+        }
     }
     if (rec.buffer_protocol) {
         slots.push_back({Py_bf_getbuffer, reinterpret_cast<void *>(pybind11_getbuffer)});
