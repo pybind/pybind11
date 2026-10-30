@@ -59,7 +59,7 @@ py::tuple instance_lookup_lifetime() {
     auto value = std::make_shared<T>();
     py::object wrapper = py::cast(value);
     py::weakref weak(wrapper);
-    bool retained;
+    bool retained = false;
     {
         auto selected
             = py::detail::get_object_handle(value.get(), py::detail::get_type_info(typeid(T)));
