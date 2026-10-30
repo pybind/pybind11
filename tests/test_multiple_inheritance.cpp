@@ -256,7 +256,7 @@ TEST_SUBMODULE(multiple_inheritance, m) {
         .def("value", &PythonDynamicDictBase::value);
 
     struct PythonBaseDynamic : PythonDynamicBase {};
-    m.def("make_dynamic_class_with_base", [m](py::object base) {
+    m.def("make_dynamic_class_with_base", [m](py::object base) -> py::object {
         return py::class_<PythonBaseDynamic>(m, "PythonBaseDynamic", base, py::dynamic_attr())
             .def(py::init<>());
     });
