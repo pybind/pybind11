@@ -300,9 +300,13 @@ function(_pybind11_stable_abi_is_abi3t out_var)
       PARENT_SCOPE)
 endfunction()
 
-# PYBIND11_STABLE_ABI_VERSION, raised to 3.15 for abi3t (abi3t starts there).
+# PYBIND11_STABLE_ABI_VERSION, raised to 3.15 for abi3t (abi3t starts there). Empty (such as
+# SKBUILD_SABI_VERSION from scikit-build-core < 0.11) means 3.12.
 function(_pybind11_stable_abi_version out_var)
   set(_version "${PYBIND11_STABLE_ABI_VERSION}")
+  if(_version STREQUAL "")
+    set(_version "3.12")
+  endif()
   _pybind11_stable_abi_is_abi3t(_abi3t)
   if(_abi3t AND _version VERSION_LESS 3.15)
     set(_version "3.15")
@@ -371,7 +375,7 @@ function(_pybind11_check_stable_abi target_name lib_type)
   if(lib_type STREQUAL "STATIC")
     message(FATAL_ERROR "${target_name}: STABLE_ABI is not supported for STATIC libraries.")
   endif()
-  if(PYBIND11_STABLE_ABI_VERSION VERSION_LESS 3.12)
+  if(NOT PYBIND11_STABLE_ABI_VERSION STREQUAL "" AND PYBIND11_STABLE_ABI_VERSION VERSION_LESS 3.12)
     message(FATAL_ERROR "${target_name}: PYBIND11_STABLE_ABI_VERSION must be 3.12 or newer, "
                         "got ${PYBIND11_STABLE_ABI_VERSION}.")
   endif()
@@ -379,9 +383,10 @@ function(_pybind11_check_stable_abi target_name lib_type)
     message(FATAL_ERROR "${target_name}: STABLE_ABI requires CPython, found "
                         "${${_Python}_INTERPRETER_ID}.")
   endif()
-  if(DEFINED ${_Python}_VERSION AND ${_Python}_VERSION VERSION_LESS PYBIND11_STABLE_ABI_VERSION)
-    message(FATAL_ERROR "${target_name}: STABLE_ABI ${PYBIND11_STABLE_ABI_VERSION} needs Python "
-                        ">= ${PYBIND11_STABLE_ABI_VERSION} headers, found ${${_Python}_VERSION}.")
+  _pybind11_stable_abi_version(_version)
+  if(DEFINED ${_Python}_VERSION AND ${_Python}_VERSION VERSION_LESS _version)
+    message(FATAL_ERROR "${target_name}: STABLE_ABI ${_version} needs Python >= ${_version} "
+                        "headers, found ${${_Python}_VERSION}.")
   endif()
   _pybind11_stable_abi_is_abi3t(_abi3t)
   if(_abi3t
