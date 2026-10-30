@@ -1077,7 +1077,10 @@ PYBIND11_INLINE void enable_buffer_protocol(PyHeapTypeObject *heap_type) {
 }
 #endif // !Py_LIMITED_API
 
-#if PYBIND11_TYPE_CREATION_VIA_SPEC
+// The explicit dictionary-offset compatibility mode must use one layout for all bound
+// classes, including those with a custom_type_setup callback that requires the legacy path.
+#if PYBIND11_TYPE_CREATION_VIA_SPEC                                                               \
+    && (!defined(PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET) || defined(Py_LIMITED_API))
 
 PYBIND11_INLINE PyObject *make_new_python_type(const type_record &rec) {
     auto &internals = get_internals();
