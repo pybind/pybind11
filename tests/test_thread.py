@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import gc
 import os
 import subprocess
 import sys
@@ -30,6 +31,18 @@ class Thread(threading.Thread):
         super().join()
         if self.e:
             raise self.e
+
+
+@pytest.mark.parametrize(
+    "lookup", [m.instance_lookup_lifetime_classic, m.instance_lookup_lifetime_sh]
+)
+def test_instance_lookup_owns_wrapper(lookup):
+    # Dropping the original Python reference must not invalidate the lookup result. The
+    # selected wrapper should be destroyed when the lookup result itself goes out of scope.
+    retained, weak = lookup()
+    assert retained
+    gc.collect()
+    assert weak() is None
 
 
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
