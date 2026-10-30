@@ -16,6 +16,10 @@
 
 #include "class.h"
 
+#if defined(Py_LIMITED_API)
+#    include <pybind11/gil_safe_call_once.h>
+#endif
+
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
@@ -500,15 +504,18 @@ PYBIND11_INLINE instancemethod_object *instancemethod_data(PyObject *self) {
 }
 
 PYBIND11_INLINE PyTypeObject *get_bound_method_type() {
-    static PyTypeObject *const type = [] {
-        auto types = reinterpret_steal<object>(PyImport_ImportModule("types"));
-        if (!types) {
-            throw error_already_set();
-        }
-        // Static builtin type: keep the reference forever.
-        return reinterpret_cast<PyTypeObject *>(object(types.attr("MethodType")).release().ptr());
-    }();
-    return type;
+    PYBIND11_CONSTINIT static gil_safe_call_once_and_store<PyTypeObject *> storage;
+    return storage
+        .call_once_and_store_result([] {
+            auto types = reinterpret_steal<object>(PyImport_ImportModule("types"));
+            if (!types) {
+                throw error_already_set();
+            }
+            // Static builtin type: keep the reference forever.
+            return reinterpret_cast<PyTypeObject *>(
+                object(types.attr("MethodType")).release().ptr());
+        })
+        .get_stored();
 }
 
 PYBIND11_INLINE bool is_bound_method(PyObject *obj) {
