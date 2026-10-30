@@ -151,3 +151,23 @@ def test_intree_extensions_package_dir(monkeypatch, tmpdir):
     assert ext.name == "dir.ext"
     (ext,) = intree_extensions([src.relto(tmpdir)], package_dir={"foo": "src"})
     assert ext.name == "foo.dir.ext"
+
+
+def test_extension_does_not_modify_args(monkeypatch):
+    monkeypatch.syspath_prepend(MAIN_DIR)
+
+    from pybind11.setup_helpers import Pybind11Extension
+
+    compile_args = ["-DFOO"]
+    link_args = ["-lfoo"]
+    ext = Pybind11Extension(
+        "ext",
+        ["ext.cpp"],
+        extra_compile_args=compile_args,
+        extra_link_args=link_args,
+        cxx_std=17,
+    )
+    assert compile_args == ["-DFOO"]
+    assert link_args == ["-lfoo"]
+    assert ext.extra_compile_args[-1] == "-DFOO"
+    assert ext.extra_link_args[-1] == "-lfoo"
