@@ -1,3 +1,4 @@
+#include <pybind11/chrono.h>
 #include <pybind11/pybind11.h>
 
 #ifdef EXPECT_PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION
@@ -19,6 +20,7 @@ struct ColdMethodType {
 
 PYBIND11_MODULE(test_cmake_build, m, py::mod_gil_not_used()) {
     m.def("add", [](int i, int j) { return i + j; });
+    m.def("chrono_roundtrip", [](std::chrono::milliseconds value) { return value; });
     py::class_<ColdMethodType>(m, "ColdMethodType")
         .def(py::init<>())
         .def("value", &ColdMethodType::value);

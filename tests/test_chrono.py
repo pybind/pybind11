@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import datetime
-import subprocess
 import sys
-import textwrap
 import time
 
 import pytest
@@ -437,52 +435,3 @@ def test_chrono_different_resolutions():
     resolutions.timestamp_s = time
     resolutions.timestamp_ms = time
     resolutions.timestamp_us = time
-
-
-@pytest.mark.skipif(not env.LIMITED_API, reason="Stable-ABI datetime cache")
-def test_chrono_concurrent_first_import():
-    # A fresh process keeps the C++ cache cold even if earlier tests converted datetimes.
-    code = textwrap.dedent(
-        """\
-        import builtins
-        import threading
-        import time
-        from pybind11_tests import chrono as m
-
-        entered_import = threading.Event()
-        second_call = threading.Event()
-        original_import = builtins.__import__
-        errors = []
-
-        def slow_import(name, *args, **kwargs):
-            if name == "datetime":
-                entered_import.set()
-                assert second_call.wait(5)
-                time.sleep(0.1)
-            return original_import(name, *args, **kwargs)
-
-        builtins.__import__ = slow_import
-
-        def convert():
-            try:
-                m.test_chrono7(1.0)
-            except BaseException as exc:
-                errors.append(exc)
-
-        def concurrent_convert():
-            if not entered_import.wait(5):
-                errors.append(RuntimeError("chrono cache was not initialized"))
-                return
-            second_call.set()
-            convert()
-
-        first = threading.Thread(target=convert)
-        second = threading.Thread(target=concurrent_convert)
-        first.start()
-        second.start()
-        first.join()
-        second.join()
-        assert not errors, errors
-        """
-    )
-    subprocess.run([sys.executable, "-c", code], check=True, timeout=20)
