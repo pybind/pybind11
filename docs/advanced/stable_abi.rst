@@ -37,6 +37,10 @@ wheel from the build Python, see `Building wheels`_):
 
     cmake -S . -B build -DPYBIND11_STABLE_ABI=ON -DPYBIND11_ABI3T=ON
 
+If your project calls ``find_package(Python)`` itself, add the
+``Development.SABIModule`` component; pybind11 adds it only when it finds
+Python itself.
+
 ``PRECOMPILE`` can be combined with ``STABLE_ABI``; the precompiled library
 is then compiled against the limited API too, and one build tree cannot mix
 stable-ABI and regular precompiled modules.
@@ -58,8 +62,7 @@ default):
     endif()
 
 If your project calls ``find_package(Python)`` itself, add the component that
-scikit-build-core selects (``Development.SABIModule``); pybind11 adds it only
-when it finds Python itself:
+scikit-build-core selects:
 
 .. code-block:: cmake
 
@@ -106,6 +109,11 @@ Building wheels
 * Build ``abi3t`` wheels with free-threaded CPython 3.15+. With GIL-enabled
   Python, scikit-build-core and setuptools tag the wheel ``abi3`` even when
   the module is ``abi3t``, so the wheel installs where it cannot load.
+* When a ``setup.py`` runs CMake, pass ``-DPython_EXECUTABLE=<sys.executable>``.
+  FindPython skips free-threaded interpreters by default, so it can find a
+  GIL-enabled Python and build an ``abi3`` module into an ``abi3t`` wheel.
+* Every extension module in an ``abi3`` or ``abi3t`` wheel must use the
+  stable ABI; one version-specific module makes the wheel tag wrong.
 
 pybind11 rejects the combination with PyPy, GraalPy, and free-threaded
 CPython before 3.15 at compile time: they have no stable ABI.
