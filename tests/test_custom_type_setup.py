@@ -37,6 +37,16 @@ def gc_tester():
         assert ref() is None
 
 
+@pytest.mark.skipif("env.PYPY or env.GRAALPY", reason="Cannot reliably trigger GC")
+def test_dynamic_base_custom_type_setup(gc_tester):
+    obj = m.DynamicDerived()
+    assert obj.value == 7
+    obj.dynamic = 42
+    assert obj.__dict__["dynamic"] == 42
+    obj.cycle = obj
+    gc_tester(obj)
+
+
 # PyPy does not seem to reliably garbage collect.
 @pytest.mark.skipif("env.PYPY or env.GRAALPY")
 def test_self_cycle(gc_tester):
