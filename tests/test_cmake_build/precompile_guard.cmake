@@ -35,7 +35,14 @@ if(PYBIND11_FINDPYTHON
   endforeach()
 
   if(NOT _guard_free_threaded)
-    find_package(Python REQUIRED COMPONENTS Development.SABIModule)
+    # The probes only call the C++ guard; reuse the module's existing Python target rather
+    # than requiring a separate stable ABI import library (not provided by some MinGW builds).
+    set(_guard_link_options)
+    if(MSVC)
+      # Limited API headers auto-link python3.lib even though these probes use no Python API.
+      # Py_NO_LINK_LIB cannot disable that on Python 3.13, which the probes also exercise.
+      list(APPEND _guard_link_options /NODEFAULTLIB:python3.lib)
+    endif()
     add_library(pybind11_guard_headers INTERFACE IMPORTED)
     set_target_properties(pybind11_guard_headers PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
                                                             "${pybind11_INCLUDE_DIRS}")
@@ -55,7 +62,8 @@ if(PYBIND11_FINDPYTHON
       try_compile(
         _linked "${_dir}/build"
         SOURCES "${_dir}/provider.cpp" "${_dir}/consumer.cpp"
-        LINK_LIBRARIES pybind11_guard_headers Python::SABIModule CXX_STANDARD 11
+        LINK_OPTIONS ${_guard_link_options}
+        LINK_LIBRARIES pybind11_guard_headers ${_Python}::Module CXX_STANDARD 11
                        CXX_STANDARD_REQUIRED ON
         OUTPUT_VARIABLE _out)
       if(_provider_api STREQUAL "0x030c0000")
