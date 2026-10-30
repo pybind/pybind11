@@ -501,6 +501,20 @@ function(pybind11_precompile)
           "pybind11::precompiled was created for STABLE_ABI=${_existing_sabi}; one build tree "
           "cannot mix stable-ABI and regular precompiled modules.")
     endif()
+    if(ARG_STABLE_ABI)
+      _pybind11_stable_abi_hex(_sabi_hex)
+      _pybind11_stable_abi_is_abi3t(_abi3t)
+      get_target_property(_existing_hex pybind11_precompiled PYBIND11_STABLE_ABI_HEX)
+      get_target_property(_existing_abi3t pybind11_precompiled PYBIND11_ABI3T)
+      if(NOT "${_existing_hex}" STREQUAL "${_sabi_hex}" OR NOT "${_existing_abi3t}" STREQUAL
+                                                           "${_abi3t}")
+        message(
+          FATAL_ERROR
+            "pybind11::precompiled must use the same stable ABI target for every "
+            "module (existing: ${_existing_hex}, abi3t=${_existing_abi3t}; "
+            "requested: ${_sabi_hex}, abi3t=${_abi3t}).")
+      endif()
+    endif()
     return()
   endif()
 
@@ -526,6 +540,8 @@ function(pybind11_precompile)
   if(ARG_STABLE_ABI)
     _pybind11_stable_abi_hex(_sabi_hex)
     _pybind11_stable_abi_is_abi3t(_abi3t)
+    set_target_properties(pybind11_precompiled PROPERTIES PYBIND11_STABLE_ABI_HEX "${_sabi_hex}"
+                                                          PYBIND11_ABI3T "${_abi3t}")
     if(_abi3t)
       target_compile_definitions(pybind11_precompiled PRIVATE "Py_TARGET_ABI3T=${_sabi_hex}")
     else()
