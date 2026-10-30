@@ -38,10 +38,10 @@ if(PYBIND11_FINDPYTHON
     # The probes only call the C++ guard; reuse the module's existing Python target rather
     # than requiring a separate stable ABI import library (not provided by some MinGW builds).
     set(_guard_link_options)
-    if(MSVC)
+    if(MSVC OR CMAKE_CXX_SIMULATE_ID STREQUAL "MSVC")
       # Limited API headers auto-link python3.lib even though these probes use no Python API.
       # Py_NO_LINK_LIB cannot disable that on Python 3.13, which the probes also exercise.
-      list(APPEND _guard_link_options /NODEFAULTLIB:python3.lib)
+      list(APPEND _guard_link_options LINKER:/NODEFAULTLIB:python3.lib)
     endif()
     add_library(pybind11_guard_headers INTERFACE IMPORTED)
     set_target_properties(pybind11_guard_headers PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
