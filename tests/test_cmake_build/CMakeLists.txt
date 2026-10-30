@@ -23,7 +23,7 @@ function(pybind11_add_build_test name)
   # Forward option-driven defines so the nested projects can verify they propagate
   # through the pybind11_headers usage requirements.
   foreach(opt IN ITEMS PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION
-                       PYBIND11_SIMPLE_GIL_MANAGEMENT PYBIND11_STABLE_ABI)
+                       PYBIND11_SIMPLE_GIL_MANAGEMENT PYBIND11_STABLE_ABI PYBIND11_ABI3T)
     if(${opt})
       list(APPEND build_options "-D${opt}=ON")
     endif()

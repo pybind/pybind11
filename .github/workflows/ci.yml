@@ -361,6 +361,9 @@ jobs:
       - name: Build
         run: cmake --build build --config Release -j 4
 
+      - name: CMake stable ABI consumer build
+        run: cmake --build build --config Release --target test_build_subdirectory_stable_abi
+
       - name: Python tests (3.15)
         run: cmake --build build --config Release --target pytest
 
