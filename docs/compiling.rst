@@ -454,7 +454,7 @@ Requirements and caveats:
   ``PYBIND11_HAS_SUBINTERPRETER_SUPPORT``,
   ``PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET``,
   ``PYBIND11_TYPE_CREATION_VIA_SPEC``, and
-  ``Py_LIMITED_API``. A mismatch produces one
+  ``Py_LIMITED_API`` (including its numeric target version). A mismatch produces one
   readable undefined symbol at link time referencing
   ``pybind11_precompiled_config``.
 * Configuration macros that only change code inside the library (for example
@@ -486,9 +486,9 @@ Requirements and caveats:
   between projects. Each extension module links its own copy, which keeps
   pybind11's per-module state the same as in header-only mode.
 * With ``STABLE_ABI`` the library is compiled against the limited API too.
-  One build tree cannot mix stable-ABI and regular precompiled modules; the
-  first ``PRECOMPILE`` target decides, and a later mismatch is a configure
-  error.
+  One build tree cannot mix stable-ABI and regular precompiled modules, or
+  different stable ABI versions or abi3/abi3t targets; the first ``PRECOMPILE``
+  target decides, and a later mismatch is a configure error.
 * Not available with ``PYBIND11_NOPYTHON`` (the library needs Python
   headers).
 

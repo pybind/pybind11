@@ -48,12 +48,12 @@
 
 #if defined(PYBIND11_PRECOMPILED)
 // PYBIND11_PRECOMPILED_CONFIG_CHECK names a do-nothing function defined in the precompiled
-// pybind11 library. The identifier encodes every configuration macro that must match between
-// the library and the modules linking it. PYBIND11_MODULE calls it, so a mismatch (or a
-// missing library) surfaces as one readable undefined symbol at link time instead of many
-// unrelated ones at run time. If you add a configuration macro that changes the code in the
-// -inl.h files, encode it here, add it to the list in docs/compiling.rst, and add it to
-// tools/check_inl_headers.py.
+// pybind11 library. The identifier encodes the configuration flags, and its argument encodes
+// the numeric limited API target that must match between the library and the modules linking it.
+// PYBIND11_MODULE calls it, so a mismatch (or a missing library) surfaces as one readable
+// undefined symbol at link time instead of many unrelated ones at run time. If you add a
+// configuration macro that changes the code in the -inl.h files, encode it here, add it to the
+// list in docs/compiling.rst, and add it to tools/check_inl_headers.py.
 #    if defined(Py_GIL_DISABLED)
 #        define PYBIND11_PRECOMPILED_CFG_GD 1
 #    else
@@ -104,7 +104,7 @@
                                          PYBIND11_PRECOMPILED_CFG_LA,                             \
                                          PYBIND11_PRECOMPILED_CFG_TS)
 #    define PYBIND11_PRECOMPILED_CONFIG_GUARD                                                     \
-        ::pybind11::detail::PYBIND11_PRECOMPILED_CONFIG_CHECK();
+        ::pybind11::detail::PYBIND11_PRECOMPILED_CONFIG_CHECK({});
 #else
 #    define PYBIND11_PRECOMPILED_CONFIG_GUARD
 #endif
@@ -113,7 +113,13 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 
 #if defined(PYBIND11_PRECOMPILED)
 PYBIND11_NAMESPACE_BEGIN(detail)
-void PYBIND11_PRECOMPILED_CONFIG_CHECK();
+// Use the numeric value in the signature so equivalent hexadecimal/decimal spellings match.
+#    if defined(Py_LIMITED_API)
+using precompiled_limited_api = std::integral_constant<unsigned long, Py_LIMITED_API>;
+#    else
+using precompiled_limited_api = std::integral_constant<unsigned long, 0>;
+#    endif
+void PYBIND11_PRECOMPILED_CONFIG_CHECK(precompiled_limited_api);
 PYBIND11_NAMESPACE_END(detail)
 #endif
 
