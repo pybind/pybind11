@@ -36,6 +36,18 @@ PYBIND11_INLINE PyTypeObject *type_incref(PyTypeObject *type) {
     return type;
 }
 
+#if PYBIND11_TYPE_CREATION_VIA_SPEC
+PYBIND11_INLINE PyTypeObject *
+type_from_spec(const char *caller, PyTypeObject *metaclass, PyType_Spec *spec, PyObject *bases) {
+    PyObject *type = PyType_FromMetaclass(metaclass, nullptr, spec, bases);
+    if (type == nullptr) {
+        pybind11_fail(std::string(caller)
+                      + ": failure in PyType_FromMetaclass(): " + error_string());
+    }
+    return reinterpret_cast<PyTypeObject *>(type);
+}
+#endif
+
 #if !defined(PYPY_VERSION)
 extern "C" PYBIND11_INLINE PyObject *
 pybind11_static_get(PyObject *self, PyObject * /*ob*/, PyObject *cls) {
@@ -47,6 +59,31 @@ pybind11_static_set(PyObject *self, PyObject *obj, PyObject *value) {
     PyObject *cls = PyType_Check(obj) ? obj : (PyObject *) Py_TYPE(obj);
     return PyProperty_Type.tp_descr_set(self, cls, value);
 }
+
+#    if PYBIND11_TYPE_CREATION_VIA_SPEC
+
+PYBIND11_INLINE PyTypeObject *make_static_property_type() {
+    // Since Python-3.12 property-derived types are required to have dynamic attributes (to set
+    // `__doc__`), hence the GC and dict slots.
+    static PyType_Slot slots[] = {{Py_tp_descr_get, reinterpret_cast<void *>(pybind11_static_get)},
+                                  {Py_tp_descr_set, reinterpret_cast<void *>(pybind11_static_set)},
+                                  {Py_tp_traverse, reinterpret_cast<void *>(pybind11_traverse)},
+                                  {Py_tp_clear, reinterpret_cast<void *>(pybind11_clear)},
+                                  {Py_tp_getset, reinterpret_cast<void *>(dynamic_attr_getset())},
+                                  {0, nullptr}};
+    static PyType_Spec spec
+        = {PYBIND11_DUMMY_MODULE_NAME ".pybind11_static_property",
+           0, // inherit from property
+           0,
+           Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_MANAGED_DICT,
+           slots};
+    return type_from_spec("make_static_property_type()",
+                          nullptr,
+                          &spec,
+                          reinterpret_cast<PyObject *>(&PyProperty_Type));
+}
+
+#    else // legacy: fill in a PyHeapTypeObject by hand
 
 PYBIND11_INLINE PyTypeObject *make_static_property_type() {
     constexpr auto *name = "pybind11_static_property";
@@ -62,9 +99,9 @@ PYBIND11_INLINE PyTypeObject *make_static_property_type() {
     }
 
     heap_type->ht_name = name_obj.inc_ref().ptr();
-#    ifdef PYBIND11_BUILTIN_QUALNAME
+#        ifdef PYBIND11_BUILTIN_QUALNAME
     heap_type->ht_qualname = name_obj.inc_ref().ptr();
-#    endif
+#        endif
 
     auto *type = &heap_type->ht_type;
     type->tp_name = name;
@@ -73,11 +110,11 @@ PYBIND11_INLINE PyTypeObject *make_static_property_type() {
     type->tp_descr_get = pybind11_static_get;
     type->tp_descr_set = pybind11_static_set;
 
-#    if PY_VERSION_HEX >= 0x030C0000
+#        if PY_VERSION_HEX >= 0x030C0000
     // Since Python-3.12 property-derived types are required to
     // have dynamic attributes (to set `__doc__`)
     enable_dynamic_attributes(heap_type);
-#    endif
+#        endif
 
     if (PyType_Ready(type) < 0) {
         pybind11_fail("make_static_property_type(): failure in PyType_Ready()!");
@@ -88,6 +125,8 @@ PYBIND11_INLINE PyTypeObject *make_static_property_type() {
 
     return type;
 }
+
+#    endif // PYBIND11_TYPE_CREATION_VIA_SPEC
 
 #else // PYPY
 PYBIND11_INLINE PyTypeObject *make_static_property_type() {
@@ -224,6 +263,26 @@ extern "C" PYBIND11_INLINE void pybind11_meta_dealloc(PyObject *obj) {
     PyType_Type.tp_dealloc(obj);
 }
 
+#if PYBIND11_TYPE_CREATION_VIA_SPEC
+
+PYBIND11_INLINE PyTypeObject *make_default_metaclass() {
+    static PyType_Slot slots[]
+        = {{Py_tp_call, reinterpret_cast<void *>(pybind11_meta_call)},
+           {Py_tp_setattro, reinterpret_cast<void *>(pybind11_meta_setattro)},
+           {Py_tp_getattro, reinterpret_cast<void *>(pybind11_meta_getattro)},
+           {Py_tp_dealloc, reinterpret_cast<void *>(pybind11_meta_dealloc)},
+           {0, nullptr}};
+    static PyType_Spec spec = {PYBIND11_DUMMY_MODULE_NAME ".pybind11_type",
+                               0, // inherit from type
+                               0,
+                               Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+                               slots};
+    return type_from_spec(
+        "make_default_metaclass()", nullptr, &spec, reinterpret_cast<PyObject *>(&PyType_Type));
+}
+
+#else // legacy: fill in a PyHeapTypeObject by hand
+
 PYBIND11_INLINE PyTypeObject *make_default_metaclass() {
     constexpr auto *name = "pybind11_type";
     auto name_obj = reinterpret_steal<object>(PYBIND11_FROM_STRING(name));
@@ -238,9 +297,9 @@ PYBIND11_INLINE PyTypeObject *make_default_metaclass() {
     }
 
     heap_type->ht_name = name_obj.inc_ref().ptr();
-#ifdef PYBIND11_BUILTIN_QUALNAME
+#    ifdef PYBIND11_BUILTIN_QUALNAME
     heap_type->ht_qualname = name_obj.inc_ref().ptr();
-#endif
+#    endif
 
     auto *type = &heap_type->ht_type;
     type->tp_name = name;
@@ -263,6 +322,8 @@ PYBIND11_INLINE PyTypeObject *make_default_metaclass() {
 
     return type;
 }
+
+#endif // PYBIND11_TYPE_CREATION_VIA_SPEC
 
 PYBIND11_INLINE void traverse_offset_bases(void *valueptr,
                                            const detail::type_info *tinfo,
@@ -490,6 +551,34 @@ extern "C" PYBIND11_INLINE void pybind11_object_dealloc(PyObject *self) {
     Py_DECREF(type);
 }
 
+#if PYBIND11_TYPE_CREATION_VIA_SPEC
+
+PYBIND11_INLINE PyObject *make_object_base_type(PyTypeObject *metaclass) {
+    /* Support weak references (needed for the keep_alive feature) */
+    static PyMemberDef members[] = {
+        {"__weaklistoffset__", Py_T_PYSSIZET, offsetof(instance, weakrefs), Py_READONLY, nullptr},
+        {nullptr, 0, 0, 0, nullptr}};
+    static PyType_Slot slots[]
+        = {{Py_tp_new, reinterpret_cast<void *>(pybind11_object_new)},
+           {Py_tp_init, reinterpret_cast<void *>(pybind11_object_init)},
+           {Py_tp_dealloc, reinterpret_cast<void *>(pybind11_object_dealloc)},
+           {Py_tp_members, reinterpret_cast<void *>(members)},
+           {0, nullptr}};
+    static PyType_Spec spec = {PYBIND11_DUMMY_MODULE_NAME ".pybind11_object",
+                               static_cast<int>(sizeof(instance)),
+                               0,
+                               Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+                               slots};
+    PyTypeObject *type = type_from_spec("make_object_base_type()",
+                                        metaclass,
+                                        &spec,
+                                        reinterpret_cast<PyObject *>(&PyBaseObject_Type));
+    assert(!PyType_HasFeature(type, Py_TPFLAGS_HAVE_GC));
+    return reinterpret_cast<PyObject *>(type);
+}
+
+#else // legacy: fill in a PyHeapTypeObject by hand
+
 PYBIND11_INLINE PyObject *make_object_base_type(PyTypeObject *metaclass) {
     constexpr auto *name = "pybind11_object";
     auto name_obj = reinterpret_steal<object>(PYBIND11_FROM_STRING(name));
@@ -504,9 +593,9 @@ PYBIND11_INLINE PyObject *make_object_base_type(PyTypeObject *metaclass) {
     }
 
     heap_type->ht_name = name_obj.inc_ref().ptr();
-#ifdef PYBIND11_BUILTIN_QUALNAME
+#    ifdef PYBIND11_BUILTIN_QUALNAME
     heap_type->ht_qualname = name_obj.inc_ref().ptr();
-#endif
+#    endif
 
     auto *type = &heap_type->ht_type;
     type->tp_name = name;
@@ -531,6 +620,8 @@ PYBIND11_INLINE PyObject *make_object_base_type(PyTypeObject *metaclass) {
     assert(!PyType_HasFeature(type, Py_TPFLAGS_HAVE_GC));
     return reinterpret_cast<PyObject *>(heap_type);
 }
+
+#endif // PYBIND11_TYPE_CREATION_VIA_SPEC
 
 extern "C" PYBIND11_INLINE int pybind11_traverse(PyObject *self, visitproc visit, void *arg) {
 #if PY_VERSION_HEX >= 0x030D0000
@@ -557,6 +648,13 @@ extern "C" PYBIND11_INLINE int pybind11_clear(PyObject *self) {
     return 0;
 }
 
+PYBIND11_INLINE PyGetSetDef *dynamic_attr_getset() {
+    static PyGetSetDef getset[]
+        = {{"__dict__", PyObject_GenericGetDict, PyObject_GenericSetDict, nullptr, nullptr},
+           {nullptr, nullptr, nullptr, nullptr, nullptr}};
+    return getset;
+}
+
 PYBIND11_INLINE void enable_dynamic_attributes(PyHeapTypeObject *heap_type) {
     auto *type = &heap_type->ht_type;
     type->tp_flags |= Py_TPFLAGS_HAVE_GC;
@@ -568,11 +666,7 @@ PYBIND11_INLINE void enable_dynamic_attributes(PyHeapTypeObject *heap_type) {
 #endif
     type->tp_traverse = pybind11_traverse;
     type->tp_clear = pybind11_clear;
-
-    static PyGetSetDef getset[]
-        = {{"__dict__", PyObject_GenericGetDict, PyObject_GenericSetDict, nullptr, nullptr},
-           {nullptr, nullptr, nullptr, nullptr, nullptr}};
-    type->tp_getset = getset;
+    type->tp_getset = dynamic_attr_getset();
 }
 
 extern "C" PYBIND11_INLINE int pybind11_getbuffer(PyObject *obj, Py_buffer *view, int flags) {
@@ -686,7 +780,96 @@ PYBIND11_INLINE void enable_buffer_protocol(PyHeapTypeObject *heap_type) {
     heap_type->as_buffer.bf_releasebuffer = pybind11_releasebuffer;
 }
 
+#if PYBIND11_TYPE_CREATION_VIA_SPEC
+
 PYBIND11_INLINE PyObject *make_new_python_type(const type_record &rec) {
+    auto &internals = get_internals();
+    auto *metaclass = rec.metaclass.ptr() ? reinterpret_cast<PyTypeObject *>(rec.metaclass.ptr())
+                                          : internals.default_metaclass;
+
+    // PyType_FromMetaclass() cannot run a pre-PyType_Ready callback, rejects metaclasses with a
+    // custom tp_new, and refuses a metaclass that is not at least as derived as the metaclass of
+    // each base. The legacy path accepts all three.
+    bool base_metaclass_mismatch = false;
+    for (handle b : rec.bases) {
+        base_metaclass_mismatch |= PyType_IsSubtype(metaclass, Py_TYPE(b.ptr())) == 0;
+    }
+    if (rec.custom_type_setup_callback || base_metaclass_mismatch
+        || metaclass->tp_new != PyType_Type.tp_new
+        || (metaclass != internals.default_metaclass
+            && PyType_IsSubtype(metaclass, internals.default_metaclass) == 0)) {
+        return make_new_python_type_legacy(rec);
+    }
+
+    object module_ = get_module_name_if_available(rec.scope);
+    // PyType_FromMetaclass() copies the name, derives __module__ from the part before the last
+    // dot, and warns if there is none.
+    const std::string full_name
+        = (module_ ? str(module_).cast<std::string>() : PYBIND11_DUMMY_MODULE_NAME) + "."
+          + rec.name;
+
+    auto bases = tuple(rec.bases);
+    if (bases.empty()) {
+        bases = make_tuple(handle(internals.instance_base));
+    }
+    object base = bases.size() == 1 ? bases[0].cast<object>() : static_cast<object>(bases);
+
+    std::vector<PyType_Slot> slots;
+    /* Don't inherit base __init__ */
+    slots.push_back({Py_tp_init, reinterpret_cast<void *>(pybind11_object_init)});
+    if (rec.doc && options::show_user_defined_docstrings()) {
+        slots.push_back({Py_tp_doc, const_cast<char *>(rec.doc)});
+    }
+    unsigned int flags = Py_TPFLAGS_DEFAULT;
+    if (!rec.is_final) {
+        flags |= Py_TPFLAGS_BASETYPE;
+    }
+    if (rec.dynamic_attr) {
+        flags |= Py_TPFLAGS_HAVE_GC | Py_TPFLAGS_MANAGED_DICT;
+        slots.push_back({Py_tp_traverse, reinterpret_cast<void *>(pybind11_traverse)});
+        slots.push_back({Py_tp_clear, reinterpret_cast<void *>(pybind11_clear)});
+        slots.push_back({Py_tp_getset, reinterpret_cast<void *>(dynamic_attr_getset())});
+    }
+    if (rec.buffer_protocol) {
+        slots.push_back({Py_bf_getbuffer, reinterpret_cast<void *>(pybind11_getbuffer)});
+        slots.push_back({Py_bf_releasebuffer, reinterpret_cast<void *>(pybind11_releasebuffer)});
+    }
+    slots.push_back({0, nullptr});
+
+    // basicsize 0: inherit the instance layout from the base
+    PyType_Spec spec = {full_name.c_str(), 0, 0, flags, slots.data()};
+    auto *type = type_from_spec(rec.name, metaclass, &spec, base.ptr());
+    assert(!rec.dynamic_attr || PyType_HasFeature(type, Py_TPFLAGS_HAVE_GC));
+
+    /* Register type with the parent scope */
+    if (rec.scope) {
+        setattr(rec.scope, rec.name, reinterpret_cast<PyObject *>(type));
+    } else {
+        Py_INCREF(type); // Keep it alive forever (reference leak)
+    }
+
+    if (module_) { // Needed by pydoc
+        setattr(reinterpret_cast<PyObject *>(type), "__module__", module_);
+    }
+    if (rec.scope && !PyModule_Check(rec.scope.ptr()) && hasattr(rec.scope, "__qualname__")) {
+        setattr(reinterpret_cast<PyObject *>(type),
+                "__qualname__",
+                reinterpret_steal<object>(PyUnicode_FromFormat(
+                    "%U.%s", rec.scope.attr("__qualname__").ptr(), rec.name)));
+    }
+
+    return reinterpret_cast<PyObject *>(type);
+}
+
+#else
+
+PYBIND11_INLINE PyObject *make_new_python_type(const type_record &rec) {
+    return make_new_python_type_legacy(rec);
+}
+
+#endif // PYBIND11_TYPE_CREATION_VIA_SPEC
+
+PYBIND11_INLINE PyObject *make_new_python_type_legacy(const type_record &rec) {
     auto name = reinterpret_steal<object>(PYBIND11_FROM_STRING(rec.name));
 
     auto qualname = name;
