@@ -175,7 +175,7 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
         py::tuple t(a.size());
         for (size_t i = 0; i < a.size(); i++) {
             // Use raw Python API here to avoid an extra, intermediate incref on the tuple item:
-            t[i] = REFCNT(PyTuple_GET_ITEM(a.ptr(), static_cast<py::ssize_t>(i)));
+            t[i] = REFCNT(PyTuple_GetItem(a.ptr(), static_cast<py::ssize_t>(i)));
         }
         return t;
     });
@@ -185,7 +185,7 @@ TEST_SUBMODULE(kwargs_and_defaults, m) {
         t[0] = o.ref_count();
         for (size_t i = 0; i < a.size(); i++) {
             // Use raw Python API here to avoid an extra, intermediate incref on the tuple item:
-            t[i + 1] = REFCNT(PyTuple_GET_ITEM(a.ptr(), static_cast<py::ssize_t>(i)));
+            t[i + 1] = REFCNT(PyTuple_GetItem(a.ptr(), static_cast<py::ssize_t>(i)));
         }
         return t;
     });

@@ -8,7 +8,9 @@ import pytest
 
 import env
 import pybind11_tests
-from pybind11_tests import custom_type_setup as m
+
+# Not built under the stable ABI (PyHeapTypeObject is opaque there)
+m = pytest.importorskip("pybind11_tests.custom_type_setup")
 
 
 @pytest.fixture
@@ -33,6 +35,16 @@ def gc_tester():
     gc.collect()
     for ref in weak_refs:
         assert ref() is None
+
+
+@pytest.mark.skipif("env.PYPY or env.GRAALPY", reason="Cannot reliably trigger GC")
+def test_dynamic_base_custom_type_setup(gc_tester):
+    obj = m.DynamicDerived()
+    assert obj.value == 7
+    obj.dynamic = 42
+    assert obj.__dict__["dynamic"] == 42
+    obj.cycle = obj
+    gc_tester(obj)
 
 
 # PyPy does not seem to reliably garbage collect.

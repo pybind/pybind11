@@ -15,6 +15,9 @@
 #if defined(PYPY_VERSION)
 #    error Embedding the interpreter is not supported with PyPy
 #endif
+#if defined(Py_LIMITED_API)
+#    error "pybind11/embed.h is not available under the stable ABI (Py_LIMITED_API)."
+#endif
 
 #define PYBIND11_EMBEDDED_MODULE_IMPL(name)                                                       \
     extern "C" PyObject *pybind11_init_impl_##name();                                             \

@@ -140,8 +140,16 @@ endfunction()
 #
 function(pybind11_add_module target_name)
   set(options
-      "MODULE;SHARED;EXCLUDE_FROM_ALL;NO_EXTRAS;SYSTEM;THIN_LTO;OPT_SIZE;PRECOMPILE;NO_PRECOMPILE")
+      "MODULE;SHARED;EXCLUDE_FROM_ALL;NO_EXTRAS;SYSTEM;THIN_LTO;OPT_SIZE;PRECOMPILE;NO_PRECOMPILE;STABLE_ABI;NO_STABLE_ABI"
+  )
   cmake_parse_arguments(ARG "${options}" "" "" ${ARGN})
+
+  if((ARG_STABLE_ABI OR PYBIND11_STABLE_ABI) AND NOT ARG_NO_STABLE_ABI)
+    message(
+      FATAL_ERROR
+        "${target_name}: STABLE_ABI requires the FindPython mode (PYBIND11_FINDPYTHON=ON) "
+        "and CMake 3.26 or newer.")
+  endif()
 
   if(ARG_MODULE AND ARG_SHARED)
     message(FATAL_ERROR "Can't be both MODULE and SHARED")
@@ -161,7 +169,7 @@ function(pybind11_add_module target_name)
 
   target_link_libraries(${target_name} PRIVATE pybind11::module)
 
-  _pybind11_maybe_precompile(${target_name} "${ARG_PRECOMPILE}" "${ARG_NO_PRECOMPILE}")
+  _pybind11_maybe_precompile(${target_name} "${ARG_PRECOMPILE}" "${ARG_NO_PRECOMPILE}" OFF)
 
   if(ARG_SYSTEM)
     message(

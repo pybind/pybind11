@@ -734,8 +734,8 @@ TEST_SUBMODULE(pytypes, m) {
 // pytypes.h could be changed to enforce the "most correct" user code below, by removing
 // `const` from iterator `reference` using type aliases, but that will break existing
 // user code.
-#if (defined(__APPLE__) && defined(__clang__)) || defined(PYPY_VERSION)
-// This is "most correct" and enforced on these platforms.
+#if (defined(__APPLE__) && defined(__clang__)) || defined(PYPY_VERSION) || defined(Py_LIMITED_API)
+// This is "most correct" and enforced on these platforms (and the stable ABI, as on PyPy).
 #    define PYBIND11_AUTO_IT auto it
 #else
     // This works on many platforms and is (unfortunately) reflective of existing user code.
