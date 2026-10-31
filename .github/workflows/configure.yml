@@ -38,7 +38,7 @@ jobs:
         - runs-on: macos-15-intel
           cmake: "3.15"
 
-        - runs-on: macos-14
+        - runs-on: macos-15
           cmake: "4.2"
 
         - runs-on: windows-latest
