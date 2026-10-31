@@ -508,6 +508,28 @@ def test_vec_of_reference_wrapper():
     )
 
 
+@pytest.mark.skipif(
+    not hasattr(m, "roundtrip_optional_reference_wrapper"), reason="no <optional>"
+)
+def test_optional_reference_wrapper():
+    """#5637: optional<reference_wrapper<T>> must not dangle when T is materialized by the caster"""
+    # Long string to force a heap allocation (defeating the small-string optimization), so a
+    # dangling reference reads freed memory rather than still-valid inline storage.
+    s = "x" * 200
+    assert m.roundtrip_optional_reference_wrapper(s) == s
+    assert m.roundtrip_optional_reference_wrapper(None) == "<none>"
+
+
+@pytest.mark.skipif(
+    not hasattr(m, "roundtrip_variant_reference_wrapper"), reason="no <variant>"
+)
+def test_variant_reference_wrapper():
+    """#5637: same dangling reference inside a variant alternative"""
+    s = "y" * 200
+    assert m.roundtrip_variant_reference_wrapper(s) == s
+    assert m.roundtrip_variant_reference_wrapper(1) == "<int>"
+
+
 def test_stl_pass_by_pointer(msg):
     """Passing nullptr or None to an STL container pointer is not expected to work"""
     with pytest.raises(TypeError) as excinfo:
