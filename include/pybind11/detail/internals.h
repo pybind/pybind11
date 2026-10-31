@@ -213,7 +213,8 @@ inline PyThreadState *get_thread_state_unchecked() {
 }
 
 inline PyInterpreterState *get_interpreter(PyThreadState *tstate) {
-#if defined(PYPY_VERSION) // Missing in older PyPy (e.g. 7.3.19)
+#if defined(PYPY_VERSION_NUM) && PYPY_VERSION_NUM < 0x08000000
+    // Missing in some PyPy 7.x releases (e.g. 7.3.19).
     return tstate->interp;
 #else
     return PyThreadState_GetInterpreter(tstate);
