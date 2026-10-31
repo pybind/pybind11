@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import multiprocessing
+import queue
 import sys
 import sysconfig
 import threading
@@ -14,7 +15,7 @@ from pybind11_tests import gil_scoped as m
 # Test collection seems to hold the gil
 # These tests have rare flakes in nogil; since they
 # are testing the gil, they are skipped at the moment.
-skipif_not_free_threaded = pytest.mark.skipif(
+skipif_free_threaded = pytest.mark.skipif(
     sysconfig.get_config_var("Py_GIL_DISABLED"),
     reason="Flaky without the GIL",
 )
@@ -124,7 +125,7 @@ def test_nested_acquire():
 def test_multi_acquire_release_cross_module():
     for bits in range(16 * 8):
         internals_ids = m.test_multi_acquire_release_cross_module(bits)
-        assert len(internals_ids) == 2 if bits % 8 else 1
+        assert len(internals_ids) == (2 if bits % 8 else 1)
 
 
 # Intentionally putting human review in the loop here, to guard against accidents.
@@ -195,63 +196,102 @@ def _intentional_deadlock():
     m.intentional_deadlock()
 
 
-ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK = (*ALL_BASIC_TESTS, _intentional_deadlock)
+def _run_in_process_target(target, args, kwargs, status_writer):
+    with status_writer:
+        status_writer.send("started")
+        target(*args, **kwargs)
+        status_writer.send("finished")
 
 
-def _run_in_process(target, *args, **kwargs):
+def _run_in_process(target, *args, timeout=10, **kwargs):
     if env.ANDROID or env.IOS or sys.platform.startswith("emscripten"):
         pytest.skip("Requires subprocess support")
 
-    test_fn = target if len(args) == 0 else args[0]
-    # Do not need to wait much, 10s should be more than enough.
-    timeout = 0.1 if test_fn is _intentional_deadlock else 10
-    process = multiprocessing.Process(target=target, args=args, kwargs=kwargs)
-    process.daemon = True
-    try:
-        t_start = time.time()
-        process.start()
-        if timeout >= 100:  # For debugging.
-            print(
-                "\nprocess.pid STARTED", process.pid, (sys.argv, target, args, kwargs)
+    # Events allocate named semaphores whose delayed cleanup can fail on PyPy.
+    status_reader, status_writer = multiprocessing.Pipe(duplex=False)
+    # Keep the parent's writer open through cleanup so EOF cannot look like a signal.
+    with status_reader, status_writer:
+        process = multiprocessing.Process(
+            target=_run_in_process_target,
+            args=(target, args, kwargs, status_writer),
+        )
+        process.daemon = True
+        try:
+            t_start = time.time()
+            process.start()
+            if timeout >= 100:  # For debugging.
+                print(
+                    "\nprocess.pid STARTED",
+                    process.pid,
+                    (sys.argv, target, args, kwargs),
+                )
+                print(
+                    f"COPY-PASTE-THIS: gdb {sys.argv[0]} -p {process.pid}", flush=True
+                )
+            # Imports can take longer than the execution timeout, especially with spawn.
+            child_started = (
+                status_reader.poll(timeout=10) and status_reader.recv() == "started"
             )
-            print(f"COPY-PASTE-THIS: gdb {sys.argv[0]} -p {process.pid}", flush=True)
-        process.join(timeout=timeout)
-        if timeout >= 100:
-            print("\nprocess.pid JOINED", process.pid, flush=True)
-        t_delta = time.time() - t_start
-        if process.exitcode == 66 and m.defined_THREAD_SANITIZER:  # Issue #2754
-            # WOULD-BE-NICE-TO-HAVE: Check that the message below is actually in the output.
-            # Maybe this could work:
-            # https://gist.github.com/alexeygrigorev/01ce847f2e721b513b42ea4a6c96905e
-            pytest.skip(
-                "ThreadSanitizer: starting new threads after multi-threaded fork is not supported."
+            child_finished = (
+                child_started
+                and status_reader.poll(timeout=timeout)
+                and status_reader.recv() == "finished"
             )
-        elif test_fn is _intentional_deadlock:
-            assert process.exitcode is None
-            return 0
+            # A returned test must not look deadlocked while the process shuts down.
+            process.join(timeout=10 if child_finished else 0)
+            if timeout >= 100:
+                print("\nprocess.pid JOINED", process.pid, flush=True)
+            t_delta = time.time() - t_start
+            if process.exitcode == 66 and m.defined_THREAD_SANITIZER:  # Issue #2754
+                # WOULD-BE-NICE-TO-HAVE: Check that the message below is actually in the output.
+                # Maybe this could work:
+                # https://gist.github.com/alexeygrigorev/01ce847f2e721b513b42ea4a6c96905e
+                pytest.skip(
+                    "ThreadSanitizer: starting new threads after multi-threaded fork is not supported."
+                )
+            if not child_started:
+                raise RuntimeError("Subprocess did not start within 10 seconds.")
+            if child_finished and process.exitcode is None:
+                raise RuntimeError(
+                    "Subprocess did not exit within 10 seconds after the test returned."
+                )
 
-        if process.exitcode is None:
-            assert t_delta > 0.9 * timeout
-            msg = "DEADLOCK, most likely, exactly what this test is meant to detect."
-            soabi = sysconfig.get_config_var("SOABI")
-            if env.WIN and env.PYPY:
-                pytest.xfail(f"[TEST-GIL-SCOPED] {soabi} PyPy: " + msg)
-            if env.MACOS:
-                if not env.sys_is_gil_enabled():
-                    pytest.xfail(f"[TEST-GIL-SCOPED] {soabi} with GIL disabled: " + msg)
-                if env.PY_GIL_DISABLED:
-                    pytest.xfail(f"[TEST-GIL-SCOPED] {soabi}: " + msg)
-            raise RuntimeError(msg)
-        return process.exitcode
-    finally:
-        if process.is_alive():
-            process.terminate()
+            if process.exitcode is None:
+                assert t_delta > 0.9 * timeout
+                msg = (
+                    "DEADLOCK, most likely, exactly what this test is meant to detect."
+                )
+                soabi = sysconfig.get_config_var("SOABI")
+                if env.WIN and env.PYPY:
+                    pytest.xfail(f"[TEST-GIL-SCOPED] {soabi} PyPy: " + msg)
+                if env.MACOS:
+                    if not env.sys_is_gil_enabled():
+                        pytest.xfail(
+                            f"[TEST-GIL-SCOPED] {soabi} with GIL disabled: " + msg
+                        )
+                    if env.PY_GIL_DISABLED:
+                        pytest.xfail(f"[TEST-GIL-SCOPED] {soabi}: " + msg)
+                raise RuntimeError(msg)
+            return process.exitcode
+        finally:
+            if process.is_alive():
+                process.terminate()
+            if process.pid is not None:
+                process.join()
 
 
 def _run_in_threads(test_fn, num_threads, parallel):
+    exceptions = queue.SimpleQueue()
+
+    def run_test():
+        try:
+            test_fn()
+        except BaseException as error:
+            exceptions.put(error)
+
     threads = []
     for _ in range(num_threads):
-        thread = threading.Thread(target=test_fn)
+        thread = threading.Thread(target=run_test)
         thread.daemon = True
         thread.start()
         if parallel:
@@ -260,10 +300,23 @@ def _run_in_threads(test_fn, num_threads, parallel):
             thread.join()
     for thread in threads:
         thread.join()
+    # Thread exceptions otherwise only print a traceback, leaving a successful process.
+    if not exceptions.empty():
+        raise exceptions.get()
 
 
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
-@pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK)
+@pytest.mark.parametrize("parallel", [False, True], ids=["sequential", "parallel"])
+def test_run_in_threads_propagates_exception(parallel):
+    def fail():
+        raise AssertionError("worker failure")
+
+    with pytest.raises(AssertionError, match="worker failure"):
+        _run_in_threads(fail, num_threads=2, parallel=parallel)
+
+
+@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
+@pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS)
 @pytest.mark.skipif(
     "env.GRAALPY",
     reason="GraalPy transiently complains about unfinished threads at process exit",
@@ -276,9 +329,9 @@ def test_run_in_process_one_thread(test_fn):
     assert _run_in_process(_run_in_threads, test_fn, num_threads=1, parallel=False) == 0
 
 
-@skipif_not_free_threaded
+@skipif_free_threaded
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
-@pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK)
+@pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS)
 @pytest.mark.skipif(
     "env.GRAALPY",
     reason="GraalPy transiently complains about unfinished threads at process exit",
@@ -292,7 +345,7 @@ def test_run_in_process_multiple_threads_parallel(test_fn):
 
 
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
-@pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK)
+@pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS)
 @pytest.mark.skipif(
     "env.GRAALPY",
     reason="GraalPy transiently complains about unfinished threads at process exit",
@@ -306,13 +359,7 @@ def test_run_in_process_multiple_threads_sequential(test_fn):
 
 
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
-@pytest.mark.parametrize(
-    "test_fn",
-    [
-        *ALL_BASIC_TESTS,
-        pytest.param(_intentional_deadlock, marks=skipif_not_free_threaded),
-    ],
-)
+@pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS)
 @pytest.mark.skipif(
     "env.GRAALPY",
     reason="GraalPy transiently complains about unfinished threads at process exit",
@@ -323,3 +370,46 @@ def test_run_in_process_direct(test_fn):
     This test is for completion, but it was never an issue.
     """
     assert _run_in_process(test_fn) == 0
+
+
+@pytest.mark.skipif(
+    env.GRAALPY, reason="GraalPy can leave unfinished threads at process exit"
+)
+def test_run_in_process_without_events(monkeypatch):
+    def unavailable_event(*_args, **_kwargs):
+        raise RuntimeError("multiprocessing.Event is unavailable")
+
+    monkeypatch.setattr(multiprocessing, "Event", unavailable_event)
+    assert _run_in_process(test_callback_py_obj) == 0
+
+
+@pytest.mark.skipif(env.PY_GIL_DISABLED, reason="Requires the GIL to deadlock")
+@pytest.mark.skipif(
+    env.GRAALPY, reason="GraalPy can leave unfinished threads at process exit"
+)
+def test_run_in_process_detects_deadlock():
+    # Known platform exceptions still indicate that the deadlock was detected.
+    with pytest.raises((RuntimeError, pytest.xfail.Exception), match="DEADLOCK"):
+        _run_in_process(_intentional_deadlock, timeout=0.1)
+
+
+def _run_with_delay(target, args, delay_before):
+    if delay_before:
+        time.sleep(0.2)
+    target(*args)
+    if not delay_before:
+        time.sleep(0.2)
+
+
+@pytest.mark.parametrize("delay_before", [True, False], ids=["startup", "shutdown"])
+def test_run_in_process_slow_start_or_exit(monkeypatch, delay_before):
+    """Slow startup and shutdown must not look like a deadlock in the test itself."""
+    original_process = multiprocessing.Process
+
+    def delayed_process(*, target, args):
+        return original_process(
+            target=_run_with_delay, args=(target, args, delay_before)
+        )
+
+    monkeypatch.setattr(multiprocessing, "Process", delayed_process)
+    assert _run_in_process(test_callback_py_obj, timeout=0.1) == 0
