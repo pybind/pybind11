@@ -168,6 +168,22 @@ def test_conduit_override_ignored_for_managed_type(module):
     assert calls == []
 
 
+def test_conduit_with_empty_type_info_cache():
+    class Proxy:
+        def __init__(self, traveler):
+            self.traveler = traveler
+
+        def _pybind11_conduit_v1_(self, *args):
+            return self.traveler._pybind11_conduit_v1_(*args)
+
+    proxy = Proxy(home_planet.Traveler("proxy"))
+    assert home_planet.get_luggage(proxy) == "proxy"
+
+    # Cache the absence of registered bases without making Proxy a managed type.
+    assert not home_planet.has_registered_base(type(proxy))
+    assert home_planet.get_luggage(proxy) == "proxy"
+
+
 def test_home_planet_wrap_very_lonely_traveler():
     # This does not exercise the cpp_conduit feature, but is here to
     # demonstrate that the cpp_conduit feature does not solve
