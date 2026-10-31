@@ -19,14 +19,15 @@
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+// True for types registered with these internals, and for types that derive from one and have
+// been seen by all_type_info() already. The registry lookup is what every module sharing the
+// internals agrees on; comparing tp_new against this module's pybind11_object_new would fail
+// for types whose base was created by another module.
 PYBIND11_INLINE bool type_is_managed_by_our_internals(PyTypeObject *type_obj) {
-#if defined(PYPY_VERSION)
-    auto &internals = get_internals();
-    return bool(internals.registered_types_py.find(type_obj)
-                != internals.registered_types_py.end());
-#else
-    return (type_obj->tp_new == pybind11_object_new);
-#endif
+    return with_internals([type_obj](internals &internals) {
+        auto it = internals.registered_types_py.find(type_obj);
+        return it != internals.registered_types_py.end() && !it->second.empty();
+    });
 }
 
 PYBIND11_INLINE bool is_instance_method_of_type(PyTypeObject *type_obj, PyObject *attr_name) {
