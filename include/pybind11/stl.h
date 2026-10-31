@@ -15,6 +15,7 @@
 #include "detail/type_caster_base.h"
 
 #include <deque>
+#include <forward_list>
 #include <initializer_list>
 #include <list>
 #include <map>
@@ -155,6 +156,55 @@ constexpr forwarded_type<T, U> forward_like(U &&u) {
 template <typename C>
 using has_reserve_method = std::is_same<decltype(std::declval<C>().reserve(0)), void>;
 
+/// Loads values of type T with make_caster<T>. Usually each caster is a local, discarded after its
+/// value has been moved out. If the loaded value can refer into its caster
+/// (loaded_value_refers_to_caster<T>, e.g. std::reference_wrapper<std::string>), the casters are
+/// kept here instead, so they live as long as the caster that owns this store.
+template <typename T, bool Keep = loaded_value_refers_to_caster<T>::value>
+class subcaster_store {
+public:
+    /// Loads `src` and, on success, calls `use(caster)` to take the value out of the caster.
+    template <typename Use>
+    bool load(handle src, bool convert, Use &&use) {
+        make_caster<T> caster;
+        if (!caster.load(src, convert)) {
+            return false;
+        }
+        use(caster);
+        return true;
+    }
+    void clear() {}
+};
+
+template <typename T>
+class subcaster_store<T, true> {
+public:
+    template <typename Use>
+    bool load(handle src, bool convert, Use &&use) {
+        casters.emplace_front();
+        if (!casters.front().load(src, convert)) {
+            casters.pop_front();
+            return false;
+        }
+        use(casters.front());
+        return true;
+    }
+    void clear() { casters.clear(); }
+
+    subcaster_store() = default;
+    subcaster_store(subcaster_store &&) = default;
+    subcaster_store &operator=(subcaster_store &&) = default;
+    // A copy would hold values that still refer into the casters of the original.
+    subcaster_store(const subcaster_store &) = delete;
+    subcaster_store &operator=(const subcaster_store &) = delete;
+    ~subcaster_store() = default;
+
+private:
+    // Node-based: casters are constructed in place (they need not be movable), and their
+    // addresses do not change when the store is moved.
+    std::forward_list<make_caster<T>> casters;
+};
+
 template <typename Type, typename Key>
 struct set_caster {
     using type = Type;
@@ -169,20 +219,27 @@ private:
 
     bool convert_iterable(const iterable &itbl, bool convert) {
         for (const auto &it : itbl) {
-            key_conv conv;
-            if (!conv.load(it, convert)) {
+            if (!key_casters.load(it, convert, [this](key_conv &conv) {
+                    value.insert(cast_op<Key &&>(std::move(conv)));
+                })) {
                 return false;
             }
-            value.insert(cast_op<Key &&>(std::move(conv)));
         }
         return true;
     }
 
     bool convert_anyset(const anyset &s, bool convert) {
-        value.clear();
+        clear();
         reserve_maybe(s, &value);
         return convert_iterable(s, convert);
     }
+
+    void clear() {
+        value.clear();
+        key_casters.clear();
+    }
+
+    subcaster_store<Key> key_casters;
 
 public:
     bool load(handle src, bool convert) {
@@ -190,14 +247,14 @@ public:
             return false;
         }
         if (isinstance<anyset>(src)) {
-            value.clear();
+            clear();
             return convert_anyset(reinterpret_borrow<anyset>(src), convert);
         }
         if (!convert) {
             return false;
         }
         assert(isinstance<iterable>(src));
-        value.clear();
+        clear();
         return convert_iterable(reinterpret_borrow<iterable>(src), convert);
     }
 
@@ -220,6 +277,7 @@ public:
     PYBIND11_TYPE_CASTER(type,
                          io_name("collections.abc.Set", "set") + const_name("[") + key_conv::name
                              + const_name("]"));
+    static constexpr bool value_refers_to_caster = loaded_value_refers_to_caster<Key>::value;
 };
 
 template <typename Type, typename Key, typename Value>
@@ -236,17 +294,29 @@ private:
 
     bool convert_elements(const dict &d, bool convert) {
         value.clear();
+        key_casters.clear();
+        value_casters.clear();
         reserve_maybe(d, &value);
         for (const auto &it : d) {
-            key_conv kconv;
-            value_conv vconv;
-            if (!kconv.load(it.first.ptr(), convert) || !vconv.load(it.second.ptr(), convert)) {
+            bool value_loaded = false;
+            if (!key_casters.load(it.first.ptr(),
+                                  convert,
+                                  [&](key_conv &kconv) {
+                                      value_loaded = value_casters.load(
+                                          it.second.ptr(), convert, [&](value_conv &vconv) {
+                                              value.emplace(cast_op<Key &&>(std::move(kconv)),
+                                                            cast_op<Value &&>(std::move(vconv)));
+                                          });
+                                  })
+                || !value_loaded) {
                 return false;
             }
-            value.emplace(cast_op<Key &&>(std::move(kconv)), cast_op<Value &&>(std::move(vconv)));
         }
         return true;
     }
+
+    subcaster_store<Key> key_casters;
+    subcaster_store<Value> value_casters;
 
 public:
     bool load(handle src, bool convert) {
@@ -293,6 +363,8 @@ public:
                          io_name("collections.abc.Mapping", "dict") + const_name("[")
                              + key_conv::name + const_name(", ") + value_conv::name
                              + const_name("]"));
+    static constexpr bool value_refers_to_caster
+        = loaded_value_refers_to_caster<Key>::value || loaded_value_refers_to_caster<Value>::value;
 };
 
 template <typename Type, typename Value>
@@ -327,16 +399,19 @@ private:
     bool convert_elements(handle seq, bool convert) {
         auto s = reinterpret_borrow<sequence>(seq);
         value.clear();
+        value_casters.clear();
         reserve_maybe(s, &value);
         for (const auto &it : seq) {
-            value_conv conv;
-            if (!conv.load(it, convert)) {
+            if (!value_casters.load(it, convert, [this](value_conv &conv) {
+                    value.push_back(cast_op<Value &&>(std::move(conv)));
+                })) {
                 return false;
             }
-            value.push_back(cast_op<Value &&>(std::move(conv)));
         }
         return true;
     }
+
+    subcaster_store<Value> value_casters;
 
 public:
     template <typename T>
@@ -360,6 +435,7 @@ public:
     PYBIND11_TYPE_CASTER(Type,
                          io_name("collections.abc.Sequence", "list") + const_name("[")
                              + value_conv::name + const_name("]"));
+    static constexpr bool value_refers_to_caster = loaded_value_refers_to_caster<Value>::value;
 };
 
 template <typename Type, typename Alloc>
@@ -388,11 +464,13 @@ struct array_caster {
 
 private:
     std::unique_ptr<ArrayType> value;
+    subcaster_store<Value> value_casters;
 
     template <bool R = Resizable, enable_if_t<R, int> = 0>
     bool convert_elements(handle seq, bool convert) {
         auto l = reinterpret_borrow<sequence>(seq);
         value.reset(new ArrayType{});
+        value_casters.clear();
         // Using `resize` to preserve the behavior exactly as it was before PR #5305
         // For the `resize` to work, `Value` must be default constructible.
         // For `std::valarray`, this is a requirement:
@@ -400,11 +478,11 @@ private:
         value->resize(l.size());
         size_t ctr = 0;
         for (const auto &it : l) {
-            value_conv conv;
-            if (!conv.load(it, convert)) {
+            if (!value_casters.load(it, convert, [&](value_conv &conv) {
+                    (*value)[ctr++] = cast_op<Value &&>(std::move(conv));
+                })) {
                 return false;
             }
-            (*value)[ctr++] = cast_op<Value &&>(std::move(conv));
         }
         return true;
     }
@@ -420,14 +498,16 @@ private:
         // Deliberate choice: no template specializations, for simplicity, and
         // because the compile time overhead for the specializations is deemed
         // more significant than the runtime overhead for the `temp` storage.
+        value.reset();
+        value_casters.clear();
         std::vector<Value> temp;
         temp.reserve(l.size());
         for (auto it : l) {
-            value_conv conv;
-            if (!conv.load(it, convert)) {
+            if (!value_casters.load(it, convert, [&](value_conv &conv) {
+                    temp.emplace_back(cast_op<Value &&>(std::move(conv)));
+                })) {
                 return false;
             }
-            temp.emplace_back(cast_op<Value &&>(std::move(conv)));
         }
         value.reset(new ArrayType(vector_to_array<ArrayType, Size>(std::move(temp))));
         return true;
@@ -499,6 +579,7 @@ public:
           + const_name<Resizable>(const_name(""),
                                   const_name(", \"FixedSize(") + const_name<Size>()
                                       + const_name(")\"]"));
+    static constexpr bool value_refers_to_caster = loaded_value_refers_to_caster<Value>::value;
 };
 
 template <typename Type, size_t Size>
@@ -545,19 +626,28 @@ struct optional_caster {
         if (!src) {
             return false;
         }
+        if (value) {
+            // Empty it without assigning: Value need not be assignable, and
+            // std::experimental::optional has no reset().
+            value.~Type();
+            new (&value) Type();
+        }
+        value_casters.clear();
         if (src.is_none()) {
-            return true; // default-constructed value is already empty
+            return true;
         }
-        value_conv inner_caster;
-        if (!inner_caster.load(src, convert)) {
-            return false;
-        }
-
-        value.emplace(cast_op<Value &&>(std::move(inner_caster)));
-        return true;
+        // The inner caster is only constructed for non-None values: some casters have costly
+        // or failing constructors (e.g. py::array_t imports NumPy).
+        return value_casters.load(src, convert, [this](value_conv &conv) {
+            value.emplace(cast_op<Value &&>(std::move(conv)));
+        });
     }
 
     PYBIND11_TYPE_CASTER(Type, value_conv::name | make_caster<none>::name);
+    static constexpr bool value_refers_to_caster = loaded_value_refers_to_caster<Value>::value;
+
+private:
+    subcaster_store<Value> value_casters;
 };
 
 #if defined(PYBIND11_HAS_OPTIONAL)
@@ -613,9 +703,10 @@ struct variant_caster<V<Ts...>> {
 
     template <typename U, typename... Us>
     bool load_alternative(handle src, bool convert, type_list<U, Us...>) {
-        auto caster = make_caster<U>();
-        if (caster.load(src, convert)) {
-            value = cast_op<U>(std::move(caster));
+        auto &casters = std::get<sizeof...(Ts) - sizeof...(Us) - 1>(alternative_casters);
+        if (casters.load(src, convert, [this](make_caster<U> &caster) {
+                value = cast_op<U>(std::move(caster));
+            })) {
             return true;
         }
         return load_alternative(src, convert, type_list<Us...>{});
@@ -624,6 +715,7 @@ struct variant_caster<V<Ts...>> {
     bool load_alternative(handle, bool, type_list<>) { return false; }
 
     bool load(handle src, bool convert) {
+        clear_alternative_casters(make_index_sequence<sizeof...(Ts)>{});
         // Do a first pass without conversions to improve constructor resolution.
         // E.g. `py::int_(1).cast<variant<double, int>>()` needs to fill the `int`
         // slot of the variant. Without two-pass loading `double` would be filled
@@ -642,6 +734,16 @@ struct variant_caster<V<Ts...>> {
 
     using Type = V<Ts...>;
     PYBIND11_TYPE_CASTER(Type, ::pybind11::detail::union_concat(make_caster<Ts>::name...));
+    static constexpr bool value_refers_to_caster
+        = any_of<loaded_value_refers_to_caster<Ts>...>::value;
+
+private:
+    template <size_t... Is>
+    void clear_alternative_casters(index_sequence<Is...>) {
+        PYBIND11_EXPAND_SIDE_EFFECTS(std::get<Is>(alternative_casters).clear());
+    }
+
+    std::tuple<subcaster_store<Ts>...> alternative_casters;
 };
 
 #if defined(PYBIND11_HAS_VARIANT)

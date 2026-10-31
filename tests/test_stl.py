@@ -293,6 +293,28 @@ def test_optional():
     assert int(props.access_by_copy) == 42
 
 
+@pytest.mark.skipif(not hasattr(m, "has_optional"), reason="no <optional>")
+def test_optional_reference_wrapper_to_converted_value():
+    # #5637: used to refer to a value owned by an already destroyed caster
+    assert m.optional_refwrap_value(None) is None
+    assert m.optional_refwrap_value(7) == [7]
+    assert m.vector_optional_refwrap_values([1, None, 2, 3]) == [1, 2, 3]
+    # loading None after a value empties the optional and drops the inner caster
+    assert m.optional_refwrap_reload() == (True, True, True)
+
+
+@pytest.mark.skipif(not hasattr(m, "has_optional"), reason="no <optional>")
+def test_optional_inner_caster_lazy_and_nonmovable():
+    count = m.optional_nonmovable_caster_constructions
+    before = count()
+    assert m.optional_nonmovable_caster_arg(None) is None
+    assert m.optional_nonmovable_caster_cast(None) is None
+    assert count() == before  # no inner caster for None
+    assert m.optional_nonmovable_caster_arg(3) == 3
+    assert m.optional_nonmovable_caster_cast(4) == 4
+    assert count() == before + 2
+
+
 @pytest.mark.skipif(
     not hasattr(m, "has_exp_optional"), reason="no <experimental/optional>"
 )
@@ -498,6 +520,23 @@ def test_variant_monostate(doc):
         doc(m.load_monostate_variant)
         == "load_monostate_variant(arg0: None | typing.SupportsInt | typing.SupportsIndex | str) -> str"
     )
+
+
+def test_containers_of_reference_wrapper_to_converted_value():
+    # #5637: same as for std::optional, for each element
+    assert m.vector_refwrap_values([1, 2, 3]) == [1, 2, 3]
+    assert m.vector_refwrap_values([]) == []
+    assert m.array_refwrap_values([4, 5, 6]) == [4, 5, 6]
+    assert m.set_refwrap_values({9, 7, 8}) == [7, 8, 9]
+    assert m.map_refwrap_values({"a": 1, "b": 2}) == [1, 2]
+    with pytest.raises(TypeError):
+        m.vector_refwrap_values([1, "x"])
+
+
+@pytest.mark.skipif(not hasattr(m, "variant_refwrap_value"), reason="no <variant>")
+def test_variant_reference_wrapper_to_converted_value():
+    assert m.variant_refwrap_value(5) == [5]
+    assert m.variant_refwrap_value("s") == "s"
 
 
 def test_vec_of_reference_wrapper():
