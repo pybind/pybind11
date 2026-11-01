@@ -538,8 +538,8 @@ TEST_SUBMODULE(class_, m) {
 
     // test_class_name_spelling
     auto names = m.def_submodule("class_names");
-#if defined(PYBIND11_TYPE_CREATION_VIA_SPEC)
-    names.attr("type_creation_via_spec") = bool(PYBIND11_TYPE_CREATION_VIA_SPEC);
+#if defined(PYBIND11_TYPE_CREATION_VIA_SPEC) && PYBIND11_TYPE_CREATION_VIA_SPEC
+    names.attr("type_creation_via_spec") = true;
 #else
     names.attr("type_creation_via_spec") = false;
 #endif
