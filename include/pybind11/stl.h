@@ -82,7 +82,8 @@ inline bool object_is_instance_with_one_of_tp_names(PyObject *obj,
     const char *obj_tp_name = Py_TYPE(obj)->tp_name;
     for (const auto *tp_name : tp_names) {
         if (std::strcmp(obj_tp_name, tp_name) == 0) {
-            return true;
+            // A user-defined class can have the same name without being iterable.
+            return PyIterable_Check(obj);
         }
     }
     return false;
