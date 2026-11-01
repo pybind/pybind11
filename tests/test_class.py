@@ -714,3 +714,16 @@ def test_all_type_info_multithreaded():
 
         for thread in threads:
             thread.join()
+
+
+def test_instantiate_pybind11_object_base():
+    base = m.NoConstructor.__base__
+    assert base.__name__.startswith("pybind11_object")
+    with pytest.raises(TypeError, match="no pybind11-registered base types"):
+        base()
+
+    class Derived(base):
+        pass
+
+    with pytest.raises(TypeError, match="no pybind11-registered base types"):
+        Derived()
