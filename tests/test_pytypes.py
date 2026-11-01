@@ -108,6 +108,26 @@ def test_none(doc):
     assert doc(m.print_none) == "print_none(arg0: None) -> None"
 
 
+def test_object_contains():
+    class OnlyIter:
+        def __iter__(self):
+            return iter([1, 2])
+
+    class RaisingContains:
+        def __contains__(self, item):
+            raise ValueError("contains failed")
+
+    assert m.object_contains([1, 2], 1) is True
+    assert m.object_contains([1, 2], 3) is False
+    # The `in` operator falls back to iteration when there is no __contains__.
+    assert m.object_contains(OnlyIter(), 2) is True
+    assert m.object_contains(OnlyIter(), 3) is False
+    with pytest.raises(ValueError, match="contains failed"):
+        m.object_contains(RaisingContains(), 1)
+    with pytest.raises(TypeError):
+        m.object_contains(object(), 1)
+
+
 def test_set(capture, doc):
     s = m.get_set()
     assert isinstance(s, set)
