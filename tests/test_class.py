@@ -195,6 +195,26 @@ def test_qualname(doc):
     assert m.NestBase.Nested.__module__ == "pybind11_tests.class_"
 
 
+@pytest.mark.skipif(
+    env.PYPY or env.GRAALPY,
+    reason="PyPy and GraalPy derive __name__ from the last component of tp_name",
+)
+@pytest.mark.parametrize(
+    ("scope", "qualname"),
+    [
+        (m, "Wrapper[pkg.Value]"),
+        (m.NestBase, "NestBase.Wrapper[pkg.Value]"),
+    ],
+)
+def test_class_name_with_dot(scope, qualname):
+    name = "Wrapper[pkg.Value]"
+    cls = getattr(scope, name)
+    assert cls.__name__ == name
+    assert cls.__qualname__ == qualname
+    assert cls.__module__ == m.__name__
+    assert m.obj_class_name(cls) == f"{m.__name__}.{name}"
+
+
 def test_inheritance(msg):
     roger = m.Rabbit("Rabbit")
     assert roger.name() + " is a " + roger.species() == "Rabbit is a parrot"

@@ -789,13 +789,14 @@ PYBIND11_INLINE PyObject *make_new_python_type(const type_record &rec) {
 
     // PyType_FromMetaclass() cannot run a pre-PyType_Ready callback, rejects metaclasses with a
     // custom tp_new, and refuses a metaclass that is not at least as derived as the metaclass of
-    // each base. The legacy path accepts all three.
+    // each base. It also splits the class name at the last dot, truncating names such as
+    // "Wrapper[pkg.Value]". The legacy path supports these cases.
     bool base_metaclass_mismatch = false;
     for (handle b : rec.bases) {
         base_metaclass_mismatch |= PyType_IsSubtype(metaclass, Py_TYPE(b.ptr())) == 0;
     }
-    if (rec.custom_type_setup_callback || base_metaclass_mismatch
-        || metaclass->tp_new != PyType_Type.tp_new
+    if (std::strchr(rec.name, '.') != nullptr || rec.custom_type_setup_callback
+        || base_metaclass_mismatch || metaclass->tp_new != PyType_Type.tp_new
         || (metaclass != internals.default_metaclass
             && PyType_IsSubtype(metaclass, internals.default_metaclass) == 0)) {
         return make_new_python_type_legacy(rec);

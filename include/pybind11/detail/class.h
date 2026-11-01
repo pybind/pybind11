@@ -173,7 +173,7 @@ PyObject *make_new_python_type(const type_record &rec);
 
 /// The hand-filled PyHeapTypeObject path: the only one before CPython 3.12 or with
 /// PYBIND11_TYPE_CREATION_VIA_SPEC=0. Otherwise still used for `py::custom_type_setup` and for
-/// metaclasses that PyType_FromMetaclass() rejects.
+/// metaclasses that PyType_FromMetaclass() rejects or bound names containing dots.
 PyObject *make_new_python_type_legacy(const type_record &rec);
 
 PYBIND11_WARNING_POP

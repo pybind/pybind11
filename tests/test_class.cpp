@@ -522,6 +522,12 @@ TEST_SUBMODULE(class_, m) {
     base.def("g", [](NestBase &, Nested &) {});
     base.def("h", []() { return NestBase(); });
 
+    // test_class_name_with_dot
+    struct DottedName {};
+    struct NestedDottedName {};
+    py::class_<DottedName>(m, "Wrapper[pkg.Value]");
+    py::class_<NestedDottedName>(base, "Wrapper[pkg.Value]");
+
     // test_error_after_conversion
     // The second-pass path through dispatcher() previously didn't
     // remember which overload was used, and would crash trying to
