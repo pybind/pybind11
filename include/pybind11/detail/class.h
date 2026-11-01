@@ -37,6 +37,12 @@ std::string get_fully_qualified_tp_name(PyTypeObject *type);
 
 PyTypeObject *type_incref(PyTypeObject *type);
 
+#if PYBIND11_TYPE_CREATION_VIA_SPEC
+/// PyType_FromMetaclass(), or pybind11_fail() with the Python error prefixed by `caller`.
+PyTypeObject *
+type_from_spec(const char *caller, PyTypeObject *metaclass, PyType_Spec *spec, PyObject *bases);
+#endif
+
 #if !defined(PYPY_VERSION)
 
 /// `pybind11_static_property.__get__()`: Always pass the class instead of the instance.
@@ -146,6 +152,9 @@ extern "C" int pybind11_traverse(PyObject *self, visitproc visit, void *arg);
 /// dynamic_attr: Allow the GC to clear the dictionary.
 extern "C" int pybind11_clear(PyObject *self);
 
+/// The `__dict__` descriptor for types with dynamic attributes.
+PyGetSetDef *dynamic_attr_getset();
+
 /// Give instances of this type a `__dict__` and opt into garbage collection.
 void enable_dynamic_attributes(PyHeapTypeObject *heap_type);
 
@@ -161,6 +170,11 @@ void enable_buffer_protocol(PyHeapTypeObject *heap_type);
 /** Create a brand new Python type according to the `type_record` specification.
     Return value: New reference. */
 PyObject *make_new_python_type(const type_record &rec);
+
+/// The hand-filled PyHeapTypeObject path: the only one before CPython 3.12 or with
+/// PYBIND11_TYPE_CREATION_VIA_SPEC=0. Otherwise still used for `py::custom_type_setup` and for
+/// metaclasses that PyType_FromMetaclass() rejects.
+PyObject *make_new_python_type_legacy(const type_record &rec);
 
 PYBIND11_WARNING_POP
 

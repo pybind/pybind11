@@ -195,6 +195,46 @@ def test_qualname(doc):
     assert m.NestBase.Nested.__module__ == "pybind11_tests.class_"
 
 
+@pytest.mark.parametrize(
+    ("placement", "name", "suffix", "legacy_qualname", "spec_qualname"),
+    [
+        ("module", "Simple", "Simple", "Simple", "Simple"),
+        ("module", "a.b", "b", "a.b", "b"),
+        ("module", "a.b.c", "c", "a.b.c", "c"),
+        ("module", "a[b]", "a[b]", "a[b]", "a[b]"),
+        ("module", "a[b.c]", "c]", "a[b.c]", "c]"),
+        ("module", "a.b[c]", "b[c]", "a.b[c]", "b[c]"),
+        ("nested", "a[b.c]", "c]", "NestBase.a[b.c]", "NestBase.a[b.c]"),
+        ("child", "Child", "Child", "a[b.c].Child", "c].Child"),
+        ("custom", "a[b.c]", "c]", "a[b.c]", "a[b.c]"),
+    ],
+)
+def test_class_name_spelling(placement, name, suffix, legacy_qualname, spec_qualname):
+    """Characterize supplied names; spelling currently depends on the type-creation path."""
+    scopes = {
+        "module": m.class_names,
+        "nested": m.NestBase,
+        "child": getattr(m.class_names, "a[b.c]"),
+        "custom": m.class_names.custom,
+    }
+    scope = scopes[placement]
+    cls = getattr(scope, name)
+    spec_path = m.class_names.type_creation_via_spec and placement != "custom"
+    truncated_name = (
+        spec_path or env.GRAALPY or (env.PYPY and sys.version_info >= (3, 12))
+    )
+    expected_name = suffix if truncated_name else name
+    expected_qualname = spec_qualname if spec_path else legacy_qualname
+    expected_module = scope.__name__ if isinstance(scope, type(m)) else scope.__module__
+    assert cls.__name__ == expected_name
+    assert cls.__qualname__ == expected_qualname
+    assert cls.__module__ == expected_module
+    assert (getattr(scope, cls.__name__, None) is cls) == (expected_name == name)
+    obj = cls()
+    assert obj.echo() is obj
+    assert f"{expected_module}.{expected_qualname}" in cls.echo.__doc__
+
+
 def test_inheritance(msg):
     roger = m.Rabbit("Rabbit")
     assert roger.name() + " is a " + roger.species() == "Rabbit is a parrot"
