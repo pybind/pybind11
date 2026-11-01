@@ -1746,8 +1746,12 @@ object cast(T &&value,
                  : std::is_lvalue_reference<T>::value ? return_value_policy::copy
                                                       : return_value_policy::move;
     }
-    return reinterpret_steal<object>(
+    auto result = reinterpret_steal<object>(
         detail::make_caster<T>::cast(std::forward<T>(value), policy, parent));
+    if (!result && PyErr_Occurred()) {
+        throw error_already_set();
+    }
+    return result;
 }
 
 template <typename T>
