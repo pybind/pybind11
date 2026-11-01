@@ -210,7 +210,8 @@ public:
         for (auto &&value : src) {
             auto value_ = reinterpret_steal<object>(
                 key_conv::cast(detail::forward_like<T>(value), policy, parent));
-            if (!value_ || !s.add(std::move(value_))) {
+            // Not s.add(), so that a failure is reported with the function signature.
+            if (!value_ || PySet_Add(s.ptr(), value_.ptr()) != 0) {
                 return handle();
             }
         }
