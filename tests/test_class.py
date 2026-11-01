@@ -714,3 +714,8 @@ def test_all_type_info_multithreaded():
 
         for thread in threads:
             thread.join()
+
+
+def test_cast_unregistered_type():
+    with pytest.raises(TypeError, match="Unregistered type"):
+        m.cast_unregistered_type()
