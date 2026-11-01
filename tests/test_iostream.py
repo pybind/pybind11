@@ -326,6 +326,25 @@ def test_null_rdbuf_restored():
 
 
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
+def test_failing_write_in_destructor(monkeypatch):
+    class FailingStream:
+        def write(self, _):
+            raise ValueError("write failed")
+
+        def flush(self):
+            pass
+
+    unraisable = []
+    # Use monkeypatch so pytest can apply and remove the patch as appropriate
+    monkeypatch.setattr(sys, "unraisablehook", unraisable.append)
+
+    m.redirect_unflushed("unflushed", FailingStream())
+
+    assert len(unraisable) == 1
+    assert unraisable[0].exc_type is ValueError
+    assert str(unraisable[0].exc_value) == "write failed"
+
+
 def test_threading():
     with m.ostream_redirect(stdout=True, stderr=False):
         # start some threads
