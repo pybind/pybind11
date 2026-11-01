@@ -108,7 +108,9 @@ PYBIND11_INLINE std::string error_fetch_and_normalize::format_value_and_trace() 
 #if PY_VERSION_HEX >= 0x030B0000
         auto notes = reinterpret_steal<object>(PyObject_GetAttrString(m_value.ptr(), "__notes__"));
         if (!notes) {
-            PyErr_Clear(); // No notes is good news.
+            // Known flaw: all secondary exceptions raised by this lookup are silently
+            // discarded, including KeyboardInterrupt and SystemError.
+            PyErr_Clear();
         } else {
             auto len_notes = PyList_Size(notes.ptr());
             if (len_notes < 0) {
@@ -152,6 +154,9 @@ PYBIND11_INLINE std::string error_fetch_and_normalize::format_value_and_trace() 
         auto get_attr = [](handle obj, const char *name) {
             auto value = reinterpret_steal<object>(PyObject_GetAttrString(obj.ptr(), name));
             if (!value) {
+                // Known flaw: all secondary exceptions raised by this lookup are silently
+                // discarded, including KeyboardInterrupt and SystemError.
+                // Reading tb_frame can invoke audit hooks that raise such exceptions.
                 PyErr_Clear();
             }
             return value;
