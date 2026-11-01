@@ -204,11 +204,11 @@ if(PYBIND11_PYTHONLIBS_OVERWRITE OR NOT DEFINED PYTHON_MODULE_EXTENSION)
                                                           STREQUAL "${PYTHON_MODULE_EXTENSION}"))
     message(
       AUTHOR_WARNING
-      "SETUPTOOLS_EXT_SUFFIX is set to \"$ENV{SETUPTOOLS_EXT_SUFFIX}\", "
-      "but the auto-calculated Python extension suffix is \"${PYTHON_MODULE_EXTENSION}\". "
-      "This may cause problems when importing the Python extensions. "
-      "If you are using cross-compiling Python, you may need to "
-      "set PYTHON_MODULE_EXTENSION manually.")
+        "SETUPTOOLS_EXT_SUFFIX is set to \"$ENV{SETUPTOOLS_EXT_SUFFIX}\", "
+        "but the auto-calculated Python extension suffix is \"${PYTHON_MODULE_EXTENSION}\". "
+        "This may cause problems when importing the Python extensions. "
+        "If you are using cross-compiling Python, you may need to "
+        "set PYTHON_MODULE_EXTENSION manually.")
   endif()
 endif()
 
