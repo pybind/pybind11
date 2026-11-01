@@ -141,6 +141,14 @@ def test_vector_buffer_numpy():
     assert len(v) == 3
     assert v[2] == 10
 
+    # Zero stride: every element is backed by the same item.
+    v = m.VectorInt(np.broadcast_to(np.array(7, dtype=np.uintc), (3,)))
+    assert list(v) == [7, 7, 7]
+
+    # Negative stride.
+    v = m.VectorInt(a[0, ::-1])
+    assert list(v) == [4, 3, 2, 1]
+
     v = m.get_vectorstruct()
     assert v[0].x == 5
     ma = np.asarray(v)
