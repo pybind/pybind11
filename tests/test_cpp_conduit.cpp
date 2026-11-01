@@ -16,6 +16,10 @@ TEST_SUBMODULE(cpp_conduit, m) {
 
     wrap_traveler(m);
     wrap_lonely_traveler(m);
+
+    m.def("has_registered_base", [](py::type type) {
+        return !py::detail::all_type_info(reinterpret_cast<PyTypeObject *>(type.ptr())).empty();
+    });
 }
 
 } // namespace test_cpp_conduit

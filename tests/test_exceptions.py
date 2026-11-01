@@ -406,6 +406,27 @@ def test_flaky_exception_failure_point_str():
     )
 
 
+@pytest.mark.skipif("env.PYPY or env.GRAALPY", reason="No traceback in what()")
+def test_error_already_set_what_traceback(capture):
+    def inner():
+        raise ValueError("deep")
+
+    def outer():
+        inner()
+
+    with capture:
+        m.try_catch(ValueError, outer)
+    lines = str(capture).splitlines()
+    assert lines[:3] == ["ValueError: deep", "", "At:"]
+    assert lines[3].endswith(
+        f"test_exceptions.py({inner.__code__.co_firstlineno + 1}): inner"
+    )
+    assert lines[4].endswith(
+        f"test_exceptions.py({outer.__code__.co_firstlineno + 1}): outer"
+    )
+    assert lines[5].endswith("): test_error_already_set_what_traceback")
+
+
 def test_cross_module_interleaved_error_already_set():
     with pytest.raises(RuntimeError) as excinfo:
         m.test_cross_module_interleaved_error_already_set()
