@@ -18,6 +18,7 @@
 
 #include <pybind11/typing.h>
 
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -547,6 +548,31 @@ TEST_SUBMODULE(stl, m) {
         return py::make_tuple(V{}, V(5), V("Hello"));
     });
 #    endif
+#endif
+
+    // test_optional_reference_wrapper / test_variant_reference_wrapper
+    // #5637: std::optional<std::reference_wrapper<T>> (and the same inside a variant) must keep
+    // the inner caster alive. For a T that is materialized from Python into caster-owned storage
+    // (here std::string), the reference_wrapper points into that storage; reading it after the
+    // call used to be a use-after-free. The returned string is copied out of the referent, so a
+    // round-trip that preserves the value exercises the fix.
+#if defined(PYBIND11_HAS_OPTIONAL)
+    m.def("roundtrip_optional_reference_wrapper",
+          [](std::optional<std::reference_wrapper<std::string>> o) -> std::string {
+              if (!o) {
+                  return "<none>";
+              }
+              return o->get();
+          });
+#endif
+#if defined(PYBIND11_HAS_VARIANT)
+    m.def("roundtrip_variant_reference_wrapper",
+          [](std::variant<int, std::reference_wrapper<std::string>> v) -> std::string {
+              if (auto *ref = std::get_if<std::reference_wrapper<std::string>>(&v)) {
+                  return ref->get();
+              }
+              return "<int>";
+          });
 #endif
 
     // #528: templated constructor
