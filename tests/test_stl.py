@@ -863,7 +863,9 @@ def test_set_caster_protocol(doc):
         m.roundtrip_std_set_int_noconvert(BareSetLike(1, 2, 3))
 
 
-@pytest.mark.parametrize("name", ["map", "zip", "dict_keys", "dict_values", "dict_items"])
+@pytest.mark.parametrize(
+    "name", ["map", "zip", "dict_keys", "dict_values", "dict_items"]
+)
 def test_non_iterable_user_class_named_like_builtin_iterable(name):
     obj = type(name, (), {})()
     with pytest.raises(TypeError, match="incompatible function arguments"):
