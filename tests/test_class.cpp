@@ -538,11 +538,9 @@ TEST_SUBMODULE(class_, m) {
 
     // test_class_name_spelling
     auto names = m.def_submodule("class_names");
-#if defined(PYBIND11_TYPE_CREATION_VIA_SPEC) && PYBIND11_TYPE_CREATION_VIA_SPEC
-    names.attr("type_creation_via_spec") = true;
-#else
-    names.attr("type_creation_via_spec") = false;
-#endif
+    names.def("tp_name", [](const py::type &t) {
+        return reinterpret_cast<PyTypeObject *>(t.ptr())->tp_name;
+    });
     using test_class::bind_named_class;
     bind_named_class<0>(names, "Simple");
     bind_named_class<1>(names, "a.b");

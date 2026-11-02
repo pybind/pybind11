@@ -196,21 +196,25 @@ def test_qualname(doc):
 
 
 @pytest.mark.parametrize(
-    ("placement", "name", "suffix", "legacy_qualname", "spec_qualname"),
+    ("placement", "name", "qualname"),
     [
-        ("module", "Simple", "Simple", "Simple", "Simple"),
-        ("module", "a.b", "b", "a.b", "b"),
-        ("module", "a.b.c", "c", "a.b.c", "c"),
-        ("module", "a[b]", "a[b]", "a[b]", "a[b]"),
-        ("module", "a[b.c]", "c]", "a[b.c]", "c]"),
-        ("module", "a.b[c]", "b[c]", "a.b[c]", "b[c]"),
-        ("nested", "a[b.c]", "c]", "NestBase.a[b.c]", "NestBase.a[b.c]"),
-        ("child", "Child", "Child", "a[b.c].Child", "c].Child"),
-        ("custom", "a[b.c]", "c]", "a[b.c]", "a[b.c]"),
+        ("module", "Simple", "Simple"),
+        ("module", "a.b", "a.b"),
+        ("module", "a.b.c", "a.b.c"),
+        ("module", "a[b]", "a[b]"),
+        ("module", "a[b.c]", "a[b.c]"),
+        ("module", "a.b[c]", "a.b[c]"),
+        ("nested", "a[b.c]", "NestBase.a[b.c]"),
+        ("child", "Child", "a[b.c].Child"),
+        ("custom", "a[b.c]", "a[b.c]"),
     ],
 )
-def test_class_name_spelling(placement, name, suffix, legacy_qualname, spec_qualname):
-    """Characterize supplied names; spelling currently depends on the type-creation path."""
+def test_class_name_spelling(request, placement, name, qualname):
+    """Supplied names are kept as given, like type(); dots are not split off."""
+    if "." in name and (env.GRAALPY or (env.PYPY and sys.version_info >= (3, 12))):
+        request.applymarker(
+            pytest.mark.xfail(reason="The interpreter shortens dotted __name__")
+        )
     scopes = {
         "module": m.class_names,
         "nested": m.NestBase,
@@ -219,20 +223,15 @@ def test_class_name_spelling(placement, name, suffix, legacy_qualname, spec_qual
     }
     scope = scopes[placement]
     cls = getattr(scope, name)
-    spec_path = m.class_names.type_creation_via_spec and placement != "custom"
-    truncated_name = (
-        spec_path or env.GRAALPY or (env.PYPY and sys.version_info >= (3, 12))
-    )
-    expected_name = suffix if truncated_name else name
-    expected_qualname = spec_qualname if spec_path else legacy_qualname
-    expected_module = scope.__name__ if isinstance(scope, type(m)) else scope.__module__
-    assert cls.__name__ == expected_name
-    assert cls.__qualname__ == expected_qualname
-    assert cls.__module__ == expected_module
-    assert (getattr(scope, cls.__name__, None) is cls) == (expected_name == name)
+    module = scope.__name__ if isinstance(scope, type(m)) else scope.__module__
+    assert cls.__qualname__ == qualname
+    assert cls.__module__ == module
+    assert m.class_names.tp_name(cls) == (name if env.PYPY else f"{module}.{name}")
     obj = cls()
     assert obj.echo() is obj
-    assert f"{expected_module}.{expected_qualname}" in cls.echo.__doc__
+    assert f"{module}.{qualname}" in cls.echo.__doc__
+    assert cls.__name__ == name
+    assert getattr(scope, cls.__name__) is cls
 
 
 def test_inheritance(msg):

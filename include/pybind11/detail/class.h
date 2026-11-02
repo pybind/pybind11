@@ -167,6 +167,14 @@ extern "C" void pybind11_releasebuffer(PyObject *, Py_buffer *view);
 /// Give this type a buffer interface.
 void enable_buffer_protocol(PyHeapTypeObject *heap_type);
 
+struct type_names {
+    object name;
+    object qualname;
+    const char *full_name = nullptr; // interned, lives forever
+};
+type_names make_type_names(const type_record &rec, const object &module_);
+void set_type_names(PyHeapTypeObject *heap_type, const type_names &names);
+
 /** Create a brand new Python type according to the `type_record` specification.
     Return value: New reference. */
 PyObject *make_new_python_type(const type_record &rec);

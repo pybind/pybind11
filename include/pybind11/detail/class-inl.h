@@ -780,6 +780,31 @@ PYBIND11_INLINE void enable_buffer_protocol(PyHeapTypeObject *heap_type) {
     heap_type->as_buffer.bf_releasebuffer = pybind11_releasebuffer;
 }
 
+PYBIND11_INLINE type_names make_type_names(const type_record &rec, const object &module_) {
+    type_names names;
+    names.name = reinterpret_steal<object>(PYBIND11_FROM_STRING(rec.name));
+    names.qualname = names.name;
+    if (rec.scope && !PyModule_Check(rec.scope.ptr()) && hasattr(rec.scope, "__qualname__")) {
+        names.qualname = reinterpret_steal<object>(
+            PyUnicode_FromFormat("%U.%U", rec.scope.attr("__qualname__").ptr(), names.name.ptr()));
+    }
+    names.full_name = c_str(
+#if !defined(PYPY_VERSION)
+        module_ ? str(module_).cast<std::string>() + "." + rec.name :
+#endif
+                rec.name);
+    return names;
+}
+
+// Makes no Python calls that could run the GC, so it is safe before PyType_Ready().
+PYBIND11_INLINE void set_type_names(PyHeapTypeObject *heap_type, const type_names &names) {
+    Py_XSETREF(heap_type->ht_name, names.name.inc_ref().ptr());
+#ifdef PYBIND11_BUILTIN_QUALNAME
+    Py_XSETREF(heap_type->ht_qualname, names.qualname.inc_ref().ptr());
+#endif
+    heap_type->ht_type.tp_name = names.full_name;
+}
+
 #if PYBIND11_TYPE_CREATION_VIA_SPEC
 
 PYBIND11_INLINE PyObject *make_new_python_type(const type_record &rec) {
@@ -802,11 +827,12 @@ PYBIND11_INLINE PyObject *make_new_python_type(const type_record &rec) {
     }
 
     object module_ = get_module_name_if_available(rec.scope);
-    // PyType_FromMetaclass() copies the name, derives __module__ from the part before the last
-    // dot, and warns if there is none.
-    const std::string full_name
+    // PyType_FromMetaclass() copies the name, splits it at the last dot, and warns if there is
+    // none. set_type_names() below restores the supplied name.
+    const std::string spec_name
         = (module_ ? str(module_).cast<std::string>() : PYBIND11_DUMMY_MODULE_NAME) + "."
           + rec.name;
+    auto names = make_type_names(rec, module_);
 
     auto bases = tuple(rec.bases);
     if (bases.empty()) {
@@ -837,8 +863,10 @@ PYBIND11_INLINE PyObject *make_new_python_type(const type_record &rec) {
     slots.push_back({0, nullptr});
 
     // basicsize 0: inherit the instance layout from the base
-    PyType_Spec spec = {full_name.c_str(), 0, 0, flags, slots.data()};
+    PyType_Spec spec = {spec_name.c_str(), 0, 0, flags, slots.data()};
     auto *type = type_from_spec(rec.name, metaclass, &spec, base.ptr());
+    // CPython keeps its own copy of the spec name in _ht_tpname and frees that, not tp_name.
+    set_type_names(reinterpret_cast<PyHeapTypeObject *>(type), names);
     assert(!rec.dynamic_attr || PyType_HasFeature(type, Py_TPFLAGS_HAVE_GC));
 
     /* Register type with the parent scope */
@@ -850,12 +878,6 @@ PYBIND11_INLINE PyObject *make_new_python_type(const type_record &rec) {
 
     if (module_) { // Needed by pydoc
         setattr(reinterpret_cast<PyObject *>(type), "__module__", module_);
-    }
-    if (rec.scope && !PyModule_Check(rec.scope.ptr()) && hasattr(rec.scope, "__qualname__")) {
-        setattr(reinterpret_cast<PyObject *>(type),
-                "__qualname__",
-                reinterpret_steal<object>(PyUnicode_FromFormat(
-                    "%U.%s", rec.scope.attr("__qualname__").ptr(), rec.name)));
     }
 
     return reinterpret_cast<PyObject *>(type);
@@ -870,20 +892,8 @@ PYBIND11_INLINE PyObject *make_new_python_type(const type_record &rec) {
 #endif // PYBIND11_TYPE_CREATION_VIA_SPEC
 
 PYBIND11_INLINE PyObject *make_new_python_type_legacy(const type_record &rec) {
-    auto name = reinterpret_steal<object>(PYBIND11_FROM_STRING(rec.name));
-
-    auto qualname = name;
-    if (rec.scope && !PyModule_Check(rec.scope.ptr()) && hasattr(rec.scope, "__qualname__")) {
-        qualname = reinterpret_steal<object>(
-            PyUnicode_FromFormat("%U.%U", rec.scope.attr("__qualname__").ptr(), name.ptr()));
-    }
-
     object module_ = get_module_name_if_available(rec.scope);
-    const auto *full_name = c_str(
-#if !defined(PYPY_VERSION)
-        module_ ? str(module_).cast<std::string>() + "." + rec.name :
-#endif
-                rec.name);
+    auto names = make_type_names(rec, module_);
 
     char *tp_doc = nullptr;
     if (rec.doc && options::show_user_defined_docstrings()) {
@@ -913,13 +923,9 @@ PYBIND11_INLINE PyObject *make_new_python_type_legacy(const type_record &rec) {
         pybind11_fail(std::string(rec.name) + ": Unable to create type object!");
     }
 
-    heap_type->ht_name = name.release().ptr();
-#ifdef PYBIND11_BUILTIN_QUALNAME
-    heap_type->ht_qualname = qualname.inc_ref().ptr();
-#endif
+    set_type_names(heap_type, names);
 
     auto *type = &heap_type->ht_type;
-    type->tp_name = full_name;
     type->tp_doc = tp_doc;
     type->tp_base = type_incref(reinterpret_cast<PyTypeObject *>(base));
     type->tp_basicsize = static_cast<ssize_t>(sizeof(instance));
@@ -971,7 +977,7 @@ PYBIND11_INLINE PyObject *make_new_python_type_legacy(const type_record &rec) {
         setattr(reinterpret_cast<PyObject *>(type), "__module__", module_);
     }
 
-    PYBIND11_SET_OLDPY_QUALNAME(type, qualname);
+    PYBIND11_SET_OLDPY_QUALNAME(type, names.qualname);
 
     return reinterpret_cast<PyObject *>(type);
 }
