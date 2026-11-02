@@ -788,11 +788,13 @@ PYBIND11_INLINE type_names make_type_names(const type_record &rec, const object 
         names.qualname = reinterpret_steal<object>(
             PyUnicode_FromFormat("%U.%U", rec.scope.attr("__qualname__").ptr(), names.name.ptr()));
     }
-    names.full_name = c_str(
-#if !defined(PYPY_VERSION)
-        module_ ? str(module_).cast<std::string>() + "." + rec.name :
+#if defined(PYPY_VERSION)
+    (void) module_;
+    names.full_name = c_str(rec.name);
+#else
+    names.full_name
+        = c_str(module_ ? str(module_).cast<std::string>() + "." + rec.name : rec.name);
 #endif
-                rec.name);
     return names;
 }
 
