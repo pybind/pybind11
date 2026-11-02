@@ -469,8 +469,7 @@ TEST_SUBMODULE(pytypes, m) {
             throw;
         }
         if (PyErr_Occurred()) {
-            PyErr_Clear();
-            PyErr_SetString(PyExc_AssertionError, "sequence::end returned with a pending error");
+            py::raise_from(PyExc_AssertionError, "sequence::end returned with a pending error");
             throw py::error_already_set();
         }
         return end - seq.begin();

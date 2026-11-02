@@ -837,8 +837,9 @@ def test_cpp_iterators():
     assert m.passed_iterator(iter((-7, 3))) == -4
 
 
-def test_capi_sequence_end_error():
-    error = RuntimeError("sequence length failed")
+@pytest.mark.parametrize("error_type", [RuntimeError, KeyboardInterrupt, SystemExit])
+def test_capi_sequence_end_error(error_type):
+    error = error_type("sequence length failed")
 
     class BadLength:
         def __getitem__(self, index):
@@ -847,9 +848,10 @@ def test_capi_sequence_end_error():
         def __len__(self):
             raise error
 
-    with pytest.raises(RuntimeError) as excinfo:
+    with pytest.raises(error_type) as excinfo:
         m.capi_sequence_end(BadLength())
     assert excinfo.value is error
+    assert "__len__" in [entry.name for entry in excinfo.traceback]
 
 
 def test_capi_sequence_end_negative_length():
