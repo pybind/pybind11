@@ -837,6 +837,49 @@ def test_cpp_iterators():
     assert m.passed_iterator(iter((-7, 3))) == -4
 
 
+@pytest.mark.parametrize("error_type", [RuntimeError, KeyboardInterrupt, SystemExit])
+def test_capi_sequence_end_error(error_type):
+    error = error_type("sequence length failed")
+
+    class BadLength:
+        def __getitem__(self, index):
+            raise AssertionError("end must not retrieve items")
+
+        def __len__(self):
+            raise error
+
+    with pytest.raises(error_type) as excinfo:
+        m.capi_sequence_end(BadLength())
+    assert excinfo.value is error
+    assert "__len__" in [entry.name for entry in excinfo.traceback]
+
+
+def test_capi_sequence_end_negative_length():
+    class NegativeLength:
+        def __getitem__(self, index):
+            raise AssertionError("end must not retrieve items")
+
+        def __len__(self):
+            return -1  # noqa: PLE0303 - deliberately invalid length
+
+    with pytest.raises(ValueError):
+        m.capi_sequence_end(NegativeLength())
+
+
+@pytest.mark.parametrize("values", [[], [4, 7]])
+@pytest.mark.parametrize("kind", [list, tuple, "custom"])
+def test_capi_sequence_end_valid(values, kind):
+    class CustomSequence:
+        def __getitem__(self, index):
+            return values[index]
+
+        def __len__(self):
+            return len(values)
+
+    sequence = CustomSequence() if kind == "custom" else kind(values)
+    assert m.capi_sequence_end(sequence) == len(values)
+
+
 def test_implementation_details():
     lst = [39, 43, 92, 49, 22, 29, 93, 98, 26, 57, 8]
     tup = tuple(lst)
