@@ -798,7 +798,8 @@ PYBIND11_INLINE type_names make_type_names(const type_record &rec, const object 
     return names;
 }
 
-// Makes no Python calls that could run the GC, so it is safe before PyType_Ready().
+// For a type nothing else can see yet: makes no Python calls that could run the GC, so it is
+// safe before PyType_Ready().
 PYBIND11_INLINE void set_type_names(PyHeapTypeObject *heap_type, const type_names &names) {
     Py_XSETREF(heap_type->ht_name, names.name.inc_ref().ptr());
 #ifdef PYBIND11_BUILTIN_QUALNAME
@@ -806,6 +807,26 @@ PYBIND11_INLINE void set_type_names(PyHeapTypeObject *heap_type, const type_name
 #endif
     heap_type->ht_type.tp_name = names.full_name;
 }
+
+#if PYBIND11_TYPE_CREATION_VIA_SPEC
+// For a type that is already reachable (through its bases' __subclasses__()): the name objects
+// are replaced through the __name__/__qualname__ setters, which synchronize with concurrent
+// readers on free-threaded builds. The spec already produced the right strings unless the name
+// contains a dot or the scope is a class. tp_name only ever points at buffers that outlive the
+// type (CPython's own copy, the ht_name UTF-8 cache, or pybind11's interned full name), so the
+// pointer swap needs no synchronization.
+PYBIND11_INLINE void set_published_type_names(PyTypeObject *type, const type_names &names) {
+    auto *heap_type = reinterpret_cast<PyHeapTypeObject *>(type);
+    auto *type_obj = reinterpret_cast<PyObject *>(type);
+    if (!names.name.equal(handle(heap_type->ht_name))) {
+        setattr(type_obj, "__name__", names.name);
+    }
+    if (!names.qualname.equal(handle(heap_type->ht_qualname))) {
+        setattr(type_obj, "__qualname__", names.qualname);
+    }
+    type->tp_name = names.full_name;
+}
+#endif
 
 #if PYBIND11_TYPE_CREATION_VIA_SPEC
 
@@ -868,7 +889,7 @@ PYBIND11_INLINE PyObject *make_new_python_type(const type_record &rec) {
     PyType_Spec spec = {spec_name.c_str(), 0, 0, flags, slots.data()};
     auto *type = type_from_spec(rec.name, metaclass, &spec, base.ptr());
     // CPython keeps its own copy of the spec name in _ht_tpname and frees that, not tp_name.
-    set_type_names(reinterpret_cast<PyHeapTypeObject *>(type), names);
+    set_published_type_names(type, names);
     assert(!rec.dynamic_attr || PyType_HasFeature(type, Py_TPFLAGS_HAVE_GC));
 
     /* Register type with the parent scope */

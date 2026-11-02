@@ -174,6 +174,9 @@ struct type_names {
 };
 type_names make_type_names(const type_record &rec, const object &module_);
 void set_type_names(PyHeapTypeObject *heap_type, const type_names &names);
+#if PYBIND11_TYPE_CREATION_VIA_SPEC
+void set_published_type_names(PyTypeObject *type, const type_names &names);
+#endif
 
 /** Create a brand new Python type according to the `type_record` specification.
     Return value: New reference. */
