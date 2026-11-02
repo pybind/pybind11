@@ -212,9 +212,18 @@ inline PyThreadState *get_thread_state_unchecked() {
 #endif
 }
 
+inline PyInterpreterState *get_interpreter(PyThreadState *tstate) {
+#if defined(PYPY_VERSION_NUM) && PYPY_VERSION_NUM < 0x08000000
+    // Missing in some PyPy 7.x releases (e.g. 7.3.19).
+    return tstate->interp;
+#else
+    return PyThreadState_GetInterpreter(tstate);
+#endif
+}
+
 inline PyInterpreterState *get_interpreter_state_unchecked() {
     auto *tstate = get_thread_state_unchecked();
-    return tstate ? tstate->interp : nullptr;
+    return tstate ? get_interpreter(tstate) : nullptr;
 }
 
 object get_python_state_dict();
@@ -645,7 +654,7 @@ public:
             // internals_pp so that it can be pulled from the interpreter's state dict.  That is
             // slow, so we use the current PyThreadState to check if it is necessary.
             auto *tstate = get_thread_state_unchecked();
-            if (!tstate || tstate->interp != last_istate_tls()) {
+            if (!tstate || get_interpreter(tstate) != last_istate_tls()) {
                 gil_scoped_acquire_simple gil;
                 if (!tstate) {
                     tstate = get_thread_state_unchecked();
@@ -653,7 +662,7 @@ public:
                 // Update the cache only on success; a stale interp with a null pp would make
                 // later calls return nullptr.
                 auto *pp = get_or_create_pp_in_state_dict();
-                last_istate_tls() = tstate->interp;
+                last_istate_tls() = get_interpreter(tstate);
                 internals_p_tls() = pp;
             }
             return internals_p_tls();
@@ -683,7 +692,7 @@ public:
         if (has_seen_non_main_interpreter()) {
             auto *tstate = get_thread_state_unchecked();
             // this could be called without an active interpreter, just use what was cached
-            if (!tstate || tstate->interp == last_istate_tls()) {
+            if (!tstate || get_interpreter(tstate) == last_istate_tls()) {
                 auto tpp = internals_p_tls();
                 {
                     std::lock_guard<std::mutex> lock(pp_set_mutex_);

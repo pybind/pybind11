@@ -7,6 +7,7 @@ namespace test_cpp_conduit {
 
 PYBIND11_MODULE(home_planet_very_lonely_traveler, m, py::mod_gil_used()) {
     m.def("wrap_very_lonely_traveler", [m]() { wrap_very_lonely_traveler(m); });
+    m.def("get_points", [](const PremiumTraveler &person) { return person.points; });
 }
 
 } // namespace test_cpp_conduit

@@ -130,6 +130,10 @@ class Pybind11Extension(_Extension):
 
         super().__init__(*args, **kwargs)
 
+        # Flags are added in place, so do not modify the caller's lists
+        self.extra_compile_args = list(self.extra_compile_args)
+        self.extra_link_args = list(self.extra_link_args)
+
         # Include the installed package pybind11 headers
         if include_pybind11:
             # If using setup_requires, this fails the first time - that's okay
