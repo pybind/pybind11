@@ -82,15 +82,26 @@ inline bool object_is_instance_with_one_of_tp_names(PyObject *obj,
     return tp_name_is_one_of(Py_TYPE(obj), tp_names);
 }
 
+inline bool object_is_generator(PyObject *obj) {
+#if defined(Py_LIMITED_API)
+    // Exact type check, like PyGen_Check(): a user class named `generator` must not match.
+    static PyTypeObject *const gen_type = reinterpret_cast<PyTypeObject *>(
+        object(module_::import("types").attr("GeneratorType")).release().ptr());
+    return Py_TYPE(obj) == gen_type;
+#else
+    return PyGen_Check(obj) != 0;
+#endif
+}
+
 inline bool object_is_convertible_to_std_vector(const handle &src) {
     // Allow sequence-like objects, but not (byte-)string-like objects.
     if (PySequence_Check(src.ptr()) != 0) {
         return !PyUnicode_Check(src.ptr()) && !PyBytes_Check(src.ptr());
     }
     // Allow generators, set/frozenset and several common iterable types.
-    return (PyAnySet_Check(src.ptr()) != 0)
+    return object_is_generator(src.ptr()) || (PyAnySet_Check(src.ptr()) != 0)
            || object_is_instance_with_one_of_tp_names(
-               src.ptr(), {"generator", "dict_keys", "dict_values", "dict_items", "map", "zip"});
+               src.ptr(), {"dict_keys", "dict_values", "dict_items", "map", "zip"});
 }
 
 inline bool object_is_convertible_to_std_set(const handle &src, bool convert) {

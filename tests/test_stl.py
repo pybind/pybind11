@@ -627,6 +627,14 @@ def test_list_caster_fully_consumes_generator_object():
     assert not tuple(gen_obj)
 
 
+def test_list_caster_rejects_class_named_generator():
+    class generator:
+        pass
+
+    with pytest.raises(TypeError, match="incompatible function arguments"):
+        m.pass_std_vector_int(generator())
+
+
 def test_pass_std_set_int():
     fn = m.pass_std_set_int
     assert fn({3, 15}) == 254
