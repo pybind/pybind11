@@ -93,29 +93,6 @@ pybind11_static_set(PyObject *self, PyObject *obj, PyObject *value) {
 
 #    if PYBIND11_TYPE_CREATION_VIA_SPEC
 
-#        if defined(Py_LIMITED_API)
-// Without Py_TPFLAGS_MANAGED_DICT the `__dict__` slot follows the property object. The offset
-// is fixed at type creation; tp_traverse/tp_clear must not run Python attribute lookups.
-PYBIND11_INLINE Py_ssize_t static_property_dict_offset() {
-    static const Py_ssize_t offset = type_basicsize(&PyProperty_Type);
-    return offset;
-}
-PYBIND11_INLINE PyObject **static_property_dict_ptr(PyObject *self) {
-    return reinterpret_cast<PyObject **>(reinterpret_cast<char *>(self)
-                                         + static_property_dict_offset());
-}
-extern "C" PYBIND11_INLINE int
-pybind11_static_property_traverse(PyObject *self, visitproc visit, void *arg) {
-    Py_VISIT(*static_property_dict_ptr(self));
-    Py_VISIT(Py_TYPE(self));
-    return 0;
-}
-extern "C" PYBIND11_INLINE int pybind11_static_property_clear(PyObject *self) {
-    Py_CLEAR(*static_property_dict_ptr(self));
-    return 0;
-}
-#        endif
-
 PYBIND11_INLINE PyTypeObject *make_static_property_type() {
     // Since Python-3.12 property-derived types are required to have dynamic attributes (to set
     // `__doc__`), hence the GC and dict slots.
@@ -138,14 +115,13 @@ PYBIND11_INLINE PyTypeObject *make_static_property_type() {
     const auto dictoffset = static_cast<int>(static_property_dict_offset());
     PyMemberDef members[] = {{"__dictoffset__", Py_T_PYSSIZET, dictoffset, Py_READONLY, nullptr},
                              {nullptr, 0, 0, 0, nullptr}};
-    PyType_Slot slots[]
-        = {{Py_tp_descr_get, reinterpret_cast<void *>(pybind11_static_get)},
-           {Py_tp_descr_set, reinterpret_cast<void *>(pybind11_static_set)},
-           {Py_tp_traverse, reinterpret_cast<void *>(pybind11_static_property_traverse)},
-           {Py_tp_clear, reinterpret_cast<void *>(pybind11_static_property_clear)},
-           {Py_tp_getset, reinterpret_cast<void *>(dynamic_attr_getset())},
-           {Py_tp_members, reinterpret_cast<void *>(members)},
-           {0, nullptr}};
+    PyType_Slot slots[] = {{Py_tp_descr_get, reinterpret_cast<void *>(pybind11_static_get)},
+                           {Py_tp_descr_set, reinterpret_cast<void *>(pybind11_static_set)},
+                           {Py_tp_traverse, reinterpret_cast<void *>(pybind11_traverse)},
+                           {Py_tp_clear, reinterpret_cast<void *>(pybind11_clear)},
+                           {Py_tp_getset, reinterpret_cast<void *>(dynamic_attr_getset())},
+                           {Py_tp_members, reinterpret_cast<void *>(members)},
+                           {0, nullptr}};
     PyType_Spec spec = {PYBIND11_DUMMY_MODULE_NAME ".pybind11_static_property",
                         dictoffset + static_cast<int>(sizeof(PyObject *)),
                         0,
@@ -685,10 +661,14 @@ PYBIND11_INLINE PyObject **instance_dict_ptr(PyObject *self) {
 #elif !defined(Py_LIMITED_API)
     return _PyObject_GetDictPtr(self);
 #else
-    // The slot every pybind11 instance reserves; only `py::dynamic_attr()` types point their
-    // `__dictoffset__` at it, so it stays null for the others. Python subclasses that add a
-    // managed dict clear that themselves before calling the base tp_dealloc.
-    return &get_instance(self)->dict;
+    // No tp_dictoffset in the stable ABI. pybind11 creates two layouts with a `__dict__` slot:
+    // instances (instance::dict, which only `py::dynamic_attr()` types point their
+    // `__dictoffset__` at, so it stays null for the others; Python subclasses that add a managed
+    // dict clear that themselves before calling the base tp_dealloc) and static properties.
+    Py_ssize_t offset = PyType_IsSubtype(Py_TYPE(self), &PyProperty_Type)
+                            ? static_property_dict_offset()
+                            : instance_dict_offset();
+    return reinterpret_cast<PyObject **>(reinterpret_cast<char *>(self) + offset);
 #endif
 }
 
@@ -699,6 +679,12 @@ PYBIND11_INLINE Py_ssize_t instance_dict_offset() {
 #    else
     return static_cast<Py_ssize_t>(offsetof(instance, dict));
 #    endif
+}
+
+PYBIND11_INLINE Py_ssize_t static_property_dict_offset() {
+    // Appended to the property layout; see make_static_property_type().
+    static const Py_ssize_t offset = type_basicsize(&PyProperty_Type);
+    return offset;
 }
 #endif
 

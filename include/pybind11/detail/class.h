@@ -154,6 +154,8 @@ PyObject **instance_dict_ptr(PyObject *self);
 /// Offset of `instance::dict` from the start of the Python object (the `__dictoffset__` of
 /// `py::dynamic_attr()` types).
 Py_ssize_t instance_dict_offset();
+/// Offset of the `__dict__` slot that pybind11_static_property appends to the property layout.
+Py_ssize_t static_property_dict_offset();
 #endif
 
 /// Instance creation function for all pybind11 types. It allocates the internal instance layout
