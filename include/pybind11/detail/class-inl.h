@@ -94,11 +94,15 @@ pybind11_static_set(PyObject *self, PyObject *obj, PyObject *value) {
 #    if PYBIND11_TYPE_CREATION_VIA_SPEC
 
 #        if defined(Py_LIMITED_API)
-// Without Py_TPFLAGS_MANAGED_DICT the `__dict__` slot follows the property object. These two
-// functions find it through the type's `__dictoffset__`.
+// Without Py_TPFLAGS_MANAGED_DICT the `__dict__` slot follows the property object. The offset
+// is fixed at type creation; tp_traverse/tp_clear must not run Python attribute lookups.
+PYBIND11_INLINE Py_ssize_t static_property_dict_offset() {
+    static const Py_ssize_t offset = type_basicsize(&PyProperty_Type);
+    return offset;
+}
 PYBIND11_INLINE PyObject **static_property_dict_ptr(PyObject *self) {
-    static const Py_ssize_t offset = type_dictoffset(Py_TYPE(self));
-    return reinterpret_cast<PyObject **>(reinterpret_cast<char *>(self) + offset);
+    return reinterpret_cast<PyObject **>(reinterpret_cast<char *>(self)
+                                         + static_property_dict_offset());
 }
 extern "C" PYBIND11_INLINE int
 pybind11_static_property_traverse(PyObject *self, visitproc visit, void *arg) {
@@ -131,7 +135,7 @@ PYBIND11_INLINE PyTypeObject *make_static_property_type() {
 #        else
     // Append the `__dict__` slot to the property layout. (PEP 697 relative offsets are not
     // applied to `__dictoffset__` on 3.12, so the offset is absolute.)
-    const auto dictoffset = static_cast<int>(type_basicsize(&PyProperty_Type));
+    const auto dictoffset = static_cast<int>(static_property_dict_offset());
     PyMemberDef members[] = {{"__dictoffset__", Py_T_PYSSIZET, dictoffset, Py_READONLY, nullptr},
                              {nullptr, 0, 0, 0, nullptr}};
     PyType_Slot slots[]
