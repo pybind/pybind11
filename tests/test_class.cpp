@@ -552,6 +552,14 @@ TEST_SUBMODULE(class_, m) {
     bind_named_class<7>(dotted, "Child");
     auto custom = names.def_submodule("custom");
     bind_named_class<8>(custom, "a[b.c]", py::custom_type_setup([](PyHeapTypeObject *) {}));
+    names.def("bind_with_metaclass",
+              [](py::handle scope, py::handle nested_scope, const py::object &metaclass) {
+                  auto module_class
+                      = bind_named_class<9>(scope, "Frozen[pkg.Value]", py::metaclass(metaclass));
+                  auto nested_class = bind_named_class<10>(
+                      nested_scope, "FrozenInner", py::metaclass(metaclass));
+                  return py::make_tuple(module_class, nested_class);
+              });
 
     // test_error_after_conversion
     // The second-pass path through dispatcher() previously didn't

@@ -234,6 +234,31 @@ def test_class_name_spelling(request, placement, name, qualname):
     assert getattr(scope, cls.__name__) is cls
 
 
+@pytest.mark.skipif(
+    env.PYPY or env.GRAALPY, reason="Tests CPython's type creation paths"
+)
+def test_class_names_with_frozen_metaclass():
+    class FrozenNames(type(m.NestBase)):
+        def __setattr__(cls, name, value):
+            if name in {"__name__", "__qualname__"}:
+                raise TypeError("class names are frozen after creation")
+            super().__setattr__(name, value)
+
+    module_class, nested_class = m.class_names.bind_with_metaclass(
+        m.class_names, m.NestBase, FrozenNames
+    )
+    assert module_class.__name__ == "Frozen[pkg.Value]"
+    assert module_class.__qualname__ == "Frozen[pkg.Value]"
+    assert nested_class.__name__ == "FrozenInner"
+    assert nested_class.__qualname__ == "NestBase.FrozenInner"
+    for cls in (module_class, nested_class):
+        assert isinstance(cls, FrozenNames)
+        obj = cls()
+        assert obj.echo() is obj
+        with pytest.raises(TypeError, match="class names are frozen after creation"):
+            cls.__name__ = "Renamed"
+
+
 def test_inheritance(msg):
     roger = m.Rabbit("Rabbit")
     assert roger.name() + " is a " + roger.species() == "Rabbit is a parrot"

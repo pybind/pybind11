@@ -810,19 +810,24 @@ PYBIND11_INLINE void set_type_names(PyHeapTypeObject *heap_type, const type_name
 
 #if PYBIND11_TYPE_CREATION_VIA_SPEC
 // For a type that is already reachable (through its bases' __subclasses__()): the name objects
-// are replaced through the __name__/__qualname__ setters, which synchronize with concurrent
-// readers on free-threaded builds. The spec already produced the right strings unless the name
+// are replaced through type's descriptors, using the interpreter's setters without invoking
+// custom metaclass assignment hooks. The spec already produced the right strings unless the name
 // contains a dot or the scope is a class. tp_name only ever points at buffers that outlive the
 // type (CPython's own copy, the ht_name UTF-8 cache, or pybind11's interned full name), so the
 // pointer swap needs no synchronization.
 PYBIND11_INLINE void set_published_type_names(PyTypeObject *type, const type_names &names) {
     auto *heap_type = reinterpret_cast<PyHeapTypeObject *>(type);
     auto *type_obj = reinterpret_cast<PyObject *>(type);
+    const auto set_name = [type_obj](const char *attr, const object &value) {
+        object descriptors = reinterpret_borrow<object>(reinterpret_cast<PyObject *>(&PyType_Type))
+                                 .attr("__dict__");
+        descriptors[attr].attr("__set__")(handle(type_obj), value);
+    };
     if (!names.name.equal(handle(heap_type->ht_name))) {
-        setattr(type_obj, "__name__", names.name);
+        set_name("__name__", names.name);
     }
     if (!names.qualname.equal(handle(heap_type->ht_qualname))) {
-        setattr(type_obj, "__qualname__", names.qualname);
+        set_name("__qualname__", names.qualname);
     }
     type->tp_name = names.full_name;
 }
