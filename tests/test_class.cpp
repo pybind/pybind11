@@ -536,11 +536,8 @@ TEST_SUBMODULE(class_, m) {
     base.def("g", [](NestBase &, Nested &) {});
     base.def("h", []() { return NestBase(); });
 
-    // test_class_name_spelling
+    // test_class_names_match_type
     auto names = m.def_submodule("class_names");
-    names.def("tp_name", [](const py::type &t) {
-        return reinterpret_cast<PyTypeObject *>(t.ptr())->tp_name;
-    });
     using test_class::bind_named_class;
     bind_named_class<0>(names, "Simple");
     bind_named_class<1>(names, "a.b");

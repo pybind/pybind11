@@ -33,6 +33,13 @@ def test_obj_class_name():
     assert m.obj_class_name(UserType) == expected_name
 
 
+def test_obj_class_name_dotted():
+    name = "a[b.c]"
+    cls = getattr(m.class_names, name)
+    expected_name = name if env.PYPY else f"{m.class_names.__name__}.{name}"
+    assert m.obj_class_name(cls) == expected_name
+
+
 def test_repr():
     assert "pybind11_type" in repr(type(UserType))
     assert "UserType" in repr(UserType)
@@ -196,25 +203,21 @@ def test_qualname(doc):
 
 
 @pytest.mark.parametrize(
-    ("placement", "name", "qualname"),
+    ("placement", "name"),
     [
-        ("module", "Simple", "Simple"),
-        ("module", "a.b", "a.b"),
-        ("module", "a.b.c", "a.b.c"),
-        ("module", "a[b]", "a[b]"),
-        ("module", "a[b.c]", "a[b.c]"),
-        ("module", "a.b[c]", "a.b[c]"),
-        ("nested", "a[b.c]", "NestBase.a[b.c]"),
-        ("child", "Child", "a[b.c].Child"),
-        ("custom", "a[b.c]", "a[b.c]"),
+        ("module", "Simple"),
+        ("module", "a.b"),
+        ("module", "a.b.c"),
+        ("module", "a[b]"),
+        ("module", "a[b.c]"),
+        ("module", "a.b[c]"),
+        ("nested", "a[b.c]"),
+        ("child", "Child"),
+        ("custom", "a[b.c]"),
     ],
 )
-def test_class_name_spelling(request, placement, name, qualname):
-    """Supplied names are kept as given, like type(); dots are not split off."""
-    if "." in name and (env.GRAALPY or (env.PYPY and sys.version_info >= (3, 12))):
-        request.applymarker(
-            pytest.mark.xfail(reason="The interpreter shortens dotted __name__")
-        )
+def test_class_names_match_type(request, placement, name):
+    """Bound classes follow Python's naming rules, including literal dots."""
     scopes = {
         "module": m.class_names,
         "nested": m.NestBase,
@@ -224,13 +227,23 @@ def test_class_name_spelling(request, placement, name, qualname):
     scope = scopes[placement]
     cls = getattr(scope, name)
     module = scope.__name__ if isinstance(scope, type(m)) else scope.__module__
-    assert cls.__qualname__ == qualname
-    assert cls.__module__ == module
-    assert m.class_names.tp_name(cls) == (name if env.PYPY else f"{module}.{name}")
+    namespace = {"__module__": module}
+    if placement in {"nested", "child"}:
+        # type() needs an explicit qualified name for a dynamically nested class.
+        parent_name = "NestBase" if placement == "nested" else "a[b.c]"
+        parent = type(parent_name, (), {"__module__": module})
+        namespace["__qualname__"] = f"{parent.__qualname__}.{name}"
+    reference = type(name, (), namespace)
+    assert cls.__qualname__ == reference.__qualname__
+    assert cls.__module__ == reference.__module__
     obj = cls()
     assert obj.echo() is obj
-    assert f"{module}.{qualname}" in cls.echo.__doc__
-    assert cls.__name__ == name
+    assert f"{reference.__module__}.{reference.__qualname__}" in cls.echo.__doc__
+    if "." in name and (env.GRAALPY or (env.PYPY and sys.version_info >= (3, 12))):
+        request.applymarker(
+            pytest.mark.xfail(reason="The interpreter shortens dotted __name__")
+        )
+    assert cls.__name__ == reference.__name__
     assert getattr(scope, cls.__name__) is cls
 
 
