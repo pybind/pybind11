@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+import os
+import subprocess
+import sys
+import textwrap
 import weakref
 
 import pytest
 
-import env  # noqa: F401
+import env
+import pybind11_tests
 from pybind11_tests import ConstructorStats, UserType
 from pybind11_tests import stl as m
 
@@ -633,6 +638,54 @@ def test_list_caster_rejects_class_named_generator():
 
     with pytest.raises(TypeError, match="incompatible function arguments"):
         m.pass_std_vector_int(generator())
+
+
+@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
+@pytest.mark.skipif(env.ANDROID or env.IOS, reason="Requires subprocess support")
+def test_generator_check_does_not_deadlock():
+    """Two threads doing the first generator conversion at once must both finish.
+
+    The stable-ABI generator check imports `types` once. If the import releases the GIL
+    while another thread holds it and waits on the once-only guard, neither thread can
+    proceed. Runs in a subprocess so a regression shows up as a timeout, not a hang.
+    """
+    script = textwrap.dedent(
+        f"""
+        import sys
+        import threading
+
+        sys.path.insert(0, {os.path.dirname(env.__file__)!r})
+        sys.path.insert(0, {os.path.dirname(pybind11_tests.__file__)!r})
+
+        from pybind11_tests import stl as m
+
+        # A cold import runs importlib Python code, which can release the GIL.
+        del sys.modules["types"]
+        sys.setswitchinterval(1e-6)
+        start = threading.Barrier(2)
+
+        def convert():
+            start.wait()
+            for _ in range(100):
+                assert m.pass_std_vector_int(x for x in (1, 2, 3)) == 112
+
+        threads = [threading.Thread(target=convert) for _ in range(2)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        print("done")
+        """
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == "done"
 
 
 def test_pass_std_set_int():

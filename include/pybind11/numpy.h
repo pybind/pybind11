@@ -1858,9 +1858,13 @@ private:
         if (auto descr = reinterpret_steal<object>(api.PyArray_DescrFromScalar_(obj))) {
             if (api.PyArray_EquivTypes_(dtype_ptr(), descr.ptr())) {
 #if defined(PYBIND11_OPAQUE_PYOBJECT)
-                // The void scalar is opaque; its buffer is the scalar's own storage.
+                // The scalar struct is opaque. Use the base type's buffer slot: it exposes the
+                // scalar's own storage, which outlives the view. A subclass __buffer__
+                // override may return a temporary, so it must not be used.
+                auto getbuffer = reinterpret_cast<getbufferproc>(
+                    PyType_GetSlot(api.PyVoidArrType_Type_, Py_bf_getbuffer));
                 Py_buffer view;
-                if (PyObject_GetBuffer(obj, &view, PyBUF_SIMPLE) != 0) {
+                if (getbuffer == nullptr || getbuffer(obj, &view, PyBUF_SIMPLE) != 0) {
                     PyErr_Clear();
                     return false;
                 }

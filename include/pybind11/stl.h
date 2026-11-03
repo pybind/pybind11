@@ -85,9 +85,15 @@ inline bool object_is_instance_with_one_of_tp_names(PyObject *obj,
 inline bool object_is_generator(PyObject *obj) {
 #if defined(Py_LIMITED_API)
     // Exact type check, like PyGen_Check(): a user class named `generator` must not match.
-    static PyTypeObject *const gen_type = reinterpret_cast<PyTypeObject *>(
-        object(module_::import("types").attr("GeneratorType")).release().ptr());
-    return Py_TYPE(obj) == gen_type;
+    // The import can release the GIL, so a plain function-local static could deadlock.
+    PYBIND11_CONSTINIT static gil_safe_call_once_and_store<PyTypeObject *> storage;
+    return Py_TYPE(obj)
+           == storage
+                  .call_once_and_store_result([] {
+                      return reinterpret_cast<PyTypeObject *>(
+                          object(module_::import("types").attr("GeneratorType")).release().ptr());
+                  })
+                  .get_stored();
 #else
     return PyGen_Check(obj) != 0;
 #endif

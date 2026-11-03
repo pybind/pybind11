@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import sys
 
 import pytest
 
@@ -413,6 +414,24 @@ def test_scalar_conversion():
                 with pytest.raises(TypeError) as excinfo:
                     func(arr[0])
                 assert "incompatible function arguments" in str(excinfo.value)
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 12), reason="__buffer__ requires Python 3.12"
+)
+def test_scalar_subclass_buffer_override(simple_dtype):
+    """Conversion reads the scalar's own storage, not an overridden __buffer__."""
+    arr = np.array([(False, 2, 0.0, 0.0)], dtype=simple_dtype)
+
+    class Scalar(np.void):
+        def __buffer__(self, flags):
+            self._tmp = np.array([(False, 7, 0.0, 0.0)], dtype=simple_dtype).tobytes()
+            return memoryview(self._tmp)
+
+    scalar = arr[0].view(np.dtype((Scalar, simple_dtype)))
+    assert isinstance(scalar, Scalar)
+    assert bytes(memoryview(scalar)) == scalar._tmp
+    assert m.f_simple(scalar) == 20
 
 
 def test_vectorize():
