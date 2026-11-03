@@ -79,18 +79,24 @@
 #    else
 #        define PYBIND11_PRECOMPILED_CFG_TD 0
 #    endif
+#    if PYBIND11_TYPE_CREATION_VIA_SPEC
+#        define PYBIND11_PRECOMPILED_CFG_TS 1
+#    else
+#        define PYBIND11_PRECOMPILED_CFG_TS 0
+#    endif
 // PYBIND11_CONCAT does not macro-expand its arguments (## suppresses expansion).
-#    define PYBIND11_PRECOMPILED_CONFIG_NAME_(v, gd, sg, de, si, td)                              \
-        pybind11_precompiled_config_v##v##_gd##gd##_sg##sg##_de##de##_si##si##_td##td
-#    define PYBIND11_PRECOMPILED_CONFIG_NAME(v, gd, sg, de, si, td)                               \
-        PYBIND11_PRECOMPILED_CONFIG_NAME_(v, gd, sg, de, si, td)
+#    define PYBIND11_PRECOMPILED_CONFIG_NAME_(v, gd, sg, de, si, td, ts)                          \
+        pybind11_precompiled_config_v##v##_gd##gd##_sg##sg##_de##de##_si##si##_td##td##_ts##ts
+#    define PYBIND11_PRECOMPILED_CONFIG_NAME(v, gd, sg, de, si, td, ts)                           \
+        PYBIND11_PRECOMPILED_CONFIG_NAME_(v, gd, sg, de, si, td, ts)
 #    define PYBIND11_PRECOMPILED_CONFIG_CHECK                                                     \
         PYBIND11_PRECOMPILED_CONFIG_NAME(PYBIND11_INTERNALS_VERSION,                              \
                                          PYBIND11_PRECOMPILED_CFG_GD,                             \
                                          PYBIND11_PRECOMPILED_CFG_SG,                             \
                                          PYBIND11_PRECOMPILED_CFG_DE,                             \
                                          PYBIND11_PRECOMPILED_CFG_SI,                             \
-                                         PYBIND11_PRECOMPILED_CFG_TD)
+                                         PYBIND11_PRECOMPILED_CFG_TD,                             \
+                                         PYBIND11_PRECOMPILED_CFG_TS)
 #    define PYBIND11_PRECOMPILED_CONFIG_GUARD                                                     \
         ::pybind11::detail::PYBIND11_PRECOMPILED_CONFIG_CHECK();
 #else

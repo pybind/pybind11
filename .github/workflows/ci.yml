@@ -107,6 +107,34 @@ jobs:
       python-version: ${{ matrix.python-version }}
       cmake-args: -DPYBIND11_TEST_PRECOMPILE=ON
 
+  # The legacy PyHeapTypeObject type-creation path on CPython 3.12+
+  # (PyType_FromMetaclass is the default there).
+  type-creation-legacy:
+    if: github.event.pull_request.draft == false
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runs-on: ubuntu-latest
+            python-version: '3.12'
+            cmake-args: -DPYBIND11_TYPE_CREATION_VIA_SPEC=OFF
+          - runs-on: ubuntu-latest
+            python-version: '3.14'
+            cmake-args: -DPYBIND11_TYPE_CREATION_VIA_SPEC=OFF -DPYBIND11_TEST_PRECOMPILE=ON
+          - runs-on: macos-latest
+            python-version: '3.13'
+            cmake-args: -DPYBIND11_TYPE_CREATION_VIA_SPEC=OFF
+          - runs-on: windows-2022
+            python-version: '3.13'
+            cmake-args: -DPYBIND11_TYPE_CREATION_VIA_SPEC=OFF
+
+    name: 📐
+    uses: ./.github/workflows/reusable-standard.yml
+    with:
+      runs-on: ${{ matrix.runs-on }}
+      python-version: ${{ matrix.python-version }}
+      cmake-args: ${{ matrix.cmake-args }}
+
   standard-large:
     if: github.event.pull_request.draft == false
     strategy:

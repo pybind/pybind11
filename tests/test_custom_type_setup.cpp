@@ -63,6 +63,17 @@ void add_gc_checkers_with_weakrefs(const py::object &obj) {
 } // namespace
 
 TEST_SUBMODULE(custom_type_setup, m) {
+    struct DynamicBase {
+        int value = 7;
+    };
+    struct DynamicDerived : DynamicBase {};
+    py::class_<DynamicBase>(m, "DynamicBase", py::dynamic_attr())
+        .def(py::init<>())
+        .def_readonly("value", &DynamicBase::value);
+    py::class_<DynamicDerived, DynamicBase>(
+        m, "DynamicDerived", py::custom_type_setup([](PyHeapTypeObject *) {}))
+        .def(py::init<>());
+
     py::class_<ContainerOwnsPythonObjects> cls(
         m,
         "ContainerOwnsPythonObjects",
