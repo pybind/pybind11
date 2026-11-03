@@ -425,7 +425,7 @@ PYBIND11_NOINLINE_ATTR PYBIND11_INLINE bool isinstance_generic(handle obj,
     return isinstance(obj, type);
 }
 
-PYBIND11_NOINLINE_ATTR PYBIND11_INLINE object get_object_handle(const void *ptr,
+PYBIND11_NOINLINE_ATTR PYBIND11_INLINE handle get_object_handle(const void *ptr,
                                                                 const detail::type_info *type) {
 #if defined(PYBIND11_OPAQUE_PYOBJECT)
     // values_and_holders() takes the internals lock, which can suspend the instance map's
@@ -445,22 +445,24 @@ PYBIND11_NOINLINE_ATTR PYBIND11_INLINE object get_object_handle(const void *ptr,
     for (auto &wrapper : candidates) {
         for (const auto &vh : values_and_holders(wrapper.ptr())) {
             if (vh.type == type) {
-                return std::move(wrapper);
+                // Borrowed: the Python owner of `ptr` keeps the wrapper alive, as in the
+                // non-opaque path.
+                return handle(wrapper);
             }
         }
     }
-    return object();
+    return handle();
 #else
     return with_instance_map(ptr, [&](instance_map &instances) {
         auto range = instances.equal_range(ptr);
         for (auto it = range.first; it != range.second; ++it) {
             for (const auto &vh : values_and_holders(it->second)) {
                 if (vh.type == type) {
-                    return reinterpret_borrow<object>(instance_object(it->second));
+                    return handle(instance_object(it->second));
                 }
             }
         }
-        return object();
+        return handle();
     });
 #endif
 }

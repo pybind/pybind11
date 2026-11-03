@@ -437,7 +437,7 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 PYBIND11_INLINE function get_type_override(const void *this_ptr,
                                            const type_info *this_type,
                                            const char *name) {
-    object self = get_object_handle(this_ptr, this_type);
+    handle self = get_object_handle(this_ptr, this_type);
     if (!self) {
         return function();
     }
