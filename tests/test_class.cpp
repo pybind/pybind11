@@ -555,7 +555,7 @@ TEST_SUBMODULE(class_, m) {
                       = bind_named_class<9>(scope, "Frozen[pkg.Value]", py::metaclass(metaclass));
                   auto nested_class = bind_named_class<10>(
                       nested_scope, "FrozenInner", py::metaclass(metaclass));
-                  return py::make_tuple(module_class, nested_class);
+                  return py::make_tuple(py::object(module_class), py::object(nested_class));
               });
 
     // test_error_after_conversion
