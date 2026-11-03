@@ -2032,7 +2032,13 @@ public:
         return object::operator[](std::forward<T>(o));
     }
     detail::sequence_iterator begin() const { return {*this, 0}; }
-    detail::sequence_iterator end() const { return {*this, PySequence_Size(m_ptr)}; }
+    detail::sequence_iterator end() const {
+        ssize_t result = PySequence_Size(m_ptr);
+        if (result == -1) {
+            throw error_already_set();
+        }
+        return {*this, result};
+    }
 };
 
 class list : public object {
