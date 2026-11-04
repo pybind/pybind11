@@ -291,7 +291,7 @@ public:
     void set(std::size_t idx, bool value = true) {
         if (is_inline()) {
             auto &ha = m_repr.iarray;
-            assert(ha.size < kInlineSize);
+            assert(idx < ha.size);
             const auto wbi = word_and_bit_index(idx);
             assert(wbi.word < kWords);
             assert(wbi.bit < kBitsPerWord);
