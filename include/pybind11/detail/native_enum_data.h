@@ -200,9 +200,13 @@ inline void native_enum_data::finalize() {
     }
     parent_scope.attr(enum_name) = py_enum;
     if (export_values_flag) {
+        // Allow an already-exported Enum member with the same name to be replaced,
+        // so two native_enums can share exported value names (see issue #6031).
+        auto enum_base = import_or_getattr("enum.Enum", " (native_enum export_values)");
         for (auto member : members) {
             auto member_name = member[int_(0)];
-            if (hasattr(parent_scope, member_name)) {
+            if (hasattr(parent_scope, member_name)
+                && !isinstance(parent_scope.attr(member_name), enum_base)) {
                 pybind11_fail("pybind11::native_enum<...>(\"" + enum_name_encoded + "\").value(\""
                               + member_name.cast<std::string>()
                               + "\"): an object with that name is already defined");
