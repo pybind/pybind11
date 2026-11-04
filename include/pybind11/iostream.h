@@ -149,7 +149,15 @@ public:
     }
 
     /// Sync before destroy
-    ~pythonbuf() override { _sync(); }
+    ~pythonbuf() override {
+        try {
+            _sync();
+        } catch (error_already_set &e) {
+            // The stream's write() or flush() raised, and destructors must not throw.
+            gil_scoped_acquire gil;
+            e.discard_as_unraisable(__func__);
+        }
+    }
 };
 
 PYBIND11_NAMESPACE_END(detail)
