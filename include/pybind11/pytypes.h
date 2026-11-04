@@ -2123,7 +2123,10 @@ public:
     }
     template <typename T>
     bool add(T &&val) /* py-non-const */ {
-        return PySet_Add(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr()) == 0;
+        if (PySet_Add(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr()) != 0) {
+            throw error_already_set();
+        }
+        return true;
     }
     void clear() /* py-non-const */ { PySet_Clear(m_ptr); }
 };
