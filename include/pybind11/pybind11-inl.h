@@ -1524,7 +1524,7 @@ PYBIND11_INLINE module_ module_::def_submodule(const char *name, const char *doc
         result.attr("__file__") = this_file;
     }
 #else
-    handle this_file = PyModule_GetFilenameObject(m_ptr);
+    object this_file = reinterpret_steal<object>(PyModule_GetFilenameObject(m_ptr));
     if (this_file) {
         result.attr("__file__") = this_file;
     } else if (PyErr_ExceptionMatches(PyExc_SystemError) != 0) {
