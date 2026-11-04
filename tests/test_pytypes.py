@@ -102,6 +102,8 @@ def test_list(capture, doc):
     assert doc(m.get_list) == "get_list() -> list"
     assert doc(m.print_list) == "print_list(arg0: list) -> None"
 
+    assert m.access_list() == 2
+    assert m.access_list_as_object() == 2
 
 def test_none(doc):
     assert doc(m.get_none) == "get_none() -> None"
@@ -189,6 +191,11 @@ def test_dict(capture, doc):
 
     assert m.dict_keyword_constructor() == {"x": 1, "y": 2, "z": 3}
 
+    assert m.access_dict_with_str() == 1
+    assert m.access_dict_with_int() == 1
+    assert m.access_dict_as_object_with_str() == 1
+    assert m.access_dict_as_object_with_int() == 1
+
 
 class CustomContains:
     d = {"key": None}
@@ -219,6 +226,9 @@ def test_tuple():
     assert m.tuple_ssize_t() == ()
     assert m.tuple_size_t() == ()
     assert m.get_tuple() == (42, None, "spam")
+    assert m.access_tuple((1,2)) == 2
+    assert m.access_tuple_as_object_with_int_index((1,2)) == 2
+    assert m.access_tuple_as_object_with_int_index_multidimension(((1,2,3),(4,5,6))) == 6
 
 
 def test_simple_namespace():
