@@ -1472,8 +1472,7 @@ public:
         if ((ssize_t) sizeof...(index) != ndim()) {
             fail_dim_check(sizeof...(index), "index dimension mismatch");
         }
-        return *(static_cast<const T *>(array::data())
-                 + byte_offset(ssize_t(index)...) / itemsize());
+        return *data(index...);
     }
 
     // Mutable reference to element at a given index. Negative indices count from the end of each
@@ -1483,8 +1482,7 @@ public:
         if ((ssize_t) sizeof...(index) != ndim()) {
             fail_dim_check(sizeof...(index), "index dimension mismatch");
         }
-        return *(static_cast<T *>(array::mutable_data())
-                 + byte_offset(ssize_t(index)...) / itemsize());
+        return *mutable_data(index...);
     }
 
     /**
