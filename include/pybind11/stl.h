@@ -397,9 +397,16 @@ private:
         // For the `resize` to work, `Value` must be default constructible.
         // For `std::valarray`, this is a requirement:
         // https://en.cppreference.com/w/cpp/named_req/NumericType
-        value->resize(l.size());
+        // Snapshot the length once: a Python object with a mutating `__len__`
+        // can report a larger size during iteration than it did for `resize`,
+        // which would write past the end of the storage.
+        const size_t n = l.size();
+        value->resize(n);
         size_t ctr = 0;
         for (const auto &it : l) {
+            if (ctr >= n) {
+                break;
+            }
             value_conv conv;
             if (!conv.load(it, convert)) {
                 return false;
@@ -428,6 +435,12 @@ private:
                 return false;
             }
             temp.emplace_back(cast_op<Value &&>(std::move(conv)));
+        }
+        // A mutating `__len__` can yield fewer elements during iteration than
+        // the `Size` check above saw, which would make `vector_to_array` read
+        // past the end of `temp`.
+        if (temp.size() != Size) {
+            return false;
         }
         value.reset(new ArrayType(vector_to_array<ArrayType, Size>(std::move(temp))));
         return true;
