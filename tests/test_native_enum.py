@@ -283,6 +283,17 @@ def test_native_enum_name_clash():
     )
 
 
+def test_native_enum_duplicate_value_name():
+    with pytest.raises(RuntimeError) as excinfo:
+        m.native_enum_duplicate_value_name(m)
+    assert (
+        str(excinfo.value)
+        == 'pybind11::native_enum<...>("fake_native_enum_duplicate_value_name")'
+        '.value("dup"): an object with that name is already defined'
+    )
+    assert not hasattr(m, "fake_native_enum_duplicate_value_name")
+
+
 def test_native_enum_value_name_clash():
     m.fake_native_enum_value_name_clash_x = None
     with pytest.raises(RuntimeError) as excinfo:

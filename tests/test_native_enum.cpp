@@ -225,6 +225,14 @@ TEST_SUBMODULE(native_enum, m) {
             .finalize();
     });
 
+    m.def("native_enum_duplicate_value_name", [](py::module_ &m) {
+        enum fake { x, y };
+        py::native_enum<fake>(m, "fake_native_enum_duplicate_value_name", "enum.IntEnum")
+            .value("dup", fake::x)
+            .value("dup", fake::y)
+            .finalize();
+    });
+
     m.def("native_enum_value_name_clash", [](py::module_ &m) {
         enum fake { x };
         py::native_enum<fake>(m, "fake_native_enum_value_name_clash", "enum.IntEnum")
