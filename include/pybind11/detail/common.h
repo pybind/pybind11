@@ -237,6 +237,29 @@
 #    define PYBIND11_SIMPLE_GIL_MANAGEMENT
 #endif
 
+// Create the pybind11 type objects (metaclass, static property, instance base and all bound
+// classes) through PyType_FromMetaclass() with PyType_Spec instead of filling in raw
+// PyHeapTypeObject fields. The default on CPython 3.12+; define PYBIND11_TYPE_CREATION_VIA_SPEC=0
+// to opt out. `py::custom_type_setup()`, metaclasses with a custom `tp_new`, and metaclass
+// combinations that PyType_FromMetaclass() rejects still use the legacy path. A user-defined
+// PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET also selects the legacy path: the spec path uses
+// Py_TPFLAGS_MANAGED_DICT, and all bound classes must share one `__dict__` layout.
+#if !defined(PYBIND11_TYPE_CREATION_VIA_SPEC)
+#    if PY_VERSION_HEX >= 0x030C0000 && !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)        \
+        && !defined(PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET)
+#        define PYBIND11_TYPE_CREATION_VIA_SPEC 1
+#    else
+#        define PYBIND11_TYPE_CREATION_VIA_SPEC 0
+#    endif
+#elif PYBIND11_TYPE_CREATION_VIA_SPEC
+#    if PY_VERSION_HEX < 0x030C0000 || defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
+#        error "PYBIND11_TYPE_CREATION_VIA_SPEC requires CPython 3.12 or newer."
+#    endif
+#    if defined(PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET)
+#        error "PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET needs the legacy type creation path"
+#    endif
+#endif
+
 #include <cstddef>
 #include <cstring>
 #include <exception>

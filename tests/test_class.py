@@ -33,6 +33,13 @@ def test_obj_class_name():
     assert m.obj_class_name(UserType) == expected_name
 
 
+def test_obj_class_name_dotted():
+    name = "a[b.c]"
+    cls = getattr(m.class_names, name)
+    expected_name = name if env.PYPY else f"{m.class_names.__name__}.{name}"
+    assert m.obj_class_name(cls) == expected_name
+
+
 def test_repr():
     assert "pybind11_type" in repr(type(UserType))
     assert "UserType" in repr(UserType)
@@ -193,6 +200,76 @@ def test_qualname(doc):
     )
     assert m.NestBase.__module__ == "pybind11_tests.class_"
     assert m.NestBase.Nested.__module__ == "pybind11_tests.class_"
+
+
+@pytest.mark.parametrize(
+    ("placement", "name"),
+    [
+        ("module", "Simple"),
+        ("module", "a.b"),
+        ("module", "a.b.c"),
+        ("module", "a[b]"),
+        ("module", "a[b.c]"),
+        ("module", "a.b[c]"),
+        ("nested", "a[b.c]"),
+        ("child", "Child"),
+        ("custom", "a[b.c]"),
+    ],
+)
+def test_class_names_match_type(request, placement, name):
+    """Bound classes follow Python's naming rules, including literal dots."""
+    scopes = {
+        "module": m.class_names,
+        "nested": m.NestBase,
+        "child": getattr(m.class_names, "a[b.c]"),
+        "custom": m.class_names.custom,
+    }
+    scope = scopes[placement]
+    cls = getattr(scope, name)
+    module = scope.__name__ if isinstance(scope, type(m)) else scope.__module__
+    namespace = {"__module__": module}
+    if placement in {"nested", "child"}:
+        # type() needs an explicit qualified name for a dynamically nested class.
+        parent_name = "NestBase" if placement == "nested" else "a[b.c]"
+        parent = type(parent_name, (), {"__module__": module})
+        namespace["__qualname__"] = f"{parent.__qualname__}.{name}"
+    reference = type(name, (), namespace)
+    assert cls.__qualname__ == reference.__qualname__
+    assert cls.__module__ == reference.__module__
+    obj = cls()
+    assert obj.echo() is obj
+    assert f"{reference.__module__}.{reference.__qualname__}" in cls.echo.__doc__
+    if "." in name and (env.GRAALPY or (env.PYPY and sys.version_info >= (3, 12))):
+        request.applymarker(
+            pytest.mark.xfail(reason="The interpreter shortens dotted __name__")
+        )
+    assert cls.__name__ == reference.__name__
+    assert getattr(scope, cls.__name__) is cls
+
+
+@pytest.mark.skipif(
+    env.PYPY or env.GRAALPY, reason="Tests CPython's type creation paths"
+)
+def test_class_names_with_frozen_metaclass():
+    class FrozenNames(type(m.NestBase)):
+        def __setattr__(cls, name, value):
+            if name in {"__name__", "__qualname__"}:
+                raise TypeError("class names are frozen after creation")
+            super().__setattr__(name, value)
+
+    module_class, nested_class = m.class_names.bind_with_metaclass(
+        m.class_names, m.NestBase, FrozenNames
+    )
+    assert module_class.__name__ == "Frozen[pkg.Value]"
+    assert module_class.__qualname__ == "Frozen[pkg.Value]"
+    assert nested_class.__name__ == "FrozenInner"
+    assert nested_class.__qualname__ == "NestBase.FrozenInner"
+    for cls in (module_class, nested_class):
+        assert isinstance(cls, FrozenNames)
+        obj = cls()
+        assert obj.echo() is obj
+        with pytest.raises(TypeError, match="class names are frozen after creation"):
+            cls.__name__ = "Renamed"
 
 
 def test_inheritance(msg):

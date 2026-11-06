@@ -685,6 +685,7 @@ def test_memoryview(method, args, fmt, expected_view):
 
 
 @pytest.mark.xfail("env.PYPY", reason="getrefcount is not available")
+@pytest.mark.skipif("env.GRAALPY", reason="Different refcounting mechanism")
 @pytest.mark.parametrize(
     "method",
     [

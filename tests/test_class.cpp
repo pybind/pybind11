@@ -65,6 +65,20 @@ struct ConvertibleFromAnything {
     ConvertibleFromAnything(T &&) {}
 };
 
+template <int I>
+struct NamedClass {};
+
+template <int I, typename... Extra>
+py::class_<NamedClass<I>>
+bind_named_class(py::handle scope, const char *name, const Extra &...extra) {
+    return py::class_<NamedClass<I>>(scope, name, extra...)
+        .def(py::init<>())
+        .def(
+            "echo",
+            [](NamedClass<I> &self) -> NamedClass<I> & { return self; },
+            py::return_value_policy::reference);
+}
+
 } // namespace test_class
 
 static_assert(py::detail::is_same_or_base_of<py::args, py::args>::value, "");
@@ -521,6 +535,28 @@ TEST_SUBMODULE(class_, m) {
         .def("fa", [](Nested &, int, NestBase &, Nested &) {}, "a"_a, "b"_a, "c"_a);
     base.def("g", [](NestBase &, Nested &) {});
     base.def("h", []() { return NestBase(); });
+
+    // test_class_names_match_type
+    auto names = m.def_submodule("class_names");
+    using test_class::bind_named_class;
+    bind_named_class<0>(names, "Simple");
+    bind_named_class<1>(names, "a.b");
+    bind_named_class<2>(names, "a.b.c");
+    bind_named_class<3>(names, "a[b]");
+    auto dotted = bind_named_class<4>(names, "a[b.c]");
+    bind_named_class<5>(names, "a.b[c]");
+    bind_named_class<6>(base, "a[b.c]");
+    bind_named_class<7>(dotted, "Child");
+    auto custom = names.def_submodule("custom");
+    bind_named_class<8>(custom, "a[b.c]", py::custom_type_setup([](PyHeapTypeObject *) {}));
+    names.def("bind_with_metaclass",
+              [](py::handle scope, py::handle nested_scope, const py::object &metaclass) {
+                  auto module_class
+                      = bind_named_class<9>(scope, "Frozen[pkg.Value]", py::metaclass(metaclass));
+                  auto nested_class = bind_named_class<10>(
+                      nested_scope, "FrozenInner", py::metaclass(metaclass));
+                  return py::make_tuple(py::object(module_class), py::object(nested_class));
+              });
 
     // test_error_after_conversion
     // The second-pass path through dispatcher() previously didn't
