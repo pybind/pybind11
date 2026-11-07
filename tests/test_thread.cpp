@@ -53,7 +53,9 @@ std::shared_ptr<T> get_shared() {
     return instance;
 }
 
-#ifdef Py_GIL_DISABLED
+// The stable-ABI pymutex is a critical section on a plain object: a native thread without a
+// thread state cannot hold it.
+#if defined(Py_GIL_DISABLED) && !defined(PYBIND11_OPAQUE_PYOBJECT)
 
 // Holds detail::internals::mutex on a native thread that never touches the Python C API, so that
 // a Python-level call can be checked for independence from the internals lock. The lock is a
@@ -189,7 +191,7 @@ PyMethodDef internals_lock_methods[]
        {"take_internals_lock", take_internals_lock, METH_NOARGS, nullptr},
        {nullptr, nullptr, 0, nullptr}};
 
-#endif // Py_GIL_DISABLED
+#endif // Py_GIL_DISABLED && !PYBIND11_OPAQUE_PYOBJECT
 
 } // namespace
 
@@ -270,7 +272,7 @@ TEST_SUBMODULE(thread, m) {
     // The call under test for test_dispatch_does_not_need_internals_lock: the smallest possible
     // bound function, so that the only pybind11 machinery involved is cpp_function::dispatcher().
     m.def("dispatch_noop", []() {});
-#ifdef Py_GIL_DISABLED
+#if defined(Py_GIL_DISABLED) && !defined(PYBIND11_OPAQUE_PYOBJECT)
     if (PyModule_AddFunctions(m.ptr(), internals_lock_methods) != 0) {
         throw py::error_already_set();
     }

@@ -79,13 +79,24 @@ inline bool object_is_instance_with_one_of_tp_names(PyObject *obj,
     if (PyType_Check(obj)) {
         return false;
     }
-    const char *obj_tp_name = Py_TYPE(obj)->tp_name;
-    for (const auto *tp_name : tp_names) {
-        if (std::strcmp(obj_tp_name, tp_name) == 0) {
-            return true;
-        }
-    }
-    return false;
+    return tp_name_is_one_of(Py_TYPE(obj), tp_names);
+}
+
+inline bool object_is_generator(PyObject *obj) {
+#if defined(Py_LIMITED_API)
+    // Exact type check, like PyGen_Check(): a user class named `generator` must not match.
+    // The import can release the GIL, so a plain function-local static could deadlock.
+    PYBIND11_CONSTINIT static gil_safe_call_once_and_store<PyTypeObject *> storage;
+    return Py_TYPE(obj)
+           == storage
+                  .call_once_and_store_result([] {
+                      return reinterpret_cast<PyTypeObject *>(
+                          object(module_::import("types").attr("GeneratorType")).release().ptr());
+                  })
+                  .get_stored();
+#else
+    return PyGen_Check(obj) != 0;
+#endif
 }
 
 inline bool object_is_convertible_to_std_vector(const handle &src) {
@@ -94,7 +105,7 @@ inline bool object_is_convertible_to_std_vector(const handle &src) {
         return !PyUnicode_Check(src.ptr()) && !PyBytes_Check(src.ptr());
     }
     // Allow generators, set/frozenset and several common iterable types.
-    return (PyGen_Check(src.ptr()) != 0) || (PyAnySet_Check(src.ptr()) != 0)
+    return object_is_generator(src.ptr()) || (PyAnySet_Check(src.ptr()) != 0)
            || object_is_instance_with_one_of_tp_names(
                src.ptr(), {"dict_keys", "dict_values", "dict_items", "map", "zip"});
 }
@@ -352,7 +363,7 @@ public:
             if (!value_) {
                 return handle();
             }
-            PyList_SET_ITEM(l.ptr(), index++, value_.release().ptr()); // steals a reference
+            list_set_item(l.ptr(), index++, value_.release().ptr()); // steals a reference
         }
         return l.release();
     }
@@ -462,7 +473,7 @@ public:
             if (!value_) {
                 return handle();
             }
-            PyList_SET_ITEM(l.ptr(), index++, value_.release().ptr()); // steals a reference
+            list_set_item(l.ptr(), index++, value_.release().ptr()); // steals a reference
         }
         return l.release();
     }
