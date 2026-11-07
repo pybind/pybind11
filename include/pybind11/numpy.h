@@ -1869,7 +1869,13 @@ private:
                     return false;
                 }
                 value = view.buf;
-                PyBuffer_Release(&view);
+                // Match the base getter; PyBuffer_Release would invoke subclass release hooks.
+                auto releasebuffer = reinterpret_cast<releasebufferproc>(
+                    PyType_GetSlot(api.PyVoidArrType_Type_, Py_bf_releasebuffer));
+                if (releasebuffer != nullptr) {
+                    releasebuffer(view.obj, &view);
+                }
+                Py_XDECREF(view.obj);
 #else
                 value = ((PyVoidScalarObject_Proxy *) obj)->obval;
 #endif

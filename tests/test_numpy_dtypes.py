@@ -420,19 +420,28 @@ def test_scalar_conversion():
     sys.version_info < (3, 12), reason="__buffer__ requires Python 3.12"
 )
 def test_scalar_subclass_buffer_override(simple_dtype):
-    """Conversion reads the scalar's own storage, not an overridden __buffer__."""
+    """Conversion reads the scalar's own storage without invoking subclass buffer hooks."""
     arr = np.array([(False, 2, 0.0, 0.0)], dtype=simple_dtype)
     other = np.array([(False, 7, 0.0, 0.0)], dtype=simple_dtype).tobytes()
+    calls = []
 
     class Scalar(np.void):
         def __buffer__(self, flags):
+            calls.append("acquire")
             return memoryview(other)
+
+        def __release_buffer__(self, view):
+            calls.append("release")
 
     scalar = arr[0].view(np.dtype((Scalar, simple_dtype)))
     assert isinstance(scalar, Scalar)
-    if bytes(memoryview(scalar)) != other:
-        pytest.skip("__buffer__ override is not honored")  # GraalPy
+    with memoryview(scalar) as view:
+        if bytes(view) != other:
+            pytest.skip("__buffer__ override is not honored")  # GraalPy
+    assert calls == ["acquire", "release"]
+    calls.clear()
     assert m.f_simple(scalar) == 20
+    assert calls == []
 
 
 def test_vectorize():
