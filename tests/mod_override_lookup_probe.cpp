@@ -82,7 +82,7 @@ struct Base {
 };
 
 struct PyBase : Base {
-    int ping() override { PYBIND11_OVERRIDE(int, Base, ping); }
+    int ping() override { PYBIND11_OVERRIDE(int, Base, ping, ); }
 };
 
 #ifdef Py_GIL_DISABLED
