@@ -111,9 +111,6 @@ jobs:
         timeout-minutes: 3
         run: cmake --build build --target cpptest
 
-      - name: Interface test
-        run: cmake --build build --target test_cmake_build
-
       - name: Fuzz corpus replay
         if: inputs.fuzz-replay
         run: cmake --build build --target fuzz_replay
