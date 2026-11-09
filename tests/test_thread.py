@@ -5,7 +5,6 @@ import subprocess
 import sys
 import textwrap
 import threading
-import weakref
 
 import pytest
 
@@ -164,44 +163,13 @@ def test_dispatch_does_not_need_internals_lock():
 
 
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
+@pytest.mark.skipif(env.ANDROID or env.IOS, reason="Requires subprocess support")
 @pytest.mark.skipif(
     not env.PY_GIL_DISABLED, reason="The instance map is only locked without the GIL"
 )
-@pytest.mark.skipif(
-    env.sys_is_gil_enabled(), reason="The GIL serializes lookup and dealloc"
-)
 def test_override_lookup_result_is_kept_alive():
-    """get_object_handle() must not return a handle to a wrapper it does not keep alive.
-
-    The worker looks up the wrapper of a C++ object that C++ co-owns through a shared_ptr, and is
-    parked right after the lookup released the instance-map shard mutex. Meanwhile the main thread
-    drops Python's last reference. The C++ object survives, so the lookup's result had better
-    refer to a live wrapper: get_type_override() dereferences it next.
-    """
-    import mod_override_lookup_probe as probe
-
-    class Derived(probe.Base):
-        def ping(self):
-            return 2
-
-    owners = [Derived()]
-    wrapper_ref = weakref.ref(owners[0])
-    probe.retain(owners[0])
-    probe.start(wrapper_ref, call_override=False)
-    try:
-        assert probe.wait_parked(), (
-            "the worker never released the instance-map shard mutex"
-        )
-        owners.clear()
-    finally:
-        probe.release()
-        result = probe.finish()
-    assert not result["park_timed_out"]
-    assert result["worker_error"] == ""
-    assert result["lookup_returned_nonnull"]
-    assert result["wrapper_alive_after_lookup"], (
-        "get_object_handle() returned a handle to a wrapper that is already dead"
-    )
+    """The wrapper must survive after get_object_handle() releases the map lock."""
+    _run_override_lookup_probe(call_override=False)
 
 
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
@@ -209,17 +177,14 @@ def test_override_lookup_result_is_kept_alive():
 @pytest.mark.skipif(
     not env.PY_GIL_DISABLED, reason="The instance map is only locked without the GIL"
 )
-@pytest.mark.skipif(
-    env.sys_is_gil_enabled(), reason="The GIL serializes lookup and dealloc"
-)
 def test_override_call_while_wrapper_dies():
-    """A virtual call from C++ must not touch a wrapper that died during its override lookup.
+    """PYBIND11_OVERRIDE must keep the wrapper alive while looking up its override."""
+    _run_override_lookup_probe(call_override=True)
 
-    Same interleaving as test_override_lookup_result_is_kept_alive, but through PYBIND11_OVERRIDE.
-    Either the Python override or the C++ default may run, but nothing may crash. Runs in a
-    subprocess with the debug allocator (-X dev), which turns a use-after-free of the wrapper into
-    a deterministic crash instead of silent heap corruption.
-    """
+
+def _run_override_lookup_probe(call_override):
+    # Collection can enable the GIL when another test imports a GIL-requiring module.
+    # Isolate each probe and explicitly disable the GIL so full-suite runs exercise it too.
     import mod_override_lookup_probe as probe
 
     script = textwrap.dedent(
@@ -238,7 +203,7 @@ def test_override_call_while_wrapper_dies():
         owners = [Derived()]
         wrapper_ref = weakref.ref(owners[0])
         probe.retain(owners[0])
-        probe.start(wrapper_ref, call_override=True)
+        probe.start(wrapper_ref, call_override={call_override!r})
         try:
             assert probe.wait_parked(), "the worker never released the instance-map shard mutex"
             owners.clear()
@@ -247,12 +212,18 @@ def test_override_call_while_wrapper_dies():
             result = probe.finish()
         assert not result["park_timed_out"], result
         assert result["worker_error"] == "", result
-        assert result["ping_result"] in (1, 2), result
+        if {call_override!r}:
+            assert result["ping_result"] in (1, 2), result
+        else:
+            assert result["lookup_returned_nonnull"], result
+            assert result["wrapper_alive_after_lookup"], (
+                "get_object_handle() returned a handle to a wrapper that is already dead"
+            )
         """
     )
     try:
         proc = subprocess.run(
-            [sys.executable, "-X", "dev", "-c", script],
+            [sys.executable, "-X", "gil=0", "-X", "dev", "-c", script],
             capture_output=True,
             text=True,
             timeout=120,
@@ -260,7 +231,7 @@ def test_override_call_while_wrapper_dies():
         )
     except subprocess.TimeoutExpired as ex:
         pytest.fail(
-            f"Subprocess did not finish within {ex.timeout} s (heap corruption?).\n"
+            f"Subprocess did not finish within {ex.timeout} s.\n"
             f"Output:\n{ex.stdout}\n{ex.stderr}"
         )
     assert proc.returncode == 0, (
