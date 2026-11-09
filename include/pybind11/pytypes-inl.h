@@ -29,6 +29,11 @@ PYBIND11_INLINE error_fetch_and_normalize::error_fetch_and_normalize(const char 
                         "Python error indicator not set.");
     }
     m_lazy_error_string = detail::obj_class_name(m_type.ptr());
+    if (m_lazy_error_string.empty()) {
+        pybind11_fail("Internal error: " + std::string(called)
+                      + " failed to obtain the name "
+                        "of the original active exception type.");
+    }
 #if PY_VERSION_HEX >= 0x030C0000
     // The presence of __notes__ is likely due to exception normalization
     // errors, although that is not necessarily true, therefore insert a
@@ -51,6 +56,11 @@ PYBIND11_INLINE error_fetch_and_normalize::error_fetch_and_normalize(const char 
                         "active exception.");
     }
     std::string exc_type_name_norm = detail::obj_class_name(m_type.ptr());
+    if (exc_type_name_norm.empty()) {
+        pybind11_fail("Internal error: " + std::string(called)
+                      + " failed to obtain the name "
+                        "of the normalized active exception type.");
+    }
     if (exc_type_name_norm != m_lazy_error_string) {
         std::string msg = std::string(called)
                           + ": MISMATCH of original and normalized "

@@ -84,8 +84,8 @@ public:
         // Py_complex is not part of the stable ABI. Before 3.13, PyComplex_RealAsDouble() does
         // not call __complex__ itself. Look the method up on the type, like Python does.
         if (!PyComplex_Check(src_or_index.ptr())) {
-            auto method
-                = type_lookup(Py_TYPE(src_or_index.ptr()), handle(interned_name("__complex__")));
+            static PyObject *complex_name = interned_name("__complex__");
+            auto method = type_lookup(Py_TYPE(src_or_index.ptr()), complex_name);
             if (method) {
                 auto descr_get = reinterpret_cast<descrgetfunc>(
                     PyType_GetSlot(Py_TYPE(method.ptr()), Py_tp_descr_get));

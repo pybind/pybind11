@@ -510,8 +510,8 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 
 #if !defined(Py_LIMITED_API)
 /// The `tp_name` of a type: `module.Name` for static and pybind11 types, `Name` for Python
-/// heap types.
-inline std::string get_tp_name(PyTypeObject *type) { return type->tp_name; }
+/// heap types. Empty if the type has no name.
+inline std::string get_tp_name(PyTypeObject *type) { return type->tp_name ? type->tp_name : ""; }
 
 /// True if `get_tp_name(type) == name`, without allocating in the common case.
 inline bool tp_name_equals(PyTypeObject *type, const char *name) {
@@ -526,7 +526,7 @@ inline bool tp_name_is_one_of(PyTypeObject *type, std::initializer_list<const ch
     return false;
 }
 #else
-bool type_is_managed_by_our_internals(PyTypeObject *type_obj); // detail/cpp_conduit.h
+bool type_is_registered_in_our_internals(PyTypeObject *type_obj); // detail/cpp_conduit.h
 
 inline std::string utf8_or_empty(const object &o) {
     Py_ssize_t size = 0;
@@ -545,7 +545,8 @@ inline std::string utf8_or_empty(const object &o) {
 /// out without their module; compare names with tp_name_is_one_of(), not with this.
 inline std::string get_tp_name(PyTypeObject *type) {
     std::string name = utf8_or_empty(reinterpret_steal<object>(PyType_GetName(type)));
-    if (PyType_HasFeature(type, Py_TPFLAGS_HEAPTYPE) && !type_is_managed_by_our_internals(type)) {
+    if (PyType_HasFeature(type, Py_TPFLAGS_HEAPTYPE)
+        && !type_is_registered_in_our_internals(type)) {
         return name;
     }
     std::string module_ = utf8_or_empty(
@@ -587,7 +588,7 @@ inline bool tp_name_is_one_of(PyTypeObject *type, std::initializer_list<const ch
             }
         } else if (module_.empty() || module_ == PYBIND11_BUILTINS_MODULE
                    || (PyType_HasFeature(type, Py_TPFLAGS_HEAPTYPE)
-                       && !type_is_managed_by_our_internals(type))) {
+                       && !type_is_registered_in_our_internals(type))) {
             return true;
         }
     }
@@ -1350,18 +1351,8 @@ inline bool PyUnicode_Check_Permissive(PyObject *o) {
 inline bool PyStaticMethod_Check(PyObject *o) { return Py_TYPE(o) == &PyStaticMethod_Type; }
 inline PyObject *PyStaticMethod_New(PyObject *callable) { return ::PyStaticMethod_New(callable); }
 #else
-// PyStaticMethod_Type is not exported by the stable ABI; fetch it from builtins once.
-inline PyTypeObject *get_staticmethod_type() {
-    static PyTypeObject *const type = [] {
-        PyObject *builtins = PyEval_GetBuiltins();
-        PyObject *t = builtins ? PyDict_GetItemString(builtins, "staticmethod") : nullptr;
-        if (t == nullptr) {
-            pybind11_fail("pybind11::detail::get_staticmethod_type(): lookup failed");
-        }
-        return reinterpret_cast<PyTypeObject *>(t); // immortal builtin
-    }();
-    return type;
-}
+// PyStaticMethod_Type is not exported by the stable ABI.
+PyTypeObject *get_staticmethod_type(); // detail/class-inl.h
 inline bool PyStaticMethod_Check(PyObject *o) { return Py_TYPE(o) == get_staticmethod_type(); }
 inline PyObject *PyStaticMethod_New(PyObject *callable) {
     return PyObject_CallFunctionObjArgs(
@@ -2749,9 +2740,12 @@ inline object type_lookup(PyTypeObject *type, handle name) {
             return reinterpret_steal<object>(value);
         }
 #    else
-        PyObject *value = PyObject_GetItem(dict.ptr(), name.ptr());
-        if (value != nullptr) {
-            return reinterpret_steal<object>(value);
+        // The membership test does not raise KeyError for a miss.
+        if (PySequence_Contains(dict.ptr(), name.ptr()) == 1) {
+            PyObject *value = PyObject_GetItem(dict.ptr(), name.ptr());
+            if (value != nullptr) {
+                return reinterpret_steal<object>(value);
+            }
         }
 #    endif
         PyErr_Clear();

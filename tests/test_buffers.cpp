@@ -347,6 +347,22 @@ TEST_SUBMODULE(buffers, m) {
         .def_readwrite("value", (int32_t DerivedBuffer::*) &DerivedBuffer::value)
         .def_buffer(&DerivedBuffer::get_buffer_info);
 
+    // test_def_buffer_in_derived_class
+    // Only the base class has py::buffer_protocol().
+    struct BufferOverride : public Buffer {
+        int32_t derived_value = 7;
+
+        py::buffer_info get_derived_buffer_info() {
+            return py::buffer_info(&derived_value,
+                                   sizeof(derived_value),
+                                   py::format_descriptor<int32_t>::format(),
+                                   1);
+        }
+    };
+    py::class_<BufferOverride, Buffer>(m, "BufferOverride")
+        .def(py::init<>())
+        .def_buffer(&BufferOverride::get_derived_buffer_info);
+
     struct BufferReadOnly {
         const uint8_t value = 0;
         explicit BufferReadOnly(uint8_t value) : value(value) {}

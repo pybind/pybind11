@@ -235,18 +235,18 @@ PyTypeObject *make_instancemethod_type();
 #endif
 void translate_exception(std::exception_ptr p);
 
+// The stable ABI has no function that returns the current thread state without a check.
+#if !defined(Py_LIMITED_API)
 inline PyThreadState *get_thread_state_unchecked() {
-#if defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
+#    if defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
     return PyThreadState_GET();
-#elif defined(Py_LIMITED_API)
-    // PyThreadState_GetUnchecked() is not part of the stable ABI.
-    return PyGILState_GetThisThreadState();
-#elif PY_VERSION_HEX < 0x030D0000
+#    elif PY_VERSION_HEX < 0x030D0000
     return _PyThreadState_UncheckedGet();
-#else
+#    else
     return PyThreadState_GetUnchecked();
-#endif
+#    endif
 }
+#endif
 
 inline PyInterpreterState *get_interpreter(PyThreadState *tstate) {
 #if defined(PYPY_VERSION_NUM) && PYPY_VERSION_NUM < 0x08000000
@@ -258,8 +258,12 @@ inline PyInterpreterState *get_interpreter(PyThreadState *tstate) {
 }
 
 inline PyInterpreterState *get_interpreter_state_unchecked() {
+#if defined(Py_LIMITED_API)
+    return PyInterpreterState_Get(); // the caller must hold the GIL
+#else
     auto *tstate = get_thread_state_unchecked();
     return tstate ? get_interpreter(tstate) : nullptr;
+#endif
 }
 
 object get_python_state_dict();

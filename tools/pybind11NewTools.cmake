@@ -467,7 +467,7 @@ function(pybind11_add_module target_name)
   target_link_libraries(${target_name} PRIVATE pybind11::headers)
 
   if(lib_type STREQUAL "MODULE")
-    if(NOT own_sabi)
+    if(NOT stable_abi)
       target_link_libraries(${target_name} PRIVATE pybind11::module)
     else()
       # Python::Module would link the version-specific library; take only the module link flags.

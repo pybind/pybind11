@@ -33,6 +33,16 @@ def test_obj_class_name():
     assert m.obj_class_name(UserType) == expected_name
 
 
+def test_obj_class_name_python_subclass():
+    class Derived(UserType):
+        pass
+
+    # The first instance caches the type in pybind11's internals; the name must not change.
+    assert m.obj_class_name(Derived) == "Derived"
+    assert m.obj_class_name(Derived(1)) == "Derived"
+    assert m.obj_class_name(Derived) == "Derived"
+
+
 def test_obj_class_name_dotted():
     name = "a[b.c]"
     cls = getattr(m.class_names, name)

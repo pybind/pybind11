@@ -53,12 +53,6 @@ descrsetfunc property_type_descr_set();
 
 #if !defined(PYPY_VERSION)
 
-#    if defined(Py_LIMITED_API)
-PyObject **static_property_dict_ptr(PyObject *self);
-extern "C" int pybind11_static_property_traverse(PyObject *self, visitproc visit, void *arg);
-extern "C" int pybind11_static_property_clear(PyObject *self);
-#    endif
-
 /// `pybind11_static_property.__get__()`: Always pass the class instead of the instance.
 extern "C" PyObject *pybind11_static_get(PyObject *self, PyObject * /*ob*/, PyObject *cls);
 
@@ -130,7 +124,8 @@ void type_free(PyTypeObject *type, PyObject *self);
 
 #if defined(Py_LIMITED_API)
 /// Stand-ins for the instancemethod and method C APIs (see detail/class-inl.h). The
-/// `is_*`/`*_function` functions are also declared in pytypes.h.
+/// `is_*`/`*_function` functions and get_staticmethod_type() are declared in pytypes.h.
+PyTypeObject *import_static_type(const char *module_name, const char *type_name);
 PyTypeObject *get_bound_method_type();
 PyTypeObject *make_instancemethod_type();
 PyTypeObject *get_instancemethod_type();

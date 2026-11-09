@@ -542,19 +542,19 @@ function(pybind11_precompile)
     _pybind11_stable_abi_is_abi3t(_abi3t)
     set_target_properties(pybind11_precompiled PROPERTIES PYBIND11_STABLE_ABI_HEX "${_sabi_hex}"
                                                           PYBIND11_ABI3T "${_abi3t}")
-    if(_abi3t)
-      target_compile_definitions(pybind11_precompiled PRIVATE "Py_TARGET_ABI3T=${_sabi_hex}")
-    else()
-      target_compile_definitions(pybind11_precompiled PRIVATE "Py_LIMITED_API=${_sabi_hex}")
-    endif()
+    # The same define and Python library as a stable ABI module. pybind11::module would add the
+    # version-specific library to the link line of each module.
+    _pybind11_stable_abi_setup(pybind11_precompiled)
+    target_link_libraries(pybind11_precompiled PUBLIC pybind11::headers)
+  else()
+    # pybind11::module (not just pybind11::pybind11): the library must compile with the
+    # interpreter's ABI macros (e.g. Py_GIL_DISABLED, which FindPython attaches to
+    # Python::Module); on free-threaded Windows they select the correct autolink library.
+    target_link_libraries(
+      pybind11_precompiled
+      PUBLIC pybind11::headers
+      PRIVATE pybind11::module)
   endif()
-  # pybind11::module (not just pybind11::pybind11): the library must compile with the
-  # interpreter's ABI macros (e.g. Py_GIL_DISABLED, which FindPython attaches to
-  # Python::Module); on free-threaded Windows they select the correct autolink library.
-  target_link_libraries(
-    pybind11_precompiled
-    PUBLIC pybind11::headers
-    PRIVATE pybind11::module)
   set_target_properties(pybind11_precompiled PROPERTIES POSITION_INDEPENDENT_CODE ON)
   _pybind11_default_hidden_visibility(pybind11_precompiled)
   if(NOT DEFINED CMAKE_VISIBILITY_INLINES_HIDDEN)

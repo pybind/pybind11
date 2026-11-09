@@ -153,6 +153,11 @@ def test_pointer_to_member_fn():
         assert value == 0x12345678
 
 
+def test_def_buffer_in_derived_class():
+    """BufferOverride adds def_buffer; only its base has py::buffer_protocol()"""
+    assert struct.unpack("i", bytearray(m.BufferOverride()))[0] == 7
+
+
 def test_readonly_buffer():
     buf = m.BufferReadOnly(0x64)
     view = memoryview(buf)

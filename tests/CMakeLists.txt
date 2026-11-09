@@ -584,6 +584,27 @@ foreach(target ${test_targets})
   endif()
 endforeach()
 
+if(PYBIND11_TEST_STABLE_ABI)
+  # ${_Python}::Module is the version-specific library on Windows. A stable ABI module must not
+  # link it, also not through pybind11::precompiled.
+  get_target_property(_todo pybind11_tests LINK_LIBRARIES)
+  set(_linked "")
+  while(_todo)
+    list(POP_FRONT _todo _item)
+    string(REGEX REPLACE "^\\$<LINK_ONLY:(.*)>$" "\\1" _item "${_item}")
+    if(TARGET "${_item}" AND NOT "${_item}" IN_LIST _linked)
+      list(APPEND _linked "${_item}")
+      get_target_property(_libs "${_item}" INTERFACE_LINK_LIBRARIES)
+      if(_libs)
+        list(APPEND _todo ${_libs})
+      endif()
+    endif()
+  endwhile()
+  if("${_Python}::Module" IN_LIST _linked)
+    message(FATAL_ERROR "pybind11_tests links ${_Python}::Module in a stable ABI build")
+  endif()
+endif()
+
 # Provide nice organisation in IDEs
 source_group(
   TREE "${CMAKE_CURRENT_SOURCE_DIR}/../include"

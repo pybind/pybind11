@@ -312,6 +312,17 @@ def test_error_already_set_message_with_malformed_utf8():
     )
 
 
+@pytest.mark.skipif(
+    not hasattr(m, "error_already_set_without_tp_name"),
+    reason="Requires write access to tp_name",
+)
+def test_error_already_set_without_tp_name():
+    assert m.error_already_set_without_tp_name() == (
+        "Internal error: pybind11::error_already_set failed to obtain the name"
+        " of the original active exception type."
+    )
+
+
 class FlakyException(Exception):
     def __init__(self, failure_point):
         if failure_point == "failure_point_init":

@@ -30,6 +30,16 @@ PYBIND11_INLINE bool type_is_managed_by_our_internals(PyTypeObject *type_obj) {
     });
 }
 
+// True only for types registered with these internals (`py::class_`), not for types that derive
+// from one.
+PYBIND11_INLINE bool type_is_registered_in_our_internals(PyTypeObject *type_obj) {
+    return with_internals([type_obj](internals &internals) {
+        auto it = internals.registered_types_py.find(type_obj);
+        return it != internals.registered_types_py.end() && it->second.size() == 1
+               && it->second[0]->type == type_obj;
+    });
+}
+
 PYBIND11_INLINE bool is_instance_method_of_type(PyTypeObject *type_obj, PyObject *attr_name) {
     auto descr = type_lookup(type_obj, attr_name);
     return descr && PYBIND11_INSTANCE_METHOD_CHECK(descr.ptr());

@@ -483,18 +483,26 @@ PYBIND11_INLINE instancemethod_object *instancemethod_data(PyObject *self) {
     return type_data<instancemethod_object>(self);
 }
 
+// A static builtin type that the stable ABI does not export. The reference is kept forever.
+PYBIND11_INLINE PyTypeObject *import_static_type(const char *module_name, const char *type_name) {
+    auto mod = reinterpret_steal<object>(PyImport_ImportModule(module_name));
+    if (!mod) {
+        throw error_already_set();
+    }
+    return reinterpret_cast<PyTypeObject *>(object(mod.attr(type_name)).release().ptr());
+}
+
 PYBIND11_INLINE PyTypeObject *get_bound_method_type() {
     PYBIND11_CONSTINIT static gil_safe_call_once_and_store<PyTypeObject *> storage;
     return storage
-        .call_once_and_store_result([] {
-            auto types = reinterpret_steal<object>(PyImport_ImportModule("types"));
-            if (!types) {
-                throw error_already_set();
-            }
-            // Static builtin type: keep the reference forever.
-            return reinterpret_cast<PyTypeObject *>(
-                object(types.attr("MethodType")).release().ptr());
-        })
+        .call_once_and_store_result([] { return import_static_type("types", "MethodType"); })
+        .get_stored();
+}
+
+PYBIND11_INLINE PyTypeObject *get_staticmethod_type() {
+    PYBIND11_CONSTINIT static gil_safe_call_once_and_store<PyTypeObject *> storage;
+    return storage
+        .call_once_and_store_result([] { return import_static_type("builtins", "staticmethod"); })
         .get_stored();
 }
 
@@ -1133,7 +1141,9 @@ PYBIND11_INLINE void set_published_type_names(PyTypeObject *type, const type_nam
 #    if !defined(Py_LIMITED_API)
     type->tp_name = names.full_name;
 #    else
-    // tp_name is CPython's copy of the spec name, which already is the fully qualified name.
+    // tp_name cannot be written here. It keeps the fully qualified spec name, except after the
+    // `__name__` assignment above (a name with a dot): CPython then sets it to the bare name,
+    // and CPython messages that print tp_name omit the module.
     (void) names.full_name;
 #    endif
 }

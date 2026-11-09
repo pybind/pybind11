@@ -867,7 +867,14 @@ protected:
         auto *type = reinterpret_cast<PyTypeObject *>(m_ptr);
         auto *tinfo = detail::get_type_info(type);
 
-        if (PyType_GetSlot(type, Py_bf_getbuffer) == nullptr) {
+#if defined(Py_LIMITED_API)
+        const bool has_getbuffer = PyType_GetSlot(type, Py_bf_getbuffer) != nullptr;
+#else
+        // PyType_GetSlot() does not see slots inherited through tp_as_buffer before Python 3.10.
+        const bool has_getbuffer
+            = type->tp_as_buffer != nullptr && type->tp_as_buffer->bf_getbuffer != nullptr;
+#endif
+        if (!has_getbuffer) {
             pybind11_fail("To be able to register buffer protocol support for the type '"
                           + get_fully_qualified_tp_name(tinfo->type)
                           + "' the associated class<>(..) invocation must "

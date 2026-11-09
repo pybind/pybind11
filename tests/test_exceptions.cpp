@@ -361,6 +361,25 @@ TEST_SUBMODULE(exceptions, m) {
         return py::make_tuple(std::move(what), py_err_set_after_what);
     });
 
+#if !defined(Py_LIMITED_API) && !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)
+    m.def("error_already_set_without_tp_name", []() {
+        auto exc_type = py::reinterpret_steal<py::object>(
+            PyErr_NewException("pybind11_tests.NamelessError", nullptr, nullptr));
+        auto *type = reinterpret_cast<PyTypeObject *>(exc_type.ptr());
+        const char *tp_name = type->tp_name;
+        type->tp_name = nullptr;
+        PyErr_SetNone(exc_type.ptr());
+        std::string what;
+        try {
+            py::error_already_set unused;
+        } catch (const std::runtime_error &e) {
+            what = e.what();
+        }
+        type->tp_name = tp_name;
+        return what;
+    });
+#endif
+
     m.def("test_cross_module_interleaved_error_already_set", []() {
         auto cm = py::module_::import("cross_module_interleaved_error_already_set");
         auto interleaved_error_already_set
