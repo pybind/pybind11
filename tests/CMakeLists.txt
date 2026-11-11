@@ -72,6 +72,7 @@ option(DOWNLOAD_EIGEN "Download EIGEN" OFF)
 option(PYBIND11_CUDA_TESTS "Enable building CUDA tests" OFF)
 option(PYBIND11_TEST_SMART_HOLDER "Change the default to smart holder" OFF)
 option(PYBIND11_TEST_PRECOMPILE "Build the test modules against the precompiled library" OFF)
+option(PYBIND11_BUILD_FUZZERS "Build the OSS-Fuzz harnesses" OFF)
 
 if(PYBIND11_TEST_PRECOMPILE)
   # Picked up by every pybind11_add_module() call below; any definition missing
@@ -706,4 +707,8 @@ if(NOT PYBIND11_CUDA_TESTS)
 
   # Test visibility of common symbols across shared libraries
   add_subdirectory(test_cross_module_rtti)
+
+  # Optional OSS-Fuzz harness. The subdirectory is a no-op unless
+  # PYBIND11_BUILD_FUZZERS is ON.
+  add_subdirectory(fuzz)
 endif()
