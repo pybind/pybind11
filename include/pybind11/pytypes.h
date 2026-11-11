@@ -526,7 +526,7 @@ inline bool tp_name_is_one_of(PyTypeObject *type, std::initializer_list<const ch
     return false;
 }
 #else
-bool type_is_registered_in_our_internals(PyTypeObject *type_obj); // detail/cpp_conduit.h
+bool type_is_directly_registered_in_our_internals(PyTypeObject *type_obj); // detail/cpp_conduit.h
 
 inline std::string utf8_or_empty(const object &o) {
     Py_ssize_t size = 0;
@@ -546,7 +546,7 @@ inline std::string utf8_or_empty(const object &o) {
 inline std::string get_tp_name(PyTypeObject *type) {
     std::string name = utf8_or_empty(reinterpret_steal<object>(PyType_GetName(type)));
     if (PyType_HasFeature(type, Py_TPFLAGS_HEAPTYPE)
-        && !type_is_registered_in_our_internals(type)) {
+        && !type_is_directly_registered_in_our_internals(type)) {
         return name;
     }
     std::string module_ = utf8_or_empty(
@@ -588,7 +588,7 @@ inline bool tp_name_is_one_of(PyTypeObject *type, std::initializer_list<const ch
             }
         } else if (module_.empty() || module_ == PYBIND11_BUILTINS_MODULE
                    || (PyType_HasFeature(type, Py_TPFLAGS_HEAPTYPE)
-                       && !type_is_registered_in_our_internals(type))) {
+                       && !type_is_directly_registered_in_our_internals(type))) {
             return true;
         }
     }

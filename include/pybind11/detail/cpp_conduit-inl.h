@@ -30,9 +30,9 @@ PYBIND11_INLINE bool type_is_managed_by_our_internals(PyTypeObject *type_obj) {
     });
 }
 
-// True only for types registered with these internals (`py::class_`), not for types that derive
-// from one.
-PYBIND11_INLINE bool type_is_registered_in_our_internals(PyTypeObject *type_obj) {
+// True for types bound directly with these internals (`py::class_`), excluding Python subclasses
+// whose base-type information is only cached here.
+PYBIND11_INLINE bool type_is_directly_registered_in_our_internals(PyTypeObject *type_obj) {
     return with_internals([type_obj](internals &internals) {
         auto it = internals.registered_types_py.find(type_obj);
         return it != internals.registered_types_py.end() && it->second.size() == 1
