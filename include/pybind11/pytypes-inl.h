@@ -28,11 +28,11 @@ PYBIND11_INLINE error_fetch_and_normalize::error_fetch_and_normalize(const char 
                       + " called while "
                         "Python error indicator not set.");
     }
+    constexpr const char *exc_type_name_unavailable = "<EXCEPTION TYPE NAME UNAVAILABLE>";
     m_lazy_error_string = detail::obj_class_name(m_type.ptr());
     if (m_lazy_error_string.empty()) {
-        pybind11_fail("Internal error: " + std::string(called)
-                      + " failed to obtain the name "
-                        "of the original active exception type.");
+        // A missing display name must not prevent reporting or restoring the primary error.
+        m_lazy_error_string = exc_type_name_unavailable;
     }
 #if PY_VERSION_HEX >= 0x030C0000
     // The presence of __notes__ is likely due to exception normalization
@@ -49,19 +49,19 @@ PYBIND11_INLINE error_fetch_and_normalize::error_fetch_and_normalize(const char 
 #else
     // PyErr_NormalizeException() may change the exception type if there are cascading
     // failures. This can potentially be extremely confusing.
+    const object exc_type_orig = m_type;
     PyErr_NormalizeException(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
     if (m_type.ptr() == nullptr) {
         pybind11_fail("Internal error: " + std::string(called)
                       + " failed to normalize the "
                         "active exception.");
     }
-    std::string exc_type_name_norm = detail::obj_class_name(m_type.ptr());
-    if (exc_type_name_norm.empty()) {
-        pybind11_fail("Internal error: " + std::string(called)
-                      + " failed to obtain the name "
-                        "of the normalized active exception type.");
-    }
-    if (exc_type_name_norm != m_lazy_error_string) {
+    // Detect a type replacement independently of whether its display name is available.
+    if (exc_type_orig.ptr() != m_type.ptr()) {
+        std::string exc_type_name_norm = detail::obj_class_name(m_type.ptr());
+        if (exc_type_name_norm.empty()) {
+            exc_type_name_norm = exc_type_name_unavailable;
+        }
         std::string msg = std::string(called)
                           + ": MISMATCH of original and normalized "
                             "active exception types: ";

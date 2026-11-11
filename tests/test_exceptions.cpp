@@ -361,22 +361,41 @@ TEST_SUBMODULE(exceptions, m) {
         return py::make_tuple(std::move(what), py_err_set_after_what);
     });
 
+    m.def("error_already_set_roundtrip", [](const py::object &value, const py::object &trace) {
+        auto type = py::type::of(value);
+        PyErr_Restore(type.inc_ref().ptr(), value.inc_ref().ptr(), trace.inc_ref().ptr());
+        py::error_already_set error;
+        std::string what = error.what();
+        const bool py_err_set_after_what = (PyErr_Occurred() != nullptr);
+        const bool matches = error.matches(type);
+        error.restore();
+        py::object restored_type, restored_value, restored_trace;
+        PyErr_Fetch(&restored_type.ptr(), &restored_value.ptr(), &restored_trace.ptr());
+        return py::make_tuple(std::move(what),
+                              py_err_set_after_what,
+                              matches,
+                              restored_type,
+                              restored_value,
+                              restored_trace);
+    });
+
 #if !defined(Py_LIMITED_API) && !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)
     m.def("error_already_set_without_tp_name", []() {
         auto exc_type = py::reinterpret_steal<py::object>(
             PyErr_NewException("pybind11_tests.NamelessError", nullptr, nullptr));
         auto *type = reinterpret_cast<PyTypeObject *>(exc_type.ptr());
+        auto exc_value = exc_type("primary message");
+        PyErr_SetObject(exc_type.ptr(), exc_value.ptr());
         const char *tp_name = type->tp_name;
         type->tp_name = nullptr;
-        PyErr_SetNone(exc_type.ptr());
-        std::string what;
         try {
-            py::error_already_set unused;
-        } catch (const std::runtime_error &e) {
-            what = e.what();
+            py::error_already_set error;
+            type->tp_name = tp_name;
+            return std::string(error.what());
+        } catch (...) {
+            type->tp_name = tp_name;
+            throw;
         }
-        type->tp_name = tp_name;
-        return what;
     });
 #endif
 
