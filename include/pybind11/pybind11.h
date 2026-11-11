@@ -146,6 +146,7 @@ public:
     // NOLINTNEXTLINE(google-explicit-constructor)
     cpp_function(std::nullptr_t) {}
     cpp_function(std::nullptr_t, const is_setter &) {}
+	cpp_function(std::nullptr_t, const is_setter &, const is_method &) {}
 
     /// Construct a cpp_function from a vanilla function pointer
     template <typename Return, typename... Args, typename... Extra>
@@ -1585,7 +1586,7 @@ public:
     template <typename Getter, typename... Extra>
     class_ &def_property_readonly(const char *name, const Getter &fget, const Extra &...extra) {
         return def_property_readonly(name,
-                                     cpp_function(method_adaptor<type>(fget)),
+                                     cpp_function(method_adaptor<type>(fget), is_method(*this)),
                                      return_value_policy::reference_internal,
                                      extra...);
     }
@@ -1618,7 +1619,7 @@ public:
     class_ &
     def_property(const char *name, const Getter &fget, const Setter &fset, const Extra &...extra) {
         return def_property(
-            name, fget, cpp_function(method_adaptor<type>(fset), is_setter()), extra...);
+            name, fget, cpp_function(method_adaptor<type>(fset), is_setter(), is_method(*this)), extra...);
     }
     template <typename Getter, typename... Extra>
     class_ &def_property(const char *name,
@@ -1626,7 +1627,7 @@ public:
                          const cpp_function &fset,
                          const Extra &...extra) {
         return def_property(name,
-                            cpp_function(method_adaptor<type>(fget)),
+                            cpp_function(method_adaptor<type>(fget), is_method(*this)),
                             fset,
                             return_value_policy::reference_internal,
                             extra...);
