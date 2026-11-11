@@ -146,7 +146,7 @@ public:
     // NOLINTNEXTLINE(google-explicit-constructor)
     cpp_function(std::nullptr_t) {}
     cpp_function(std::nullptr_t, const is_setter &) {}
-	cpp_function(std::nullptr_t, const is_method &) {}
+    cpp_function(std::nullptr_t, const is_method &) {}
     cpp_function(std::nullptr_t, const is_setter &, const is_method &) {}
 
     /// Construct a cpp_function from a vanilla function pointer
