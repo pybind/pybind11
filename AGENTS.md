@@ -100,6 +100,8 @@ Packaging produces two distributions: the normal `pybind11` (headers live inside
   introduces or broadens a path that can discard or replace the primary error,
   flag it to the human reviewer and explain whether the policy's exceptional-case
   allowance is justified.
-- Try to add to an existing test file if possible (more files slow down tests)
+- Try to add to an existing test file if possible (more files slow down tests).
 - Default C++ standard follows the consumer's toolchain; CI exercises a wide matrix (CPython 3.9+, PyPy, GraalPy; multiple compilers and C++ standards). Keep changes portable across that matrix.
 - PR descriptions follow a template, the key part is under "Suggested changelog entry", which is how we generate our changelog (with `nox -s make_changelog`)
+- We follow conventional commits.
+- External contributors must follow AI_POLICY.md.
