@@ -257,9 +257,11 @@ inline PyInterpreterState *get_interpreter(PyThreadState *tstate) {
 #endif
 }
 
-inline PyInterpreterState *get_interpreter_state_unchecked() {
+// Returns the current interpreter. Under Py_LIMITED_API, requires an attached thread state;
+// otherwise, returns nullptr if no thread state is attached.
+inline PyInterpreterState *get_current_interpreter_state() {
 #if defined(Py_LIMITED_API)
-    return PyInterpreterState_Get(); // the caller must hold the GIL
+    return PyInterpreterState_Get();
 #else
     auto *tstate = get_thread_state_unchecked();
     return tstate ? get_interpreter(tstate) : nullptr;
@@ -468,7 +470,7 @@ struct internals {
 #if defined(Py_LIMITED_API)
           instancemethod_type(make_instancemethod_type()),
 #endif
-          istate(get_interpreter_state_unchecked()) {
+          istate(get_current_interpreter_state()) {
         tstate.set(nullptr); // See PR #5870
         registered_exception_translators.push_front(&translate_exception);
 #ifdef Py_GIL_DISABLED

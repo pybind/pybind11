@@ -24,7 +24,7 @@ PYBIND11_INLINE object get_python_state_dict() {
 #if defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
     state_dict = reinterpret_borrow<object>(PyEval_GetBuiltins());
 #else
-    auto *istate = get_interpreter_state_unchecked();
+    auto *istate = get_current_interpreter_state();
     if (istate) {
         state_dict = reinterpret_borrow<object>(PyInterpreterState_GetDict(istate));
     }
