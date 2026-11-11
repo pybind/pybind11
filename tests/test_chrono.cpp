@@ -8,7 +8,11 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
+// Keep operators first to catch detail::int_ hiding the Python integer wrapper.
+// clang-format off
+#include <pybind11/operators.h>
 #include <pybind11/chrono.h>
+// clang-format on
 
 #include "pybind11_tests.h"
 

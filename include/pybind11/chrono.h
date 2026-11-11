@@ -182,7 +182,7 @@ public:
         if (!dt) {
             throw error_already_set();
         }
-        const auto tt = int_(dt.attr("timestamp")()).cast<std::time_t>();
+        const auto tt = pybind11::int_(dt.attr("timestamp")()).cast<std::time_t>();
         value = time_point_cast<Duration>(system_clock::from_time_t(tt) + msecs);
         return true;
     }
