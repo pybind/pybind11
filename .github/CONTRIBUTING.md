@@ -1,7 +1,7 @@
 Thank you for your interest in this project! Please refer to the following
 sections on how to contribute code and bug reports.
 
-For AI contributions, also see AI_POLICY.md.
+For AI-assisted contributions, also see the [AI policy](../AI_POLICY.md).
 
 ### Reporting bugs
 
@@ -36,7 +36,11 @@ the following rules to make the process as smooth as possible:
 * This project has a strong focus on providing general solutions using a
   minimal amount of code, thus small pull requests are greatly preferred.
 
-New contributors are limited to two PRs, including drafts.
+New contributors may have **at most two open PRs per person in this repository
+at a time, including drafts**, whether or not AI was used. If you already have
+two open PRs, wait until one is merged or closed before opening another, unless
+maintainers explicitly agree otherwise. Focus on completing the review of your
+existing PRs.
 
 ### Licensing of contributions
 
