@@ -642,6 +642,12 @@ std::string error_string();
 // that might raise cascading exceptions. Last-ditch-kind-of attempts are made
 // to report as much of the original error as possible, even if there are
 // secondary issues obtaining some of the details.
+//
+// Preserve the primary error when collecting or formatting diagnostics.
+// If obtaining details fails, report what remains available and add a brief hint.
+// A secondary failure may replace the primary error only in truly exceptional
+// circumstances (e.g. resource exhaustion or invalid internal state), and only
+// when preserving it would require disproportionate complexity or cost.
 struct error_fetch_and_normalize {
     // This comment only applies to Python <= 3.11:
     //     Immediate normalization is long-established behavior (starting with
