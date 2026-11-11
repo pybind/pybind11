@@ -37,10 +37,8 @@ the following rules to make the process as smooth as possible:
   minimal amount of code, thus small pull requests are greatly preferred.
 
 New contributors may have **at most two open PRs per person in this repository
-at a time, including drafts**, whether or not AI was used. If you already have
-two open PRs, wait until one is merged or closed before opening another, unless
-maintainers explicitly agree otherwise. Focus on completing the review of your
-existing PRs.
+at a time, including drafts**, whether or not AI was used. Before opening a third,
+wait for one to be merged or closed, unless maintainers explicitly agree otherwise.
 
 ### Licensing of contributions
 
