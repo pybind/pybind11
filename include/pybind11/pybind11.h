@@ -867,7 +867,9 @@ protected:
         auto *type = reinterpret_cast<PyTypeObject *>(m_ptr);
         auto *tinfo = detail::get_type_info(type);
 
-#if defined(Py_LIMITED_API)
+        // Stable-ABI builds require Python 3.12+, so defined(Py_LIMITED_API) is redundant.
+        // Retain it to document that these builds must use the public slot API.
+#if defined(Py_LIMITED_API) || PY_VERSION_HEX >= 0x030A0000
         const bool has_getbuffer = PyType_GetSlot(type, Py_bf_getbuffer) != nullptr;
 #else
         // PyType_GetSlot() does not see slots inherited through tp_as_buffer before Python 3.10.
