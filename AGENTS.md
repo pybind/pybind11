@@ -94,6 +94,8 @@ Packaging produces two distributions: the normal `pybind11` (headers live inside
 - Small, self-contained PRs; this project deliberately favors minimal-code general solutions.
 - Any new functionality needs a test (add to or create the paired `.cpp`/`.py` in `tests/`, and register the test in `tests/CMakeLists.txt`).
 - Bug fixes should be paired with new tests that fail without the fix.
-- Try to add to an existing test file if possible (more files slow down tests)
+- Try to add to an existing test file if possible (more files slow down tests).
 - Default C++ standard follows the consumer's toolchain; CI exercises a wide matrix (CPython 3.9+, PyPy, GraalPy; multiple compilers and C++ standards). Keep changes portable across that matrix.
 - PR descriptions follow a template, the key part is under "Suggested changelog entry", which is how we generate our changelog (with `nox -s make_changelog`)
+- We follow conventional commits.
+- External contributors must follow AI_POLICY.md.
