@@ -168,6 +168,22 @@ def test_properties():
     assert NO_SETTER_MSG in str(excinfo.value)
 
 
+def test_properties_docstring():
+    assert m.TestProperties.def_readonly.fget.__doc__.strip() == "(self: pybind11_tests.methods_and_attributes.TestProperties) -> int"
+
+    assert m.TestProperties.def_readwrite.fget.__doc__.strip() == "(self: pybind11_tests.methods_and_attributes.TestProperties) -> int"
+    assert m.TestProperties.def_readwrite.fset.__doc__.strip() == "(self: pybind11_tests.methods_and_attributes.TestProperties, arg0: typing.SupportsInt | typing.SupportsIndex) -> None"
+
+    assert m.TestProperties.def_writeonly.fset.__doc__.strip() == "(self: pybind11_tests.methods_and_attributes.TestProperties, arg0: typing.SupportsInt | typing.SupportsIndex) -> None"
+
+    assert m.TestProperties.def_property_writeonly.fset.__doc__.strip() == "(self: pybind11_tests.methods_and_attributes.TestProperties, arg0: typing.SupportsInt | typing.SupportsIndex) -> None"
+
+    assert m.TestProperties.def_property_readonly.fget.__doc__.strip() == "(self: pybind11_tests.methods_and_attributes.TestProperties) -> int"
+
+    assert m.TestProperties.def_property.fget.__doc__.strip() == "(self: pybind11_tests.methods_and_attributes.TestProperties) -> int"
+    assert m.TestProperties.def_property.fset.__doc__.strip() == "(self: pybind11_tests.methods_and_attributes.TestProperties, arg0: typing.SupportsInt | typing.SupportsIndex) -> None"
+
+
 def test_static_properties():
     assert m.TestProperties.def_readonly_static == 1
     with pytest.raises(AttributeError) as excinfo:
