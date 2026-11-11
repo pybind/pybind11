@@ -82,6 +82,9 @@ if(PYBIND11_STABLE_ABI
    AND CMAKE_VERSION VERSION_GREATER_EQUAL 3.26
    AND NOT CMAKE_GENERATOR_PLATFORM MATCHES "Win32")
   pybind11_add_build_test(subdirectory_stable_abi)
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    pybind11_add_build_test(subdirectory_stable_abi_android)
+  endif()
 endif()
 
 if(PYBIND11_INSTALL)

@@ -244,15 +244,20 @@ if(TARGET ${_Python}::Python)
     PROPERTY INTERFACE_LINK_LIBRARIES ${_Python}::Python)
 endif()
 
-if(TARGET ${_Python}::Module)
-  # On Android, older versions of CMake don't know that modules need to link against
-  # libpython, so Python::Module will be an INTERFACE target with no associated library
-  # files.
-  get_target_property(module_target_type ${_Python}::Module TYPE)
-  if(ANDROID AND module_target_type STREQUAL INTERFACE_LIBRARY)
-    target_link_libraries(${_Python}::Module INTERFACE ${${_Python}_LIBRARIES})
-  endif()
+# Older CMake versions omit Android's libpython dependency from interface module targets.
+# Stable-ABI modules use SABIModule rather than Module, so patch both.
+if(ANDROID)
+  foreach(module_target IN ITEMS ${_Python}::Module ${_Python}::SABIModule)
+    if(TARGET ${module_target})
+      get_target_property(module_target_type ${module_target} TYPE)
+      if(module_target_type STREQUAL INTERFACE_LIBRARY)
+        target_link_libraries(${module_target} INTERFACE ${${_Python}_LIBRARIES})
+      endif()
+    endif()
+  endforeach()
+endif()
 
+if(TARGET ${_Python}::Module)
   set_property(
     TARGET pybind11::module
     APPEND
