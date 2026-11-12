@@ -869,3 +869,17 @@ def test_arraylike_signature(doc):
     m.round_trip_array_t([1, 2, 3])
     with pytest.raises(TypeError, match="incompatible function arguments"):
         m.round_trip_array_t_noconvert([1, 2, 3])
+
+
+def test_at_stride_not_multiple_of_itemsize():
+    packed = np.zeros(3, dtype=[("a", np.uint16), ("b", np.uint8)])
+    packed["a"] = [10, 20, 30]
+    field = packed["a"]
+    assert field.strides == (3,)
+
+    assert m.at_t(field, 1) == 20
+    assert m.at_t(field, 2) == 30
+    assert m.at_t(field, -1) == 30
+
+    m.mutate_at_t(field, 2)
+    assert packed["a"].tolist() == [10, 20, 31]
