@@ -40,16 +40,19 @@ double apply_custom_transform(const py::object &src, double value) {
 } // namespace boost_histogram
 } // namespace test_callbacks
 
-struct TestNotCopyable{
+struct TestNotCopyable {
     TestNotCopyable() = default;
     TestNotCopyable(const TestNotCopyable &obj) = delete;
 };
 
-TestNotCopyable* full_func_return_ptr() {
-    return new TestNotCopyable();
-}
+// Python takes ownership (automatic policy on a cpp_function)
+TestNotCopyable *full_func_return_ptr() { return new TestNotCopyable(); }
 
-std::function<TestNotCopyable*(void)> func_return_ptr = &full_func_return_ptr;
+// Static: a cast std::function gets the reference policy, so Python must not own it
+TestNotCopyable *static_func_return_ptr() {
+    static TestNotCopyable obj;
+    return &obj;
+}
 
 int dummy_function(int i) { return i + 1; }
 
@@ -313,6 +316,7 @@ TEST_SUBMODULE(callbacks, m) {
 
     // Testing returning pointers to non-copyable objects
     m.attr("full_func_return_ptr") = py::cpp_function(full_func_return_ptr);
+    std::function<TestNotCopyable *()> func_return_ptr = &static_func_return_ptr;
     m.attr("func_return_ptr") = func_return_ptr;
     py::class_<TestNotCopyable>(m, "TestNotCopyable");
 }
