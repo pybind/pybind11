@@ -27,6 +27,13 @@ set_target_properties(
              LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/without_soabi"
              RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/without_soabi")
 
+pybind11_add_module(function_record_full NO_STABLE_ABI NO_PRECOMPILE function_record.cpp)
+pybind11_add_module(function_record_stable STABLE_ABI function_record.cpp)
+pybind11_add_module(function_record_stable_peer STABLE_ABI function_record.cpp)
+foreach(target IN ITEMS function_record_full function_record_stable function_record_stable_peer)
+  target_compile_definitions(${target} PRIVATE TEST_FUNCTION_RECORD_MODULE=${target})
+endforeach()
+
 if(DEFINED Python_EXECUTABLE)
   set(_Python_EXECUTABLE "${Python_EXECUTABLE}")
 elseif(DEFINED PYTHON_EXECUTABLE)
@@ -49,5 +56,8 @@ add_custom_target(
     ${CMAKE_COMMAND} -E env
     PYTHONPATH=$<TARGET_FILE_DIR:test_subdirectory_stable_abi_without_soabi> ${_Python_EXECUTABLE}
     ${PROJECT_SOURCE_DIR}/../test.py ${PROJECT_NAME}_without_soabi
+  COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=$<TARGET_FILE_DIR:function_record_stable>
+          ${_Python_EXECUTABLE} ${PROJECT_SOURCE_DIR}/function_record.py
   DEPENDS test_subdirectory_stable_abi test_subdirectory_stable_abi_shared
-          test_subdirectory_stable_abi_without_soabi)
+          test_subdirectory_stable_abi_without_soabi function_record_full function_record_stable
+          function_record_stable_peer)

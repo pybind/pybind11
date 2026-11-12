@@ -69,9 +69,17 @@ static PyMethodDef tp_methods_impl[]
 // PyType_FromModuleAndSpec and drop the dummy module workaround.
 //
 // Note that this name is versioned.
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+// Opaque wrappers use PEP 697 type data instead of embedding PyObject_HEAD. Name-based
+// recognition must keep these representations separate: PyObject_GetTypeData() requires
+// a type created with negative basicsize, and the non-opaque reader assumes PyObject_HEAD.
+#    define PYBIND11_DETAIL_FUNCTION_RECORD_PYOBJECT_ABI_TAG "_opaque"
+#else
+#    define PYBIND11_DETAIL_FUNCTION_RECORD_PYOBJECT_ABI_TAG ""
+#endif
 #define PYBIND11_DETAIL_FUNCTION_RECORD_TP_PLAINNAME                                              \
     "pybind11_detail_function_record_" PYBIND11_DETAIL_FUNCTION_RECORD_ABI_ID                     \
-    "_" PYBIND11_PLATFORM_ABI_ID
+    "_" PYBIND11_PLATFORM_ABI_ID PYBIND11_DETAIL_FUNCTION_RECORD_PYOBJECT_ABI_TAG
 constexpr char tp_plainname_impl[] = PYBIND11_DETAIL_FUNCTION_RECORD_TP_PLAINNAME;
 constexpr char tp_qualname_impl[]
     = PYBIND11_DUMMY_MODULE_NAME "." PYBIND11_DETAIL_FUNCTION_RECORD_TP_PLAINNAME;
