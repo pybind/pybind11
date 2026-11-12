@@ -466,7 +466,9 @@ function(pybind11_add_module target_name)
     # An extension module must not link libpython on macOS; with a statically
     # linked interpreter (e.g. python-build-standalone) that loads a second
     # Python runtime and aborts on import. Matches classic pybind11Tools.cmake.
-    add_library(${target_name} SHARED ${ARG_UNPARSED_ARGUMENTS})
+    set(_sources ${ARG_UNPARSED_ARGUMENTS})
+    list(REMOVE_ITEM _sources WITH_SOABI)
+    add_library(${target_name} SHARED ${_sources})
   elseif("${_Python}" STREQUAL "Python")
     python_add_library(${target_name} ${lib_type} ${use_sabi} ${ARG_UNPARSED_ARGUMENTS})
   elseif("${_Python}" STREQUAL "Python3")
