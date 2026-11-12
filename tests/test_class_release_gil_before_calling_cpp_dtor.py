@@ -16,6 +16,8 @@ m = pytest.importorskip("pybind11_tests.class_release_gil_before_calling_cpp_dto
     ],
 )
 def test_gil_state_check_results(probe_type, unique_key, expected_result):
+    if not m.PyGILState_Check_is_reliable():
+        pytest.skip("PyGILState_Check is disabled after a subinterpreter was created")
     probe_type(unique_key)
     gc.collect()
     result = m.PopPyGILState_Check_Result(unique_key)
