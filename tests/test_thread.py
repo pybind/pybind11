@@ -111,6 +111,10 @@ def test_pythread_state_clear_destructor():
 @pytest.mark.skipif(
     not env.PY_GIL_DISABLED, reason="The internals lock is a no-op with the GIL"
 )
+@pytest.mark.skipif(
+    not hasattr(m, "start_internals_lock_holder"),
+    reason="The stable-ABI internals lock cannot be held from a native thread",
+)
 def test_dispatch_does_not_need_internals_lock():
     """A bound call must not block on the internals mutex while another thread holds it.
 

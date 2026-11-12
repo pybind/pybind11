@@ -8,7 +8,9 @@ import pytest
 
 import env
 import pybind11_tests
-from pybind11_tests import custom_type_setup as m
+
+# Not built under the stable ABI (PyHeapTypeObject is opaque there)
+m = pytest.importorskip("pybind11_tests.custom_type_setup")
 
 
 @pytest.fixture
