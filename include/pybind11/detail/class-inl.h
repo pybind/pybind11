@@ -698,7 +698,12 @@ PYBIND11_INLINE Py_ssize_t static_property_dict_offset() {
 
 #if defined(PYBIND11_OPAQUE_PYOBJECT)
 PYBIND11_INLINE Py_ssize_t instance_data_offset() {
-    // The same for every pybind11 type: the type data of pybind11_object, whose base is object.
+    // Classes derived from pybind11_object use that base's PEP 697 data region. In CPython
+    // 3.15.0, the region ends at pybind11_object's basicsize, so the subtraction gives its offset.
+    // PEP 697 specifies PyObject_GetTypeData() as the accessor, but explicitly leaves these
+    // size/offset calculations as implementation details. This cached formula relies on that
+    // layout relationship remaining true; revisit it if CPython's type-data layout changes.
+    // https://peps.python.org/pep-0697/#specification
     static const Py_ssize_t offset = [] {
         handle base = get_internals().instance_base;
         auto *base_type = reinterpret_cast<PyTypeObject *>(base.ptr());

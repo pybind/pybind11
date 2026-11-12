@@ -290,6 +290,10 @@ find_registered_python_instance(void *src, const detail::type_info *tinfo) {
 #if defined(PYBIND11_OPAQUE_PYOBJECT)
     // all_type_info() takes the internals lock, which can suspend the instance map's critical
     // section: take strong references first, then check the types without the map lock.
+    // While iterating, we rely on PyWeakref_GetRef() not suspending the shard critical section.
+    // CPython 3.15.0 uses _Py_LOCK_DONT_DETACH for its weakref lock. The public API guarantees
+    // a new strong reference on success, but does not specify this non-suspension behavior.
+    // Revisit this assumption if CPython changes weakref locking.
     std::vector<object> candidates = with_instance_map(src, [&](instance_map &instances) {
         std::vector<object> found;
         auto it_instances = instances.equal_range(src);
@@ -430,6 +434,8 @@ PYBIND11_NOINLINE_ATTR PYBIND11_INLINE handle get_object_handle(const void *ptr,
 #if defined(PYBIND11_OPAQUE_PYOBJECT)
     // values_and_holders() takes the internals lock, which can suspend the instance map's
     // critical section: take strong references first, then inspect them without the map lock.
+    // As in find_registered_python_instance(), this traversal relies on weakref promotion
+    // not suspending the shard critical section.
     std::vector<object> candidates = with_instance_map(ptr, [&](instance_map &instances) {
         std::vector<object> found;
         auto range = instances.equal_range(ptr);
