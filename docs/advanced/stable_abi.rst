@@ -194,7 +194,7 @@ Under abi3t, ``PyObject`` and ``PyModuleDef`` are incomplete types and
 
 ``pybind11/numpy.h`` reads NumPy's object fields through the accessors NumPy
 2.5 added for abi3t, so older NumPy versions are rejected at run time. The
-internals tag is ``_stable_ft``: an abi3t module and an abi3 module loaded
+internals tag is ``_abi3t``: an abi3t module and an abi3 module loaded
 into the same GIL-enabled interpreter do not share internals (see below).
 
 CPython's headers define ``Py_GIL_DISABLED`` for every abi3t build, so the
@@ -206,10 +206,10 @@ ABI isolation
 =============
 
 A stable-ABI module and a regular module can be loaded in one process, but
-they do not share pybind11's internal state: the internals ID carries a
-``_stable`` (abi3) or ``_stable_ft`` (abi3t) tag, so each kind of module
-registers its own types and
-instances. Types bound in one kind of module are opaque to the other, except
+they do not share pybind11's internal state: the internals ID carries an
+``_abi3`` or ``_abi3t`` tag identifying the compiled Python ABI target
+(:pep:`803`), so each kind of module registers its own types and instances.
+Types bound in one kind of module are opaque to the other, except
 through the ``pybind11_conduit_v1`` protocol
 (``include/pybind11/conduit/README.txt``), which bridges the two: the C++ ABI
 is unchanged, so ``PYBIND11_PLATFORM_ABI_ID`` is the same.

@@ -588,9 +588,9 @@ struct native_enum_record {
 // not part of PYBIND11_PLATFORM_ABI_ID: the C++ ABI is the same, so the cpp_conduit protocol
 // still bridges the two.
 #if defined(PYBIND11_OPAQUE_PYOBJECT)
-#    define PYBIND11_INTERNALS_SABI_TAG "_stable_ft" // abi3t modules also load on GIL builds
+#    define PYBIND11_INTERNALS_SABI_TAG "_abi3t" // abi3t modules also load on GIL builds
 #elif defined(Py_LIMITED_API)
-#    define PYBIND11_INTERNALS_SABI_TAG "_stable"
+#    define PYBIND11_INTERNALS_SABI_TAG "_abi3"
 #else
 #    define PYBIND11_INTERNALS_SABI_TAG ""
 #endif
