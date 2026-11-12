@@ -12,6 +12,11 @@ add_subdirectory("${pybind11_SOURCE_DIR}" pybind11)
 pybind11_add_module(test_subdirectory_function ../main.cpp)
 set_target_properties(test_subdirectory_function PROPERTIES OUTPUT_NAME test_cmake_build)
 
+# FindPython mode accepts WITH_SOABI, which CMake ignores for SHARED libraries.
+if(COMMAND python_add_library OR COMMAND python3_add_library)
+  pybind11_add_module(test_subdirectory_function_shared SHARED WITH_SOABI ../main.cpp)
+endif()
+
 if(DEFINED Python_EXECUTABLE)
   set(_Python_EXECUTABLE "${Python_EXECUTABLE}")
 elseif(DEFINED PYTHON_EXECUTABLE)
@@ -30,3 +35,7 @@ add_custom_target(
   ${PROJECT_SOURCE_DIR}/../test.py
   ${PROJECT_NAME}
   DEPENDS test_subdirectory_function)
+
+if(TARGET test_subdirectory_function_shared)
+  add_dependencies(check_subdirectory_function test_subdirectory_function_shared)
+endif()
