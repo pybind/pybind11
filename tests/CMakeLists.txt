@@ -72,11 +72,16 @@ option(DOWNLOAD_EIGEN "Download EIGEN" OFF)
 option(PYBIND11_CUDA_TESTS "Enable building CUDA tests" OFF)
 option(PYBIND11_TEST_SMART_HOLDER "Change the default to smart holder" OFF)
 option(PYBIND11_TEST_PRECOMPILE "Build the test modules against the precompiled library" OFF)
+option(PYBIND11_TEST_STABLE_ABI "Build the test modules for the stable ABI (Py_LIMITED_API)" OFF)
 
 if(PYBIND11_TEST_PRECOMPILE)
   # Picked up by every pybind11_add_module() call below; any definition missing
   # from the precompiled library shows up as a link error across the test modules.
   set(PYBIND11_PRECOMPILE ON)
+endif()
+if(PYBIND11_TEST_STABLE_ABI)
+  # Picked up by every pybind11_add_module() call below.
+  set(PYBIND11_STABLE_ABI ON)
 endif()
 # These modules redefine PYBIND11_INTERNALS_VERSION (or, for mod_override_lookup_probe,
 # PyMutex_Unlock) inside their own TU, so they cannot share the precompiled library.
@@ -126,6 +131,7 @@ set(PYBIND11_TEST_FILES
     test_builtin_casters
     test_call_policies
     test_callbacks
+    test_chrono_second_tu.cpp
     test_chrono
     test_class
     test_class_cross_module_use_after_one_module_dealloc
@@ -206,6 +212,10 @@ if(PYBIND11_TEST_OVERRIDE)
   # Instead of doing a direct override here, we iterate over the overrides without extension and
   # match them against entries from the PYBIND11_TEST_FILES, anything that not matches goes into the filter list.
   string(REGEX REPLACE "\\.[^.;]*;" ";" TEST_OVERRIDE_NO_EXT "${PYBIND11_TEST_OVERRIDE};")
+  # test_chrono.py imports the module built from this second translation unit.
+  if(test_chrono IN_LIST TEST_OVERRIDE_NO_EXT)
+    list(APPEND TEST_OVERRIDE_NO_EXT test_chrono_second_tu)
+  endif()
   string(REGEX REPLACE "\\.[^.;]*;" ";" TEST_FILES_NO_EXT "${PYBIND11_TEST_FILES};")
   # This allows the override to be done with extensions, preserving backwards compatibility.
   foreach(test_name ${TEST_FILES_NO_EXT})
@@ -219,6 +229,17 @@ endif()
 # You can also filter tests:
 if(PYBIND11_TEST_FILTER)
   pybind11_filter_tests(PYBIND11_TEST_FILES ${PYBIND11_TEST_FILTER})
+endif()
+
+# Features that are not available under the stable ABI (see docs/advanced/stable_abi.rst).
+if(PYBIND11_TEST_STABLE_ABI)
+  pybind11_filter_tests(
+    PYBIND11_TEST_FILES
+    test_custom_type_setup.cpp
+    test_multiple_interpreters.py
+    test_class_release_gil_before_calling_cpp_dtor.cpp # PyGILState_Check
+    MESSAGE
+    "Skipping custom_type_setup, subinterpreter and PyGILState_Check tests under the stable ABI")
 endif()
 
 # Skip tests for CUDA check:
@@ -565,6 +586,27 @@ foreach(target ${test_targets})
   endif()
 endforeach()
 
+if(PYBIND11_TEST_STABLE_ABI)
+  # ${_Python}::Module is the version-specific library on Windows. A stable ABI module must not
+  # link it, also not through pybind11::precompiled.
+  get_target_property(_todo pybind11_tests LINK_LIBRARIES)
+  set(_linked "")
+  while(_todo)
+    list(POP_FRONT _todo _item)
+    string(REGEX REPLACE "^\\$<LINK_ONLY:(.*)>$" "\\1" _item "${_item}")
+    if(TARGET "${_item}" AND NOT "${_item}" IN_LIST _linked)
+      list(APPEND _linked "${_item}")
+      get_target_property(_libs "${_item}" INTERFACE_LINK_LIBRARIES)
+      if(_libs)
+        list(APPEND _todo ${_libs})
+      endif()
+    endif()
+  endwhile()
+  if("${_Python}::Module" IN_LIST _linked)
+    message(FATAL_ERROR "pybind11_tests links ${_Python}::Module in a stable ABI build")
+  endif()
+endif()
+
 # Provide nice organisation in IDEs
 source_group(
   TREE "${CMAKE_CURRENT_SOURCE_DIR}/../include"
@@ -606,7 +648,7 @@ add_custom_target(
   WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
   USES_TERMINAL)
 
-if(NOT PYBIND11_CUDA_TESTS)
+if(NOT PYBIND11_CUDA_TESTS AND NOT PYBIND11_TEST_STABLE_ABI)
   set(PYBIND11_MULTIPLE_INTERPRETERS_TEST_MODULES
       mod_per_interpreter_gil mod_shared_interpreter_gil mod_per_interpreter_gil_with_singleton)
 
@@ -701,7 +743,12 @@ if(NOT PYBIND11_CUDA_TESTS)
   add_subdirectory(pure_cpp)
 
   # Test C++ code that depends on Python, such as embedding the interpreter. Provides the `cpptest` target.
-  add_subdirectory(test_with_catch)
+  if(PYBIND11_TEST_STABLE_ABI)
+    message(STATUS "Skipping embed tests under the stable ABI")
+    add_custom_target(cpptest) # Dummy target: embed.h is not available under Py_LIMITED_API.
+  else()
+    add_subdirectory(test_with_catch)
+  endif()
 
   # Test CMake build using functions and targets from subdirectory or installed location
   add_subdirectory(test_cmake_build)

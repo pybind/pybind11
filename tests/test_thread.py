@@ -111,6 +111,10 @@ def test_pythread_state_clear_destructor():
 @pytest.mark.skipif(
     not env.PY_GIL_DISABLED, reason="The internals lock is a no-op with the GIL"
 )
+@pytest.mark.skipif(
+    not hasattr(m, "start_internals_lock_holder"),
+    reason="The stable-ABI internals lock cannot be held from a native thread",
+)
 def test_dispatch_does_not_need_internals_lock():
     """A bound call must not block on the internals mutex while another thread holds it.
 
@@ -183,6 +187,8 @@ def test_override_call_while_wrapper_dies():
 
 
 def _run_override_lookup_probe(call_override):
+    if env.LIMITED_API:
+        pytest.skip("Probe requires the full-API PyMutex_Unlock hook")
     # Collection can enable the GIL when another test imports a GIL-requiring module.
     # Isolate each probe and explicitly disable the GIL so full-suite runs exercise it too.
     import mod_override_lookup_probe as probe

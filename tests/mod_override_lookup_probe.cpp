@@ -20,7 +20,8 @@
 #include <string>
 #include <thread>
 
-#ifdef Py_GIL_DISABLED
+// The probe requires the full-API shard mutex, not abi3t's critical-section lock.
+#if defined(Py_GIL_DISABLED) && !defined(Py_LIMITED_API)
 namespace {
 
 // Captures the header's real PyMutex_Unlock before the token is redirected below.
@@ -66,7 +67,7 @@ void probe_PyMutex_Unlock(PyMutex *m) {
 
 #include <pybind11/pybind11.h>
 
-#ifdef Py_GIL_DISABLED
+#if defined(Py_GIL_DISABLED) && !defined(Py_LIMITED_API)
 #    undef PyMutex_Unlock
 #endif
 
@@ -86,7 +87,7 @@ struct PyBase : Base {
     int ping() override { PYBIND11_OVERRIDE(int, Base, ping, ); }
 };
 
-#ifdef Py_GIL_DISABLED
+#if defined(Py_GIL_DISABLED) && !defined(Py_LIMITED_API)
 
 std::shared_ptr<Base> retained; // C++ co-owns the object: it outlives its Python wrapper.
 PyObject *wrapper_weakref = nullptr;
@@ -126,14 +127,14 @@ void worker_main(const std::shared_ptr<Base> &owner, bool call_override) {
     }
 }
 
-#endif // Py_GIL_DISABLED
+#endif // Py_GIL_DISABLED && !Py_LIMITED_API
 
 } // namespace
 
 PYBIND11_MODULE(mod_override_lookup_probe, m, py::mod_gil_not_used()) {
     py::class_<Base, PyBase, std::shared_ptr<Base>>(m, "Base").def(py::init<>());
 
-#ifdef Py_GIL_DISABLED
+#if defined(Py_GIL_DISABLED) && !defined(Py_LIMITED_API)
     m.def("retain", [](std::shared_ptr<Base> obj) { retained = std::move(obj); });
 
     // Starts the worker; it parks itself once get_object_handle() has released the shard mutex.

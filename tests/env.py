@@ -32,6 +32,13 @@ GRAALPY = sys.implementation.name == "graalpy"
 
 # Compile-time config (what the binary was built for)
 PY_GIL_DISABLED = bool(sysconfig.get_config_var("Py_GIL_DISABLED"))
+try:
+    import pybind11_tests
+
+    # Built with Py_LIMITED_API (stable ABI); some features and messages differ.
+    LIMITED_API = bool(pybind11_tests.LIMITED_API)
+except ImportError:  # the extra_* test suites do not build pybind11_tests
+    LIMITED_API = False
 # Runtime state (what's actually happening now)
 sys_is_gil_enabled = getattr(sys, "_is_gil_enabled", lambda: True)
 

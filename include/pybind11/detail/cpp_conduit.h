@@ -13,6 +13,7 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 bool type_is_managed_by_our_internals(PyTypeObject *type_obj);
+bool type_is_directly_registered_in_our_internals(PyTypeObject *type_obj);
 
 bool is_instance_method_of_type(PyTypeObject *type_obj, PyObject *attr_name);
 
