@@ -461,6 +461,20 @@ TEST_SUBMODULE(pytypes, m) {
         return py::tuple();
     });
 
+    m.def("capi_sequence_end", [](const py::sequence &seq) {
+        py::detail::sequence_iterator end;
+        try {
+            end = seq.end();
+        } catch (const py::error_already_set &) {
+            throw;
+        }
+        if (PyErr_Occurred()) {
+            py::raise_from(PyExc_AssertionError, "sequence::end returned with a pending error");
+            throw py::error_already_set();
+        }
+        return end - seq.begin();
+    });
+
     m.def("accessor_assignment", []() {
         auto l = py::list(1);
         l[0] = 0;
