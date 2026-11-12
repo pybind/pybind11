@@ -468,13 +468,13 @@ void vector_buffer_impl(Class_ &cl, std::true_type) {
 
         T *p = static_cast<T *>(info.ptr);
         ssize_t step = info.strides[0] / static_cast<ssize_t>(sizeof(T));
-        T *end = p + info.shape[0] * step;
         if (step == 1) {
-            return Vector(p, end);
+            return Vector(p, p + info.shape[0]);
         }
         Vector vec;
         vec.reserve((size_t) info.shape[0]);
-        for (; p != end; p += step) {
+        // Count the items: the end pointer cannot be computed for a stride of 0.
+        for (ssize_t i = 0; i < info.shape[0]; ++i, p += step) {
             vec.push_back(*p);
         }
         return vec;
