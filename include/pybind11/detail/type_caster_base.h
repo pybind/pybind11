@@ -283,7 +283,11 @@ private:
     bool was_active_ = false;
 };
 
-object get_object_handle(const void *ptr, const detail::type_info *type);
+// Borrowed: the caller must keep the Python wrapper alive.
+handle get_object_handle(const void *ptr, const detail::type_info *type);
+
+// Acquires a strong reference while the instance lookup is protected.
+object get_object(const void *ptr, const detail::type_info *type);
 
 // Information about how type_caster_generic::cast() can obtain its source object
 struct cast_sources {
