@@ -83,10 +83,9 @@ if(PYBIND11_TEST_STABLE_ABI)
   # Picked up by every pybind11_add_module() call below.
   set(PYBIND11_STABLE_ABI ON)
 endif()
-# These modules redefine PYBIND11_INTERNALS_VERSION (or, for mod_override_lookup_probe,
-# PyMutex_Unlock) inside their own TU, so they cannot share the precompiled library.
-set(PYBIND11_NO_PRECOMPILE_TARGETS exo_planet_pybind11 cross_module_gil_utils
-                                   mod_override_lookup_probe)
+# These modules redefine PYBIND11_INTERNALS_VERSION inside their own TU, so they
+# cannot share the precompiled library.
+set(PYBIND11_NO_PRECOMPILE_TARGETS exo_planet_pybind11 cross_module_gil_utils)
 set(PYBIND11_TEST_OVERRIDE
     ""
     CACHE STRING "Tests from ;-separated list of *.cpp files will be built instead of all tests")
@@ -202,6 +201,7 @@ set(PYBIND11_TEST_FILES
     test_unnamed_namespace_b
     test_vector_unique_ptr_member
     test_virtual_functions
+    test_virtual_override_lifetime
     test_warnings)
 
 # Invoking cmake with something like:
@@ -285,7 +285,6 @@ tests_extra_targets("test_gil_scoped.py" "cross_module_gil_utils")
 tests_extra_targets("test_cpp_conduit.py"
                     "exo_planet_pybind11;exo_planet_c_api;home_planet_very_lonely_traveler")
 tests_extra_targets("test_standalone_enum_module.py" "standalone_enum_module")
-tests_extra_targets("test_thread.py" "mod_override_lookup_probe")
 
 set(PYBIND11_EIGEN_REPO
     "https://gitlab.com/libeigen/eigen.git"
