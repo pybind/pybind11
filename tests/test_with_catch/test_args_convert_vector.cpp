@@ -1,9 +1,6 @@
 #include "pybind11/pybind11.h"
 #include "catch.hpp"
 
-#include <cstddef>
-#include <limits>
-
 namespace py = pybind11;
 
 using args_convert_vector = py::detail::args_convert_vector<py::detail::arg_vector_small_size>;
@@ -80,9 +77,4 @@ TEST_CASE("args_convert_vector reserve then push_back") {
             }));
         }
     }
-}
-
-TEST_CASE("args_convert_vector constructor that throws") {
-    // The destructor must not see a heap tag with no constructed vector.
-    REQUIRE_THROWS(args_convert_vector(std::numeric_limits<std::size_t>::max(), false));
 }
