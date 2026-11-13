@@ -186,6 +186,11 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("get_bool", [] { return py::bool_(false); });
     // test_int
     m.def("get_int", [] { return py::int_(0); });
+    m.def("int_to_int", [](const py::int_ &o) { return static_cast<int>(o); });
+    m.def("int_to_long_long", [](const py::int_ &o) { return static_cast<long long>(o); });
+    m.def("int_to_unsigned", [](const py::int_ &o) { return static_cast<unsigned>(o); });
+    m.def("int_to_unsigned_long_long",
+          [](const py::int_ &o) { return static_cast<unsigned long long>(o); });
     // test_iterator
     m.def("get_iterator", [] { return py::iterator(); });
     // test_iterable

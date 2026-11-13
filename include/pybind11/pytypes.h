@@ -1902,9 +1902,25 @@ public:
     template <typename T, detail::enable_if_t<std::is_integral<T>::value, int> = 0>
     // NOLINTNEXTLINE(google-explicit-constructor)
     operator T() const {
-        return std::is_unsigned<T>::value  ? detail::as_unsigned<T>(m_ptr)
-               : sizeof(T) <= sizeof(long) ? (T) PyLong_AsLong(m_ptr)
-                                           : (T) PYBIND11_LONG_AS_LONGLONG(m_ptr);
+        using wide_t = detail::conditional_t<
+            std::is_unsigned<T>::value,
+            detail::conditional_t<sizeof(T) <= sizeof(unsigned long),
+                                  unsigned long,
+                                  unsigned long long>,
+            detail::conditional_t<sizeof(T) <= sizeof(long), long, long long>>;
+        wide_t value = std::is_unsigned<T>::value ? detail::as_unsigned<wide_t>(m_ptr)
+                       : sizeof(T) <= sizeof(long)
+                           ? static_cast<wide_t>(PyLong_AsLong(m_ptr))
+                           : static_cast<wide_t>(PYBIND11_LONG_AS_LONGLONG(m_ptr));
+        if (value == static_cast<wide_t>(-1) && PyErr_Occurred()) {
+            throw error_already_set();
+        }
+        // bool keeps its truthiness semantics instead of a range check.
+        if (!std::is_same<T, bool>::value && static_cast<wide_t>(static_cast<T>(value)) != value) {
+            PyErr_SetString(PyExc_OverflowError, "Python int too large to convert to C++ type");
+            throw error_already_set();
+        }
+        return static_cast<T>(value);
     }
 };
 
