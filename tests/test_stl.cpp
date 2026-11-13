@@ -18,6 +18,8 @@
 
 #include <pybind11/typing.h>
 
+#include <array>
+#include <numeric>
 #include <string>
 #include <vector>
 
@@ -619,6 +621,10 @@ TEST_SUBMODULE(stl, m) {
         py::return_value_policy::take_ownership);
 
     m.def("array_cast_sequence", [](std::array<int, 3> x) { return x; });
+    // #5765: large arrays used to be very slow to compile
+    m.def("sum_large_array", [](const std::array<int, 102400> &a) {
+        return std::accumulate(a.begin(), a.end(), 0LL);
+    });
 
     /// test_issue_1561
     struct Issue1561Inner {

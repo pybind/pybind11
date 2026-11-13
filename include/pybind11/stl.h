@@ -420,7 +420,35 @@ private:
         return true;
     }
 
-    template <bool R = Resizable, enable_if_t<!R, int> = 0>
+    // Filling in place avoids the index_sequence expansion in vector_to_array,
+    // which is very slow to compile for large Size (#5765).
+    template <bool R = Resizable,
+              enable_if_t<!R && std::is_default_constructible<Value>::value
+                              && std::is_move_assignable<Value>::value,
+                          int> = 0>
+    bool convert_elements(handle seq, bool convert) {
+        auto l = reinterpret_borrow<sequence>(seq);
+        if (l.size() != Size) {
+            return false;
+        }
+        std::unique_ptr<ArrayType> result(new ArrayType{});
+        size_t ctr = 0;
+        for (const auto &it : l) {
+            value_conv conv;
+            if (!conv.load(it, convert)) {
+                return false;
+            }
+            (*result)[ctr++] = cast_op<Value &&>(std::move(conv));
+        }
+        value = std::move(result);
+        return true;
+    }
+
+    template <bool R = Resizable,
+              enable_if_t<!R
+                              && !(std::is_default_constructible<Value>::value
+                                   && std::is_move_assignable<Value>::value),
+                          int> = 0>
     bool convert_elements(handle seq, bool convert) {
         auto l = reinterpret_borrow<sequence>(seq);
         if (l.size() != Size) {
@@ -428,9 +456,6 @@ private:
         }
         // The `temp` storage is needed to support `Value` types that are not
         // default-constructible.
-        // Deliberate choice: no template specializations, for simplicity, and
-        // because the compile time overhead for the specializations is deemed
-        // more significant than the runtime overhead for the `temp` storage.
         std::vector<Value> temp;
         temp.reserve(l.size());
         for (auto it : l) {
