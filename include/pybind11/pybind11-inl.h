@@ -1138,9 +1138,9 @@ PYBIND11_INLINE PyObject *cpp_function::dispatcher(PyObject *self,
                 // then add this call to the list of second pass overloads to try.
                 for (size_t i = func.is_method ? 1 : 0; i < pos_args; i++) {
                     if (second_pass_convert[i]) {
-                        // Found one: swap the converting flags back in and store the call for
+                        // Found one: move the converting flags back in and store the call for
                         // the second pass.
-                        call.args_convert.swap(second_pass_convert);
+                        call.args_convert = std::move(second_pass_convert);
                         second_pass.push_back(std::move(call));
                         break;
                     }
