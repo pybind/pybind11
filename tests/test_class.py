@@ -717,5 +717,16 @@ def test_all_type_info_multithreaded():
 
 
 def test_cast_unregistered_type():
-    with pytest.raises(TypeError, match="Unregistered type"):
-        m.cast_unregistered_type()
+    for func in (
+        m.cast_unregistered_type,
+        m.cast_unregistered_type_in_vector,
+        m.append_unregistered_type,
+        lambda: m.setattr_unregistered_type(m),
+    ):
+        with pytest.raises(TypeError, match="Unregistered type"):
+            func()
+
+
+def test_cast_null_result():
+    with pytest.raises(RuntimeError, match="Unable to convert .* to Python object"):
+        m.cast_null_result()

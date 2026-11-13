@@ -264,12 +264,6 @@ TEST_SUBMODULE(class_, m) {
     struct MismatchBase2 {};
     struct MismatchDerived2 : MismatchBase2 {};
 
-    m.def("cast_unregistered_type", []() {
-        struct Unregistered {};
-        py::object obj = py::cast(Unregistered{});
-        return !obj; // Not reached: py::cast throws.
-    });
-
     m.def("mismatched_holder_1", []() {
         auto mod = py::module_::import("__main__");
         py::class_<MismatchBase1, std::shared_ptr<MismatchBase1>>(mod, "MismatchBase1");
@@ -282,6 +276,16 @@ TEST_SUBMODULE(class_, m) {
         py::class_<MismatchDerived2, std::shared_ptr<MismatchDerived2>, MismatchBase2>(
             mod, "MismatchDerived2");
     });
+
+    // test_cast_unregistered_type
+    struct Unregistered {};
+    m.def("cast_unregistered_type", []() { py::cast(Unregistered{}); });
+    m.def("cast_unregistered_type_in_vector", []() { py::cast(std::vector<Unregistered>(1)); });
+    m.def("append_unregistered_type", []() { py::list().append(Unregistered{}); });
+    m.def("setattr_unregistered_type", [](const py::object &o) { o.attr("x") = Unregistered{}; });
+
+    // test_cast_null_result
+    m.def("cast_null_result", []() { py::cast(std::vector<py::object>(1)); });
 
     // test_override_static
     // #511: problem with inheritance + overwritten def_static
