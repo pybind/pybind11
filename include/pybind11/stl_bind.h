@@ -123,6 +123,24 @@ void vector_if_equal_operator(enable_if_t<is_comparable<Vector>::value, Class_> 
         "Return true the container contains ``x``");
 }
 
+// slice::compute() may run arbitrary Python code (__index__ on the slice bounds), which can
+// resize the vector. The computed indices are only valid if the size is unchanged afterwards.
+template <typename Vector, typename Index>
+void compute_vector_slice(const Vector &v,
+                          const slice &slice,
+                          Index *start,
+                          Index *stop,
+                          Index *step,
+                          Index *slicelength) {
+    const auto size = static_cast<Index>(v.size());
+    if (!slice.compute(size, start, stop, step, slicelength)) {
+        throw error_already_set();
+    }
+    if (static_cast<Index>(v.size()) != size) {
+        throw index_error("vector changed size while computing slice indices");
+    }
+}
+
 // Vector modifiers -- requires a copyable vector_type:
 // (Technically, some of these (pop and __delitem__) don't actually require copyability, but it
 // seems silly to allow deletion but not insertion, so include them here too.)
@@ -238,10 +256,7 @@ void vector_modifiers(
         "__getitem__",
         [](const Vector &v, const slice &slice) -> Vector * {
             size_t start = 0, stop = 0, step = 0, slicelength = 0;
-
-            if (!slice.compute(v.size(), &start, &stop, &step, &slicelength)) {
-                throw error_already_set();
-            }
+            compute_vector_slice(v, slice, &start, &stop, &step, &slicelength);
 
             auto *seq = new Vector();
             seq->reserve(slicelength);
@@ -259,9 +274,7 @@ void vector_modifiers(
         "__setitem__",
         [](Vector &v, const slice &slice, const Vector &value) {
             size_t start = 0, stop = 0, step = 0, slicelength = 0;
-            if (!slice.compute(v.size(), &start, &stop, &step, &slicelength)) {
-                throw error_already_set();
-            }
+            compute_vector_slice(v, slice, &start, &stop, &step, &slicelength);
 
             if (slicelength != value.size()) {
                 throw std::runtime_error(
@@ -287,11 +300,7 @@ void vector_modifiers(
         "__delitem__",
         [](Vector &v, const slice &slice) {
             ssize_t start = 0, stop = 0, step = 0, slicelength = 0;
-
-            if (!slice.compute(
-                    static_cast<ssize_t>(v.size()), &start, &stop, &step, &slicelength)) {
-                throw error_already_set();
-            }
+            compute_vector_slice(v, slice, &start, &stop, &step, &slicelength);
 
             if (step == 1) {
                 v.erase(v.begin() + (DiffType) start, v.begin() + DiffType(start + slicelength));
