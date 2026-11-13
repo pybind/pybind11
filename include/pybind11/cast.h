@@ -1739,6 +1739,16 @@ T cast(Object &&obj) {
     return obj.release().ptr();
 }
 
+PYBIND11_NAMESPACE_BEGIN(detail)
+// Not a template, so the throw code is not instantiated for each cast<T>.
+[[noreturn]] PYBIND11_NOINLINE void throw_null_cast_result() {
+    if (PyErr_Occurred()) {
+        throw error_already_set();
+    }
+    throw cast_error("Unable to convert C++ object to Python object");
+}
+PYBIND11_NAMESPACE_END(detail)
+
 // C++ type -> py::object
 template <typename T, detail::enable_if_t<!detail::is_pyobject<T>::value, int> = 0>
 object cast(T &&value,
@@ -1754,8 +1764,12 @@ object cast(T &&value,
                  : std::is_lvalue_reference<T>::value ? return_value_policy::copy
                                                       : return_value_policy::move;
     }
-    return reinterpret_steal<object>(
+    auto result = reinterpret_steal<object>(
         detail::make_caster<T>::cast(std::forward<T>(value), policy, parent));
+    if (!result) {
+        detail::throw_null_cast_result();
+    }
+    return result;
 }
 
 template <typename T>
