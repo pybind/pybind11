@@ -38,7 +38,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runs-on: [macos-15, macos-15-intel]
+        include:
+        - runs-on: macos-15
+          build: cp314-*
+          archs: auto
+        - runs-on: macos-15-intel
+          build: cp313-* cp315-*
+          archs: x86_64_iphonesimulator
     steps:
     - uses: actions/checkout@v7
       with:
@@ -51,6 +57,8 @@ jobs:
     - uses: pypa/cibuildwheel@v4.3.5
       env:
         CIBW_PLATFORM: ios
+        CIBW_BUILD: ${{ matrix.build }}
+        CIBW_ARCHS: ${{ matrix.archs }}
       with:
         package-dir: tests
 
@@ -60,7 +68,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runs-on: [macos-latest, macos-15-intel, ubuntu-latest]
+        include:
+        # macOS can only build, so one Python version each is enough there
+        - runs-on: macos-latest
+          build: cp314-*
+        - runs-on: macos-15-intel
+          build: cp313-*
+        - runs-on: ubuntu-latest
+          build: "*"
     steps:
     - uses: actions/checkout@v7
       with:
@@ -75,5 +90,6 @@ jobs:
     - uses: pypa/cibuildwheel@v4.3.5
       env:
         CIBW_PLATFORM: android
+        CIBW_BUILD: ${{ matrix.build }}
       with:
         package-dir: tests
