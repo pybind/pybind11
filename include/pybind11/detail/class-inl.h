@@ -723,32 +723,28 @@ PYBIND11_INLINE PyObject *make_new_instance(PyTypeObject *type) {
     }
 #endif
     PyObject *self = type_alloc(type);
-    if (!self) {
-        throw error_already_set();
-    }
     auto *inst = get_instance(self);
     // Allocate the value/holder internals:
-    try {
-        inst->allocate_layout();
-    } catch (...) {
-        Py_DECREF(self);
-        throw;
-    }
+    inst->allocate_layout();
 
     return self;
 }
 
 extern "C" PYBIND11_INLINE PyObject *
 pybind11_object_new(PyTypeObject *type, PyObject *, PyObject *) {
-    // C++ exceptions must not propagate into the Python interpreter.
     try {
+        // Check before allocating, so a failure never deallocates a half-built instance.
+        if (all_type_info(type).empty()) {
+            std::string msg = get_fully_qualified_tp_name(type)
+                              + ": cannot be instantiated, no pybind11-registered base types";
+            set_error(PyExc_TypeError, msg.c_str());
+            return nullptr;
+        }
         return make_new_instance(type);
-    } catch (error_already_set &e) {
-        e.restore();
-    } catch (const std::exception &e) {
-        set_error(PyExc_TypeError, e.what());
+    } catch (...) {
+        try_translate_exceptions();
+        return nullptr;
     }
-    return nullptr;
 }
 
 extern "C" PYBIND11_INLINE int pybind11_object_init(PyObject *self, PyObject *, PyObject *) {
@@ -795,8 +791,7 @@ PYBIND11_INLINE void clear_instance(PyObject *self) {
     auto *instance = get_instance(self);
 
     // Deallocate any values/holders, if present:
-    // Pass `self`: the iteration must be empty if the type has no registered C++ base.
-    for (auto &v_h : values_and_holders(self)) {
+    for (auto &v_h : values_and_holders(instance)) {
         if (v_h) {
 
             // We have to deregister before we call dealloc because, for virtual MI types, we still
