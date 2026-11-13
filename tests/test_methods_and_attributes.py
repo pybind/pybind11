@@ -224,10 +224,21 @@ def test_properties_docstring():
     reason="The signature of a cpp_function without is_method is fixed at construction",
     strict=True,
 )
-def test_properties_docstring_cpp_function():
+def test_properties_docstring_cpp_function_getter():
     assert (
         m.TestProperties.def_property_cpp_function.fget.__doc__.strip()
         == TestPropertiesGetDocstring
+    )
+
+
+@pytest.mark.xfail(
+    reason="The signature of a cpp_function without is_method is fixed at construction",
+    strict=True,
+)
+def test_properties_docstring_cpp_function_setter():
+    assert (
+        m.TestProperties.def_property_cpp_function.fset.__doc__.strip()
+        == TestPropertiesSetDocstring
     )
 
 
