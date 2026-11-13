@@ -204,6 +204,15 @@ def test_dict(capture, doc):
     assert m.dict_contains({42: None}, 42)
     assert m.dict_contains({"foo": None}, "foo")
 
+    assert m.dict_get({42: "x"}, 42) == "x"
+    assert m.dict_get({}, 42) is None
+    assert m.dict_get({42: None}, 42, "default") is None
+    assert m.dict_get({}, 42, "default") == "default"
+    assert m.dict_get_cast({"foo": "bar"}) == "bar"
+    assert m.dict_get_cast({}) == 42
+    with pytest.raises(TypeError, match="unhashable"):
+        m.dict_get({}, [])
+
     assert doc(m.get_dict) == "get_dict() -> dict"
     assert doc(m.print_dict) == "print_dict(arg0: dict) -> None"
 
