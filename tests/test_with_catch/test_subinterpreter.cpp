@@ -17,6 +17,7 @@ PYBIND11_WARNING_DISABLE_MSVC(4996)
 #    include <new>
 #    include <thread>
 #    include <utility>
+#    include <vector>
 
 namespace py = pybind11;
 using namespace py::literals;
@@ -714,6 +715,36 @@ TEST_CASE("gil_safe_call_once_and_store per-interpreter isolation") {
 }
 
 #    ifdef Py_MOD_PER_INTERPRETER_GIL_SUPPORTED
+TEST_CASE("Concurrent Subinterpreter creation") {
+    std::atomic<int> failures{0};
+    {
+        py::gil_scoped_release nogil;
+        std::vector<std::thread> threads;
+        for (int i = 0; i < 8; ++i) {
+            // Odd threads hold the main GIL when they call create(), even threads hold nothing.
+            threads.emplace_back([&failures, i] {
+                for (int j = 0; j < 10; ++j) {
+                    try {
+                        std::unique_ptr<py::gil_scoped_acquire> main_gil;
+                        if (i % 2 == 1) {
+                            main_gil.reset(new py::gil_scoped_acquire());
+                        }
+                        auto sub = py::subinterpreter::create();
+                        py::subinterpreter_scoped_activate guard{sub};
+                        py::module_::import("sys");
+                    } catch (const std::exception &) {
+                        ++failures;
+                    }
+                }
+            });
+        }
+        for (auto &t : threads) {
+            t.join();
+        }
+    }
+    REQUIRE(failures == 0);
+}
+
 TEST_CASE("Per-Subinterpreter GIL") {
     auto main_int
         = py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>();
