@@ -11,6 +11,12 @@ included set of test cases.
 Compiling the test cases
 ========================
 
+The commands below are meant to be run from the root of a source checkout
+of the pybind11 repository. They compile and run the test suite bundled in
+the :file:`tests` directory, which is included in the repository but not in
+the pybind11 wheels on PyPI. If you installed pybind11 with ``pip``, start
+from a git checkout of the repository instead (see :ref:`installing`).
+
 Linux/macOS
 -----------
 

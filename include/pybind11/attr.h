@@ -97,6 +97,7 @@ struct metaclass {
     explicit metaclass(handle value) : value(value) {}
 };
 
+#if !defined(Py_LIMITED_API)
 /// Specifies a custom callback with signature `void (PyHeapTypeObject*)` that
 /// may be used to customize the Python type.
 ///
@@ -106,6 +107,8 @@ struct metaclass {
 /// work with later versions of pybind11.  You may wish to consult the
 /// implementation of `make_new_python_type` in `detail/classes.h` to understand
 /// the context in which the callback will be run.
+///
+/// Not available under the stable ABI (`Py_LIMITED_API`): PyHeapTypeObject is opaque there.
 struct custom_type_setup {
     using callback = std::function<void(PyHeapTypeObject *heap_type)>;
 
@@ -113,6 +116,7 @@ struct custom_type_setup {
 
     callback value;
 };
+#endif
 
 /// Annotation that marks a class as local to the module:
 struct module_local {
@@ -327,7 +331,9 @@ struct type_record {
     handle metaclass;
 
     /// Custom type setup.
+#if !defined(Py_LIMITED_API)
     custom_type_setup::callback custom_type_setup_callback;
+#endif
 
     /// Multiple inheritance marker
     bool multiple_inheritance : 1;
@@ -567,12 +573,14 @@ struct process_attribute<dynamic_attr> : process_attribute_default<dynamic_attr>
     static void init(const dynamic_attr &, type_record *r) { r->dynamic_attr = true; }
 };
 
+#if !defined(Py_LIMITED_API)
 template <>
 struct process_attribute<custom_type_setup> {
     static void init(const custom_type_setup &value, type_record *r) {
         r->custom_type_setup_callback = value.value;
     }
 };
+#endif
 
 template <>
 struct process_attribute<is_final> : process_attribute_default<is_final> {

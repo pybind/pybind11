@@ -108,6 +108,26 @@ def test_none(doc):
     assert doc(m.print_none) == "print_none(arg0: None) -> None"
 
 
+def test_object_contains():
+    class OnlyIter:
+        def __iter__(self):
+            return iter([1, 2])
+
+    class RaisingContains:
+        def __contains__(self, item):
+            raise ValueError("contains failed")
+
+    assert m.object_contains([1, 2], 1) is True
+    assert m.object_contains([1, 2], 3) is False
+    # The `in` operator falls back to iteration when there is no __contains__.
+    assert m.object_contains(OnlyIter(), 2) is True
+    assert m.object_contains(OnlyIter(), 3) is False
+    with pytest.raises(ValueError, match="contains failed"):
+        m.object_contains(RaisingContains(), 1)
+    with pytest.raises(TypeError):
+        m.object_contains(object(), 1)
+
+
 def test_set(capture, doc):
     s = m.get_set()
     assert isinstance(s, set)
@@ -685,6 +705,7 @@ def test_memoryview(method, args, fmt, expected_view):
 
 
 @pytest.mark.xfail("env.PYPY", reason="getrefcount is not available")
+@pytest.mark.skipif("env.GRAALPY", reason="Different refcounting mechanism")
 @pytest.mark.parametrize(
     "method",
     [
@@ -835,6 +856,49 @@ def test_cpp_iterators():
     assert m.tuple_iterator() == 12
     assert m.dict_iterator() == 305 + 711
     assert m.passed_iterator(iter((-7, 3))) == -4
+
+
+@pytest.mark.parametrize("error_type", [RuntimeError, KeyboardInterrupt, SystemExit])
+def test_capi_sequence_end_error(error_type):
+    error = error_type("sequence length failed")
+
+    class BadLength:
+        def __getitem__(self, index):
+            raise AssertionError("end must not retrieve items")
+
+        def __len__(self):
+            raise error
+
+    with pytest.raises(error_type) as excinfo:
+        m.capi_sequence_end(BadLength())
+    assert excinfo.value is error
+    assert "__len__" in [entry.name for entry in excinfo.traceback]
+
+
+def test_capi_sequence_end_negative_length():
+    class NegativeLength:
+        def __getitem__(self, index):
+            raise AssertionError("end must not retrieve items")
+
+        def __len__(self):
+            return -1  # noqa: PLE0303 - deliberately invalid length
+
+    with pytest.raises(ValueError):
+        m.capi_sequence_end(NegativeLength())
+
+
+@pytest.mark.parametrize("values", [[], [4, 7]])
+@pytest.mark.parametrize("kind", [list, tuple, "custom"])
+def test_capi_sequence_end_valid(values, kind):
+    class CustomSequence:
+        def __getitem__(self, index):
+            return values[index]
+
+        def __len__(self):
+            return len(values)
+
+    sequence = CustomSequence() if kind == "custom" else kind(values)
+    assert m.capi_sequence_end(sequence) == len(values)
 
 
 def test_implementation_details():

@@ -26,7 +26,9 @@ class gil_scoped_release_simple {
 public:
     // PRECONDITION: The GIL must be held when this constructor is called.
     gil_scoped_release_simple() {
+#if !defined(Py_LIMITED_API) // PyGILState_Check is not part of the stable ABI
         assert(PyGILState_Check());
+#endif
         state = PyEval_SaveThread();
     }
     gil_scoped_release_simple(const gil_scoped_release_simple &) = delete;
