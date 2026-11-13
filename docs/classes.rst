@@ -63,7 +63,8 @@ An interactive Python session demonstrating this example is shown below:
 .. seealso::
 
     Static member functions can be bound in the same way using
-    :func:`class_::def_static`.
+    :func:`class_::def_static`. For Python class methods, see
+    :ref:`classmethods`.
 
 .. note::
 

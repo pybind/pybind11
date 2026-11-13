@@ -152,6 +152,16 @@ TEST_SUBMODULE(class_, m) {
                 cls.attr("seq_id") = seq_id + py::int_(1);
                 return NoConstructorNew::new_instance();
             },
+            "Returns a new instance and then increment the seq_id")
+        .def_classmethod(
+            "new_instance_seq_id_arg",
+            [](py::type &cls, int unused) {
+                py::int_ seq_id = getattr(cls, "seq_id", py::int_(0));
+                cls.attr("seq_id") = seq_id + py::int_(1);
+                cls.attr("unused") = unused;
+                return NoConstructorNew::new_instance();
+            },
+            py::arg("unused"),
             "Returns a new instance and then increment the seq_id");
 
     py::class_<NoConstructorNew>(m, "NoConstructorNew")
