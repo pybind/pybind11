@@ -436,7 +436,7 @@ TEST_SUBMODULE(methods_and_attributes, m) {
         .def_property(
             "def_property_lambda",
             [](const TestProperties &self) { return self.get(); },
-            [](TestProperties &self) { return self.set(); })
+            [](TestProperties &self, int value) { return self.set(value); })
         .def_property("def_property_cpp_function",
                       py::cpp_function(&TestProperties::get),
                       py::cpp_function(&TestProperties::set))
