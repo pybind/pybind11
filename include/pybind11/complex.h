@@ -27,7 +27,7 @@ struct format_descriptor<std::complex<T>, detail::enable_if_t<std::is_floating_p
     static std::string format() { return std::string(value); }
 };
 
-#ifndef PYBIND11_CPP17
+#if !defined(__cpp_inline_variables) || __cpp_inline_variables < 201606L
 
 template <typename T>
 constexpr const char
@@ -51,15 +51,77 @@ public:
         if (!src) {
             return false;
         }
-        if (!convert && !PyComplex_Check(src.ptr())) {
+        if (!convert
+            && !(PyComplex_Check(src.ptr()) || PyFloat_Check(src.ptr())
+                 || PYBIND11_LONG_CHECK(src.ptr()))) {
             return false;
         }
-        Py_complex result = PyComplex_AsCComplex(src.ptr());
+        handle src_or_index = src;
+        object index;
+        // Older PyPy versions need explicit __index__ conversion before PyComplex_AsCComplex().
+        // Preserve complex values and __complex__ precedence.
+#if defined(PYPY_VERSION_NUM) && PYPY_VERSION_NUM < 0x08000000
+        if (!PyComplex_Check(src.ptr()) && !hasattr(type::handle_of(src), "__complex__")
+            && PYBIND11_INDEX_CHECK(src.ptr())) {
+            index = reinterpret_steal<object>(PyNumber_Index(src.ptr()));
+            if (!index) {
+                PyErr_Clear();
+                if (!convert)
+                    return false;
+            } else {
+                src_or_index = index;
+            }
+        }
+#endif
+#if !defined(Py_LIMITED_API)
+        Py_complex result = PyComplex_AsCComplex(src_or_index.ptr());
         if (result.real == -1.0 && PyErr_Occurred()) {
             PyErr_Clear();
             return false;
         }
         value = std::complex<T>((T) result.real, (T) result.imag);
+#else
+        // Py_complex is not part of the stable ABI. Before 3.13, PyComplex_RealAsDouble() does
+        // not call __complex__ itself. Look the method up on the type, like Python does.
+        if (!PyComplex_Check(src_or_index.ptr())) {
+            static PyObject *complex_name = interned_name("__complex__");
+            auto method = type_lookup(Py_TYPE(src_or_index.ptr()), complex_name);
+            if (method) {
+                auto descr_get = reinterpret_cast<descrgetfunc>(
+                    PyType_GetSlot(Py_TYPE(method.ptr()), Py_tp_descr_get));
+                object bound
+                    = descr_get ? reinterpret_steal<object>(descr_get(
+                                      method.ptr(),
+                                      src_or_index.ptr(),
+                                      reinterpret_cast<PyObject *>(Py_TYPE(src_or_index.ptr()))))
+                                : reinterpret_borrow<object>(method);
+                if (!bound) {
+                    PyErr_Clear();
+                    return false;
+                }
+                index = reinterpret_steal<object>(PyObject_CallNoArgs(bound.ptr()));
+                if (!index) {
+                    PyErr_Clear();
+                    return false;
+                }
+                if (!PyComplex_Check(index.ptr())) {
+                    return false;
+                }
+                src_or_index = index;
+            }
+        }
+        double real = PyComplex_RealAsDouble(src_or_index.ptr());
+        if (real == -1.0 && PyErr_Occurred()) {
+            PyErr_Clear();
+            return false;
+        }
+        double imag = PyComplex_ImagAsDouble(src_or_index.ptr());
+        if (imag == -1.0 && PyErr_Occurred()) {
+            PyErr_Clear();
+            return false;
+        }
+        value = std::complex<T>((T) real, (T) imag);
+#endif
         return true;
     }
 
@@ -68,7 +130,12 @@ public:
         return PyComplex_FromDoubles((double) src.real(), (double) src.imag());
     }
 
-    PYBIND11_TYPE_CASTER(std::complex<T>, const_name("complex"));
+    // `complex` does not satisfy `typing.SupportsComplex` in typeshed for Python <= 3.10.
+    // Keep it explicit so generated stubs targeting those versions accept complex values.
+    PYBIND11_TYPE_CASTER(
+        std::complex<T>,
+        io_name("complex | typing.SupportsComplex | typing.SupportsFloat | typing.SupportsIndex",
+                "complex"));
 };
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)

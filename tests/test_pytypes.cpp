@@ -262,6 +262,8 @@ TEST_SUBMODULE(pytypes, m) {
           [](const py::anyset &set, const py::object &key) { return set.contains(key); });
     m.def("anyset_contains",
           [](const py::anyset &set, const char *key) { return set.contains(key); });
+    m.def("object_contains",
+          [](const py::object &obj, const py::object &item) { return obj.contains(item); });
     m.def("set_add", [](py::set &set, const py::object &key) { set.add(key); });
     m.def("set_clear", [](py::set &set) { set.clear(); });
 
@@ -461,6 +463,20 @@ TEST_SUBMODULE(pytypes, m) {
         return py::tuple();
     });
 
+    m.def("capi_sequence_end", [](const py::sequence &seq) {
+        py::detail::sequence_iterator end;
+        try {
+            end = seq.end();
+        } catch (const py::error_already_set &) {
+            throw;
+        }
+        if (PyErr_Occurred()) {
+            py::raise_from(PyExc_AssertionError, "sequence::end returned with a pending error");
+            throw py::error_already_set();
+        }
+        return end - seq.begin();
+    });
+
     m.def("accessor_assignment", []() {
         auto l = py::list(1);
         l[0] = 0;
@@ -625,25 +641,8 @@ TEST_SUBMODULE(pytypes, m) {
         return py::dict("d"_a = d, "l"_a = l);
     });
 
-    // test_print
-    m.def("print_function", []() {
-        py::print("Hello, World!");
-        py::print(1, 2.0, "three", true, std::string("-- multiple args"));
-        auto args = py::make_tuple("and", "a", "custom", "separator");
-        py::print("*args", *args, "sep"_a = "-");
-        py::print("no new line here", "end"_a = " -- ");
-        py::print("next print");
-
-        auto py_stderr = py::module_::import("sys").attr("stderr");
-        py::print("this goes to stderr", "file"_a = py_stderr);
-
-        py::print("flush", "flush"_a = true);
-
-        py::print(
-            "{a} + {b} = {c}"_s.format("a"_a = "py::print", "b"_a = "str.format", "c"_a = "this"));
-    });
-
-    m.def("print_failure", []() { py::print(42, UnregisteredType()); });
+    m.def("print_args",
+          [](const py::args &args, const py::kwargs &kwargs) { py::print(*args, **kwargs); });
 
     m.def("hash_function", [](py::object obj) { return py::hash(std::move(obj)); });
 
@@ -751,8 +750,8 @@ TEST_SUBMODULE(pytypes, m) {
 // pytypes.h could be changed to enforce the "most correct" user code below, by removing
 // `const` from iterator `reference` using type aliases, but that will break existing
 // user code.
-#if (defined(__APPLE__) && defined(__clang__)) || defined(PYPY_VERSION)
-// This is "most correct" and enforced on these platforms.
+#if (defined(__APPLE__) && defined(__clang__)) || defined(PYPY_VERSION) || defined(Py_LIMITED_API)
+// This is "most correct" and enforced on these platforms (and the stable ABI, as on PyPy).
 #    define PYBIND11_AUTO_IT auto it
 #else
     // This works on many platforms and is (unfortunately) reflective of existing user code.
@@ -1086,8 +1085,7 @@ TEST_SUBMODULE(pytypes, m) {
     static_class.def(py::init());
     static_class.attr_with_type_hint<py::typing::ClassVar<float>>("x") = 1.0;
     static_class.attr_with_type_hint<py::typing::ClassVar<py::typing::Dict<py::str, int>>>(
-        "dict_str_int")
-        = py::dict();
+        "dict_str_int") = py::dict();
 
     struct Instance {};
     auto instance = py::class_<Instance>(m, "Instance", py::dynamic_attr());
@@ -1211,4 +1209,6 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("check_type_is", [](const py::object &x) -> py::typing::TypeIs<RealNumber> {
         return py::isinstance<RealNumber>(x);
     });
+
+    m.def("const_kwargs_ref_to_str", [](const py::kwargs &kwargs) { return py::str(kwargs); });
 }

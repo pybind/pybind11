@@ -5,7 +5,10 @@ import pytest
 from pybind11_tests import unnamed_namespace_a as m
 from pybind11_tests import unnamed_namespace_b as mb
 
-XFAIL_CONDITION = "not m.defined_WIN32_or__WIN32 and (m.defined___clang__ or m.defined__LIBCPP_VERSION)"
+XFAIL_CONDITION = (
+    "m.defined__LIBCPP_VERSION or "
+    "(not m.defined_WIN32_or__WIN32 and m.defined___clang__)"
+)
 XFAIL_REASON = "Known issues: https://github.com/pybind/pybind11/pull/4319"
 
 

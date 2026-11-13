@@ -120,6 +120,24 @@ type is explicitly allowed.
     For further information on the ``return_value_policy`` argument of ``cast`` refer to :ref:`return_value_policies`.
     To learn about the ``convert`` argument of ``load`` see :ref:`nonconverting_arguments`.
 
+.. note::
+
+    If a custom ``load()`` produces a non-owning view of storage owned by a
+    Python object, and keeping that object alive is sufficient to keep the
+    storage valid, register the owner (often ``src``) with
+    ``pybind11::detail::loader_life_support::try_add_patient(owner)``. During a
+    bound-function call, this keeps the owner alive until the call returns. With
+    no active call frame, it returns ``false`` and the caller remains
+    responsible for the lifetime.
+
+    If ``load()`` instead creates a temporary Python object to own the view's
+    storage, use the strict ``loader_life_support::add_patient(owner)``. Outside
+    a bound-function call, it raises :class:`cast_error` rather than allowing a
+    dangling view. Neither form permits C++ code to retain the view after the
+    call without separate lifetime management. These ``detail`` helpers are
+    intended only for type-caster implementations. See
+    :ref:`string_view_lifetime` for a concrete example.
+
 .. warning::
 
     When using custom type casters, it's important to declare them consistently

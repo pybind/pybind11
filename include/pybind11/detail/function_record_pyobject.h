@@ -12,6 +12,7 @@
 
 #include "common.h"
 
+#include <cassert>
 #include <cstring>
 #include <utility>
 
@@ -19,9 +20,15 @@ PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 struct function_record_PyObject {
+#if !defined(PYBIND11_OPAQUE_PYOBJECT)
     PyObject_HEAD
+#endif
     function_record *cpp_func_rec;
 };
+
+inline function_record_PyObject *function_record_data(PyObject *obj) {
+    return type_data<function_record_PyObject>(obj);
+}
 
 PYBIND11_NAMESPACE_BEGIN(function_record_PyTypeObject_methods)
 
@@ -48,8 +55,8 @@ static PyMethodDef tp_methods_impl[]
 // Python 3.12+ emits a DeprecationWarning for heap types whose tp_name does
 // not contain a dot ('.') and that lack a __module__ attribute. For pybind11's
 // internal function_record type, we do not have an actual module object to
-// attach, so we cannot use PyType_FromModuleAndSpec (introduced in Python 3.9)
-// to set __module__ automatically.
+// attach, so we cannot use PyType_FromModuleAndSpec to set __module__
+// automatically.
 //
 // As a workaround, we define a "qualified" type name that includes a dummy
 // module name (PYBIND11_DUMMY_MODULE_NAME). This is non‑idiomatic but avoids
@@ -59,13 +66,20 @@ static PyMethodDef tp_methods_impl[]
 //
 // even though no real pybind11_builtins module exists. If pybind11 gains an
 // actual module object in the future, this code should switch to
-// PyType_FromModuleAndSpec for Python 3.9+ and drop the dummy module
-// workaround.
+// PyType_FromModuleAndSpec and drop the dummy module workaround.
 //
 // Note that this name is versioned.
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+// Opaque wrappers use PEP 697 type data instead of embedding PyObject_HEAD. Name-based
+// recognition must keep these representations separate: PyObject_GetTypeData() requires
+// a type created with negative basicsize, and the non-opaque reader assumes PyObject_HEAD.
+#    define PYBIND11_DETAIL_FUNCTION_RECORD_PYOBJECT_ABI_TAG "_opaque"
+#else
+#    define PYBIND11_DETAIL_FUNCTION_RECORD_PYOBJECT_ABI_TAG ""
+#endif
 #define PYBIND11_DETAIL_FUNCTION_RECORD_TP_PLAINNAME                                              \
     "pybind11_detail_function_record_" PYBIND11_DETAIL_FUNCTION_RECORD_ABI_ID                     \
-    "_" PYBIND11_PLATFORM_ABI_ID
+    "_" PYBIND11_PLATFORM_ABI_ID PYBIND11_DETAIL_FUNCTION_RECORD_PYOBJECT_ABI_TAG
 constexpr char tp_plainname_impl[] = PYBIND11_DETAIL_FUNCTION_RECORD_TP_PLAINNAME;
 constexpr char tp_qualname_impl[]
     = PYBIND11_DUMMY_MODULE_NAME "." PYBIND11_DETAIL_FUNCTION_RECORD_TP_PLAINNAME;
@@ -85,7 +99,7 @@ static PyType_Slot function_record_PyType_Slots[] = {
 
 static PyType_Spec function_record_PyType_Spec
     = {function_record_PyTypeObject_methods::tp_qualname_impl,
-       sizeof(function_record_PyObject),
+       PYBIND11_TYPE_DATA_SIZE(function_record_PyObject),
        0,
        Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HEAPTYPE,
        function_record_PyType_Slots};
@@ -103,6 +117,12 @@ inline PyTypeObject *get_function_record_PyTypeObject() {
     return py_type_obj;
 }
 
+// This works across extension modules. Note that tp_name is versioned.
+inline bool function_record_PyTypeObject_name_matches(PyTypeObject *obj_type) {
+    return tp_name_equals(obj_type, function_record_PyTypeObject_methods::tp_qualname_impl)
+           || tp_name_equals(obj_type, function_record_PyTypeObject_methods::tp_plainname_impl);
+}
+
 inline bool is_function_record_PyObject(PyObject *obj) {
     if (PyType_Check(obj) != 0) {
         return false;
@@ -115,29 +135,34 @@ inline bool is_function_record_PyObject(PyObject *obj) {
     if (obj_type == frtype) {
         return true;
     }
-    // This works across extension modules. Note that tp_name is versioned.
-    if (strcmp(obj_type->tp_name, function_record_PyTypeObject_methods::tp_qualname_impl) == 0
-        || strcmp(obj_type->tp_name, function_record_PyTypeObject_methods::tp_plainname_impl)
-               == 0) {
-        return true;
-    }
-    return false;
+    return function_record_PyTypeObject_name_matches(obj_type);
 }
 
 inline function_record *function_record_ptr_from_PyObject(PyObject *obj) {
     if (is_function_record_PyObject(obj)) {
-        return ((detail::function_record_PyObject *) obj)->cpp_func_rec;
+        return function_record_data(obj)->cpp_func_rec;
     }
     return nullptr;
 }
 
+// The `self` of cpp_function::dispatcher() is always the function_record_PyObject that was
+// created for that dispatcher in cpp_function::initialize_generic(), so the type check can be
+// skipped. is_function_record_PyObject() is deliberately not used here: it calls
+// get_function_record_PyTypeObject(), which acquires the internals lock on every call.
+inline function_record *function_record_ptr_from_dispatcher_self(PyObject *self) {
+    assert(self != nullptr);
+    assert(PyType_Check(self) == 0);
+    assert(function_record_PyTypeObject_name_matches(Py_TYPE(self)));
+    return function_record_data(self)->cpp_func_rec;
+}
+
 inline object function_record_PyObject_New() {
-    auto *py_func_rec = PyObject_New(function_record_PyObject, get_function_record_PyTypeObject());
+    PyObject *py_func_rec = PyObject_New(PyObject, get_function_record_PyTypeObject());
     if (py_func_rec == nullptr) {
         throw error_already_set();
     }
-    py_func_rec->cpp_func_rec = nullptr; // For clarity/purity. Redundant in practice.
-    return reinterpret_steal<object>((PyObject *) py_func_rec);
+    function_record_data(py_func_rec)->cpp_func_rec = nullptr; // For clarity. Redundant.
+    return reinterpret_steal<object>(py_func_rec);
 }
 
 PYBIND11_NAMESPACE_BEGIN(function_record_PyTypeObject_methods)

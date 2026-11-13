@@ -247,7 +247,8 @@ def test_integer_casting():
     assert "incompatible function arguments" in str(excinfo.value)
 
 
-def test_int_convert(doc):
+@pytest.mark.parametrize("prefix", ["int", "uint"])
+def test_int_convert(doc, prefix):
     class Int:
         def __int__(self):
             return 42
@@ -284,10 +285,14 @@ def test_int_convert(doc):
         def __int__(self):
             return 42
 
-    convert, noconvert = m.int_passthrough, m.int_passthrough_noconvert
+    convert = getattr(m, f"{prefix}_passthrough")
+    noconvert = getattr(m, f"{prefix}_passthrough_noconvert")
 
-    assert doc(convert) == "int_passthrough(arg0: typing.SupportsInt) -> int"
-    assert doc(noconvert) == "int_passthrough_noconvert(arg0: int) -> int"
+    assert (
+        doc(convert)
+        == f"{prefix}_passthrough(arg0: typing.SupportsInt | typing.SupportsIndex) -> int"
+    )
+    assert doc(noconvert) == f"{prefix}_passthrough_noconvert(arg0: int) -> int"
 
     def requires_conversion(v):
         pytest.raises(TypeError, noconvert, v)
@@ -299,9 +304,8 @@ def test_int_convert(doc):
     assert noconvert(7) == 7
     cant_convert(3.14159)
     # TODO: Avoid DeprecationWarning in `PyLong_AsLong` (and similar)
-    # TODO: PyPy 3.8 does not behave like CPython 3.8 here yet (7.3.7)
-    if sys.version_info < (3, 10) and env.CPYTHON:
-        with env.deprecated_call():
+    if sys.version_info < (3, 10) and env.CPYTHON and prefix == "int":
+        with pytest.deprecated_call():
             assert convert(Int()) == 42
     else:
         assert convert(Int()) == 42
@@ -309,9 +313,8 @@ def test_int_convert(doc):
     cant_convert(NotInt())
     cant_convert(Float())
 
-    # Before Python 3.8, `PyLong_AsLong` does not pick up on `obj.__index__`,
-    # but pybind11 "backports" this behavior.
     assert convert(Index()) == 42
+    assert isinstance(convert(Index()), int)
     assert noconvert(Index()) == 42
     assert convert(IntAndIndex()) == 0  # Fishy; `int(DoubleThought)` == 42
     assert noconvert(IntAndIndex()) == 0
@@ -320,27 +323,93 @@ def test_int_convert(doc):
     assert convert(RaisingValueErrorOnIndex()) == 42
     requires_conversion(RaisingValueErrorOnIndex())
 
+    class IndexReturnsFloat:
+        def __index__(self):
+            return 3.14  # noqa: PLE0305  Wrong: should return int
+
+    class IntReturnsFloat:
+        def __int__(self):
+            return 3.14  # Wrong: should return int
+
+    class IndexFloatIntInt:
+        def __index__(self):
+            return 3.14  # noqa: PLE0305  Wrong: should return int
+
+        def __int__(self):
+            return 42  # Correct: returns int
+
+    class IndexIntIntFloat:
+        def __index__(self):
+            return 42  # Correct: returns int
+
+        def __int__(self):
+            return 3.14  # Wrong: should return int
+
+    class IndexFloatIntFloat:
+        def __index__(self):
+            return 3.14  # noqa: PLE0305  Wrong: should return int
+
+        def __int__(self):
+            return 2.71  # Wrong: should return int
+
+    cant_convert(IndexReturnsFloat())
+    requires_conversion(IndexReturnsFloat())
+
+    cant_convert(IntReturnsFloat())
+    requires_conversion(IntReturnsFloat())
+
+    assert convert(IndexFloatIntInt()) == 42  # convert: __index__ fails, uses __int__
+    requires_conversion(IndexFloatIntInt())  # noconvert: __index__ fails, no fallback
+
+    assert convert(IndexIntIntFloat()) == 42  # convert: __index__ succeeds
+    assert noconvert(IndexIntIntFloat()) == 42  # noconvert: __index__ succeeds
+
+    cant_convert(IndexFloatIntFloat())  # convert mode rejects (both fail)
+    requires_conversion(IndexFloatIntFloat())  # noconvert mode also rejects
+
 
 def test_float_convert(doc):
+    class Int:
+        def __int__(self):
+            return -5
+
+    class Index:
+        def __index__(self) -> int:
+            return -7
+
     class Float:
         def __float__(self):
             return 41.45
 
     convert, noconvert = m.float_passthrough, m.float_passthrough_noconvert
-    assert doc(convert) == "float_passthrough(arg0: typing.SupportsFloat) -> float"
+    assert (
+        doc(convert)
+        == "float_passthrough(arg0: typing.SupportsFloat | typing.SupportsIndex) -> float"
+    )
     assert doc(noconvert) == "float_passthrough_noconvert(arg0: float) -> float"
 
     def requires_conversion(v):
         pytest.raises(TypeError, noconvert, v)
 
+    def cant_convert(v):
+        pytest.raises(TypeError, convert, v)
+
     requires_conversion(Float())
+    requires_conversion(Index())
     assert pytest.approx(convert(Float())) == 41.45
+    assert pytest.approx(convert(Index())) == -7.0
+    assert isinstance(convert(Float()), float)
+    assert pytest.approx(convert(3)) == 3.0
+    assert pytest.approx(noconvert(3)) == 3.0
+    cant_convert(Int())
 
 
-def test_numpy_int_convert():
+@pytest.mark.parametrize("prefix", ["int", "uint"])
+def test_numpy_int_convert(prefix):
     np = pytest.importorskip("numpy")
 
-    convert, noconvert = m.int_passthrough, m.int_passthrough_noconvert
+    convert = getattr(m, f"{prefix}_passthrough")
+    noconvert = getattr(m, f"{prefix}_passthrough_noconvert")
 
     def require_implicit(v):
         pytest.raises(TypeError, noconvert, v)
@@ -351,10 +420,9 @@ def test_numpy_int_convert():
 
     # The implicit conversion from np.float32 is undesirable but currently accepted.
     # TODO: Avoid DeprecationWarning in `PyLong_AsLong` (and similar)
-    # TODO: PyPy 3.8 does not behave like CPython 3.8 here yet (7.3.7)
     # https://github.com/pybind/pybind11/issues/3408
-    if (3, 8) <= sys.version_info < (3, 10) and env.CPYTHON:
-        with env.deprecated_call():
+    if sys.version_info < (3, 10) and env.CPYTHON and prefix == "int":
+        with pytest.deprecated_call():
             assert convert(np.float32(3.14159)) == 3
     else:
         assert convert(np.float32(3.14159)) == 3
@@ -381,7 +449,7 @@ def test_tuple(doc):
     assert (
         doc(m.tuple_passthrough)
         == """
-        tuple_passthrough(arg0: tuple[bool, str, typing.SupportsInt]) -> tuple[int, str, bool]
+        tuple_passthrough(arg0: tuple[bool, str, typing.SupportsInt | typing.SupportsIndex]) -> tuple[int, str, bool]
 
         Return a triple in reversed order
     """
@@ -458,10 +526,279 @@ def test_reference_wrapper():
     assert m.refwrap_call_iiw(IncType(10), m.refwrap_iiw) == [10, 10, 10, 10]
 
 
-def test_complex_cast():
+def test_complex_cast(doc):
     """std::complex casts"""
+
+    class Complex:
+        def __complex__(self) -> complex:
+            return complex(5, 4)
+
+    class Float:
+        def __float__(self) -> float:
+            return 5.0
+
+    class Int:
+        def __int__(self) -> int:
+            return 3
+
+    class Index:
+        def __index__(self) -> int:
+            return 1
+
     assert m.complex_cast(1) == "1.0"
+    assert m.complex_cast(1.0) == "1.0"
+    assert m.complex_cast(Complex()) == "(5.0, 4.0)"
     assert m.complex_cast(2j) == "(0.0, 2.0)"
+
+    assert m.complex_cast_strict(1) == "(1.0, 0.0)"
+    assert m.complex_cast_strict(3.0) == "(3.0, 0.0)"
+    assert m.complex_cast_strict(complex(5, 4)) == "(5.0, 4.0)"
+    assert m.complex_cast_strict(2j) == "(0.0, 2.0)"
+
+    convert, noconvert = m.complex_convert, m.complex_noconvert
+
+    def requires_conversion(v):
+        pytest.raises(TypeError, noconvert, v)
+
+    def cant_convert(v):
+        pytest.raises(TypeError, convert, v)
+
+    assert (
+        doc(convert)
+        == "complex_convert(arg0: complex | typing.SupportsComplex | typing.SupportsFloat | typing.SupportsIndex) -> complex"
+    )
+    assert doc(noconvert) == "complex_noconvert(arg0: complex) -> complex"
+
+    assert convert(1) == 1.0
+    assert convert(2.0) == 2.0
+    assert convert(1 + 5j) == 1.0 + 5.0j
+    assert convert(Complex()) == 5.0 + 4j
+    assert convert(Float()) == 5.0
+    assert isinstance(convert(Float()), complex)
+    cant_convert(Int())
+    assert convert(Index()) == 1
+    assert isinstance(convert(Index()), complex)
+
+    assert noconvert(1) == 1.0
+    assert noconvert(2.0) == 2.0
+    assert noconvert(1 + 5j) == 1.0 + 5.0j
+    requires_conversion(Complex())
+    requires_conversion(Float())
+    requires_conversion(Index())
+
+
+def test_complex_index_handling():
+    """
+    Test __index__ handling in complex caster (added with PR #5879).
+
+    This test verifies that custom __index__ objects (not PyLong) work correctly
+    with complex conversion. The behavior should be consistent across CPython,
+    PyPy, and GraalPy.
+
+    - Custom __index__ objects work with convert (non-strict mode)
+    - Custom __index__ objects do NOT work with noconvert (strict mode)
+    - Regular int (PyLong) works with both convert and noconvert
+    """
+
+    class CustomIndex:
+        """Custom class with __index__ but not __int__ or __float__"""
+
+        def __index__(self) -> int:
+            return 42
+
+    class CustomIndexNegative:
+        """Custom class with negative __index__"""
+
+        def __index__(self) -> int:
+            return -17
+
+    convert, noconvert = m.complex_convert, m.complex_noconvert
+
+    # Test that regular int (PyLong) works
+    assert convert(5) == 5.0 + 0j
+    assert noconvert(5) == 5.0 + 0j
+
+    # Test that custom __index__ objects work with convert (non-strict mode)
+    # This exercises the PyPy-specific path in complex.h
+    assert convert(CustomIndex()) == 42.0 + 0j
+    assert convert(CustomIndexNegative()) == -17.0 + 0j
+
+    # With noconvert (strict mode), custom __index__ objects are NOT accepted
+    # Strict mode only accepts complex, float, or int (PyLong), not custom __index__ objects
+    def requires_conversion(v):
+        pytest.raises(TypeError, noconvert, v)
+
+    requires_conversion(CustomIndex())
+    requires_conversion(CustomIndexNegative())
+
+    # Verify the result is actually a complex
+    result = convert(CustomIndex())
+    assert isinstance(result, complex)
+    assert result.real == 42.0
+    assert result.imag == 0.0
+
+
+@pytest.mark.parametrize("base", [object, int, float])
+def test_complex_method_precedence(base):
+    class ComplexAndIndex(base):
+        def __complex__(self):
+            return 3.0 + 4.0j
+
+        def __index__(self):
+            return 42
+
+    value = ComplexAndIndex()
+    assert m.complex_convert(value) == 3.0 + 4.0j
+    if base is object:
+        with pytest.raises(TypeError):
+            m.complex_noconvert(value)
+    else:
+        assert m.complex_noconvert(value) == 3.0 + 4.0j
+
+
+@pytest.mark.parametrize("function", [m.complex_convert, m.complex_noconvert])
+def test_complex_subclass_with_index(function):
+    class ComplexWithIndex(complex):
+        def __index__(self):
+            return 42
+
+    assert function(ComplexWithIndex(3.0, 4.0)) == 3.0 + 4.0j
+
+
+def test_complex_method_error_with_index():
+    class ComplexAndIndex:
+        def __complex__(self):
+            raise ValueError("complex conversion failed")
+
+        def __index__(self):
+            return 42
+
+    with pytest.raises(TypeError):
+        m.complex_convert(ComplexAndIndex())
+
+
+@pytest.mark.parametrize("function", [m.complex_convert, m.complex_noconvert])
+def test_complex_method_wrong_return_type(function):
+    class BadComplex:
+        def __complex__(self):
+            return 2.0
+
+    with pytest.raises(TypeError):
+        function(BadComplex())
+
+
+def test_complex_method_instance_shadow_ignored():
+    # Special-method lookup reads the type, not an instance attribute.
+    class Shadowed:
+        def __complex__(self):
+            return 1.0 + 2.0j
+
+    value = Shadowed()
+    value.__complex__ = lambda: 9.0 + 10.0j
+    assert m.complex_convert(value) == 1.0 + 2.0j
+
+
+@pytest.mark.parametrize("base", [object, int, float])
+@pytest.mark.parametrize("descriptor", [staticmethod, classmethod])
+def test_complex_method_descriptors(base, descriptor):
+    class Convertible(base):
+        @descriptor
+        def __complex__(*args):
+            assert args == (() if descriptor is staticmethod else (Convertible,))
+            return 1.0 + 2.0j
+
+    value = Convertible()
+    assert m.complex_convert(value) == complex(value) == 1.0 + 2.0j
+    if base is not object:
+        assert m.complex_noconvert(value) == 1.0 + 2.0j
+
+
+def test_complex_callable_without_descriptor():
+    class ComplexCallable:
+        def __call__(self):
+            return 3.0 + 4.0j
+
+    class Convertible:
+        __complex__ = ComplexCallable()
+
+    value = Convertible()
+    assert m.complex_convert(value) == complex(value) == 3.0 + 4.0j
+
+
+def test_complex_custom_descriptor():
+    class ComplexDescriptor:
+        def __get__(self, instance, owner):
+            return lambda: complex(instance.real, instance.imag)
+
+    class Convertible:
+        __complex__ = ComplexDescriptor()
+        real = 5.0
+        imag = 6.0
+
+    value = Convertible()
+    assert m.complex_convert(value) == complex(value) == 5.0 + 6.0j
+
+
+def test_overload_resolution_float_int():
+    """
+    Test overload resolution behavior when int can match float (added with PR #5879).
+
+    This test documents the breaking change in PR #5879: when a float overload is
+    registered before an int overload, passing a Python int will now match the float
+    overload (because int can be converted to float in strict mode per PEP 484).
+
+    Before PR #5879: int(42) would match int overload (if both existed)
+    After PR #5879: int(42) matches float overload (if registered first)
+
+    This is a breaking change because existing code that relied on int matching
+    int overloads may now match float overloads instead.
+    """
+    # Test 1: float overload registered first, int second
+    # When passing int(42), pybind11 tries overloads in order:
+    # 1. float overload - can int(42) be converted? Yes (with PR #5879 changes)
+    # 2. Match! Use float overload (int overload never checked)
+    result = m.overload_resolution_test(42)
+    assert result == "float: 42.000000", (
+        f"Expected int(42) to match float overload, got: {result}. "
+        "This documents the breaking change: int now matches float overloads."
+    )
+    assert m.overload_resolution_test(42.0) == "float: 42.000000"
+
+    # Test 2: With noconvert (strict mode) - this is the KEY breaking change
+    # Before PR #5879: int(42) would NOT match float overload with noconvert, would match int overload
+    # After PR #5879: int(42) DOES match float overload with noconvert (because int->float is now allowed)
+    result_strict = m.overload_resolution_strict(42)
+    assert result_strict == "float_strict: 42.000000", (
+        f"Expected int(42) to match float overload with noconvert, got: {result_strict}. "
+        "This is the key breaking change: int now matches float even in strict mode."
+    )
+    assert m.overload_resolution_strict(42.0) == "float_strict: 42.000000"
+
+    # Test 3: complex overload registered first, then float, then int
+    # When passing int(5), pybind11 tries overloads in order:
+    # 1. complex overload - can int(5) be converted? Yes (with PR #5879 changes)
+    # 2. Match! Use complex overload
+    assert m.overload_resolution_complex(5) == "complex: (5.000000, 0.000000)"
+    assert m.overload_resolution_complex(5.0) == "complex: (5.000000, 0.000000)"
+    assert (
+        m.overload_resolution_complex(complex(3, 4)) == "complex: (3.000000, 4.000000)"
+    )
+
+    # Verify that the overloads are registered in the expected order
+    # The docstring should show float overload before int overload
+    doc = m.overload_resolution_test.__doc__
+    assert doc is not None
+    # Check that float overload appears before int overload in docstring
+    # The docstring uses "typing.SupportsFloat" and "typing.SupportsInt"
+    float_pos = doc.find("SupportsFloat")
+    int_pos = doc.find("SupportsInt")
+    assert float_pos != -1, f"Could not find 'SupportsFloat' in docstring: {doc}"
+    assert int_pos != -1, f"Could not find 'SupportsInt' in docstring: {doc}"
+    assert float_pos < int_pos, (
+        f"Float overload should appear before int overload in docstring. "
+        f"Found 'SupportsFloat' at {float_pos}, 'SupportsInt' at {int_pos}. "
+        f"Docstring: {doc}"
+    )
 
 
 def test_bool_caster():

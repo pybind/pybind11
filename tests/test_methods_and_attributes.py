@@ -5,7 +5,7 @@ import sys
 import pytest
 
 import env
-from pybind11_tests import ConstructorStats
+from pybind11_tests import ConstructorStats, defined___cpp_noexcept_function_type
 from pybind11_tests import methods_and_attributes as m
 
 NO_GETTER_MSG = (
@@ -88,6 +88,34 @@ def test_methods_and_attributes():
     assert cstats.move_constructions >= 2
     assert cstats.copy_assignments == 0
     assert cstats.move_assignments == 0
+
+
+def test_unbound_method_access():
+    """`Class.method` returns the raw instancemethod, also on Python subclasses"""
+
+    class Sub(m.ExampleMandA):
+        pass
+
+    unbound = m.ExampleMandA.internal1
+    assert Sub.internal1 is unbound
+    assert m.ExampleMandA.__dict__["internal1"] is unbound
+    assert unbound(m.ExampleMandA(7)) == 7
+    assert Sub.__name__ == "Sub"
+
+    # Aliasing through the class keeps the instancemethod
+    Sub.alias = m.ExampleMandA.internal1
+    assert Sub(9).alias() == 9
+
+    # Py_TPFLAGS_METHOD_DESCRIPTOR: `obj.method(...)` skips the bound method. Only pybind11's
+    # own instancemethod (limited API) has it; CPython's PyInstanceMethod_Type does not.
+    if env.LIMITED_API:
+        assert type(unbound).__flags__ & (1 << 17)
+    bound = m.ExampleMandA(5).overloaded
+    assert bound.__self__.internal1() == 5
+    assert bound.__func__ is m.ExampleMandA.overloaded.__func__
+    assert bound(1, 1.0) == "(int, float)"
+    assert m.ExampleMandA(5).overloaded(1, 1.0) == "(int, float)"
+    assert m.ExampleMandA.overloaded(m.ExampleMandA(5), 1, 1.0) == "(int, float)"
 
 
 def test_copy_method():
@@ -221,6 +249,9 @@ def test_static_cls():
     instance.static_cls = check_self
 
 
+@pytest.mark.skipif(
+    "env.LIMITED_API", reason="PyType_FromMetaclass picks the most derived metaclass"
+)
 def test_metaclass_override():
     """Overriding pybind11's default metaclass changes the behavior of `static_property`"""
 
@@ -239,6 +270,18 @@ def test_metaclass_override():
     assert isinstance(m.MetaclassOverride.__dict__["readonly"], int)
 
 
+@pytest.mark.skipif(
+    not hasattr(m, "MetaclassConflictBase"),
+    reason="Not available on GraalPy or under Py_LIMITED_API",
+)
+def test_metaclass_base_conflict():
+    """A base with an unrelated metaclass does not block binding a derived class"""
+
+    assert type(m.MetaclassConflictBase).__name__ == "CustomMeta"
+    assert type(m.MetaclassConflictDerived).__name__ == "pybind11_type"
+    assert isinstance(m.MetaclassConflictDerived(), m.MetaclassConflictBase)
+
+
 def test_no_mixed_overloads():
     from pybind11_tests import detailed_error_messages_enabled
 
@@ -251,7 +294,7 @@ def test_no_mixed_overloads():
             "#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for more details"
             if not detailed_error_messages_enabled
             else "error while attempting to bind static method ExampleMandA.overload_mixed1"
-            "(arg0: typing.SupportsFloat) -> str"
+            "(arg0: typing.SupportsFloat | typing.SupportsIndex) -> str"
         )
     )
 
@@ -264,7 +307,7 @@ def test_no_mixed_overloads():
             "#define PYBIND11_DETAILED_ERROR_MESSAGES or compile in debug mode for more details"
             if not detailed_error_messages_enabled
             else "error while attempting to bind instance method ExampleMandA.overload_mixed2"
-            "(self: pybind11_tests.methods_and_attributes.ExampleMandA, arg0: typing.SupportsInt, arg1: typing.SupportsInt)"
+            "(self: pybind11_tests.methods_and_attributes.ExampleMandA, arg0: typing.SupportsInt | typing.SupportsIndex, arg1: typing.SupportsInt | typing.SupportsIndex)"
             " -> str"
         )
     )
@@ -383,6 +426,23 @@ def test_cyclic_gc():
     assert cstats.alive() == 0
 
 
+@pytest.mark.xfail("env.PYPY", strict=False)
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
+def test_dynamic_attr_dealloc_frees_dict_contents():
+    """Regression: py::dynamic_attr() objects must free __dict__ contents on dealloc.
+
+    pybind11_object_dealloc() did not call PyObject_ClearManagedDict() before tp_free(),
+    causing objects stored in __dict__ to have their refcounts permanently abandoned on
+    Python 3.14+ (where tp_free no longer implicitly clears the managed dict).
+    This caused capsule destructors to never run, leaking the underlying C++ data.
+    """
+    instance = m.make_dynamic_attr_with_capsule()
+    assert not m.is_dynamic_attr_capsule_freed()
+    del instance
+    pytest.gc_collect()
+    assert m.is_dynamic_attr_capsule_freed()
+
+
 def test_bad_arg_default(msg):
     from pybind11_tests import detailed_error_messages_enabled
 
@@ -491,7 +551,7 @@ def test_str_issue(msg):
         msg(excinfo.value)
         == """
         __init__(): incompatible constructor arguments. The following argument types are supported:
-            1. m.methods_and_attributes.StrIssue(arg0: typing.SupportsInt)
+            1. m.methods_and_attributes.StrIssue(arg0: typing.SupportsInt | typing.SupportsIndex)
             2. m.methods_and_attributes.StrIssue()
 
         Invoked with: 'no', 'such', 'constructor'
@@ -517,6 +577,130 @@ def test_unregistered_base_implementations():
     assert a.ro_value_prop == 1.75
 
 
+def test_noexcept_base():
+    """Test issue #2234: binding noexcept methods inherited from an unregistered base class.
+
+    In C++17 noexcept is part of the function type, so &Derived::noexcept_method resolves
+    to a Base member-function pointer with noexcept specifier.  pybind11 must use the Derived
+    type as `self`, not the Base type, otherwise the call raises TypeError at runtime.
+
+    Covers all four new cpp_function constructor specialisations:
+      - Return (Class::*)(Args...) noexcept          (set_value)
+      - Return (Class::*)(Args...) const noexcept    (value)
+      - Return (Class::*)(Args...) & noexcept        (increment)
+      - Return (Class::*)(Args...) const & noexcept  (capped_value)
+    """
+    obj = m.NoexceptDerived()
+    # const noexcept
+    assert obj.value() == 99
+    # noexcept (non-const)
+    obj.set_value(7)
+    assert obj.value() == 7
+    # & noexcept (non-const lvalue ref-qualified)
+    obj.increment()
+    assert obj.value() == 8
+    # const & noexcept (const lvalue ref-qualified)
+    assert obj.capped_value() == 8
+    obj.set_value(200)
+    assert obj.capped_value() == 100  # capped at 100
+
+
+def test_rvalue_ref_qualified_methods():
+    """Test that rvalue-ref-qualified (&&/const&&) methods from an unregistered base bind
+    correctly with `self` resolved to the derived type.
+
+    take() moves m_payload out on each call, so the second call returns "".
+    This confirms that the cpp_function lambda uses std::move(*c).*f rather than c->*f.
+
+    Covers:
+      - Return (Class::*)(Args...) &&              (take)
+      - Return (Class::*)(Args...) const &&        (peek)
+    """
+    obj = m.RValueRefDerived()
+    # && moves m_payload: first call gets the value, second gets empty string
+    assert obj.take() == "rref_payload"
+    assert obj.take() == ""
+    # const && doesn't move: peek() is stable across calls
+    assert obj.peek() == 77
+    assert obj.peek() == 77
+
+
+@pytest.mark.skipif(
+    not defined___cpp_noexcept_function_type,
+    reason="Requires __cpp_noexcept_function_type",
+)
+def test_noexcept_rvalue_ref_qualified_methods():
+    """Test noexcept rvalue-ref-qualified methods from an unregistered base.
+
+    Covers:
+      - Return (Class::*)(Args...) && noexcept       (take_noexcept)
+      - Return (Class::*)(Args...) const && noexcept (peek_noexcept)
+    """
+    obj = m.RValueRefDerived()
+    assert obj.take_noexcept() == "rref_payload"
+    assert obj.take_noexcept() == ""
+    assert obj.peek_noexcept() == 77
+    assert obj.peek_noexcept() == 77
+
+
+def test_noexcept_overload_cast():
+    """Test issue #2234: overload_cast must handle noexcept member and free function pointers.
+
+    In C++17 noexcept is part of the function type, so overload_cast_impl needs dedicated
+    operator() overloads for noexcept free functions and non-const/const member functions.
+    """
+    obj = m.NoexceptOverloaded()
+    # overload_cast_impl::operator()(Return (Class::*)(Args...) noexcept, false_type)
+    assert obj.method(1) == "(int)"
+    # overload_cast_impl::operator()(Return (Class::*)(Args...) const noexcept, true_type)
+    assert obj.method_const(2) == "(int) const"
+    # overload_cast_impl::operator()(Return (Class::*)(Args...) noexcept, false_type) float
+    assert obj.method_float(3.0) == "(float)"
+    # overload_cast_impl::operator()(Return (*)(Args...) noexcept)
+    assert m.noexcept_free_func(10) == 11
+    assert m.noexcept_free_func_float(10.0) == 12
+
+
+def test_ref_qualified_overload_cast():
+    """Test issue #2234 follow-up: overload_cast with ref-qualified member pointers.
+
+    Covers:
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) &, false_type)
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) const &, true_type)
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) &&, false_type)
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) const &&, true_type)
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) & noexcept, false_type)
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) const & noexcept, true_type)
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) && noexcept, false_type)
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) const && noexcept, true_type)
+    """
+    obj = m.RefQualifiedOverloaded()
+    assert obj.method_lref(1) == "(int) &"
+    assert obj.method_const_lref(1) == "(int) const &"
+    assert obj.method_rref(1.0) == "(float) &&"
+    assert obj.method_const_rref(1.0) == "(float) const &&"
+
+
+@pytest.mark.skipif(
+    not defined___cpp_noexcept_function_type,
+    reason="Requires __cpp_noexcept_function_type",
+)
+def test_noexcept_ref_qualified_overload_cast():
+    """Test issue #2234 follow-up: overload_cast with noexcept ref-qualified member pointers.
+
+    Covers:
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) & noexcept, false_type)
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) const & noexcept, true_type)
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) && noexcept, false_type)
+      - overload_cast_impl::operator()(Return (Class::*)(Args...) const && noexcept, true_type)
+    """
+    obj = m.RefQualifiedOverloaded()
+    assert obj.method_lref_noexcept(1) == "(long) & noexcept"
+    assert obj.method_const_lref_noexcept(1) == "(long) const & noexcept"
+    assert obj.method_rref_noexcept(1.0) == "(double) && noexcept"
+    assert obj.method_const_rref_noexcept(1.0) == "(double) const && noexcept"
+
+
 def test_ref_qualified():
     """Tests that explicit lvalue ref-qualified methods can be called just like their
     non ref-qualified counterparts."""
@@ -534,21 +718,27 @@ def test_overload_ordering():
     assert m.overload_order(0) == 4
 
     assert (
-        "1. overload_order(arg0: typing.SupportsInt) -> int" in m.overload_order.__doc__
+        "1. overload_order(arg0: typing.SupportsInt | typing.SupportsIndex) -> int"
+        in m.overload_order.__doc__
     )
     assert "2. overload_order(arg0: str) -> int" in m.overload_order.__doc__
     assert "3. overload_order(arg0: str) -> int" in m.overload_order.__doc__
     assert (
-        "4. overload_order(arg0: typing.SupportsInt) -> int" in m.overload_order.__doc__
+        "4. overload_order(arg0: typing.SupportsInt | typing.SupportsIndex) -> int"
+        in m.overload_order.__doc__
     )
 
     with pytest.raises(TypeError) as err:
         m.overload_order(1.1)
 
-    assert "1. (arg0: typing.SupportsInt) -> int" in str(err.value)
+    assert "1. (arg0: typing.SupportsInt | typing.SupportsIndex) -> int" in str(
+        err.value
+    )
     assert "2. (arg0: str) -> int" in str(err.value)
     assert "3. (arg0: str) -> int" in str(err.value)
-    assert "4. (arg0: typing.SupportsInt) -> int" in str(err.value)
+    assert "4. (arg0: typing.SupportsInt | typing.SupportsIndex) -> int" in str(
+        err.value
+    )
 
 
 def test_rvalue_ref_param():

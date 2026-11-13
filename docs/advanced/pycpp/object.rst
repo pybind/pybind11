@@ -76,6 +76,10 @@ The reverse direction uses the following syntax:
 
 When conversion fails, both directions throw the exception :class:`cast_error`.
 
+When casting to a non-owning type such as ``std::string_view``, the Python
+source may need to remain alive after a successful cast. See
+:ref:`string_view_lifetime` for details.
+
 .. _python_libs:
 
 Accessing Python libraries from C++

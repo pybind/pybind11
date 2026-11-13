@@ -8,7 +8,11 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
+// Keep operators first to catch detail::int_ hiding the Python integer wrapper.
+// clang-format off
+#include <pybind11/operators.h>
 #include <pybind11/chrono.h>
+// clang-format on
 
 #include "pybind11_tests.h"
 
@@ -43,6 +47,15 @@ TEST_SUBMODULE(chrono, m) {
     // test_chrono_system_clock_roundtrip
     // Round trip the passed in system clock time
     m.def("test_chrono2", [](system_time t) { return t; });
+
+    // Check each direction independently, without an ambiguous local datetime
+    // hiding which instant the system-clock caster selected.
+    using timestamp_us
+        = std::chrono::time_point<std::chrono::system_clock, std::chrono::microseconds>;
+    m.def("test_chrono_system_clock_as_us",
+          [](timestamp_us t) { return t.time_since_epoch().count(); });
+    m.def("test_chrono_system_clock_from_us",
+          [](int64_t us) { return timestamp_us(std::chrono::microseconds(us)); });
 
     // test_chrono_duration_roundtrip
     // Round trip the passed in duration

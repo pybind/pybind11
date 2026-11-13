@@ -10,7 +10,7 @@ if(NOT CMAKE_VERSION VERSION_LESS "3.27")
   cmake_policy(GET CMP0148 _pybind11_cmp0148)
 endif()
 
-cmake_minimum_required(VERSION 3.15...4.0)
+cmake_minimum_required(VERSION 3.15...4.2)
 
 if(_pybind11_cmp0148)
   cmake_policy(SET CMP0148 ${_pybind11_cmp0148})
@@ -99,17 +99,21 @@ option(PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION
        "To enforce that a handle_type_name<> specialization exists" OFF)
 option(PYBIND11_SIMPLE_GIL_MANAGEMENT
        "Use simpler GIL management logic that does not support disassociation" OFF)
+set(PYBIND11_TYPE_CREATION_VIA_SPEC
+    ""
+    CACHE
+      STRING
+      "Create type objects with PyType_FromMetaclass: ON, OFF, or empty for the default (ON on CPython 3.12+)"
+)
 set(PYBIND11_INTERNALS_VERSION
     ""
     CACHE STRING "Override the ABI version, may be used to enable the unstable ABI.")
+# Record whether the project set this before option() supplies its OFF default, so
+# pybind11Common.cmake can apply its CMP0190-aware default without clobbering an explicit value.
+if(NOT DEFINED PYBIND11_USE_CROSSCOMPILING)
+  set(_PYBIND11_USE_CROSSCOMPILING_DEFAULTED ON)
+endif()
 option(PYBIND11_USE_CROSSCOMPILING "Respect CMAKE_CROSSCOMPILING" OFF)
-
-if(PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION)
-  add_compile_definitions(PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION)
-endif()
-if(PYBIND11_SIMPLE_GIL_MANAGEMENT)
-  add_compile_definitions(PYBIND11_SIMPLE_GIL_MANAGEMENT)
-endif()
 
 cmake_dependent_option(
   USE_PYTHON_INCLUDE_DIR
@@ -171,33 +175,53 @@ if(PYBIND11_MASTER_PROJECT)
     if(NOT DEFINED Python3_EXECUTABLE
        AND NOT DEFINED Python_EXECUTABLE
        AND NOT DEFINED Python_ROOT_DIR
-       AND NOT DEFINED ENV{VIRTUALENV}
+       AND NOT DEFINED ENV{VIRTUAL_ENV}
        AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.venv")
       message(STATUS "Autodetecting Python in virtual environment")
       set(Python_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/.venv")
+    endif()
+  endif()
+
+  # Python_ROOT_DIR is only a search hint, so FindPython may select a newer
+  # Python elsewhere. Set Python_EXECUTABLE to the venv's interpreter path
+  # to bypass interpreter discovery.
+  if(DEFINED Python_ROOT_DIR AND NOT DEFINED Python_EXECUTABLE)
+    if(WIN32 AND EXISTS "${Python_ROOT_DIR}/Scripts/python.exe")
+      set(Python_EXECUTABLE "${Python_ROOT_DIR}/Scripts/python.exe")
+    elseif(EXISTS "${Python_ROOT_DIR}/bin/python")
+      set(Python_EXECUTABLE "${Python_ROOT_DIR}/bin/python")
     endif()
   endif()
 endif()
 
 set(PYBIND11_HEADERS
     include/pybind11/detail/argument_vector.h
+    include/pybind11/detail/class-inl.h
     include/pybind11/detail/class.h
+    include/pybind11/detail/common-inl.h
     include/pybind11/detail/common.h
+    include/pybind11/detail/cpp_conduit-inl.h
     include/pybind11/detail/cpp_conduit.h
     include/pybind11/detail/descr.h
     include/pybind11/detail/dynamic_raw_ptr_cast_if_possible.h
+    include/pybind11/detail/exception_translation-inl.h
     include/pybind11/detail/exception_translation.h
     include/pybind11/detail/function_record_pyobject.h
+    include/pybind11/detail/function_ref.h
     include/pybind11/detail/holder_caster_foreign_helpers.h
     include/pybind11/detail/init.h
+    include/pybind11/detail/internals-inl.h
     include/pybind11/detail/internals.h
     include/pybind11/detail/native_enum_data.h
     include/pybind11/detail/pybind11_namespace_macros.h
     include/pybind11/detail/struct_smart_holder.h
+    include/pybind11/detail/type_caster_base-inl.h
     include/pybind11/detail/type_caster_base.h
+    include/pybind11/detail/typeid-inl.h
     include/pybind11/detail/typeid.h
     include/pybind11/detail/using_smart_holder.h
     include/pybind11/detail/value_and_holder.h
+    include/pybind11/attr-inl.h
     include/pybind11/attr.h
     include/pybind11/buffer_info.h
     include/pybind11/cast.h
@@ -215,6 +239,7 @@ set(PYBIND11_HEADERS
     include/pybind11/eigen/tensor.h
     include/pybind11/embed.h
     include/pybind11/eval.h
+    include/pybind11/gil-inl.h
     include/pybind11/gil.h
     include/pybind11/gil_safe_call_once.h
     include/pybind11/gil_simple.h
@@ -223,7 +248,9 @@ set(PYBIND11_HEADERS
     include/pybind11/native_enum.h
     include/pybind11/numpy.h
     include/pybind11/operators.h
+    include/pybind11/pybind11-inl.h
     include/pybind11/pybind11.h
+    include/pybind11/pytypes-inl.h
     include/pybind11/pytypes.h
     include/pybind11/subinterpreter.h
     include/pybind11/stl.h
@@ -254,6 +281,11 @@ if(PYBIND11_MASTER_PROJECT)
 endif()
 
 list(TRANSFORM PYBIND11_HEADERS PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")
+
+# Library sources for the opt-in precompiled mode (pybind11_precompile()).
+set(pybind11_SRC_DIR
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    CACHE INTERNAL "Directory containing the pybind11 library sources")
 
 # Cache variable so this can be used in parent projects
 set(pybind11_INCLUDE_DIR
@@ -290,6 +322,18 @@ if(NOT TARGET pybind11_headers)
     target_compile_definitions(
       pybind11_headers INTERFACE "PYBIND11_INTERNALS_VERSION=${PYBIND11_INTERNALS_VERSION}")
   endif()
+  if(PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION)
+    target_compile_definitions(pybind11_headers
+                               INTERFACE PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION)
+  endif()
+  if(PYBIND11_SIMPLE_GIL_MANAGEMENT)
+    target_compile_definitions(pybind11_headers INTERFACE PYBIND11_SIMPLE_GIL_MANAGEMENT)
+  endif()
+  if(PYBIND11_TYPE_CREATION_VIA_SPEC)
+    target_compile_definitions(pybind11_headers INTERFACE PYBIND11_TYPE_CREATION_VIA_SPEC=1)
+  elseif(NOT "${PYBIND11_TYPE_CREATION_VIA_SPEC}" STREQUAL "")
+    target_compile_definitions(pybind11_headers INTERFACE PYBIND11_TYPE_CREATION_VIA_SPEC=0)
+  endif()
 else()
   # It is invalid to install a target twice, too.
   set(PYBIND11_INSTALL OFF)
@@ -303,8 +347,10 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/tools/JoinPaths.cmake")
 # Relative directory setting
 if(USE_PYTHON_INCLUDE_DIR AND DEFINED Python_INCLUDE_DIRS)
   file(RELATIVE_PATH CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_PREFIX} ${Python_INCLUDE_DIRS})
+elseif(USE_PYTHON_INCLUDE_DIR AND DEFINED Python3_INCLUDE_DIRS)
+  file(RELATIVE_PATH CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_PREFIX} ${Python3_INCLUDE_DIRS})
 elseif(USE_PYTHON_INCLUDE_DIR AND DEFINED PYTHON_INCLUDE_DIR)
-  file(RELATIVE_PATH CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_PREFIX} ${PYTHON_INCLUDE_DIRS})
+  file(RELATIVE_PATH CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_PREFIX} ${PYTHON_INCLUDE_DIR})
 endif()
 
 if(PYBIND11_INSTALL)
@@ -312,6 +358,8 @@ if(PYBIND11_INSTALL)
     install(DIRECTORY ${pybind11_INCLUDE_DIR}/pybind11 DESTINATION "${SKBUILD_HEADERS_DIR}")
   endif()
   install(DIRECTORY ${pybind11_INCLUDE_DIR}/pybind11 DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+  set(pybind11_install_srcdir "${CMAKE_INSTALL_DATAROOTDIR}/pybind11/src")
+  install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/ DESTINATION "${pybind11_install_srcdir}")
   set(PYBIND11_CMAKECONFIG_INSTALL_DIR
       "${CMAKE_INSTALL_DATAROOTDIR}/cmake/${PROJECT_NAME}"
       CACHE STRING "install path for pybind11Config.cmake")
@@ -320,6 +368,11 @@ if(PYBIND11_INSTALL)
     set(pybind11_INCLUDEDIR "${CMAKE_INSTALL_FULL_INCLUDEDIR}")
   else()
     set(pybind11_INCLUDEDIR "\$\{PACKAGE_PREFIX_DIR\}/${CMAKE_INSTALL_INCLUDEDIR}")
+  endif()
+  if(IS_ABSOLUTE "${CMAKE_INSTALL_DATAROOTDIR}")
+    set(pybind11_SRCDIR "${pybind11_install_srcdir}")
+  else()
+    set(pybind11_SRCDIR "\$\{PACKAGE_PREFIX_DIR\}/${pybind11_install_srcdir}")
   endif()
 
   configure_package_config_file(
@@ -372,6 +425,7 @@ if(PYBIND11_INSTALL)
     endif()
   endif()
   join_paths(includedir_for_pc_file "\${prefix}" "${CMAKE_INSTALL_INCLUDEDIR}")
+  join_paths(srcdir_for_pc_file "\${prefix}" "${pybind11_install_srcdir}")
   configure_file("${CMAKE_CURRENT_SOURCE_DIR}/tools/pybind11.pc.in"
                  "${CMAKE_CURRENT_BINARY_DIR}/pybind11.pc" @ONLY)
   install(FILES "${CMAKE_CURRENT_BINARY_DIR}/pybind11.pc"

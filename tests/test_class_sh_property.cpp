@@ -43,6 +43,24 @@ struct WithConstCharPtrMember {
     const char *const_char_ptr_member = "ConstChar*";
 };
 
+// See PR #6008
+enum class EnumAB {
+    A = 0,
+    B = 1,
+};
+
+struct ShWithEnumABMember {
+    EnumAB level = EnumAB::A;
+};
+
+struct SimpleStruct {
+    int value = 7;
+};
+
+struct ShWithSimpleStructMember {
+    SimpleStruct legacy;
+};
+
 } // namespace test_class_sh_property
 
 TEST_SUBMODULE(class_sh_property, m) {
@@ -91,4 +109,21 @@ TEST_SUBMODULE(class_sh_property, m) {
     py::classh<WithConstCharPtrMember>(m, "WithConstCharPtrMember")
         .def(py::init<>())
         .def_readonly("const_char_ptr_member", &WithConstCharPtrMember::const_char_ptr_member);
+
+    // See PR #6008
+    py::enum_<EnumAB>(m, "EnumAB").value("A", EnumAB::A).value("B", EnumAB::B);
+
+    py::classh<ShWithEnumABMember>(m, "ShWithEnumABMember")
+        .def(py::init<>())
+        .def_readwrite("level", &ShWithEnumABMember::level);
+
+    py::class_<SimpleStruct>(m, "SimpleStruct")
+        .def(py::init<>())
+        .def_readwrite("value", &SimpleStruct::value);
+
+    py::classh<ShWithSimpleStructMember>(m, "ShWithSimpleStructMember")
+        .def(py::init<>())
+        .def_readwrite("legacy", &ShWithSimpleStructMember::legacy);
+
+    m.def("getSimpleStructAsShared", []() { return std::make_shared<SimpleStruct>(); });
 }

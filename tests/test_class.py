@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import gc
+import pickle
 import sys
 from unittest import mock
 
@@ -18,10 +20,34 @@ def refcount_immortal(ob: object) -> int:
     return sys.getrefcount(ob)
 
 
+MANAGED_DICT_GET_REFERRERS_SUPPORTED = (
+    env.CPYTHON
+    and sys.version_info >= (3, 13, 13)
+    and (sys.version_info < (3, 14) or sys.version_info >= (3, 14, 4))
+)
+
+
 def test_obj_class_name():
     expected_name = "UserType" if env.PYPY else "pybind11_tests.UserType"
     assert m.obj_class_name(UserType(1)) == expected_name
     assert m.obj_class_name(UserType) == expected_name
+
+
+def test_obj_class_name_python_subclass():
+    class Derived(UserType):
+        pass
+
+    # The first instance caches the type in pybind11's internals; the name must not change.
+    assert m.obj_class_name(Derived) == "Derived"
+    assert m.obj_class_name(Derived(1)) == "Derived"
+    assert m.obj_class_name(Derived) == "Derived"
+
+
+def test_obj_class_name_dotted():
+    name = "a[b.c]"
+    cls = getattr(m.class_names, name)
+    expected_name = name if env.PYPY else f"{m.class_names.__name__}.{name}"
+    assert m.obj_class_name(cls) == expected_name
 
 
 def test_repr():
@@ -43,6 +69,16 @@ def test_instance(msg):
     assert cstats.alive() == 1
     del instance
     assert cstats.alive() == 0
+
+
+@pytest.mark.skipif(
+    not MANAGED_DICT_GET_REFERRERS_SUPPORTED,
+    reason="Requires CPython 3.13.13+ or 3.14.4+ managed dict traversal support",
+)
+def test_get_referrers():
+    instance = m.DynamicAttr()
+    instance.a = "test"
+    assert instance in gc.get_referrers(instance.__dict__)
 
 
 def test_instance_new():
@@ -163,17 +199,89 @@ def test_qualname(doc):
     assert (
         doc(m.NestBase.Nested.fn)
         == """
-        fn(self: m.class_.NestBase.Nested, arg0: typing.SupportsInt, arg1: m.class_.NestBase, arg2: m.class_.NestBase.Nested) -> None
+        fn(self: m.class_.NestBase.Nested, arg0: typing.SupportsInt | typing.SupportsIndex, arg1: m.class_.NestBase, arg2: m.class_.NestBase.Nested) -> None
     """
     )
     assert (
         doc(m.NestBase.Nested.fa)
         == """
-        fa(self: m.class_.NestBase.Nested, a: typing.SupportsInt, b: m.class_.NestBase, c: m.class_.NestBase.Nested) -> None
+        fa(self: m.class_.NestBase.Nested, a: typing.SupportsInt | typing.SupportsIndex, b: m.class_.NestBase, c: m.class_.NestBase.Nested) -> None
     """
     )
     assert m.NestBase.__module__ == "pybind11_tests.class_"
     assert m.NestBase.Nested.__module__ == "pybind11_tests.class_"
+
+
+@pytest.mark.parametrize(
+    ("placement", "name"),
+    [
+        ("module", "Simple"),
+        ("module", "a.b"),
+        ("module", "a.b.c"),
+        ("module", "a[b]"),
+        ("module", "a[b.c]"),
+        ("module", "a.b[c]"),
+        ("nested", "a[b.c]"),
+        ("child", "Child"),
+        ("custom", "a[b.c]"),
+    ],
+)
+def test_class_names_match_type(request, placement, name):
+    """Bound classes follow Python's naming rules, including literal dots."""
+    if placement == "custom" and env.LIMITED_API:
+        pytest.skip("py::custom_type_setup is not available under Py_LIMITED_API")
+    scopes = {
+        "module": m.class_names,
+        "nested": m.NestBase,
+        "child": getattr(m.class_names, "a[b.c]"),
+        "custom": getattr(m.class_names, "custom", None),
+    }
+    scope = scopes[placement]
+    cls = getattr(scope, name)
+    module = scope.__name__ if isinstance(scope, type(m)) else scope.__module__
+    namespace = {"__module__": module}
+    if placement in {"nested", "child"}:
+        # type() needs an explicit qualified name for a dynamically nested class.
+        parent_name = "NestBase" if placement == "nested" else "a[b.c]"
+        parent = type(parent_name, (), {"__module__": module})
+        namespace["__qualname__"] = f"{parent.__qualname__}.{name}"
+    reference = type(name, (), namespace)
+    assert cls.__qualname__ == reference.__qualname__
+    assert cls.__module__ == reference.__module__
+    obj = cls()
+    assert obj.echo() is obj
+    assert f"{reference.__module__}.{reference.__qualname__}" in cls.echo.__doc__
+    if "." in name and (env.GRAALPY or (env.PYPY and sys.version_info >= (3, 12))):
+        request.applymarker(
+            pytest.mark.xfail(reason="The interpreter shortens dotted __name__")
+        )
+    assert cls.__name__ == reference.__name__
+    assert getattr(scope, cls.__name__) is cls
+
+
+@pytest.mark.skipif(
+    env.PYPY or env.GRAALPY, reason="Tests CPython's type creation paths"
+)
+def test_class_names_with_frozen_metaclass():
+    class FrozenNames(type(m.NestBase)):
+        def __setattr__(cls, name, value):
+            if name in {"__name__", "__qualname__"}:
+                raise TypeError("class names are frozen after creation")
+            super().__setattr__(name, value)
+
+    module_class, nested_class = m.class_names.bind_with_metaclass(
+        m.class_names, m.NestBase, FrozenNames
+    )
+    assert module_class.__name__ == "Frozen[pkg.Value]"
+    assert module_class.__qualname__ == "Frozen[pkg.Value]"
+    assert nested_class.__name__ == "FrozenInner"
+    assert nested_class.__qualname__ == "NestBase.FrozenInner"
+    for cls in (module_class, nested_class):
+        assert isinstance(cls, FrozenNames)
+        obj = cls()
+        assert obj.echo() is obj
+        with pytest.raises(TypeError, match="class names are frozen after creation"):
+            cls.__name__ = "Renamed"
 
 
 def test_inheritance(msg):
@@ -231,6 +339,144 @@ def test_inheritance_init(msg):
         RabbitHamster()
     expected = "m.class_.Hamster.__init__() must be called when overriding __init__"
     assert msg(exc_info.value) == expected
+
+
+def test_new_bypasses_init():
+    """`__new__` allocates the Python object but not the C++ one; using the instance before
+    `__init__` has run must raise instead of segfaulting."""
+
+    class PythonDerived(m.NewNoInit):
+        pass
+
+    for cls in (m.NewNoInit, PythonDerived):
+        obj = cls.__new__(cls)
+        for use in (obj.data, obj.v_data, obj.__getstate__):
+            with pytest.raises(ValueError) as exc_info:
+                use()
+            assert "Python instance is uninitialized" in str(exc_info.value)
+            assert "NewNoInit" in str(exc_info.value)
+
+        # Calling `__init__()` is the sanctioned way to finish an object made with `__new__()`.
+        obj.__init__(42)
+        assert obj.data() == 42
+        assert obj.v_data() == 42
+
+
+def test_new_then_setstate():
+    """`__new__` must not be blocked: pickle relies on it, and `__setstate__` finishes the
+    object off. This walks the protocol by hand, then checks the real thing."""
+    real_obj = m.NewNoInit(42)
+    assert real_obj.data() == 42
+    state = real_obj.__getstate__()
+
+    obj = m.NewNoInit.__new__(m.NewNoInit)  # NEWOBJ
+    obj.__setstate__(state)  # BUILD
+    assert obj.data() == 42
+    assert obj.v_data() == 42
+
+    for protocol in range(2, pickle.HIGHEST_PROTOCOL + 1):
+        assert pickle.loads(pickle.dumps(m.NewNoInit(7), protocol)).v_data() == 7
+
+
+def test_failed_old_style_init_does_not_leave_lazy_storage():
+    """If an old-style placement-new `__init__` throws before constructing the value, the
+    lazily allocated storage must not linger: later use must still raise, not segfault."""
+    obj = m.OldStyleInit.__new__(m.OldStyleInit)
+    with pytest.raises(RuntimeError, match="negative data"):
+        obj.__init__(-1)
+
+    # The failed __init__ already lazily allocated storage for `self`, so without cleanup the
+    # uninitialized-instance guard never fires again and this reads a garbage vtable pointer.
+    with pytest.raises(ValueError, match="uninitialized"):
+        obj.v_data()
+
+    # A successful retry is still allowed.
+    obj.__init__(42)
+    assert obj.v_data() == 42
+
+
+def test_old_style_setstate_remains_supported():
+    """Deprecated placement-new `__setstate__` may still obtain storage inside its callback."""
+    obj = m.OldStyleInit.__new__(m.OldStyleInit)
+    obj.__setstate__(43)
+    assert obj.data() == 43
+
+
+def test_old_style_init_reentrant_load_current_limitation():
+    """The historical broad lazy-allocation window retained during an old-style constructor
+    chain can expose a pointer to unconstructed storage through a reentrant load."""
+    obj = m.OldStyleInit.__new__(m.OldStyleInit)
+    seen = {}
+
+    class LoadOnIndex:
+        def __index__(self):
+            # This pointer-only probe deliberately does not inspect or dereference the storage.
+            seen["exposed"] = m.expose_old_style_init_pointer(obj)
+            raise TypeError("stop the constructor")
+
+    with pytest.raises(TypeError):
+        obj.__init__(LoadOnIndex())
+
+    assert seen == {"exposed": True}
+
+    # Failure cleanup removes the raw storage, so subsequent ordinary loads are rejected and a
+    # normal initialization retry remains possible.
+    with pytest.raises(ValueError, match="uninitialized"):
+        m.expose_old_style_init_pointer(obj)
+    obj.__init__(44)
+    assert obj.data() == 44
+
+
+def test_old_style_init_cleans_multiple_inheritance_sibling_storage():
+    """The old-style compatibility window is instance-wide, so a reentrant load can lazily
+    allocate an unconstructed sibling base slot. Scope cleanup must reset that slot too."""
+
+    class Derived(m.OldStyleInit, m.NewNoInit):
+        pass
+
+    obj = Derived.__new__(Derived)
+    seen = {}
+
+    class LoadSiblingOnIndex:
+        def __index__(self):
+            # Deliberately obtain but do not dereference the sibling's unconstructed storage.
+            seen["exposed"] = m.expose_new_no_init_pointer(obj)
+            return 45
+
+    m.OldStyleInit.__init__(obj, LoadSiblingOnIndex())
+
+    assert seen == {"exposed": True}
+    assert m.OldStyleInit.data(obj) == 45
+    with pytest.raises(ValueError, match="uninitialized"):
+        m.expose_new_no_init_pointer(obj)
+
+    # The sibling slot remains usable after the old-style constructor returns.
+    m.NewNoInit.__init__(obj, 46)
+    assert m.OldStyleInit.data(obj) == 45
+    assert m.NewNoInit.data(obj) == 46
+
+
+def test_reentrant_load_during_new_style_init():
+    """New-style constructors never need lazy allocation, so passing the half-built instance
+    to another bound function while `__init__` runs must raise, not hand out garbage."""
+    obj = m.NewNoInit.__new__(m.NewNoInit)
+    seen = {}
+
+    class Evil:
+        def __index__(self):
+            # Runs during int conversion of a pure new-style constructor. Its chain has no
+            # compatibility window for lazy allocation.
+            try:
+                seen["data"] = obj.data()
+            except ValueError as exc:
+                seen["error"] = exc
+            raise TypeError("stop the constructor")
+
+    with pytest.raises(TypeError):
+        obj.__init__(Evil())
+
+    assert "data" not in seen, f"handed out uninitialized storage: {seen['data']!r}"
+    assert "error" in seen
 
 
 @pytest.mark.parametrize(
@@ -465,6 +711,8 @@ def test_non_final_final():
 def test_exception_rvalue_abort():
     with pytest.raises(RuntimeError):
         m.PyPrintDestructor().throw_something()
+    # The destructor calls Python; on PyPy, a later GC at an arbitrary point can abort
+    pytest.gc_collect()
 
 
 # https://github.com/pybind/pybind11/issues/1568

@@ -41,6 +41,7 @@ from __future__ import annotations
 import contextlib
 import os
 import platform
+import re
 import shlex
 import shutil
 import sys
@@ -48,17 +49,14 @@ import sysconfig
 import tempfile
 import threading
 import warnings
+from collections.abc import Iterable, Iterator
 from functools import lru_cache
 from pathlib import Path
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
-    Iterable,
-    Iterator,
-    List,
     Optional,
-    Tuple,
-    TypeVar,
     Union,
 )
 
@@ -73,6 +71,10 @@ except ImportError:
 
 import distutils.ccompiler
 import distutils.errors
+from importlib.machinery import EXTENSION_SUFFIXES
+
+if TYPE_CHECKING:
+    from typing_extensions import Self
 
 WIN = sys.platform.startswith("win32") and "mingw" not in sysconfig.get_platform()
 MACOS = sys.platform.startswith("darwin")
@@ -84,6 +86,50 @@ STD_TMPL = "/std:c++{}" if WIN else "-std=c++{}"
 # standalone, and pulling pybind11 with the deprecated setup_requires feature.
 # If you copy the file, remember to add it to your MANIFEST.in, and add the current
 # directory into your path if it sits beside your setup.py.
+
+
+def _stable_abi_macro(value: Any, *, abi3t: bool = False) -> tuple[str, str]:
+    """
+    The define for ``py_limited_api``, as ``(name, hex value)``. True selects
+    the minimum pybind11 supports (3.12 for abi3, 3.15 for abi3t), a string
+    such as "3.13" or "cp313" selects that version, and an int or hex string is
+    passed through. A "t" suffix ("3.15t", "cp315t") or ``abi3t=True`` selects
+    abi3t, which is always used on free-threaded Python.
+    """
+    abi3t = abi3t or bool(sysconfig.get_config_var("Py_GIL_DISABLED"))
+    text = str(value)
+    if isinstance(value, str) and text.lower().endswith("t"):
+        abi3t = True
+        text = text[:-1]
+    minimum = (3, 15) if abi3t else (3, 12)
+    if value is True:
+        number = (minimum[0] << 24) | (minimum[1] << 16)
+    elif isinstance(value, int):
+        number = value
+    elif text.lower().startswith("0x"):
+        number = int(text, 16)
+    else:
+        match = re.fullmatch(r"(?:cp)?(\d)\.?(\d+)", text)
+        if not match:
+            msg = f"py_limited_api must be True or a Python version such as '3.12', got {value!r}"
+            raise ValueError(msg)
+        major, minor = (int(part) for part in match.groups())
+        number = (major << 24) | (minor << 16)
+    what = "the stable ABI for free-threading (abi3t)" if abi3t else "the stable ABI"
+    requested = (number >> 24, (number >> 16) & 0xFF)
+    if requested < minimum:
+        msg = f"pybind11 supports {what} from Python {minimum[0]}.{minimum[1]} on, got {value!r}"
+        raise ValueError(msg)
+    # Older headers ignore the define (Py_TARGET_ABI3T is new in 3.15) or lack the API, which
+    # would silently produce a version-specific module with a stable-ABI name.
+    building = tuple(sys.version_info[:2])
+    if building < max(minimum, requested):
+        msg = (
+            f"building for {what} of Python {requested[0]}.{requested[1]} needs the headers of "
+            f"that version or newer, but this is Python {building[0]}.{building[1]}"
+        )
+        raise ValueError(msg)
+    return ("Py_TARGET_ABI3T" if abi3t else "Py_LIMITED_API", f"0x{number:08X}")
 
 
 class Pybind11Extension(_Extension):
@@ -108,6 +154,16 @@ class Pybind11Extension(_Extension):
 
     If you want to add pybind11 headers manually, for example for an exact
     git checkout, then set ``include_pybind11=False``.
+
+    ``py_limited_api=True`` builds against the Python stable ABI (3.12, or
+    pass a version string such as ``"3.13"``): ``Py_LIMITED_API`` is defined
+    and setuptools names the module ``*.abi3.so``, so one wheel serves every
+    CPython from that version on. A ``"t"`` suffix (``"3.15t"``) selects abi3t
+    (``Py_TARGET_ABI3T``, ``*.abi3t.so``), which also loads on free-threaded
+    CPython; it is always used on free-threaded Python. Use the ``build_ext``
+    from this module to get the ``*.abi3t.so`` name on GIL-enabled Python. See
+    the pybind11 documentation for the features that are not available under
+    the stable ABI.
     """
 
     # flags are prepended, so that they can be further overridden, e.g. by
@@ -128,7 +184,33 @@ class Pybind11Extension(_Extension):
 
         include_pybind11 = kwargs.pop("include_pybind11", True)
 
+        py_limited_api = kwargs.get("py_limited_api", False)
+        if py_limited_api:
+            # setuptools only uses the flag for the .abi3 file name; the
+            # define selects the limited API in the headers.
+            kwargs["py_limited_api"] = True
+            macros = list(kwargs.get("define_macros", []) or [])
+            abi_macros = [
+                (name, value)
+                for name, value in macros
+                if name in {"Py_LIMITED_API", "Py_TARGET_ABI3T"}
+            ]
+            if abi_macros:
+                # Explicit defines decide the ABI, the file name, and the export symbol.
+                abi3t = any(name == "Py_TARGET_ABI3T" for name, _ in abi_macros)
+                for _, value in abi_macros:
+                    macro = _stable_abi_macro(value, abi3t=abi3t)
+            else:
+                macro = _stable_abi_macro(py_limited_api)
+                macros.append(macro)
+            self._abi3t = macro[0] == "Py_TARGET_ABI3T"
+            kwargs["define_macros"] = macros
+
         super().__init__(*args, **kwargs)
+
+        # Flags are added in place, so do not modify the caller's lists
+        self.extra_compile_args = list(self.extra_compile_args)
+        self.extra_link_args = list(self.extra_link_args)
 
         # Include the installed package pybind11 headers
         if include_pybind11:
@@ -175,8 +257,7 @@ class Pybind11Extension(_Extension):
                 "You cannot safely change the cxx_level after setting it!", stacklevel=2
             )
 
-        # MSVC 2015 Update 3 and later only have 14 (and later 17) modes, so
-        # force a valid flag here.
+        # MSVC only has 14 and later modes, so force a valid flag here.
         if WIN and level == 11:
             level = 14
 
@@ -245,10 +326,6 @@ def has_flag(compiler: Any, flag: str) -> bool:
         return True
 
 
-# Every call will cache the result
-cpp_flag_cache = None
-
-
 @lru_cache
 def auto_cpp_level(compiler: Any) -> str | int:
     """
@@ -285,6 +362,38 @@ class build_ext(_build_ext):  # noqa: N801
                 ext.cxx_std = auto_cpp_level(self.compiler)
 
         super().build_extensions()
+
+    def get_export_symbols(self, ext: _Extension) -> list[str]:  # type: ignore[override]
+        """
+        abi3t modules export the PEP 793 ``PyModExport_*`` hook, not ``PyInit_*``.
+        """
+        symbols: list[str] = super().get_export_symbols(ext)  # type: ignore[no-untyped-call]
+        if getattr(ext, "_abi3t", False):
+            name = ext.name.split(".")[-1]
+            symbols = [
+                f"PyModExport_{name}" if s == f"PyInit_{name}" else s for s in symbols
+            ]
+        return symbols
+
+    def get_ext_filename(self, fullname: str) -> str:
+        """
+        setuptools picks the first ``.abi3*`` suffix, which is ``.abi3`` on
+        GIL-enabled Python; abi3t modules need ``.abi3t``.
+        """
+        filename: str = super().get_ext_filename(fullname)  # type: ignore[no-untyped-call]
+        ext = getattr(self, "ext_map", {}).get(fullname)
+        if getattr(ext, "_abi3t", False) and not WIN:
+            for suffix in EXTENSION_SUFFIXES:
+                abi3t_suffix = suffix.replace(".abi3", ".abi3t", 1)
+                if (
+                    suffix.startswith(".abi3")
+                    and not suffix.startswith(".abi3t")
+                    and filename.endswith(suffix)
+                    and abi3t_suffix in EXTENSION_SUFFIXES
+                ):
+                    filename = filename[: -len(suffix)] + abi3t_suffix
+                    break
+        return filename
 
 
 def intree_extensions(
@@ -338,7 +447,7 @@ def naive_recompile(obj: str, src: str) -> bool:
     return os.stat(obj).st_mtime < os.stat(src).st_mtime
 
 
-def no_recompile(obg: str, src: str) -> bool:  # noqa: ARG001
+def no_recompile(obj: str, src: str) -> bool:  # noqa: ARG001
     """
     This is the safest but slowest choice (and is the default) - will always
     recompile sources.
@@ -346,21 +455,19 @@ def no_recompile(obg: str, src: str) -> bool:  # noqa: ARG001
     return True
 
 
-S = TypeVar("S", bound="ParallelCompile")
-
 CCompilerMethod = Callable[
     [
         distutils.ccompiler.CCompiler,
-        List[str],
+        list[str],
         Optional[str],
-        Optional[List[Union[Tuple[str], Tuple[str, Optional[str]]]]],
-        Optional[List[str]],
+        Optional[list[Union[tuple[str], tuple[str, Optional[str]]]]],
+        Optional[list[str]],
         bool,
-        Optional[List[str]],
-        Optional[List[str]],
-        Optional[List[str]],
+        Optional[list[str]],
+        Optional[list[str]],
+        Optional[list[str]],
     ],
-    List[str],
+    list[str],
 ]
 
 
@@ -405,7 +512,7 @@ class ParallelCompile:
     called.
     """
 
-    __slots__ = ("envvar", "default", "max", "_old", "needs_recompile")
+    __slots__ = ("_old", "default", "envvar", "max", "needs_recompile")
 
     def __init__(
         self,
@@ -485,16 +592,16 @@ class ParallelCompile:
 
         return compile_function
 
-    def install(self: S) -> S:
+    def install(self) -> Self:
         """
         Installs the compile function into distutils.ccompiler.CCompiler.compile.
         """
         distutils.ccompiler.CCompiler.compile = self.function()  # type: ignore[assignment]
         return self
 
-    def __enter__(self: S) -> S:
+    def __enter__(self) -> Self:
         self._old.append(distutils.ccompiler.CCompiler.compile)
         return self.install()
 
-    def __exit__(self, *args: Any) -> None:
+    def __exit__(self, *args: object) -> None:
         distutils.ccompiler.CCompiler.compile = self._old.pop()  # type: ignore[assignment]

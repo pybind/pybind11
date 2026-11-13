@@ -5,7 +5,7 @@
 # All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
-cmake_minimum_required(VERSION 3.15...4.0)
+cmake_minimum_required(VERSION 3.15...4.2)
 
 # Filter out items; print an optional message if any items filtered. This ignores extensions.
 #
@@ -71,6 +71,21 @@ option(DOWNLOAD_CATCH "Download catch2 if not found" OFF)
 option(DOWNLOAD_EIGEN "Download EIGEN" OFF)
 option(PYBIND11_CUDA_TESTS "Enable building CUDA tests" OFF)
 option(PYBIND11_TEST_SMART_HOLDER "Change the default to smart holder" OFF)
+option(PYBIND11_TEST_PRECOMPILE "Build the test modules against the precompiled library" OFF)
+option(PYBIND11_TEST_STABLE_ABI "Build the test modules for the stable ABI (Py_LIMITED_API)" OFF)
+
+if(PYBIND11_TEST_PRECOMPILE)
+  # Picked up by every pybind11_add_module() call below; any definition missing
+  # from the precompiled library shows up as a link error across the test modules.
+  set(PYBIND11_PRECOMPILE ON)
+endif()
+if(PYBIND11_TEST_STABLE_ABI)
+  # Picked up by every pybind11_add_module() call below.
+  set(PYBIND11_STABLE_ABI ON)
+endif()
+# These modules redefine PYBIND11_INTERNALS_VERSION inside their own TU, so they
+# cannot share the precompiled library.
+set(PYBIND11_NO_PRECOMPILE_TARGETS exo_planet_pybind11 cross_module_gil_utils)
 set(PYBIND11_TEST_OVERRIDE
     ""
     CACHE STRING "Tests from ;-separated list of *.cpp files will be built instead of all tests")
@@ -115,6 +130,7 @@ set(PYBIND11_TEST_FILES
     test_builtin_casters
     test_call_policies
     test_callbacks
+    test_chrono_second_tu.cpp
     test_chrono
     test_class
     test_class_cross_module_use_after_one_module_dealloc
@@ -167,11 +183,13 @@ set(PYBIND11_TEST_FILES
     test_operator_overloading
     test_pickling
     test_potentially_slicing_weak_ptr
+    test_pytorch_shared_ptr_cast_regression
     test_python_multiple_inheritance
     test_pytypes
     test_scoped_critical_section
     test_sequences_and_iterators
     test_smart_ptr
+    test_standalone_enum_module.py
     test_stl
     test_stl_binders
     test_tagbased_polymorphic
@@ -193,6 +211,10 @@ if(PYBIND11_TEST_OVERRIDE)
   # Instead of doing a direct override here, we iterate over the overrides without extension and
   # match them against entries from the PYBIND11_TEST_FILES, anything that not matches goes into the filter list.
   string(REGEX REPLACE "\\.[^.;]*;" ";" TEST_OVERRIDE_NO_EXT "${PYBIND11_TEST_OVERRIDE};")
+  # test_chrono.py imports the module built from this second translation unit.
+  if(test_chrono IN_LIST TEST_OVERRIDE_NO_EXT)
+    list(APPEND TEST_OVERRIDE_NO_EXT test_chrono_second_tu)
+  endif()
   string(REGEX REPLACE "\\.[^.;]*;" ";" TEST_FILES_NO_EXT "${PYBIND11_TEST_FILES};")
   # This allows the override to be done with extensions, preserving backwards compatibility.
   foreach(test_name ${TEST_FILES_NO_EXT})
@@ -206,6 +228,17 @@ endif()
 # You can also filter tests:
 if(PYBIND11_TEST_FILTER)
   pybind11_filter_tests(PYBIND11_TEST_FILES ${PYBIND11_TEST_FILTER})
+endif()
+
+# Features that are not available under the stable ABI (see docs/advanced/stable_abi.rst).
+if(PYBIND11_TEST_STABLE_ABI)
+  pybind11_filter_tests(
+    PYBIND11_TEST_FILES
+    test_custom_type_setup.cpp
+    test_multiple_interpreters.py
+    test_class_release_gil_before_calling_cpp_dtor.cpp # PyGILState_Check
+    MESSAGE
+    "Skipping custom_type_setup, subinterpreter and PyGILState_Check tests under the stable ABI")
 endif()
 
 # Skip tests for CUDA check:
@@ -245,10 +278,12 @@ tests_extra_targets(
   "pybind11_cross_module_tests")
 
 # And add additional targets for other tests.
-tests_extra_targets("test_exceptions.py" "cross_module_interleaved_error_already_set")
+tests_extra_targets("test_exceptions.py"
+                    "cross_module_interleaved_error_already_set;mod_concurrent_import")
 tests_extra_targets("test_gil_scoped.py" "cross_module_gil_utils")
 tests_extra_targets("test_cpp_conduit.py"
                     "exo_planet_pybind11;exo_planet_c_api;home_planet_very_lonely_traveler")
+tests_extra_targets("test_standalone_enum_module.py" "standalone_enum_module")
 
 set(PYBIND11_EIGEN_REPO
     "https://gitlab.com/libeigen/eigen.git"
@@ -297,10 +332,17 @@ if(PYBIND11_TEST_FILES_EIGEN_I GREATER -1)
 
   else()
     find_package(Eigen3 3.2.7 QUIET CONFIG)
+    if(NOT Eigen3_FOUND)
+      find_package(Eigen3 5 QUIET CONFIG)
+    endif()
+    set(EIGEN3_FOUND ${Eigen3_FOUND})
+    set(EIGEN3_VERSION ${Eigen3_VERSION})
 
     if(NOT EIGEN3_FOUND)
       # Couldn't load via target, so fall back to allowing module mode finding, which will pick up
       # tools/FindEigen3.cmake
+      # This MODULE-mode fallback is for older Eigen 3 setups; Eigen 5 is expected to be found
+      # via the CONFIG-mode probes above.
       find_package(Eigen3 3.2.7 QUIET)
     endif()
   endif()
@@ -409,14 +451,12 @@ function(pybind11_enable_warnings target_name)
       ${target_name}
       PRIVATE -Wall
               -Wextra
+              -Wpedantic
               -Wconversion
               -Wcast-qual
               -Wdeprecated
               -Wundef
               -Wnon-virtual-dtor)
-    if(DEFINED CMAKE_CXX_STANDARD AND NOT CMAKE_CXX_STANDARD VERSION_LESS 20)
-      target_compile_options(${target_name} PRIVATE -Wpedantic)
-    endif()
   endif()
 
   if(PYBIND11_WERROR)
@@ -475,8 +515,14 @@ foreach(target ${test_targets})
     set_property(SOURCE ${target}.cpp PROPERTY LANGUAGE CUDA)
   endif()
 
+  set(no_precompile_arg "")
+  if("${target}" IN_LIST PYBIND11_NO_PRECOMPILE_TARGETS)
+    set(no_precompile_arg NO_PRECOMPILE)
+  endif()
+
   # Create the binding library
-  pybind11_add_module(${target} THIN_LTO ${target}.cpp ${test_files} ${PYBIND11_HEADERS})
+  pybind11_add_module(${target} THIN_LTO ${no_precompile_arg} ${target}.cpp ${test_files}
+                      ${PYBIND11_HEADERS})
   pybind11_enable_warnings(${target})
 
   if(NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
@@ -538,6 +584,27 @@ foreach(target ${test_targets})
   endif()
 endforeach()
 
+if(PYBIND11_TEST_STABLE_ABI)
+  # ${_Python}::Module is the version-specific library on Windows. A stable ABI module must not
+  # link it, also not through pybind11::precompiled.
+  get_target_property(_todo pybind11_tests LINK_LIBRARIES)
+  set(_linked "")
+  while(_todo)
+    list(POP_FRONT _todo _item)
+    string(REGEX REPLACE "^\\$<LINK_ONLY:(.*)>$" "\\1" _item "${_item}")
+    if(TARGET "${_item}" AND NOT "${_item}" IN_LIST _linked)
+      list(APPEND _linked "${_item}")
+      get_target_property(_libs "${_item}" INTERFACE_LINK_LIBRARIES)
+      if(_libs)
+        list(APPEND _todo ${_libs})
+      endif()
+    endif()
+  endwhile()
+  if("${_Python}::Module" IN_LIST _linked)
+    message(FATAL_ERROR "pybind11_tests links ${_Python}::Module in a stable ABI build")
+  endif()
+endif()
+
 # Provide nice organisation in IDEs
 source_group(
   TREE "${CMAKE_CURRENT_SOURCE_DIR}/../include"
@@ -545,7 +612,9 @@ source_group(
   FILES ${PYBIND11_HEADERS})
 
 # Make sure pytest is found or produce a warning
-pybind11_find_import(pytest VERSION 3.1)
+if(NOT CMAKE_CROSSCOMPILING)
+  pybind11_find_import(pytest VERSION 3.1)
+endif()
 
 if(NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
   # This is not used later in the build, so it's okay to regenerate each time.
@@ -577,25 +646,47 @@ add_custom_target(
   WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
   USES_TERMINAL)
 
-if(NOT PYBIND11_CUDA_TESTS)
-  # This module doesn't get mixed with other test modules because those aren't subinterpreter safe.
-  pybind11_add_module(mod_per_interpreter_gil THIN_LTO mod_per_interpreter_gil.cpp)
-  pybind11_add_module(mod_shared_interpreter_gil THIN_LTO mod_shared_interpreter_gil.cpp)
-  set_target_properties(mod_per_interpreter_gil PROPERTIES LIBRARY_OUTPUT_DIRECTORY
-                                                           "$<1:${CMAKE_CURRENT_BINARY_DIR}>")
-  set_target_properties(mod_shared_interpreter_gil PROPERTIES LIBRARY_OUTPUT_DIRECTORY
-                                                              "$<1:${CMAKE_CURRENT_BINARY_DIR}>")
-  if(PYBIND11_TEST_SMART_HOLDER)
-    target_compile_definitions(
-      mod_per_interpreter_gil
-      PUBLIC -DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE
-    )
-    target_compile_definitions(
-      mod_shared_interpreter_gil
-      PUBLIC -DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE
-    )
+if(NOT PYBIND11_CUDA_TESTS AND NOT PYBIND11_TEST_STABLE_ABI)
+  set(PYBIND11_MULTIPLE_INTERPRETERS_TEST_MODULES
+      mod_per_interpreter_gil mod_shared_interpreter_gil mod_per_interpreter_gil_with_singleton)
+
+  # These modules don't get mixed with other test modules because those aren't subinterpreter safe.
+  foreach(mod IN LISTS PYBIND11_MULTIPLE_INTERPRETERS_TEST_MODULES)
+    pybind11_add_module("${mod}" THIN_LTO "${mod}.cpp")
+    pybind11_enable_warnings("${mod}")
+  endforeach()
+
+  # Put the built modules next to `pybind11_tests.so` so that the test scripts can find them.
+  get_target_property(pybind11_tests_output_directory pybind11_tests LIBRARY_OUTPUT_DIRECTORY)
+  foreach(mod IN LISTS PYBIND11_MULTIPLE_INTERPRETERS_TEST_MODULES)
+    set_target_properties("${mod}" PROPERTIES LIBRARY_OUTPUT_DIRECTORY
+                                              "${pybind11_tests_output_directory}")
+    # Also set config-specific output directories for multi-configuration generators (MSVC)
+    if(DEFINED CMAKE_CONFIGURATION_TYPES)
+      foreach(config ${CMAKE_CONFIGURATION_TYPES})
+        string(TOUPPER ${config} config)
+        set_target_properties("${mod}" PROPERTIES LIBRARY_OUTPUT_DIRECTORY_${config}
+                                                  "${pybind11_tests_output_directory}")
+      endforeach()
+    endif()
+  endforeach()
+
+  if(SKBUILD)
+    foreach(mod IN LISTS PYBIND11_MULTIPLE_INTERPRETERS_TEST_MODULES)
+      install(TARGETS "${mod}" LIBRARY DESTINATION .)
+    endforeach()
   endif()
-  add_dependencies(pytest mod_per_interpreter_gil mod_shared_interpreter_gil)
+
+  if(PYBIND11_TEST_SMART_HOLDER)
+    foreach(mod IN LISTS PYBIND11_MULTIPLE_INTERPRETERS_TEST_MODULES)
+      target_compile_definitions(
+        "${mod}"
+        PUBLIC
+          -DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE)
+    endforeach()
+  endif()
+
+  add_dependencies(pytest ${PYBIND11_MULTIPLE_INTERPRETERS_TEST_MODULES})
 endif()
 
 if(PYBIND11_TEST_OVERRIDE)
@@ -650,7 +741,12 @@ if(NOT PYBIND11_CUDA_TESTS)
   add_subdirectory(pure_cpp)
 
   # Test C++ code that depends on Python, such as embedding the interpreter. Provides the `cpptest` target.
-  add_subdirectory(test_with_catch)
+  if(PYBIND11_TEST_STABLE_ABI)
+    message(STATUS "Skipping embed tests under the stable ABI")
+    add_custom_target(cpptest) # Dummy target: embed.h is not available under Py_LIMITED_API.
+  else()
+    add_subdirectory(test_with_catch)
+  endif()
 
   # Test CMake build using functions and targets from subdirectory or installed location
   add_subdirectory(test_cmake_build)

@@ -65,6 +65,20 @@ struct ConvertibleFromAnything {
     ConvertibleFromAnything(T &&) {}
 };
 
+template <int I>
+struct NamedClass {};
+
+template <int I, typename... Extra>
+py::class_<NamedClass<I>>
+bind_named_class(py::handle scope, const char *name, const Extra &...extra) {
+    return py::class_<NamedClass<I>>(scope, name, extra...)
+        .def(py::init<>())
+        .def(
+            "echo",
+            [](NamedClass<I> &self) -> NamedClass<I> & { return self; },
+            py::return_value_policy::reference);
+}
+
 } // namespace test_class
 
 static_assert(py::detail::is_same_or_base_of<py::args, py::args>::value, "");
@@ -76,6 +90,27 @@ static_assert(!py::detail::is_same_or_base_of<
                   py::args,
                   test_class::pr5396_forward_declared_class::ForwardClass>::value,
               "");
+
+// test_new_bypasses_init
+struct NewNoInit {
+    int m_data;
+    explicit NewNoInit(int data) : m_data(data) {}
+    NewNoInit(const NewNoInit &) = default;
+    virtual ~NewNoInit() = default;
+    int data() const { return m_data; }
+    // Virtual on purpose: using a not-yet-constructed instance reads the vtable pointer out of
+    // uninitialized storage, which segfaults rather than merely returning a garbage value.
+    virtual int v_data() const { return m_data; }
+};
+
+// test_failed_old_style_init_does_not_leave_lazy_storage
+struct OldStyleInit {
+    int m_data;
+    explicit OldStyleInit(int data) : m_data(data) {}
+    virtual ~OldStyleInit() = default;
+    int data() const { return m_data; }
+    virtual int v_data() const { return m_data; }
+};
 
 TEST_SUBMODULE(class_, m) {
     m.def("obj_class_name", [](py::handle obj) { return py::detail::obj_class_name(obj.ptr()); });
@@ -104,6 +139,10 @@ TEST_SUBMODULE(class_, m) {
         ~NoConstructorNew() { print_destroyed(this); }
     };
 
+    struct DynamicAttr {
+        DynamicAttr() = default;
+    };
+
     py::class_<NoConstructor>(m, "NoConstructor")
         .def_static("new_instance", &NoConstructor::new_instance, "Return an instance");
 
@@ -111,6 +150,8 @@ TEST_SUBMODULE(class_, m) {
         .def(py::init([]() { return nullptr; })) // Need a NOOP __init__
         .def_static("__new__",
                     [](const py::object &) { return NoConstructorNew::new_instance(); });
+
+    py::class_<DynamicAttr>(m, "DynamicAttr", py::dynamic_attr()).def(py::init<>());
 
     // test_pass_unique_ptr
     struct ToBeHeldByUniquePtr {};
@@ -495,6 +536,30 @@ TEST_SUBMODULE(class_, m) {
     base.def("g", [](NestBase &, Nested &) {});
     base.def("h", []() { return NestBase(); });
 
+    // test_class_names_match_type
+    auto names = m.def_submodule("class_names");
+    using test_class::bind_named_class;
+    bind_named_class<0>(names, "Simple");
+    bind_named_class<1>(names, "a.b");
+    bind_named_class<2>(names, "a.b.c");
+    bind_named_class<3>(names, "a[b]");
+    auto dotted = bind_named_class<4>(names, "a[b.c]");
+    bind_named_class<5>(names, "a.b[c]");
+    bind_named_class<6>(base, "a[b.c]");
+    bind_named_class<7>(dotted, "Child");
+#if !defined(Py_LIMITED_API)
+    auto custom = names.def_submodule("custom");
+    bind_named_class<8>(custom, "a[b.c]", py::custom_type_setup([](PyHeapTypeObject *) {}));
+#endif
+    names.def("bind_with_metaclass",
+              [](py::handle scope, py::handle nested_scope, const py::object &metaclass) {
+                  auto module_class
+                      = bind_named_class<9>(scope, "Frozen[pkg.Value]", py::metaclass(metaclass));
+                  auto nested_class = bind_named_class<10>(
+                      nested_scope, "FrozenInner", py::metaclass(metaclass));
+                  return py::make_tuple(py::object(module_class), py::object(nested_class));
+              });
+
     // test_error_after_conversion
     // The second-pass path through dispatcher() previously didn't
     // remember which overload was used, and would crash trying to
@@ -510,7 +575,8 @@ TEST_SUBMODULE(class_, m) {
     py::class_<StringWrapper>(m, "StringWrapper").def(py::init<std::string>());
     py::implicitly_convertible<std::string, StringWrapper>();
 
-#if defined(PYBIND11_CPP17)
+#if (defined(__cpp_aligned_new) && __cpp_aligned_new >= 201606L)                                  \
+    || (defined(__INTEL_COMPILER) && __cplusplus >= 201703L)
     struct alignas(1024) Aligned {
         std::uintptr_t ptr() const { return (uintptr_t) this; }
     };
@@ -590,6 +656,39 @@ TEST_SUBMODULE(class_, m) {
     m.def("return_universal_recipient", []() -> test_class::ConvertibleFromAnything {
         return test_class::ConvertibleFromAnything{};
     });
+
+    py::class_<NewNoInit>(m, "NewNoInit")
+        .def(py::init<int>())
+        .def("data", &NewNoInit::data)
+        .def("v_data", &NewNoInit::v_data)
+        .def(py::pickle([](const NewNoInit &p) { return py::make_tuple(p.m_data); },
+                        [](const py::tuple &t) {
+                            if (t.size() != 1) {
+                                throw std::runtime_error("Invalid state!");
+                            }
+                            return NewNoInit(t[0].cast<int>());
+                        }));
+
+    py::class_<OldStyleInit> old_style_init(m, "OldStyleInit");
+    ignoreOldStyleInitWarnings([&old_style_init]() {
+        old_style_init
+            .def("__init__",
+                 [](OldStyleInit &self, int x) {
+                     if (x < 0) {
+                         throw std::runtime_error("negative data");
+                     }
+                     new (&self) OldStyleInit(x);
+                 })
+            .def("__setstate__", [](const py::object &self, int x) {
+                auto &typed_self = self.cast<OldStyleInit &>();
+                new (&typed_self) OldStyleInit(x);
+            });
+    });
+    old_style_init.def("data", &OldStyleInit::data).def("v_data", &OldStyleInit::v_data);
+    // This probe intentionally does not dereference the pointer. It documents the narrow scope of
+    // this fix without itself reading storage before an OldStyleInit lifetime has begun.
+    m.def("expose_old_style_init_pointer", [](OldStyleInit *value) { return value != nullptr; });
+    m.def("expose_new_no_init_pointer", [](NewNoInit *value) { return value != nullptr; });
 }
 
 template <int N>

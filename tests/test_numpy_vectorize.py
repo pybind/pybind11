@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+from pybind11_tests import defined___cpp_noexcept_function_type
 from pybind11_tests import numpy_vectorize as m
 
 np = pytest.importorskip("numpy")
@@ -211,11 +212,11 @@ def test_passthrough_arguments(doc):
         "vec_passthrough("
         + ", ".join(
             [
-                "arg0: typing.SupportsFloat",
+                "arg0: typing.SupportsFloat | typing.SupportsIndex",
                 "arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]",
                 "arg2: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]",
                 "arg3: typing.Annotated[numpy.typing.ArrayLike, numpy.int32]",
-                "arg4: typing.SupportsInt",
+                "arg4: typing.SupportsInt | typing.SupportsIndex",
                 "arg5: m.numpy_vectorize.NonPODClass",
                 "arg6: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]",
             ]
@@ -244,6 +245,56 @@ def test_method_vectorization():
     x = np.array([1, 2], dtype="int")
     y = np.array([[10], [20]], dtype="float32")
     assert np.all(o.method(x, y) == [[14, 15], [24, 25]])
+
+
+def test_ref_qualified_method_vectorization():
+    """Test issue #2234 follow-up: vectorize with lvalue-ref-qualified member pointers.
+
+    Covers:
+      - vectorize(Return (Class::*)(Args...) &)
+      - vectorize(Return (Class::*)(Args...) const &)
+      - vectorize(Return (Class::*)(Args...) & noexcept)
+      - vectorize(Return (Class::*)(Args...) const & noexcept)
+    """
+    o = m.VectorizeTestClass(3)
+    x = np.array([1, 2], dtype="int")
+    y = np.array([[10], [20]], dtype="float32")
+    assert np.all(o.method_lref(x, y) == [[14, 15], [24, 25]])
+    assert np.all(o.method_const_lref(x, y) == [[14, 15], [24, 25]])
+
+
+@pytest.mark.skipif(
+    not defined___cpp_noexcept_function_type,
+    reason="Requires __cpp_noexcept_function_type",
+)
+def test_noexcept_ref_qualified_method_vectorization():
+    """Test issue #2234 follow-up: vectorize with noexcept lvalue-ref-qualified member pointers.
+
+    Covers:
+      - vectorize(Return (Class::*)(Args...) & noexcept)
+      - vectorize(Return (Class::*)(Args...) const & noexcept)
+    """
+    o = m.VectorizeTestClass(3)
+    x = np.array([1, 2], dtype="int")
+    y = np.array([[10], [20]], dtype="float32")
+    assert np.all(o.method_lref_noexcept(x, y) == [[14, 15], [24, 25]])
+    assert np.all(o.method_const_lref_noexcept(x, y) == [[14, 15], [24, 25]])
+
+
+def test_noexcept_method_vectorization():
+    """Test issue #2234: vectorize must handle noexcept member function pointers.
+
+    Covers both new vectorize specialisations:
+      - vectorize(Return (Class::*)(Args...) noexcept)
+      - vectorize(Return (Class::*)(Args...) const noexcept)
+    """
+    o = m.VectorizeTestClass(3)
+    x = np.array([1, 2], dtype="int")
+    y = np.array([[10], [20]], dtype="float32")
+    # vectorize(Return (Class::*)(Args...) noexcept)
+    assert np.all(o.method_noexcept(x, y) == [[14, 15], [24, 25]])
+    # vectorize(Return (Class::*)(Args...) const noexcept)
+    assert np.all(o.method_const_noexcept(x, y) == [[14, 15], [24, 25]])
 
 
 def test_array_collapse():

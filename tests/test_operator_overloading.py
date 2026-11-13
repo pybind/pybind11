@@ -88,9 +88,6 @@ def test_operator_overloading():
     assert cstats.move_assignments == 0
 
 
-@pytest.mark.xfail(
-    env.GRAALPY and env.GRAALPY_VERSION < (24, 2), reason="Fixed in GraalPy 24.2"
-)
 def test_operators_notimplemented():
     """#393: need to return NotSupported to ensure correct arithmetic operator behavior"""
 

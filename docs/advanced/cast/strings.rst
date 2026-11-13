@@ -280,6 +280,8 @@ expressed as a single Unicode code point
 no way to capture them in a C++ character type.
 
 
+.. _string_view_lifetime:
+
 C++17 string views
 ==================
 
@@ -288,6 +290,30 @@ They follow the same rules for encoding and decoding as the corresponding STL
 string type (for example, a ``std::u16string_view`` argument will be passed
 UTF-16-encoded data, and a returned ``std::string_view`` will be decoded as
 UTF-8).
+
+A string view does not own its character data. When a view is loaded as an
+argument to a pybind11-bound function, pybind11 keeps the Python object that
+provides the data alive until the function returns. This also applies to views
+nested in automatically converted STL containers. The C++ function must not
+retain any such view after it returns unless it separately guarantees that the
+backing storage remains alive and valid.
+
+Lifetime support keeps the Python object alive, but does not prevent its storage
+from being invalidated. For example, if C++ releases the GIL or calls back into
+Python, resizing a backing ``bytearray`` while the view is in use can invalidate
+the view.
+
+A direct Python-to-C++ :func:`py::cast` made when no bound-function call is
+active has no such lifetime support. When a cast to a non-owning view succeeds,
+the caller must keep the backing Python object alive, with its storage
+unchanged, for as long as the view is used. For a container of views, this
+requirement applies to every element: retain the elements directly or through
+an unmodified owning container, and do not cast an iterable that creates
+temporary elements.
+
+Some view conversions require temporary backing storage, for example to encode
+text. Outside a bound-function call, such conversions raise
+:class:`cast_error` instead of returning a dangling view.
 
 References
 ==========

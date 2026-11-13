@@ -20,24 +20,29 @@
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
-PYBIND11_NAMESPACE_BEGIN(detail)
-inline PyInterpreterState *get_interpreter_state_unchecked() {
-    auto cur_tstate = get_thread_state_unchecked();
-    if (cur_tstate)
-        return cur_tstate->interp;
-    else
-        return nullptr;
-}
-PYBIND11_NAMESPACE_END(detail)
 
 class subinterpreter;
+class subinterpreter_thread_state;
 
 /// Activate the subinterpreter and acquire its GIL, while also releasing any GIL and interpreter
 /// currently held. Upon exiting the scope, the previous subinterpreter (if any) and its
 /// associated GIL are restored to their state as they were before the scope was entered.
+///
+/// Two construction modes are supported:
+///
+/// 1. `subinterpreter_scoped_activate(subinterpreter const &)`:
+///    Transient mode (the default).  A fresh PyThreadState is created on entry and destroyed on
+///    exit.  This is the established behavior; existing code is unaffected.
+///
+/// 2. `subinterpreter_scoped_activate(subinterpreter_thread_state &)`:
+///    Reuse mode.  The PyThreadState owned by the given subinterpreter_thread_state is swapped
+///    in on entry and swapped out (but NOT destroyed) on exit, so repeated activations on the
+///    same OS thread reuse the same PyThreadState and preserve its per-thread interpreter state.
+///    Use this when a single OS thread re-enters one or more subinterpreters many times.
 class subinterpreter_scoped_activate {
 public:
     explicit subinterpreter_scoped_activate(subinterpreter const &si);
+    explicit subinterpreter_scoped_activate(subinterpreter_thread_state &ts);
     ~subinterpreter_scoped_activate();
 
     subinterpreter_scoped_activate(subinterpreter_scoped_activate &&) = delete;
@@ -50,6 +55,9 @@ private:
     PyThreadState *tstate_ = nullptr;
     PyGILState_STATE gil_state_;
     bool simple_gil_ = false;
+    // When true, tstate_ is owned by a subinterpreter_thread_state and must NOT be destroyed
+    // when this scope exits (only swapped out).
+    bool borrowed_ = false;
 };
 
 /// Holds a Python subinterpreter instance
@@ -76,15 +84,18 @@ public:
     /// Create a new subinterpreter with the specified configuration
     /// @note This function acquires (and then releases) the main interpreter GIL, but the main
     /// interpreter and its GIL are not required to be held prior to calling this function.
-    static inline subinterpreter create(PyInterpreterConfig const &cfg) {
+    static subinterpreter create(PyInterpreterConfig const &cfg) {
 
-        error_scope err_scope;
         subinterpreter result;
         {
             // we must hold the main GIL in order to create a subinterpreter
             subinterpreter_scoped_activate main_guard(main());
 
-            auto prev_tstate = PyThreadState_Get();
+            // error_scope reads and writes the *current* thread state, so it must be constructed
+            // only after main_guard has attached one (see PR #6127 for details).
+            error_scope err_scope;
+
+            auto *prev_tstate = PyThreadState_Get();
 
             PyStatus status;
 
@@ -103,13 +114,13 @@ public:
             }
 
             // this doesn't raise a normal Python exception, it provides an exit() status code.
-            if (PyStatus_Exception(status)) {
+            if (PyStatus_Exception(status) != 0) {
                 pybind11_fail("failed to create new sub-interpreter");
             }
 
             // upon success, the new interpreter is activated in this thread
-            result.istate_ = result.creation_tstate_->interp;
-            detail::get_num_interpreters_seen() += 1; // there are now many interpreters
+            result.istate_ = detail::get_interpreter(result.creation_tstate_);
+            detail::has_seen_non_main_interpreter() = true;
             detail::get_internals(); // initialize internals.tstate, amongst other things...
 
             // In 3.13+ this state should be deleted right away, and the memory will be reused for
@@ -128,7 +139,7 @@ public:
 
     /// Calls create() with a default configuration of an isolated interpreter that disallows fork,
     /// exec, and Python threads.
-    static inline subinterpreter create() {
+    static subinterpreter create() {
         // same as the default config in the python docs
         PyInterpreterConfig cfg;
         std::memset(&cfg, 0, sizeof(cfg));
@@ -144,8 +155,8 @@ public:
             return;
         }
 
-        PyThreadState *destroy_tstate;
-        PyThreadState *old_tstate;
+        PyThreadState *destroy_tstate = nullptr;
+        PyThreadState *old_tstate = nullptr;
 
         // Python 3.12 requires us to keep the original PyThreadState alive until we are ready to
         // destroy the interpreter.  We prefer to use that to destroy the interpreter.
@@ -173,7 +184,8 @@ public:
         old_tstate = PyThreadState_Swap(destroy_tstate);
 #endif
 
-        bool switch_back = old_tstate && old_tstate->interp != istate_;
+        bool switch_back
+            = (old_tstate != nullptr) && detail::get_interpreter(old_tstate) != istate_;
 
         // Internals always exists in the subinterpreter, this class enforces it when it creates
         // the subinterpreter. Even if it didn't, this only creates the pointer-to-pointer, not the
@@ -190,8 +202,9 @@ public:
         detail::get_local_internals_pp_manager().destroy();
 
         // switch back to the old tstate and old GIL (if there was one)
-        if (switch_back)
+        if (switch_back) {
             PyThreadState_Swap(old_tstate);
+        }
     }
 
     /// Get a handle to the main interpreter that can be used with subinterpreter_scoped_activate
@@ -207,18 +220,18 @@ public:
     /// Get a non-owning wrapper of the currently active interpreter (if any)
     static subinterpreter current() {
         subinterpreter c;
-        c.istate_ = detail::get_interpreter_state_unchecked();
+        c.istate_ = detail::get_current_interpreter_state();
         c.disarm(); // make destruct a noop, we don't own this...
         return c;
     }
 
     /// Get the numerical identifier for the sub-interpreter
     int64_t id() const {
-        if (istate_ != nullptr)
+        if (istate_ != nullptr) {
             return PyInterpreterState_GetID(istate_);
-        else
-            return -1; // CPython uses one-up numbers from 0, so negative should be safe to return
-                       // here.
+        }
+        return -1; // CPython uses one-up numbers from 0, so negative should be safe to return
+                   // here.
     }
 
     /// Get the interpreter's state dict.  This interpreter's GIL must be held before calling!
@@ -236,8 +249,69 @@ public:
 
 private:
     friend class subinterpreter_scoped_activate;
+    friend class subinterpreter_thread_state;
     PyInterpreterState *istate_ = nullptr;
     PyThreadState *creation_tstate_ = nullptr;
+};
+
+/// RAII wrapper that owns a PyThreadState bound to a specific subinterpreter on the OS thread
+/// that constructed it.  Intended to be held long-lived (e.g. as a `thread_local`, or inside a
+/// per-thread struct) so that many subinterpreter_scoped_activate scopes on the same OS thread
+/// can reuse a single PyThreadState instead of creating and destroying one each time.
+///
+/// The PyThreadState is created on construction in a *released* state: it is NOT made current,
+/// and no GIL is acquired.  Activation is the job of subinterpreter_scoped_activate.
+///
+/// A single OS thread can hold one of these per subinterpreter and alternate between them via
+/// subinterpreter_scoped_activate without churning PyThreadState objects.
+///
+/// Lifetime / threading requirements:
+///
+/// - Construction and destruction must happen on the SAME OS thread (a PyThreadState is bound
+///   to the OS thread that created it; deleting it on a different thread is undefined behavior).
+/// - The owning subinterpreter must still be alive when this object is destroyed.
+/// - This object must NOT be destroyed while a subinterpreter_scoped_activate referring to it is
+///   still alive (the activator holds a reference into it).
+///
+/// Typical usage:
+///
+/// @code
+///   thread_local py::subinterpreter_thread_state ts(sub);
+///   {
+///       py::subinterpreter_scoped_activate guard(ts);   // swap-in only
+///       // ... use the subinterpreter ...
+///   }                                                    // swap-out, tstate kept alive
+///   {
+///       py::subinterpreter_scoped_activate guard(ts);   // reuses the same PyThreadState
+///       // ...
+///   }
+/// @endcode
+class subinterpreter_thread_state {
+public:
+    /// Create a PyThreadState for `si` on the calling OS thread.  The new state is left in a
+    /// released state (not current, no GIL acquired).
+    explicit subinterpreter_thread_state(subinterpreter const &si);
+
+    /// Destroy the owned PyThreadState.  Must run on the same OS thread that constructed this
+    /// object, while the owning subinterpreter is still alive, and while no
+    /// subinterpreter_scoped_activate referring to this object is alive.
+    ~subinterpreter_thread_state();
+
+    subinterpreter_thread_state(subinterpreter_thread_state const &) = delete;
+    subinterpreter_thread_state(subinterpreter_thread_state &&) = delete;
+    subinterpreter_thread_state &operator=(subinterpreter_thread_state const &) = delete;
+    subinterpreter_thread_state &operator=(subinterpreter_thread_state &&) = delete;
+
+    /// The interpreter this thread state belongs to.
+    PyInterpreterState *interpreter_state() const { return istate_; }
+
+    /// The owned PyThreadState pointer; valid for the lifetime of this object.
+    PyThreadState *raw_thread_state() const { return tstate_; }
+
+private:
+    friend class subinterpreter_scoped_activate;
+    PyThreadState *tstate_ = nullptr;
+    PyInterpreterState *istate_ = nullptr;
 };
 
 class scoped_subinterpreter {
@@ -252,12 +326,14 @@ private:
     subinterpreter_scoped_activate scope_;
 };
 
+// --- subinterpreter_scoped_activate -----------------------------------------------------------
+
 inline subinterpreter_scoped_activate::subinterpreter_scoped_activate(subinterpreter const &si) {
     if (!si.istate_) {
         pybind11_fail("null subinterpreter");
     }
 
-    if (detail::get_interpreter_state_unchecked() == si.istate_) {
+    if (detail::get_current_interpreter_state() == si.istate_) {
         // we are already on this interpreter, make sure we hold the GIL
         simple_gil_ = true;
         gil_state_ = PyGILState_Ensure();
@@ -267,6 +343,47 @@ inline subinterpreter_scoped_activate::subinterpreter_scoped_activate(subinterpr
     // we can't really interact with the interpreter at all until we switch to it
     // not even to, for example, look in its state dict or touch its internals
     tstate_ = PyThreadState_New(si.istate_);
+
+    // make the interpreter active and acquire the GIL
+    old_tstate_ = PyThreadState_Swap(tstate_);
+
+    // save this in internals for scoped_gil calls (see also: PR #5870)
+    detail::get_internals().tstate = tstate_;
+}
+
+inline subinterpreter_scoped_activate::subinterpreter_scoped_activate(
+    subinterpreter_thread_state &ts) {
+    if (ts.tstate_ == nullptr) {
+        pybind11_fail("subinterpreter_scoped_activate: empty subinterpreter_thread_state");
+    }
+
+    if (detail::get_current_interpreter_state() == ts.istate_) {
+        // We are already on this interpreter -- e.g. nested activation, or a different
+        // PyThreadState for the same interpreter is already current on this thread.  Match the
+        // fast path of the (subinterpreter const&) overload: just ensure the GIL is held.  The
+        // `ts` argument's PyThreadState is intentionally NOT swapped to here; the already-current
+        // tstate keeps being used until the outer scope exits.
+        simple_gil_ = true;
+        gil_state_ = PyGILState_Ensure();
+        return;
+    }
+
+#if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
+    {
+        // A PyThreadState is bound to its creating OS thread; it may only be activated there.
+        bool same_thread = true;
+#    ifdef PY_HAVE_THREAD_NATIVE_ID
+        same_thread = PyThread_get_thread_native_id() == ts.tstate_->native_thread_id;
+#    endif
+        if (!same_thread) {
+            pybind11_fail("subinterpreter_scoped_activate: a subinterpreter_thread_state must be "
+                          "activated on the same OS thread that constructed it!");
+        }
+    }
+#endif
+
+    tstate_ = ts.tstate_;
+    borrowed_ = true;
 
     // make the interpreter active and acquire the GIL
     old_tstate_ = PyThreadState_Swap(tstate_);
@@ -287,12 +404,62 @@ inline subinterpreter_scoped_activate::~subinterpreter_scoped_activate() {
             }
 #endif
             detail::get_internals().tstate.reset();
-            PyThreadState_Clear(tstate_);
-            PyThreadState_DeleteCurrent();
+            if (!borrowed_) {
+                PyThreadState_Clear(tstate_);
+                PyThreadState_DeleteCurrent();
+            }
+            // When borrowed_, tstate_ stays alive in its owning subinterpreter_thread_state for
+            // reuse; the PyThreadState_Swap below merely detaches it from this thread.
         }
 
         // Go back the previous interpreter (if any) and acquire THAT gil
         PyThreadState_Swap(old_tstate_);
+    }
+}
+
+// --- subinterpreter_thread_state --------------------------------------------------------------
+
+inline subinterpreter_thread_state::subinterpreter_thread_state(subinterpreter const &si) {
+    if (!si.istate_) {
+        pybind11_fail("subinterpreter_thread_state: null subinterpreter");
+    }
+    istate_ = si.istate_;
+    // PyThreadState_New does not require holding any GIL and does not make the new state current.
+    tstate_ = PyThreadState_New(istate_);
+    if (tstate_ == nullptr) {
+        pybind11_fail("subinterpreter_thread_state: PyThreadState_New returned null");
+    }
+}
+
+inline subinterpreter_thread_state::~subinterpreter_thread_state() {
+    if (tstate_ == nullptr) {
+        return;
+    }
+#if defined(PYBIND11_DETAILED_ERROR_MESSAGES)
+    {
+        // A PyThreadState must be cleared and deleted on the OS thread that created it.
+        bool same_thread = true;
+#    ifdef PY_HAVE_THREAD_NATIVE_ID
+        same_thread = PyThread_get_thread_native_id() == tstate_->native_thread_id;
+#    endif
+        if (!same_thread) {
+            pybind11_fail("~subinterpreter_thread_state: must be destroyed on the same OS thread "
+                          "that constructed it!");
+        }
+    }
+#endif
+    // The PyThreadState must be made current to be cleared and deleted on the owning OS thread.
+    // Swap it in (which acquires the subinterpreter's GIL), clear+delete, then restore whatever
+    // was active before.
+    PyThreadState *prev = PyThreadState_Swap(tstate_);
+    PyThreadState_Clear(tstate_);
+    PyThreadState_DeleteCurrent();
+    // If `prev` is tstate_ itself, the user destroyed this object while it was active via a
+    // subinterpreter_scoped_activate -- a contract violation, but be defensive: do NOT swap back
+    // to a now-deleted pointer.  Leaving the thread with no current interpreter is consistent
+    // with the cached state having just been destroyed.
+    if (prev != nullptr && prev != tstate_) {
+        PyThreadState_Swap(prev);
     }
 }
 

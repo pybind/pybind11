@@ -1,21 +1,24 @@
 from __future__ import annotations
 
-import datetime
+import datetime as dt
+import sys
+import time
 
 import pytest
 
-import env  # noqa: F401
+import env
 from pybind11_tests import chrono as m
+from pybind11_tests import chrono_second_tu as m2
 
 
 def test_chrono_system_clock():
     # Get the time from both c++ and datetime
-    date0 = datetime.datetime.today()
+    date0 = dt.datetime.today()
     date1 = m.test_chrono1()
-    date2 = datetime.datetime.today()
+    date2 = dt.datetime.today()
 
     # The returned value should be a datetime
-    assert isinstance(date1, datetime.datetime)
+    assert isinstance(date1, dt.datetime)
 
     # The numbers should vary by a very small amount (time it took to execute)
     diff_python = abs(date2 - date0)
@@ -24,27 +27,61 @@ def test_chrono_system_clock():
     # There should never be a days difference
     assert diff.days == 0
 
-    # Since datetime.datetime.today() calls time.time(), and on some platforms
+    # Since dt.datetime.today() calls time.time(), and on some platforms
     # that has 1 second accuracy, we compare this way
     assert diff.seconds <= diff_python.seconds
 
 
+@pytest.mark.skipif(
+    "env.PYPY or env.GRAALPY",
+    reason="the datetime C API reads the attributes there, not the stored fields",
+)
+def test_chrono_datetime_subclass_overrides_ignored():
+    # Conversion must read the stored fields, not attributes a subclass overrides.
+    class Weird(dt.datetime):
+        @property
+        def year(self):
+            return 2001
+
+        @property
+        def minute(self):
+            return 59
+
+    value = Weird(2020, 1, 2, 3, 4, 5)
+    assert m.test_chrono2(value) == dt.datetime(2020, 1, 2, 3, 4, 5)
+
+
+def test_chrono_second_translation_unit():
+    """The datetime C API import must work per translation unit (two-TU crash)"""
+    delta = dt.timedelta(seconds=1, microseconds=5)
+    assert m2.duration_roundtrip(delta) == delta
+    assert m.test_chrono2(m.test_chrono1()) is not None
+
+
 def test_chrono_system_clock_roundtrip():
-    date1 = datetime.datetime.today()
+    date1 = dt.datetime.today()
 
     # Roundtrip the time
     date2 = m.test_chrono2(date1)
 
     # The returned value should be a datetime
-    assert isinstance(date2, datetime.datetime)
+    assert isinstance(date2, dt.datetime)
 
     # They should be identical (no information lost on roundtrip)
     diff = abs(date1 - date2)
-    assert diff == datetime.timedelta(0)
+    assert diff == dt.timedelta(0)
+
+
+@pytest.mark.parametrize("day", [1, 2])
+def test_chrono_system_clock_roundtrip_epoch(day):
+    # Python's fold-aware naive timestamp implementation probes the previous
+    # day, which Windows cannot represent before the epoch.
+    value = dt.datetime(1970, 1, day, 12)
+    assert m.test_chrono2(value) == value
 
 
 def test_chrono_system_clock_roundtrip_date():
-    date1 = datetime.date.today()
+    date1 = dt.date.today()
 
     # Roundtrip the time
     datetime2 = m.test_chrono2(date1)
@@ -52,9 +89,9 @@ def test_chrono_system_clock_roundtrip_date():
     time2 = datetime2.time()
 
     # The returned value should be a datetime
-    assert isinstance(datetime2, datetime.datetime)
-    assert isinstance(date2, datetime.date)
-    assert isinstance(time2, datetime.time)
+    assert isinstance(datetime2, dt.datetime)
+    assert isinstance(date2, dt.date)
+    assert isinstance(time2, dt.time)
 
     # They should be identical (no information lost on roundtrip)
     diff = abs(date1 - date2)
@@ -72,6 +109,196 @@ def test_chrono_system_clock_roundtrip_date():
     assert time2.microsecond == 0
 
 
+@pytest.fixture
+def local_timezone(monkeypatch):
+    if not hasattr(time, "tzset"):
+        pytest.skip("Changing the local timezone requires time.tzset")
+    if env.GRAALPY and sys.graalpy_version_info < (25, 1):
+        pytest.skip("GraalPy before 25.1 does not update its timezone after tzset")
+    try:
+        with monkeypatch.context() as patch:
+
+            def set_timezone(tz):
+                patch.setenv("TZ", tz)
+                time.tzset()
+
+            yield set_timezone
+    finally:
+        time.tzset()
+
+
+def epoch_us(utc):
+    delta = utc - dt.datetime(1970, 1, 1)
+    return (delta.days * 86400 + delta.seconds) * 1_000_000 + delta.microseconds
+
+
+# POSIX rules avoid a dependency on the host's IANA timezone data. GraalPy's
+# Java timezone parser requires named zones instead of POSIX rule strings.
+PACIFIC_TZ = "America/Los_Angeles" if env.GRAALPY else "PST8PDT,M3.2.0/2,M11.1.0/2"
+HALF_HOUR_TZ = (
+    "Australia/Lord_Howe" if env.GRAALPY else "XST-10:30XDT-11,M10.1.0/2,M4.1.0/2"
+)
+
+
+DST_CASES = [
+    pytest.param(
+        PACIFIC_TZ,
+        dt.datetime(2026, 11, 1, 1, 30, 42, 123456, fold=0),
+        dt.timedelta(hours=-7),
+        0,
+        id="fall-first",
+    ),
+    pytest.param(
+        PACIFIC_TZ,
+        dt.datetime(2026, 11, 1, 1, 30, 42, 123456, fold=1),
+        dt.timedelta(hours=-8),
+        0,
+        id="fall-second",
+    ),
+    pytest.param(
+        PACIFIC_TZ,
+        dt.datetime(2026, 3, 8, 2, 30, 42, 654321, fold=0),
+        dt.timedelta(hours=-8),
+        1,
+        id="spring-gap-first",
+    ),
+    pytest.param(
+        PACIFIC_TZ,
+        dt.datetime(2026, 3, 8, 2, 30, 42, 654321, fold=1),
+        dt.timedelta(hours=-7),
+        -1,
+        id="spring-gap-second",
+    ),
+    pytest.param(
+        HALF_HOUR_TZ,
+        dt.datetime(2026, 4, 5, 1, 45, 42, 123456, fold=0),
+        dt.timedelta(hours=11),
+        0,
+        id="half-hour-first",
+    ),
+    pytest.param(
+        HALF_HOUR_TZ,
+        dt.datetime(2026, 4, 5, 1, 45, 42, 123456, fold=1),
+        dt.timedelta(hours=10, minutes=30),
+        0,
+        id="half-hour-second",
+    ),
+]
+
+
+@pytest.mark.parametrize(("tz", "local", "offset", "_gap_hours"), DST_CASES)
+def test_chrono_system_clock_load_dst(tz, local, offset, _gap_hours, local_timezone):
+    local_timezone(tz)
+    assert m.test_chrono_system_clock_as_us(local) == epoch_us(local - offset)
+
+
+@pytest.mark.parametrize(("tz", "local", "offset", "gap_hours"), DST_CASES)
+def test_chrono_system_clock_cast_dst(tz, local, offset, gap_hours, local_timezone):
+    local_timezone(tz)
+    value = epoch_us(local - offset)
+    # Use known wall times rather than Python's conversion as the oracle, so
+    # an unsupported TZ cannot make both conversions silently agree in UTC.
+    expected = (
+        (local + dt.timedelta(hours=gap_hours)).replace(fold=0) if gap_hours else local
+    )
+    result = m.test_chrono_system_clock_from_us(value)
+    assert result == expected
+    # datetime equality ignores fold when comparing naive values.
+    assert result.fold == expected.fold
+    assert result.tzinfo is None
+
+
+@pytest.mark.parametrize("fold", [0, 1])
+def test_chrono_system_clock_non_dst_fold(fold, local_timezone):
+    local_timezone("Europe/Kyiv")
+    first = epoch_us(dt.datetime(1990, 6, 30, 21, 30))
+    second = first + 3600_000_000
+    # Both sides of this political offset change are daylight time. Skip if
+    # the system lacks the corresponding IANA timezone data.
+    for value in (first, second):
+        parts = time.localtime(value // 1_000_000)
+        if parts[:6] != (1990, 7, 1, 1, 30, 0) or parts.tm_isdst != 1:
+            pytest.skip("Europe/Kyiv's 1990 offset change is unavailable")
+    local = dt.datetime(1990, 7, 1, 1, 30, fold=fold)
+    value = first if fold == 0 else second
+    assert m.test_chrono_system_clock_as_us(local) == value
+    result = m.test_chrono_system_clock_from_us(value)
+    assert result == local
+    assert result.fold == fold
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        -1_000_001,
+        -1,
+        0,
+        1,
+        1_000_001,
+        epoch_us(dt.datetime(1900, 1, 1, 0, 0, 0, 123456)),
+        epoch_us(dt.datetime(2200, 1, 1)),
+        epoch_us(dt.datetime(2250, 1, 1, 0, 0, 0, 123456)),
+    ],
+)
+def test_chrono_system_clock_microseconds(value, local_timezone):
+    local_timezone("UTC0")
+    try:
+        dt.datetime.fromtimestamp(value // 1_000_000)
+    except (OverflowError, OSError):
+        pytest.skip("Timestamp is outside the platform's supported range")
+    expected = dt.datetime(1970, 1, 1) + dt.timedelta(microseconds=value)
+    assert m.test_chrono_system_clock_as_us(expected) == value
+    assert m.test_chrono_system_clock_from_us(value) == expected
+
+
+class DatetimeWithOverriddenTimestamp(dt.datetime):
+    def timestamp(self):
+        raise AssertionError("The system-clock caster should read datetime fields")
+
+
+@pytest.mark.parametrize(
+    ("source", "expected"),
+    [
+        (dt.date(2026, 11, 1), dt.datetime(2026, 11, 1)),
+        (
+            dt.time(12, 34, 56, 123456),
+            dt.datetime(1970, 1, 1, 12, 34, 56, 123456),
+        ),
+        (
+            dt.time(
+                12,
+                34,
+                56,
+                123456,
+                tzinfo=dt.timezone(dt.timedelta(hours=12)),
+                fold=1,
+            ),
+            dt.datetime(1970, 1, 1, 12, 34, 56, 123456),
+        ),
+        (
+            dt.datetime(
+                2026,
+                11,
+                1,
+                1,
+                30,
+                42,
+                123456,
+                tzinfo=dt.timezone(dt.timedelta(hours=12)),
+            ),
+            dt.datetime(2026, 11, 1, 1, 30, 42, 123456),
+        ),
+        (
+            DatetimeWithOverriddenTimestamp(2026, 11, 1, 1, 30, 42, 123456),
+            dt.datetime(2026, 11, 1, 1, 30, 42, 123456),
+        ),
+    ],
+)
+def test_chrono_system_clock_input_fields(source, expected, local_timezone):
+    local_timezone("UTC0")
+    assert m.test_chrono_system_clock_as_us(source) == epoch_us(expected)
+
+
 SKIP_TZ_ENV_ON_WIN = pytest.mark.skipif(
     "env.WIN", reason="TZ environment variable only supported on POSIX"
 )
@@ -80,14 +307,14 @@ SKIP_TZ_ENV_ON_WIN = pytest.mark.skipif(
 @pytest.mark.parametrize(
     "time1",
     [
-        datetime.datetime.today().time(),
-        datetime.time(0, 0, 0),
-        datetime.time(0, 0, 0, 1),
-        datetime.time(0, 28, 45, 109827),
-        datetime.time(0, 59, 59, 999999),
-        datetime.time(1, 0, 0),
-        datetime.time(5, 59, 59, 0),
-        datetime.time(5, 59, 59, 1),
+        dt.datetime.today().time(),
+        dt.time(0, 0, 0),
+        dt.time(0, 0, 0, 1),
+        dt.time(0, 28, 45, 109827),
+        dt.time(0, 59, 59, 999999),
+        dt.time(1, 0, 0),
+        dt.time(5, 59, 59, 0),
+        dt.time(5, 59, 59, 1),
     ],
 )
 @pytest.mark.parametrize(
@@ -99,9 +326,10 @@ SKIP_TZ_ENV_ON_WIN = pytest.mark.skipif(
         pytest.param("America/New_York", marks=SKIP_TZ_ENV_ON_WIN),
     ],
 )
-def test_chrono_system_clock_roundtrip_time(time1, tz, monkeypatch):
+def test_chrono_system_clock_roundtrip_time(time1, tz, request):
     if tz is not None:
-        monkeypatch.setenv("TZ", f"/usr/share/zoneinfo/{tz}")
+        local_tz = tz if env.GRAALPY else f"/usr/share/zoneinfo/{tz}"
+        request.getfixturevalue("local_timezone")(local_tz)
 
     # Roundtrip the time
     datetime2 = m.test_chrono2(time1)
@@ -109,9 +337,9 @@ def test_chrono_system_clock_roundtrip_time(time1, tz, monkeypatch):
     time2 = datetime2.time()
 
     # The returned value should be a datetime
-    assert isinstance(datetime2, datetime.datetime)
-    assert isinstance(date2, datetime.date)
-    assert isinstance(time2, datetime.time)
+    assert isinstance(datetime2, dt.datetime)
+    assert isinstance(date2, dt.date)
+    assert isinstance(time2, dt.time)
 
     # Hour, Minute, Second & Microsecond should be the same after the round trip
     assert time1 == time2
@@ -124,27 +352,27 @@ def test_chrono_system_clock_roundtrip_time(time1, tz, monkeypatch):
 
 def test_chrono_duration_roundtrip():
     # Get the difference between two times (a timedelta)
-    date1 = datetime.datetime.today()
-    date2 = datetime.datetime.today()
+    date1 = dt.datetime.today()
+    date2 = dt.datetime.today()
     diff = date2 - date1
 
     # Make sure this is a timedelta
-    assert isinstance(diff, datetime.timedelta)
+    assert isinstance(diff, dt.timedelta)
 
     cpp_diff = m.test_chrono3(diff)
 
     assert cpp_diff == diff
 
     # Negative timedelta roundtrip
-    diff = datetime.timedelta(microseconds=-1)
+    diff = dt.timedelta(microseconds=-1)
     cpp_diff = m.test_chrono3(diff)
 
     assert cpp_diff == diff
 
 
 def test_chrono_duration_subtraction_equivalence():
-    date1 = datetime.datetime.today()
-    date2 = datetime.datetime.today()
+    date1 = dt.datetime.today()
+    date2 = dt.datetime.today()
 
     diff = date2 - date1
     cpp_diff = m.test_chrono4(date2, date1)
@@ -153,8 +381,8 @@ def test_chrono_duration_subtraction_equivalence():
 
 
 def test_chrono_duration_subtraction_equivalence_date():
-    date1 = datetime.date.today()
-    date2 = datetime.date.today()
+    date1 = dt.date.today()
+    date2 = dt.date.today()
 
     diff = date2 - date1
     cpp_diff = m.test_chrono4(date2, date1)
@@ -164,14 +392,14 @@ def test_chrono_duration_subtraction_equivalence_date():
 
 def test_chrono_steady_clock():
     time1 = m.test_chrono5()
-    assert isinstance(time1, datetime.timedelta)
+    assert isinstance(time1, dt.timedelta)
 
 
 def test_chrono_steady_clock_roundtrip():
-    time1 = datetime.timedelta(days=10, seconds=10, microseconds=100)
+    time1 = dt.timedelta(days=10, seconds=10, microseconds=100)
     time2 = m.test_chrono6(time1)
 
-    assert isinstance(time2, datetime.timedelta)
+    assert isinstance(time2, dt.timedelta)
 
     # They should be identical (no information lost on roundtrip)
     assert time1 == time2
@@ -181,7 +409,7 @@ def test_floating_point_duration():
     # Test using a floating point number in seconds
     time = m.test_chrono7(35.525123)
 
-    assert isinstance(time, datetime.timedelta)
+    assert isinstance(time, dt.timedelta)
 
     assert time.seconds == 35
     assert 525122 <= time.microseconds <= 525123
@@ -192,14 +420,14 @@ def test_floating_point_duration():
 
 
 def test_nano_timepoint():
-    time = datetime.datetime.now()
-    time1 = m.test_nano_timepoint(time, datetime.timedelta(seconds=60))
-    assert time1 == time + datetime.timedelta(seconds=60)
+    time = dt.datetime.now()
+    time1 = m.test_nano_timepoint(time, dt.timedelta(seconds=60))
+    assert time1 == time + dt.timedelta(seconds=60)
 
 
 def test_chrono_different_resolutions():
     resolutions = m.different_resolutions()
-    time = datetime.datetime.now()
+    time = dt.datetime.now()
     resolutions.timestamp_h = time
     resolutions.timestamp_m = time
     resolutions.timestamp_s = time

@@ -18,7 +18,7 @@ A Python extension module can be created with just a few lines of code:
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 3.15...4.0)
+    cmake_minimum_required(VERSION 3.15...4.2)
     project(example LANGUAGES CXX)
 
     set(PYBIND11_FINDPYTHON ON)
@@ -48,6 +48,8 @@ add a ``pyproject.toml`` file like this:
 
 You don't need setuptools files like ``MANIFEST.in``, ``setup.py``, or
 ``setup.cfg``, as this is not setuptools. See `scikit-build-core`_ for details.
+To ship one wheel per platform instead of one per Python version, see
+:doc:`advanced/stable_abi`.
 For projects you plan to upload to PyPI, be sure to fill out the ``[project]``
 table with other important metadata as well (see `Writing pyproject.toml`_).
 
@@ -348,7 +350,9 @@ function with the following signature:
 .. code-block:: cmake
 
     pybind11_add_module(<name> [MODULE | SHARED] [EXCLUDE_FROM_ALL]
-                        [NO_EXTRAS] [THIN_LTO] [OPT_SIZE] source1 [source2 ...])
+                        [NO_EXTRAS] [THIN_LTO] [OPT_SIZE] [PRECOMPILE | NO_PRECOMPILE]
+                        [STABLE_ABI | NO_STABLE_ABI]
+                        source1 [source2 ...])
 
 This function behaves very much like CMake's builtin ``add_library`` (in fact,
 it's a wrapper function around that command). It will add a library target
@@ -404,6 +408,123 @@ optimizations remain disabled.
 
 .. _ThinLTO: http://clang.llvm.org/docs/ThinLTO.html
 
+``STABLE_ABI`` builds the module against the Python stable ABI
+(``Py_LIMITED_API``), so that one ``.abi3`` module runs on every CPython from
+the targeted version on (3.12 by default; set ``PYBIND11_STABLE_ABI_VERSION``
+to target a newer one). Set the CMake variable ``PYBIND11_STABLE_ABI`` to make
+it the default for all ``pybind11_add_module`` calls and use ``NO_STABLE_ABI``
+to opt a target out. This needs CMake 3.26+, the FindPython mode
+(``PYBIND11_FINDPYTHON=ON``) and CPython 3.12+ headers. Free-threaded
+builds produce ``.abi3t`` modules and need 3.15+; set ``PYBIND11_ABI3T`` to
+also build ``.abi3t`` modules with GIL-enabled CPython 3.15+. It is not
+available for PyPy or GraalPy. See :doc:`advanced/stable_abi` for the
+features that are not available under the stable ABI and for the
+scikit-build-core setup (``wheel.py-api`` plus ``SKBUILD_SABI_COMPONENT``).
+
+.. _precompile-mode:
+
+Pre-compiling part of pybind11
+------------------------------
+
+pybind11 is header-only by default: every translation unit compiles its own
+copy of the non-template implementation. The opt-in *precompiled* mode
+compiles that implementation once, into a static library built inside your
+own project with your own flags. This reduces the build time, most of all for
+projects with many translation units or many modules in one build.
+
+.. code-block:: cmake
+
+    pybind11_add_module(example PRECOMPILE example.cpp)
+
+The first ``PRECOMPILE`` target creates the library target
+``pybind11::precompiled``; further targets reuse it. Set the CMake variable
+``PYBIND11_PRECOMPILE`` to make it the default for all
+``pybind11_add_module`` calls; use ``NO_PRECOMPILE`` on a target to opt back
+out. For targets you create yourself, call the ``pybind11_precompile()``
+function and link ``pybind11::precompiled`` PRIVATE; the target carries the
+required ``PYBIND11_PRECOMPILED`` compile definition PUBLIC, so your sources
+also get it.
+
+Requirements and caveats:
+
+* The library and every module linking it must agree on the configuration
+  macros ``PYBIND11_INTERNALS_VERSION``, ``Py_GIL_DISABLED``,
+  ``PYBIND11_SIMPLE_GIL_MANAGEMENT``,
+  ``PYBIND11_DETAILED_ERROR_MESSAGES`` (defaults on in debug builds),
+  ``PYBIND11_HAS_SUBINTERPRETER_SUPPORT``,
+  ``PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET``,
+  ``PYBIND11_TYPE_CREATION_VIA_SPEC``, and
+  ``Py_LIMITED_API`` (including its numeric target version). A mismatch produces one
+  readable undefined symbol at link time referencing
+  ``pybind11_precompiled_config``.
+* Configuration macros that only change code inside the library (for example
+  ``PYBIND11_DISABLE_NEW_STYLE_INIT_WARNING``) must be defined when the
+  library is compiled; a definition only on your module has no effect. This
+  also applies to a custom ``PYBIND11_NAMESPACE`` visibility attribute: set
+  it at the directory level (``add_compile_definitions``) so that the library
+  gets it too.
+* The library picks up your directory-level flags and C++ standard when it is
+  first created, so set those before the first ``PRECOMPILE`` target. A
+  status message reports the directory that created the library.
+* The library is not compiled with link-time optimization, and the per-target
+  ``THIN_LTO`` and ``OPT_SIZE`` options of ``pybind11_add_module`` do not
+  apply to it. In a Release build this adds a few nanoseconds to each call of
+  a bound function (up to about 10% for a function that does nothing,
+  depending on the compiler; a few percent with LTO on the library). To change this, call ``pybind11_precompile()``
+  yourself and
+  set the properties on the created target, ``pybind11_precompiled`` (the
+  real target behind the ``pybind11::precompiled`` alias; CMake does not let
+  you set properties through an alias):
+
+  .. code-block:: cmake
+
+      pybind11_precompile()
+      set_target_properties(pybind11_precompiled PROPERTIES
+                            INTERPROCEDURAL_OPTIMIZATION ON)
+
+* The library is static and per-build-tree; it is never installed or shared
+  between projects. Each extension module links its own copy, which keeps
+  pybind11's per-module state the same as in header-only mode.
+* With ``STABLE_ABI`` the library is compiled against the limited API too.
+  One build tree cannot mix stable-ABI and regular precompiled modules, or
+  different stable ABI versions or abi3/abi3t targets; the first ``PRECOMPILE``
+  target decides, and a later mismatch is a configure error.
+* Not available with ``PYBIND11_NOPYTHON`` (the library needs Python
+  headers).
+
+For build systems other than CMake, the same sources ship with the pybind11
+package: compile ``pybind11_combined.cpp`` from the directory reported by
+``python -m pybind11 --srcdir`` (also available as
+``pybind11.get_source_dir()`` and the ``srcdir`` pkg-config variable) into
+a static library or into your extension, and define
+``PYBIND11_PRECOMPILED`` for every translation unit.
+
+With Meson, build the library once per build tree and link it into each
+extension module, the same as the CMake path:
+
+.. code-block:: meson
+
+    pybind11_dep = dependency('pybind11')
+    pybind11_src = run_command(py, ['-m', 'pybind11', '--srcdir'],
+                               check : true).stdout().strip()
+
+    pybind11_precompiled = static_library('pybind11_precompiled',
+        pybind11_src / 'pybind11_combined.cpp',
+        cpp_args : ['-DPYBIND11_PRECOMPILED'],
+        gnu_symbol_visibility : 'hidden',
+        dependencies : [pybind11_dep, py.dependency()])
+
+    py.extension_module('example', 'example.cpp',
+        cpp_args : ['-DPYBIND11_PRECOMPILED'],
+        link_with : pybind11_precompiled,
+        dependencies : [pybind11_dep])
+
+The configuration-macro rules above apply here too: the static library and
+every module that links it must be compiled with the same configuration
+macros, and ``-DPYBIND11_PRECOMPILED`` must appear in both ``cpp_args``
+lists. (``pybind11_dep.get_variable('srcdir')`` also reports the source
+directory when Meson finds pybind11 through pkg-config.)
+
 Configuration variables
 -----------------------
 
@@ -429,7 +550,7 @@ with ``PYTHON_EXECUTABLE``.  For example:
 
 .. code-block:: bash
 
-    cmake -DPYBIND11_PYTHON_VERSION=3.8 ..
+    cmake -DPYBIND11_PYTHON_VERSION=3.9 ..
 
     # Another method:
     cmake -DPYTHON_EXECUTABLE=/path/to/python ..
@@ -447,7 +568,7 @@ See the `Config file`_ docstring for details of relevant CMake variables.
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 3.15...4.0)
+    cmake_minimum_required(VERSION 3.15...4.2)
     project(example LANGUAGES CXX)
 
     find_package(pybind11 REQUIRED)
@@ -492,10 +613,10 @@ FindPython, pybind11 will detect this and use the existing targets instead:
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 3.15...4.0)
+    cmake_minimum_required(VERSION 3.15...4.2)
     project(example LANGUAGES CXX)
 
-    find_package(Python 3.8 COMPONENTS Interpreter Development REQUIRED)
+    find_package(Python 3.9 COMPONENTS Interpreter Development REQUIRED)
     find_package(pybind11 CONFIG REQUIRED)
     # or add_subdirectory(pybind11)
 
@@ -570,7 +691,7 @@ You can use these targets to build complex applications. For example, the
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 3.15...4.0)
+    cmake_minimum_required(VERSION 3.15...4.2)
     project(example LANGUAGES CXX)
 
     find_package(pybind11 REQUIRED)  # or add_subdirectory(pybind11)
@@ -628,7 +749,7 @@ information about usage in C++, see :doc:`/advanced/embedding`.
 
 .. code-block:: cmake
 
-    cmake_minimum_required(VERSION 3.15...4.0)
+    cmake_minimum_required(VERSION 3.15...4.2)
     project(example LANGUAGES CXX)
 
     find_package(pybind11 REQUIRED)  # or add_subdirectory(pybind11)
@@ -664,6 +785,25 @@ building the module:
 .. code-block:: bash
 
     $ c++ -O3 -Wall -shared -std=c++11 -undefined dynamic_lookup $(python3 -m pybind11 --includes) example.cpp -o example$(python3-config --extension-suffix)
+
+For quick tests, the command line tool can also produce the full set of flags
+for you, based on ``python-config``:
+
+.. code-block:: bash
+
+    $ c++ $(python3 -m pybind11 --cflags) example.cpp $(python3 -m pybind11 --ldflags) -o example$(python3 -m pybind11 --extension-suffix)
+
+Or, shorter still, ``--file`` prints everything after the compiler for a given
+source file, including the output name (add ``--embed`` for a program that
+embeds the interpreter instead of an extension):
+
+.. code-block:: bash
+
+    $ c++ $(python3 -m pybind11 --file=example.cpp)
+
+These helpers target Unix-style compilers (GCC/Clang) and are intended for
+quick tests, not production builds; ``--file`` places the output next to the
+source file.
 
 In general, it is advisable to include several additional build parameters
 that can considerably reduce the size of the created binary. Refer to section

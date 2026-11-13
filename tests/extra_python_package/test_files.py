@@ -1,15 +1,19 @@
 from __future__ import annotations
 
 import contextlib
+import importlib
 import os
 import re
 import shutil
 import subprocess
 import sys
+import sysconfig
 import tarfile
 import zipfile
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator
+
+import pytest
 
 # These tests must be run explicitly
 
@@ -21,7 +25,7 @@ FILENAME_VERSION = re.compile(r"[-_]((\d+\.\d+\.\d+)(?:[a-z]+\d*)?)(?:-|\.tar\.g
 # Newer pytest has global path setting, but keeping old pytest for now
 sys.path.append(str(MAIN_DIR / "tools"))
 
-from make_global import get_global  # noqa: E402
+from make_global import get_global
 
 HAS_UV = shutil.which("uv") is not None
 UV_ARGS = ["--installer=uv"] if HAS_UV else []
@@ -29,6 +33,7 @@ UV_ARGS = ["--installer=uv"] if HAS_UV else []
 PKGCONFIG = """\
 prefix=${{pcfiledir}}/../../
 includedir=${{prefix}}/include
+srcdir=${{prefix}}/share/pybind11/src
 
 Name: pybind11
 Description: Seamless operability between C++11 and Python
@@ -38,6 +43,7 @@ Cflags: -I${{includedir}}
 
 
 main_headers = {
+    "include/pybind11/attr-inl.h",
     "include/pybind11/attr.h",
     "include/pybind11/buffer_info.h",
     "include/pybind11/cast.h",
@@ -49,6 +55,7 @@ main_headers = {
     "include/pybind11/embed.h",
     "include/pybind11/eval.h",
     "include/pybind11/functional.h",
+    "include/pybind11/gil-inl.h",
     "include/pybind11/gil.h",
     "include/pybind11/gil_safe_call_once.h",
     "include/pybind11/gil_simple.h",
@@ -57,7 +64,9 @@ main_headers = {
     "include/pybind11/numpy.h",
     "include/pybind11/operators.h",
     "include/pybind11/options.h",
+    "include/pybind11/pybind11-inl.h",
     "include/pybind11/pybind11.h",
+    "include/pybind11/pytypes-inl.h",
     "include/pybind11/pytypes.h",
     "include/pybind11/subinterpreter.h",
     "include/pybind11/stl.h",
@@ -77,22 +86,30 @@ conduit_headers = {
 
 detail_headers = {
     "include/pybind11/detail/argument_vector.h",
+    "include/pybind11/detail/class-inl.h",
     "include/pybind11/detail/class.h",
+    "include/pybind11/detail/common-inl.h",
     "include/pybind11/detail/common.h",
+    "include/pybind11/detail/cpp_conduit-inl.h",
     "include/pybind11/detail/cpp_conduit.h",
     "include/pybind11/detail/descr.h",
     "include/pybind11/detail/dynamic_raw_ptr_cast_if_possible.h",
     "include/pybind11/detail/function_record_pyobject.h",
+    "include/pybind11/detail/function_ref.h",
     "include/pybind11/detail/holder_caster_foreign_helpers.h",
     "include/pybind11/detail/init.h",
+    "include/pybind11/detail/internals-inl.h",
     "include/pybind11/detail/internals.h",
     "include/pybind11/detail/native_enum_data.h",
     "include/pybind11/detail/pybind11_namespace_macros.h",
     "include/pybind11/detail/struct_smart_holder.h",
+    "include/pybind11/detail/type_caster_base-inl.h",
     "include/pybind11/detail/type_caster_base.h",
+    "include/pybind11/detail/typeid-inl.h",
     "include/pybind11/detail/typeid.h",
     "include/pybind11/detail/using_smart_holder.h",
     "include/pybind11/detail/value_and_holder.h",
+    "include/pybind11/detail/exception_translation-inl.h",
     "include/pybind11/detail/exception_translation.h",
 }
 
@@ -121,6 +138,19 @@ pkgconfig_files = {
     "share/pkgconfig/pybind11.pc",
 }
 
+sdist_src_files = {
+    "src/class.cpp",
+    "src/common.cpp",
+    "src/exception_translation.cpp",
+    "src/internals.cpp",
+    "src/type_caster_base.cpp",
+    "src/pybind11.cpp",
+    "src/pybind11_combined.cpp",
+    "src/pytypes.cpp",
+}
+
+src_files = {f"share/pybind11/{n}" for n in sdist_src_files}
+
 py_files = {
     "__init__.py",
     "__main__.py",
@@ -133,7 +163,7 @@ py_files = {
 }
 
 headers = main_headers | conduit_headers | detail_headers | eigen_headers | stl_headers
-generated_files = cmake_files | pkgconfig_files
+generated_files = cmake_files | pkgconfig_files | src_files
 all_files = headers | generated_files | py_files
 
 sdist_files = {
@@ -199,7 +229,7 @@ def test_build_sdist(monkeypatch, tmpdir):
         pyproject_toml = read_tz_file(tar, "pyproject.toml")
         pkg_info = read_tz_file(tar, pkg_info_path).decode("utf-8")
 
-    files = headers | sdist_files
+    files = headers | sdist_src_files | sdist_files
     assert files <= simpler
 
     assert b'name = "pybind11"' in pyproject_toml
@@ -236,7 +266,7 @@ def test_build_global_dist(monkeypatch, tmpdir):
         pyproject_toml = read_tz_file(tar, "pyproject.toml")
         pkg_info = read_tz_file(tar, pkg_info_path).decode("utf-8")
 
-    files = headers | sdist_files
+    files = headers | sdist_src_files | sdist_files
     assert files <= simpler
 
     assert b'name = "pybind11-global"' in pyproject_toml
@@ -383,3 +413,63 @@ def test_version_matches():
         expected_patch = f"{micro}{level_str}{release_serial}"
 
     assert patch == expected_patch
+
+
+def run_command_line(*args: str) -> str:
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(MAIN_DIR)
+    result = subprocess.run(
+        [sys.executable, "-m", "pybind11", *args],
+        capture_output=True,
+        text=True,
+        check=True,
+        env=env,
+    )
+    return result.stdout
+
+
+def test_cli_cflags():
+    out = run_command_line("--cflags")
+    assert "-std=c++17" in out
+    assert f"-I{sysconfig.get_path('include')}" in out
+
+
+def test_cli_ldflags_embed():
+    out = run_command_line("--ldflags", "--embed")
+    assert "-lpython" in out
+    if sysconfig.get_config_var("LIBDIR"):
+        assert "-L" in out
+
+
+@pytest.mark.skipif(os.name != "posix", reason="quote style is platform-specific")
+def test_cflags_quotes_paths_with_spaces(monkeypatch):
+    monkeypatch.syspath_prepend(str(MAIN_DIR))
+    commands = importlib.import_module("pybind11.commands")
+    monkeypatch.setattr(sysconfig, "get_path", lambda name: f"/spa ced/{name}")
+    assert "'-I/spa ced/include'" in commands.get_cflags()
+
+
+@pytest.mark.skipif(os.name != "posix", reason="Unix link flags only")
+def test_ldflags_other_unix(monkeypatch):
+    monkeypatch.syspath_prepend(str(MAIN_DIR))
+    commands = importlib.import_module("pybind11.commands")
+    monkeypatch.setattr(sys, "platform", "freebsd14")
+    monkeypatch.setattr(commands, "_config", lambda name: "")  # noqa: ARG005
+    out = commands.get_ldflags()
+    assert "-shared" in out
+    assert "-fPIC" in out
+
+
+def test_cli_file():
+    out = run_command_line("--file", "example.cpp").rstrip()
+    ext_suffix = sysconfig.get_config_var("EXT_SUFFIX")
+    assert "-std=c++17" in out
+    assert out.index("-std=c++17") < out.index("example.cpp")
+    assert out.endswith(f"-o example{ext_suffix}")
+    if sys.platform.startswith(("linux", "darwin")):
+        assert out.index("example.cpp") < out.index("-shared")
+
+
+def test_cli_file_embed():
+    out = run_command_line("--file", "example.cpp", "--embed").rstrip()
+    assert out.endswith("-o example")

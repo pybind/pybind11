@@ -1,6 +1,9 @@
 name: CI
 
 on:
+  # Run on Wednesday and Friday at 06:17 UTC.
+  schedule:
+    - cron: "17 6 * * 3,5"
   workflow_dispatch:
   pull_request:
     types:
@@ -36,7 +39,7 @@ jobs:
       matrix:
         include:
           - runs-on: ubuntu-22.04
-            python-version: '3.8'
+            python-version: '3.9'
             cmake-args: -DPYBIND11_FINDPYTHON=OFF -DPYBIND11_NUMPY_1_ONLY=ON
           - runs-on: ubuntu-latest
             python-version: '3.13'
@@ -44,17 +47,28 @@ jobs:
           - runs-on: ubuntu-latest
             python-version: '3.14t'
             cmake-args: -DCMAKE_CXX_STANDARD=17 -DPYBIND11_TEST_SMART_HOLDER=ON
+          # Keep one PyPy 7 job while that runtime remains supported.
           - runs-on: ubuntu-latest
-            python-version: 'pypy3.11'
+            python-version: 'pypy-3.11-v7.3.23'
             cmake-args: -DCMAKE_CXX_STANDARD=17
+          # Keep 8.0.0 to test the deallocation and memoryview workarounds (PR #6197).
           - runs-on: ubuntu-latest
-            python-version: 'graalpy-24.2'
+            python-version: 'pypy-3.12-v8.0.0'
+            cmake-args: -DCMAKE_CXX_STANDARD=20
+          - runs-on: ubuntu-latest
+            python-version: 'graalpy-25.0'
+            cmake-args: -DCMAKE_CXX_STANDARD=20
+          - runs-on: ubuntu-latest
+            python-version: 'graalpy-25.3'
+            cmake-args: -DCMAKE_CXX_STANDARD=20
+          - runs-on: ubuntu-latest
+            python-version: '3.15'
             cmake-args: -DCMAKE_CXX_STANDARD=20
           - runs-on: macos-latest
             python-version: '3.14'
             cmake-args: -DCMAKE_CXX_STANDARD=14
           - runs-on: windows-2022
-            python-version: '3.8'
+            python-version: '3.9'
             cmake-args: -DPYBIND11_FINDPYTHON=OFF
 
 
@@ -65,69 +79,336 @@ jobs:
       python-version: ${{ matrix.python-version }}
       cmake-args: ${{ matrix.cmake-args }}
 
-  standard-large:
+  # Build the test suite against the precompiled pybind11 static library; a
+  # definition missing from the -inl.h split shows up here as a link error.
+  precompile:
     if: github.event.pull_request.draft == false
     strategy:
       fail-fast: false
       matrix:
         include:
           - runs-on: ubuntu-latest
-            python-version: '3.8'
+            python-version: '3.13'
+          # free-threaded: compiles the Py_GIL_DISABLED-only code in the -inl.h files
+          - runs-on: ubuntu-latest
+            python-version: '3.14t'
+          - runs-on: macos-latest
+            python-version: '3.13'
+          - runs-on: windows-2022
+            python-version: '3.13'
+
+    name: ⚡
+    uses: ./.github/workflows/reusable-standard.yml
+    with:
+      runs-on: ${{ matrix.runs-on }}
+      python-version: ${{ matrix.python-version }}
+      cmake-args: -DPYBIND11_TEST_PRECOMPILE=ON
+
+  # PyType_FromMetaclass type creation is the default on CPython 3.12+ (and the only
+  # path under the stable ABI); this job covers the legacy opt-out.
+  type-creation-legacy:
+    if: github.event.pull_request.draft == false
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runs-on: ubuntu-latest
+            python-version: '3.12'
+            cmake-args: -DPYBIND11_TYPE_CREATION_VIA_SPEC=OFF
+          - runs-on: ubuntu-latest
+            python-version: '3.14'
+            cmake-args: -DPYBIND11_TYPE_CREATION_VIA_SPEC=OFF -DPYBIND11_TEST_PRECOMPILE=ON
+          - runs-on: macos-latest
+            python-version: '3.13'
+            cmake-args: -DPYBIND11_TYPE_CREATION_VIA_SPEC=OFF
+          - runs-on: windows-2022
+            python-version: '3.13'
+            cmake-args: -DPYBIND11_TYPE_CREATION_VIA_SPEC=OFF
+
+    name: 📐
+    uses: ./.github/workflows/reusable-standard.yml
+    with:
+      runs-on: ${{ matrix.runs-on }}
+      python-version: ${{ matrix.python-version }}
+      cmake-args: ${{ matrix.cmake-args }}
+
+  # Stable ABI (Py_LIMITED_API): every test module is built as *.abi3.
+  stable-abi:
+    if: github.event.pull_request.draft == false
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runs-on: ubuntu-latest
+            python-version: '3.12'
+            cmake-args: -DPYBIND11_TEST_STABLE_ABI=ON
+          # precompiled: the -inl.h files must not read any non-limited struct field
+          - runs-on: ubuntu-latest
+            python-version: '3.14'
+            cmake-args: -DPYBIND11_TEST_STABLE_ABI=ON -DPYBIND11_TEST_PRECOMPILE=ON
+          # A newer limited API target: gates must follow the limited API, not PY_VERSION_HEX
+          - runs-on: ubuntu-latest
+            python-version: '3.14'
+            cmake-args: -DPYBIND11_TEST_STABLE_ABI=ON -DPYBIND11_STABLE_ABI_VERSION=3.14
+          - runs-on: macos-latest
+            python-version: '3.13'
+            cmake-args: -DPYBIND11_TEST_STABLE_ABI=ON -DCMAKE_CXX_STANDARD=17
+          - runs-on: windows-2022
+            python-version: '3.12'
+            cmake-args: -DPYBIND11_TEST_STABLE_ABI=ON
+          # free-threaded stable ABI (abi3t, PEP 803): PyObject is opaque
+          - runs-on: ubuntu-latest
+            python-version: '3.15t'
+            cmake-args: -DPYBIND11_TEST_STABLE_ABI=ON
+          - runs-on: macos-latest
+            python-version: '3.15t'
+            cmake-args: -DPYBIND11_TEST_STABLE_ABI=ON -DPYBIND11_TEST_PRECOMPILE=ON
+
+    name: 🧱
+    uses: ./.github/workflows/reusable-standard.yml
+    with:
+      runs-on: ${{ matrix.runs-on }}
+      python-version: ${{ matrix.python-version }}
+      cmake-args: ${{ matrix.cmake-args }}
+
+  # The point of the stable ABI: build the suite once against the 3.12 headers
+  # and run the same .abi3 modules on newer interpreters.
+  stable-abi-forward:
+    if: github.event.pull_request.draft == false
+    name: 🧱 abi3 on newer Pythons
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      # Relative to the working directory of the forward steps, build/tests
+      PYBIND11_STABLE_ABI_SKIPPED_TESTS: >-
+        --ignore=../../tests/test_custom_type_setup.py
+        --ignore=../../tests/test_multiple_interpreters.py
+        --ignore=../../tests/test_class_release_gil_before_calling_cpp_dtor.py
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Python 3.12 (build)
+        id: py312
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - name: Setup Python 3.13 and 3.14 (run)
+        uses: actions/setup-python@v7
+        with:
+          python-version: |
+            3.13
+            3.14
+          allow-prereleases: true
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.0.1
+        with:
+          enable-cache: true
+
+      - name: Prepare env
+        run: |
+          for py in "${{ steps.py312.outputs.python-path }}" python3.13 python3.14; do
+            uv pip install --python="$py" --system -r tests/requirements.txt
+          done
+
+      - name: Configure (Python 3.12, stable ABI)
+        run: >
+          cmake -S. -Bbuild -Werror=dev -GNinja
+          -DPYBIND11_WERROR=ON
+          -DDOWNLOAD_CATCH=ON
+          -DDOWNLOAD_EIGEN=ON
+          -DPYBIND11_TEST_STABLE_ABI=ON
+          -DPYTHON_EXECUTABLE=${{ steps.py312.outputs.python-path }}
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Python tests (3.12)
+        run: cmake --build build --target pytest
+
+      - name: Python tests (3.13, same binaries)
+        working-directory: build/tests
+        run: python3.13 -m pytest -v ../../tests ${{ env.PYBIND11_STABLE_ABI_SKIPPED_TESTS }}
+
+      - name: Python tests (3.14, same binaries)
+        working-directory: build/tests
+        run: python3.14 -m pytest -v ../../tests ${{ env.PYBIND11_STABLE_ABI_SKIPPED_TESTS }}
+
+  # abi3t modules also load on GIL-enabled interpreters: build the suite with
+  # 3.15t and run the same .abi3t modules on 3.15.
+  stable-abi-forward-ft:
+    if: github.event.pull_request.draft == false
+    name: 🧱 abi3t on GIL-enabled Python
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      # Relative to the working directory of the forward steps, build/tests
+      PYBIND11_STABLE_ABI_SKIPPED_TESTS: >-
+        --ignore=../../tests/test_custom_type_setup.py
+        --ignore=../../tests/test_multiple_interpreters.py
+        --ignore=../../tests/test_class_release_gil_before_calling_cpp_dtor.py
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Python 3.15t (build)
+        id: py315t
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.15t'
+          allow-prereleases: true
+
+      - name: Setup Python 3.15 (run)
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.15'
+          allow-prereleases: true
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.0.1
+        with:
+          enable-cache: true
+
+      - name: Prepare env
+        run: |
+          for py in "${{ steps.py315t.outputs.python-path }}" python3.15; do
+            uv pip install --python="$py" --system -r tests/requirements.txt
+          done
+
+      - name: Configure (Python 3.15t, stable ABI)
+        run: >
+          cmake -S. -Bbuild -Werror=dev -GNinja
+          -DPYBIND11_WERROR=ON
+          -DDOWNLOAD_CATCH=ON
+          -DDOWNLOAD_EIGEN=ON
+          -DPYBIND11_TEST_STABLE_ABI=ON
+          -DPYTHON_EXECUTABLE=${{ steps.py315t.outputs.python-path }}
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Python tests (3.15t)
+        run: cmake --build build --target pytest
+
+      - name: Python tests (3.15, same binaries)
+        working-directory: build/tests
+        run: python3.15 -m pytest -v ../../tests ${{ env.PYBIND11_STABLE_ABI_SKIPPED_TESTS }}
+
+  # PYBIND11_ABI3T builds abi3t from GIL-enabled Python; run the same modules on 3.15t.
+  stable-abi-abi3t-from-gil:
+    if: github.event.pull_request.draft == false
+    strategy:
+      fail-fast: false
+      matrix:
+        runs-on: [ubuntu-latest, windows-latest]
+    name: 🧱 abi3t from GIL-enabled Python • ${{ matrix.runs-on }}
+    runs-on: ${{ matrix.runs-on }}
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    env:
+      # Relative to the working directory of the forward steps, build/tests
+      PYBIND11_STABLE_ABI_SKIPPED_TESTS: >-
+        --ignore=../../tests/test_custom_type_setup.py
+        --ignore=../../tests/test_multiple_interpreters.py
+        --ignore=../../tests/test_class_release_gil_before_calling_cpp_dtor.py
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Python 3.15t (run)
+        id: py315t
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.15t'
+          allow-prereleases: true
+
+      - name: Setup Python 3.15 (build)
+        id: py315
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.15'
+          allow-prereleases: true
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.0.1
+        with:
+          enable-cache: true
+
+      - name: Prepare env
+        run: |
+          for py in "${{ steps.py315t.outputs.python-path }}" "${{ steps.py315.outputs.python-path }}"; do
+            uv pip install --python="$py" --system -r tests/requirements.txt
+          done
+
+      - name: Configure (Python 3.15, abi3t)
+        run: >
+          cmake -S. -Bbuild -Werror=dev
+          -DPYBIND11_WERROR=ON
+          -DDOWNLOAD_CATCH=ON
+          -DDOWNLOAD_EIGEN=ON
+          -DPYBIND11_TEST_STABLE_ABI=ON
+          -DPYBIND11_ABI3T=ON
+          -DCMAKE_BUILD_TYPE=Release
+          -DPYTHON_EXECUTABLE="${{ steps.py315.outputs.python-path }}"
+
+      - name: Build
+        run: cmake --build build --config Release -j 4
+
+      - name: CMake stable ABI consumer build
+        run: cmake --build build --config Release --target test_build_subdirectory_stable_abi
+
+      - name: Python tests (3.15)
+        run: cmake --build build --config Release --target pytest
+
+      - name: Python tests (3.15t, same binaries)
+        working-directory: build/tests
+        run: >
+          "${{ steps.py315t.outputs.python-path }}" -m pytest -v ../../tests
+          ${{ env.PYBIND11_STABLE_ABI_SKIPPED_TESTS }}
+
+  standard-large:
+    if: github.event.pull_request.draft == false
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runs-on: ubuntu-24.04
+            python-version: '3.9'
             cmake-args: -DPYBIND11_FINDPYTHON=ON -DCMAKE_CXX_STANDARD=17
           - runs-on: ubuntu-latest
             python-version: '3.10'
             cmake-args: -DCMAKE_CXX_STANDARD=20
           - runs-on: ubuntu-latest
-            python-version: '3.11'
-            cmake-args: -DPYBIND11_TEST_SMART_HOLDER=ON -DCMAKE_CXX_STANDARD=17
-          - runs-on: ubuntu-latest
             python-version: '3.12'
             cmake-args: -DPYBIND11_TEST_SMART_HOLDER=ON -DPYBIND11_SIMPLE_GIL_MANAGEMENT=ON
           - runs-on: ubuntu-latest
-            python-version: '3.13t'
-            cmake-args: -DCMAKE_CXX_STANDARD=20 -DPYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION=ON
-          - runs-on: ubuntu-latest
-            python-version: '3.14'
-            cmake-args: -DCMAKE_CXX_STANDARD=14 -DCMAKE_CXX_FLAGS="-DPYBIND11_HAS_SUBINTERPRETER_SUPPORT=0"
-          - runs-on: ubuntu-latest
-            python-version: 'pypy-3.10'
-            cmake-args: -DCMAKE_CXX_STANDARD=14
-          - runs-on: ubuntu-latest
-            python-version: 'graalpy-24.1'
+            python-version: '3.15t'
+            cmake-args: -DCMAKE_CXX_STANDARD=17 -DPYBIND11_TEST_SMART_HOLDER=ON
 
-          # No SciPy for macOS ARM
-          - runs-on: macos-13
-            python-version: '3.8'
-            cmake-args: -DCMAKE_CXX_STANDARD=14
-          - runs-on: macos-13
-            python-version: '3.11'
-            cmake-args: -DPYBIND11_TEST_SMART_HOLDER=ON
+          - runs-on: macos-15-intel
+            python-version: '3.13'
+            cmake-args: -DCMAKE_CXX_STANDARD=11
           - runs-on: macos-latest
             python-version: '3.12'
             cmake-args: -DCMAKE_CXX_STANDARD=17 -DPYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION=ON
-          - runs-on: macos-13
-            python-version: '3.13t'
-            cmake-args: -DCMAKE_CXX_STANDARD=11
           - runs-on: macos-latest
             python-version: '3.14t'
             cmake-args: -DCMAKE_CXX_STANDARD=20
-          - runs-on: macos-13
-            python-version: 'pypy-3.10'
+          - runs-on: macos-latest
+            python-version: '3.15'
             cmake-args: -DCMAKE_CXX_STANDARD=17
           - runs-on: macos-latest
-            python-version: 'pypy-3.11'
+            python-version: 'pypy-3.12-v8.0.1'
           - runs-on: macos-latest
-            python-version: 'graalpy-24.2'
+            python-version: 'graalpy-25.3'
 
-          - runs-on: windows-latest
-            python-version: '3.9'
-            cmake-args: -DPYBIND11_TEST_SMART_HOLDER=ON
           - runs-on: windows-2022
-            python-version: '3.8'
+            python-version: '3.9'
             cmake-args: -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -DPYBIND11_NUMPY_1_ONLY=ON
-          - runs-on: windows-2022
-            python-version: '3.9'
-            cmake-args: -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL -DCMAKE_CXX_STANDARD=14
           # This needs a python built with MTd
           # - runs-on: windows-2022
           #   python-version: '3.11'
@@ -139,20 +420,17 @@ jobs:
             python-version: '3.13'
             cmake-args: -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebugDLL
           - runs-on: windows-latest
-            python-version: '3.13t'
-            cmake-args: -DCMAKE_CXX_STANDARD=17
-          - runs-on: windows-latest
-            python-version: '3.14'
-            cmake-args: -DCMAKE_CXX_STANDARD=20
-          - runs-on: windows-latest
             python-version: '3.14t'
             cmake-args: -DCMAKE_CXX_STANDARD=23
           - runs-on: windows-latest
-            python-version: 'pypy-3.10'
-            cmake-args: -DCMAKE_CXX_STANDARD=17
+            python-version: '3.15'
+            cmake-args: -DCMAKE_CXX_STANDARD=20
           - runs-on: windows-latest
             python-version: 'pypy3.11'
             cmake-args: -DCMAKE_CXX_STANDARD=20
+          - runs-on: windows-latest
+            python-version: 'pypy3.12'
+            cmake-args: -DCMAKE_CXX_STANDARD=17
           # The setup-python action currently doesn't have graalpy for windows
           # See https://github.com/actions/setup-python/pull/880
 
@@ -170,7 +448,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runs-on: ubuntu-latest
+          - runs-on: ubuntu-24.04
             python-version: '3.9'
           - runs-on: macos-latest
             python-version: '3.12'
@@ -182,23 +460,23 @@ jobs:
     timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
 
     - name: Setup Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python-version }}
         allow-prereleases: true
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v6
+      uses: astral-sh/setup-uv@v10.3.3
       with:
         enable-cache: true
 
     - name: Prepare env
       run: uv pip install --python=python --system -r tests/requirements.txt
 
-    # TODO Resolve Windows Ninja shared object issue on Python 3.8+
+    # TODO Resolve Windows Ninja shared object issue on Python 3.9+
     - name: Use Ninja except on Windows
       if: runner.os != 'Windows'
       run: echo "CMAKE_GENERATOR=Ninja" >> "$GITHUB_ENV"
@@ -213,6 +491,7 @@ jobs:
         -DPYBIND11_PYTEST_ARGS=-v
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
+        -DPYBIND11_EIGEN_REPO=https://github.com/eigen-mirror/eigen.git
         -DCMAKE_CXX_STANDARD=14
         -DPYBIND11_INTERNALS_VERSION=10000000
 
@@ -229,6 +508,7 @@ jobs:
       run: cmake --build . --target pytest
 
     - name: Compiled tests
+      timeout-minutes: 3
       run: cmake --build . --target cpptest
 
     - name: Interface test
@@ -239,13 +519,21 @@ jobs:
 
 
   manylinux:
-    name: Manylinux on 🐍 3.13t • GIL
+    name: Manylinux on 🐍 ${{ matrix.python-version }} (${{ matrix.container }})
     if: github.event.pull_request.draft == false
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - container: quay.io/pypa/manylinux_2_28_x86_64:latest
+            python-version: '3.14t'
+          - container: quay.io/pypa/musllinux_1_2_x86_64:latest
+            python-version: '3.14t'
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    container: quay.io/pypa/musllinux_1_2_x86_64:latest
+    container: ${{ matrix.container }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -256,93 +544,13 @@ jobs:
         run: uv tool install ninja
 
       - name: Configure via preset
-        run: cmake --preset venv -DPYBIND11_CREATE_WITH_UV=python3.13t
+        run: cmake --preset venv -DPYBIND11_EIGEN_REPO=https://github.com/eigen-mirror/eigen.git -DPYBIND11_CREATE_WITH_UV="${{ matrix.python-version }}"
 
       - name: Build C++11
         run: cmake --build --preset venv
 
       - name: Python tests C++11
         run: cmake --build --preset testsvenv -t pytest
-
-  deadsnakes:
-    if: github.event.pull_request.draft == false
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-        # TODO: Fails on 3.10, investigate
-        # JOB DISABLED (NEEDS WORK): https://github.com/pybind/pybind11/issues/4889
-        # - python-version: "3.9"
-        #   python-debug: true
-        #   valgrind: true
-        - python-version: "3.11"
-          python-debug: false
-
-    name: "🐍 ${{ matrix.python-version }}${{ matrix.python-debug && '-dbg' || '' }} (deadsnakes)${{ matrix.valgrind && ' • Valgrind' || '' }} • x64"
-    runs-on: ubuntu-latest
-    timeout-minutes: 90
-
-    steps:
-    - uses: actions/checkout@v5
-
-    - name: Setup Python ${{ matrix.python-version }} (deadsnakes)
-      uses: deadsnakes/action@v3.2.0
-      with:
-        python-version: ${{ matrix.python-version }}
-        debug: ${{ matrix.python-debug }}
-
-    - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v2.0
-
-    - name: Valgrind cache
-      if: matrix.valgrind
-      uses: actions/cache@v4
-      id: cache-valgrind
-      with:
-        path: valgrind
-        key: 3.16.1 # Valgrind version
-
-    - name: Compile Valgrind
-      if: matrix.valgrind && steps.cache-valgrind.outputs.cache-hit != 'true'
-      run: |
-        VALGRIND_VERSION=3.16.1
-        curl https://sourceware.org/pub/valgrind/valgrind-$VALGRIND_VERSION.tar.bz2 -o - | tar xj
-        mv valgrind-$VALGRIND_VERSION valgrind
-        cd valgrind
-        ./configure
-        make -j 2 > /dev/null
-
-    - name: Install Valgrind
-      if: matrix.valgrind
-      working-directory: valgrind
-      run: |
-        sudo make install
-        sudo apt-get update
-        sudo apt-get install ninja-build libc6-dbg
-
-    - name: Prepare env
-      run: |
-        python -m pip install -r tests/requirements.txt
-
-    - name: Configure
-      run: cmake --preset default -DCMAKE_CXX_STANDARD=17
-
-    - name: Build
-      run: cmake --build --preset default
-
-    - name: Python tests
-      run: cmake --build --preset default --target pytest
-
-    - name: C++ tests
-      run: cmake --build --preset default --target cpptest
-
-    - name: Visibility test
-      run: cmake --build --preset default --target test_cross_module_rtti
-
-    - name: Run Valgrind on Python tests
-      if: matrix.valgrind
-      run: cmake --build --preset default --target memcheck
-
 
   # Testing on clang using the excellent silkeh clang docker images
   clang:
@@ -354,26 +562,40 @@ jobs:
         include:
           - clang: 5
             std: 14
+            container: "silkeh/clang:5@sha256:68f994994d0c12563f4ce6bf34d78a19dc503e8e48778e4af33cf49abcd27133"
+            use_bullseye_snapshot: true
           - clang: 11
             std: 20
-          - clang: 14
-            std: 20
+            container: "silkeh/clang:11-bullseye@sha256:5d4e67f5a2de1b26f632b88343dc63b894c8ddc9b068114894cc56de8e888b61"
+            use_bullseye_snapshot: true
           - clang: 16
             std: 20
-            container_suffix: "-bullseye"
+            container: "silkeh/clang:16-bookworm"
           - clang: 18
             std: 20
-            cxx_flags: "-Werror -Wall -Wextra -Wwrite-strings -Wunreachable-code -Wpointer-arith -Wredundant-decls"
-            container_suffix: "-bookworm"
+            cxx_flags: "-Werror -Wall -Wextra -Wwrite-strings -Wunreachable-code -Wpointer-arith -Wredundant-decls -Wunused-template"
+            container: "silkeh/clang:18-bookworm"
 
     name: "🐍 3 • Clang ${{ matrix.clang }} • C++${{ matrix.std }} • x64${{ matrix.cxx_flags && ' • cxx_flags' || '' }}"
-    container: "silkeh/clang:${{ matrix.clang }}${{ matrix.container_suffix }}"
+    container: "${{ matrix.container }}"
     timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
 
-    - name: Add wget and python3
+    - name: Use the pinned Debian snapshot for legacy Clang — see PR 6175
+      if: matrix.use_bullseye_snapshot
+      run: |
+        # Clang 5 and 11 have no Bookworm images. Keep their Bullseye package
+        # set coherent after the end of Bullseye LTS by using its final snapshot.
+        rm -f /etc/apt/sources.list.d/*
+        printf '%s\n' \
+          'deb [check-valid-until=no] https://snapshot.debian.org/archive/debian/20260831T000000Z/ bullseye main' \
+          'deb [check-valid-until=no] https://snapshot.debian.org/archive/debian/20260831T000000Z/ bullseye-updates main' \
+          'deb [check-valid-until=no] https://snapshot.debian.org/archive/debian-security/20260831T000000Z/ bullseye-security main' \
+          > /etc/apt/sources.list
+
+    - name: Install Python 3 and test dependencies
       run: apt-get update && apt-get install -y python3-dev python3-numpy python3-pytest libeigen3-dev
 
     - name: Configure
@@ -393,6 +615,7 @@ jobs:
       run: cmake --build build --target pytest
 
     - name: C++ tests
+      timeout-minutes: 3
       run: cmake --build build --target cpptest
 
     - name: Interface test
@@ -409,7 +632,7 @@ jobs:
     timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
 
     # tzdata will try to ask for the timezone, so set the DEBIAN_FRONTEND
     - name: Install 🐍 3
@@ -433,7 +656,7 @@ jobs:
 #    container: centos:8
 #
 #    steps:
-#    - uses: actions/checkout@v5
+#    - uses: actions/checkout@v7
 #
 #    - name: Add Python 3 and a few requirements
 #      run: yum update -y && yum install -y git python3-devel python3-numpy python3-pytest make environment-modules
@@ -470,31 +693,39 @@ jobs:
 
 
   # Testing on Ubuntu + NVHPC (previous PGI) compilers, which seems to require more workarounds
-  ubuntu-nvhpc7:
+  ubuntu-nvhpc:
     if: github.event.pull_request.draft == false
-    runs-on: ubuntu-22.04
-    name: "🐍 3 • NVHPC 23.5 • C++17 • x64"
+    runs-on: ubuntu-24.04
+    name: "🐍 3 • NVHPC 26.5 • C++17 • x64"
     timeout-minutes: 90
 
     env:
       # tzdata will try to ask for the timezone, so set the DEBIAN_FRONTEND
       DEBIAN_FRONTEND: 'noninteractive'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
 
-    - name: Add NVHPC Repo
+    - name: Clean out unused stuff to save space
       run: |
-        echo 'deb [trusted=yes] https://developer.download.nvidia.com/hpc-sdk/ubuntu/amd64 /' | \
-          sudo tee /etc/apt/sources.list.d/nvhpc.list
+        sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
+        sudo apt-get clean
 
-    - name: Install 🐍 3 & NVHPC
+    - name: Install 🐍 3
       run: |
-        sudo apt-get update -y && \
-        sudo apt-get install -y cmake environment-modules git python3-dev python3-pip python3-numpy && \
-        sudo apt-get install -y --no-install-recommends nvhpc-23-5 && \
-        sudo rm -rf /var/lib/apt/lists/*
+        sudo apt-get update -y
+        sudo apt-get install -y cmake environment-modules git python3-dev python3-pip python3-numpy
         python3 -m pip install --upgrade pip
         python3 -m pip install --upgrade pytest
+
+    # Downloaded with curl instead of apt: the Akamai CDN in front of
+    # developer.download.nvidia.com intermittently 404s, and apt neither
+    # retries 404s nor resumes a broken 5 GB transfer.
+    - name: Install NVHPC
+      run: |
+        curl -fSLO --retry 10 --retry-all-errors --retry-delay 15 --continue-at - \
+          https://developer.download.nvidia.com/hpc-sdk/ubuntu/amd64/nvhpc-26-5_26.5-0_amd64.deb
+        sudo apt-get install -y --no-install-recommends ./nvhpc-26-5_26.5-0_amd64.deb
+        rm nvhpc-26-5_26.5-0_amd64.deb
 
     # On some systems, you many need further workarounds:
     # https://github.com/pybind/pybind11/pull/2475
@@ -502,7 +733,7 @@ jobs:
       shell: bash
       run: |
         source /etc/profile.d/modules.sh
-        module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/23.5
+        module load /opt/nvidia/hpc_sdk/modulefiles/nvhpc/26.5
         cmake -S . -B build -DDOWNLOAD_CATCH=ON \
                             -DCMAKE_CXX_STANDARD=17 \
                             -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)") \
@@ -510,12 +741,13 @@ jobs:
                             -DPYBIND11_TEST_FILTER="test_smart_ptr.cpp"
 
     - name: Build
-      run: cmake --build build -j 2 --verbose
+      run: cmake --build build -j $(nproc) --verbose
 
     - name: Python tests
       run: cmake --build build --target pytest
 
     - name: C++ tests
+      timeout-minutes: 3
       run: cmake --build build --target cpptest
 
     - name: Interface test
@@ -532,17 +764,37 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { gcc: 9, std: 20 }
-          - { gcc: 10, std: 17 }
-          - { gcc: 10, std: 20 }
-          - { gcc: 13, std: 20, cxx_flags: "-Wall -Wextra -Wwrite-strings -Wunreachable-code -Wpointer-arith -Wredundant-decls" }
+          - gcc: 9
+            std: 20
+            container: "gcc:9-bullseye@sha256:a9aba821155db99d0800920f27bf3a94ead6f9dedf330a2e2ce38da73f5370e3"
+            use_bullseye_snapshot: true
+          - gcc: 10
+            std: 17
+            container: "gcc:10-bullseye@sha256:19b31d0b2b263047b173e4e253d91f199d99c082973f13604d2913252c13309e"
+            use_bullseye_snapshot: true
+          - gcc: 13
+            std: 20
+            container: "gcc:13"
+            cxx_flags: "-Wall -Wextra -Wwrite-strings -Wunreachable-code -Wpointer-arith -Wredundant-decls"
 
     name: "🐍 3 • GCC ${{ matrix.gcc }} • C++${{ matrix.std }} • x64${{ matrix.cxx_flags && ' • cxx_flags' || '' }}"
-    container: "gcc:${{ matrix.gcc }}"
+    container: "${{ matrix.container }}"
     timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
+
+    - name: Use the pinned Debian snapshot for legacy GCC — see PR 6175
+      if: matrix.use_bullseye_snapshot
+      run: |
+        # The GCC 9 and 10 Bookworm images cannot run Bookworm's apt with
+        # their older libstdc++. Keep the coherent Bullseye userspace instead.
+        rm -f /etc/apt/sources.list.d/*
+        printf '%s\n' \
+          'deb [check-valid-until=no] https://snapshot.debian.org/archive/debian/20260831T000000Z/ bullseye main' \
+          'deb [check-valid-until=no] https://snapshot.debian.org/archive/debian/20260831T000000Z/ bullseye-updates main' \
+          'deb [check-valid-until=no] https://snapshot.debian.org/archive/debian-security/20260831T000000Z/ bullseye-security main' \
+          > /etc/apt/sources.list
 
     - name: Add Python 3
       run: apt-get update; apt-get install -y python3-dev python3-numpy python3-pytest python3-pip libeigen3-dev
@@ -551,7 +803,7 @@ jobs:
       run: python3 -m pip install --upgrade pip
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v2.0
+      uses: jwlawson/actions-setup-cmake@v2.2
 
     - name: Configure
       shell: bash
@@ -570,6 +822,7 @@ jobs:
       run: cmake --build build --target pytest
 
     - name: C++ tests
+      timeout-minutes: 3
       run: cmake --build build --target cpptest
 
     - name: Interface test
@@ -577,25 +830,6 @@ jobs:
 
     - name: Visibility test
       run: cmake --build build --target test_cross_module_rtti
-
-    - name: Configure - Exercise cmake -DPYBIND11_TEST_OVERRIDE
-      if: matrix.gcc == '12'
-      shell: bash
-      run: >
-        cmake -S . -B build_partial
-        -DPYBIND11_WERROR=ON
-        -DDOWNLOAD_CATCH=ON
-        -DCMAKE_CXX_STANDARD=${{ matrix.std }}
-        -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
-        "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
-
-    - name: Build - Exercise cmake -DPYBIND11_TEST_OVERRIDE
-      if: matrix.gcc == '12'
-      run: cmake --build build_partial -j 2
-
-    - name: Python tests - Exercise cmake -DPYBIND11_TEST_OVERRIDE
-      if: matrix.gcc == '12'
-      run: cmake --build build_partial --target pytest
 
   # Testing on ICC using the oneAPI apt repo
   icc:
@@ -606,7 +840,7 @@ jobs:
     name: "🐍 3 • ICC latest • x64"
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
 
     - name: Add apt repo
       run: |
@@ -652,6 +886,7 @@ jobs:
         cmake --build build-11 --target check
 
     - name: C++ tests C++11
+      timeout-minutes: 3
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
         cmake --build build-11 --target cpptest
@@ -689,6 +924,7 @@ jobs:
         cmake --build build-17 --target check
 
     - name: C++ tests C++17
+      timeout-minutes: 3
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
         cmake --build build-17 --target cpptest
@@ -720,11 +956,11 @@ jobs:
 
     steps:
     - name: Latest actions/checkout
-      uses: actions/checkout@v5
+      uses: actions/checkout@v7
 
-    - name: Add Python 3.8
+    - name: Add Python 3.9
       if: matrix.container == 'almalinux:8'
-      run: dnf update -y && dnf install -y python38-devel gcc-c++ make git
+      run: dnf update -y && dnf install -y python39-devel gcc-c++ make git
 
     - name: Add Python 3 (default)
       if: matrix.container != 'almalinux:8'
@@ -750,6 +986,7 @@ jobs:
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
+        -DPYBIND11_EIGEN_REPO=https://github.com/eigen-mirror/eigen.git
         -DCMAKE_CXX_STANDARD=11
         -DPYTHON_EXECUTABLE=$(python3 -c "import sys; print(sys.executable)")
 
@@ -760,6 +997,7 @@ jobs:
       run: cmake --build build --target pytest
 
     - name: C++ tests
+      timeout-minutes: 3
       run: cmake --build build --target cpptest
 
     - name: Interface test
@@ -772,19 +1010,21 @@ jobs:
   # This tests an "install" with the CMake tools
   install-classic:
     if: github.event.pull_request.draft == false
-    name: "🐍 3.9 • Debian • x86 •  Install"
-    runs-on: ubuntu-latest
-    container: i386/debian:bullseye
+    name: "🐍 3.11 • Debian • x86 •  Install"
+    # Ubuntu 26.04's Docker 29.4.2 breaks i386 networking:
+    # https://github.com/actions/runner-images/issues/14790
+    runs-on: ubuntu-24.04
+    container: i386/debian:bookworm
     timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v1  # v1 is required to run inside docker
+    # v1 required for i386/debian container; pinned to SHA to prevent dependabot updates
+    - uses: actions/checkout@544eadc6bf3d226fd7a7a9f0dc5b5bf7ca0675b9  # v1
 
     - name: Install requirements
       run: |
         apt-get update
-        apt-get install -y git make cmake g++ libeigen3-dev python3-dev python3-pip
-        pip3 install "pytest==6.*"
+        apt-get install -y git make cmake g++ libeigen3-dev python3-dev python3-pytest
 
     - name: Configure for install
       run: >
@@ -823,9 +1063,9 @@ jobs:
     timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
 
-    - uses: actions/setup-python@v6
+    - uses: actions/setup-python@v7
       with:
         python-version: "3.x"
 
@@ -858,10 +1098,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - python: '3.8'
+          - python: '3.9'
             args: -DCMAKE_CXX_STANDARD=17
-          - python: '3.10'
-            args: -DCMAKE_CXX_STANDARD=20
           - python: '3.13'
 
 
@@ -870,10 +1108,10 @@ jobs:
     timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
 
     - name: Setup Python ${{ matrix.python }}
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python }}
         architecture: x86
@@ -882,7 +1120,7 @@ jobs:
           ${{ matrix.python == '3.13' && runner.os == 'Windows' }}
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v2.0
+      uses: jwlawson/actions-setup-cmake@v2.2
 
     - name: Prepare MSVC
       uses: ilammy/msvc-dev-cmd@v1.13.0
@@ -900,6 +1138,7 @@ jobs:
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
+        -DPYBIND11_EIGEN_REPO=https://github.com/eigen-mirror/eigen.git
         ${{ matrix.args }}
     - name: Build C++11
       run: cmake --build build -j 2
@@ -915,24 +1154,22 @@ jobs:
         include:
           - python: 3.9
             args: -DCMAKE_CXX_STANDARD=20
-          - python: 3.8
-            args: -DCMAKE_CXX_STANDARD=17
 
     name: "🐍 ${{ matrix.python }} • MSVC 2022 (Debug) • x86 ${{ matrix.args }}"
     runs-on: windows-2022
     timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
 
     - name: Setup Python ${{ matrix.python }}
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python }}
         architecture: x86
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v2.0
+      uses: jwlawson/actions-setup-cmake@v2.2
 
     - name: Prepare MSVC
       uses: ilammy/msvc-dev-cmd@v1.13.0
@@ -951,6 +1188,7 @@ jobs:
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
+        -DPYBIND11_EIGEN_REPO=https://github.com/eigen-mirror/eigen.git
         ${{ matrix.args }}
     - name: Build C++11
       run: cmake --build build --config Debug -j 2
@@ -972,10 +1210,10 @@ jobs:
     timeout-minutes: 90
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
 
     - name: Setup Python ${{ matrix.python }}
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python }}
 
@@ -983,7 +1221,7 @@ jobs:
       run: python3 -m pip install -r tests/requirements.txt
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v2.0
+      uses: jwlawson/actions-setup-cmake@v2.2
 
     - name: Configure C++20
       run: >
@@ -991,6 +1229,7 @@ jobs:
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
+        -DPYBIND11_EIGEN_REPO=https://github.com/eigen-mirror/eigen.git
         -DCMAKE_CXX_STANDARD=20
 
     - name: Build C++20
@@ -1000,6 +1239,7 @@ jobs:
       run: cmake --build build --target pytest
 
     - name: C++20 tests
+      timeout-minutes: 3
       run: cmake --build build --target cpptest -j 2
 
     - name: Interface test C++20
@@ -1014,6 +1254,7 @@ jobs:
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
+        -DPYBIND11_EIGEN_REPO=https://github.com/eigen-mirror/eigen.git
         -DCMAKE_CXX_STANDARD=20
         "-DPYBIND11_TEST_OVERRIDE=test_call_policies.cpp;test_gil_scoped.cpp;test_thread.cpp"
 
@@ -1041,6 +1282,7 @@ jobs:
           - sys: mingw64
             env: x86_64
             extra_install: |
+              mingw-w64-x86_64-boost
               mingw-w64-x86_64-python-numpy
               mingw-w64-x86_64-python-scipy
               mingw-w64-x86_64-eigen3
@@ -1055,11 +1297,10 @@ jobs:
           mingw-w64-${{matrix.env}}-cmake
           mingw-w64-${{matrix.env}}-make
           mingw-w64-${{matrix.env}}-python-pytest
-          mingw-w64-${{matrix.env}}-boost
           mingw-w64-${{matrix.env}}-catch
           ${{ matrix.extra_install }}
 
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
 
     - name: Configure C++11
       # LTO leads to many undefined reference like
@@ -1076,6 +1317,7 @@ jobs:
       run: cmake --build build --target pytest -j 2
 
     - name: C++11 tests
+      timeout-minutes: 3
       run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build --target cpptest -j 2
 
     - name: Interface test C++11
@@ -1100,6 +1342,7 @@ jobs:
       run: cmake --build build2 --target pytest -j 2
 
     - name: C++14 tests
+      timeout-minutes: 3
       run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build2 --target cpptest -j 2
 
     - name: Interface test C++14
@@ -1124,6 +1367,7 @@ jobs:
       run: cmake --build build3 --target pytest -j 2
 
     - name: C++17 tests
+      timeout-minutes: 3
       run: PYTHONHOME=/${{matrix.sys}} PYTHONPATH=/${{matrix.sys}} cmake --build build3 --target cpptest -j 2
 
     - name: Interface test C++17
@@ -1150,21 +1394,18 @@ jobs:
         run: env
 
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Set up Clang
-        uses: egor-tensin/setup-clang@v1
+        uses: egor-tensin/setup-clang@v2
 
       - name: Setup Python ${{ matrix.python }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python }}
 
       - name: Update CMake
-        uses: jwlawson/actions-setup-cmake@v2.0
-
-      - name: Install ninja-build tool
-        uses: seanmiddleditch/gha-setup-ninja@v6
+        uses: jwlawson/actions-setup-cmake@v2.2
 
       - name: Run pip installs
         run: |
@@ -1185,6 +1426,7 @@ jobs:
           -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF
           -DDOWNLOAD_CATCH=ON
           -DDOWNLOAD_EIGEN=ON
+          -DPYBIND11_EIGEN_REPO=https://github.com/eigen-mirror/eigen.git
           -DCMAKE_CXX_COMPILER=clang++
           -DCMAKE_CXX_STANDARD=17
 
@@ -1195,6 +1437,7 @@ jobs:
         run: cmake --build . --target pytest -j 2
 
       - name: C++ tests
+        timeout-minutes: 3
         run: cmake --build . --target cpptest -j 2
 
       - name: Interface test
@@ -1205,3 +1448,146 @@ jobs:
 
       - name: Clean directory
         run: git clean -fdx
+
+  # Clang with MSVC/Windows SDK toolchain + python.org CPython (Windows ARM)
+  windows_arm_clang_msvc:
+    if: github.event.pull_request.draft == false
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-11-arm]
+        python: ['3.13']
+
+    runs-on: "${{ matrix.os }}"
+    timeout-minutes: 90
+
+    name: "🐍 ${{ matrix.python }} • ${{ matrix.os }} • clang-msvc"
+
+    steps:
+      - name: Show env
+        run: env
+
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Python ${{ matrix.python }}
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+          architecture: arm64
+
+      - name: Run pip installs
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements.txt
+
+      - name: Configure CMake
+        run: |
+          $pythonExecutable = Join-Path $env:pythonLocation "python.exe"
+          $pythonIncludeDir = Join-Path $env:pythonLocation "include"
+          $pythonVersion = (python -c "import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')").Trim()
+          # PR 6051: FindPython can still resolve the x64 python.org install on
+          # windows-11-arm, so pass the ARM64 interpreter, headers, and import lib.
+          $pythonLibrary = Join-Path (Join-Path $env:pythonLocation "libs") "python$pythonVersion.lib"
+          cmake -G Ninja -S . -B . `
+            -DPYBIND11_WERROR=OFF `
+            -DPYBIND11_SIMPLE_GIL_MANAGEMENT=OFF `
+            -DDOWNLOAD_CATCH=ON `
+            -DDOWNLOAD_EIGEN=ON `
+            -DPYBIND11_EIGEN_REPO=https://github.com/eigen-mirror/eigen.git `
+            -DCMAKE_CXX_COMPILER=clang++ `
+            -DCMAKE_CXX_STANDARD=20 `
+            -DPython_EXECUTABLE="$pythonExecutable" `
+            -DPython_INCLUDE_DIR="$pythonIncludeDir" `
+            -DPython_LIBRARY="$pythonLibrary"
+
+      - name: Build
+        run: cmake --build . -j 2
+
+      - name: Python tests
+        run: cmake --build . --target pytest -j 2
+
+      - name: C++ tests
+        timeout-minutes: 3
+        run: cmake --build . --target cpptest -j 2
+
+      - name: Interface test
+        run: cmake --build . --target test_cmake_build -j 2
+
+      - name: Visibility test
+        run: cmake --build . --target test_cross_module_rtti -j 2
+
+  # Clang in MSYS2/MinGW-w64 CLANGARM64 toolchain + MSYS2 Python (Windows ARM)
+  windows_arm_clang_msys2:
+    if: github.event.pull_request.draft == false
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-11-arm]
+
+    runs-on: "${{ matrix.os }}"
+    timeout-minutes: 90
+
+    name: "${{ matrix.os }} • clang-msys2"
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        submodules: true
+
+    - uses: msys2/setup-msys2@v2
+      with:
+        msystem: CLANGARM64
+        update: true
+        install: |
+          mingw-w64-clang-aarch64-cmake
+          mingw-w64-clang-aarch64-clang
+          mingw-w64-clang-aarch64-ninja
+          mingw-w64-clang-aarch64-python-pip
+          mingw-w64-clang-aarch64-python-pytest
+          mingw-w64-clang-aarch64-python-numpy
+
+    - name: Debug info
+      run: |
+        clang++ --version
+        cmake --version
+        ninja --version
+        python --version
+
+    - name: Run pip installs
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install -r tests/requirements.txt
+
+    - name: Configure CMake
+      run: >-
+        cmake -S . -B build
+        -DPYBIND11_WERROR=OFF
+        -DDOWNLOAD_CATCH=ON
+        -DDOWNLOAD_EIGEN=ON
+        -DPYBIND11_EIGEN_REPO=https://github.com/eigen-mirror/eigen.git
+        -DCMAKE_CXX_COMPILER=clang++
+        -DCMAKE_CXX_STANDARD=20
+        -DPYTHON_EXECUTABLE=$(python -c "import sys; print(sys.executable)")
+
+    - name: Build
+      run: cmake --build build -j 2
+
+    - name: Python tests
+      run: cmake --build build --target pytest -j 2
+
+    - name: C++ tests
+      timeout-minutes: 3
+      run: PYTHONHOME=/clangarm64 PYTHONPATH=/clangarm64 cmake --build build --target cpptest -j 2
+
+    - name: Interface test
+      run: cmake --build build --target test_cmake_build -j 2
+
+    - name: Visibility test
+      run: cmake --build build --target test_cross_module_rtti -j 2

@@ -32,13 +32,13 @@ int get_from_cpp_unique_ptr(std::unique_ptr<Base> b) { return b->get() + 5000; }
 struct BaseVirtualOverrider : Base, py::trampoline_self_life_support {
     using Base::Base;
 
-    int get() const override { PYBIND11_OVERRIDE(int, Base, get); }
+    int get() const override { PYBIND11_OVERRIDE(int, Base, get, ); }
 };
 
 struct CppDerivedVirtualOverrider : CppDerived, py::trampoline_self_life_support {
     using CppDerived::CppDerived;
 
-    int get() const override { PYBIND11_OVERRIDE(int, CppDerived, get); }
+    int get() const override { PYBIND11_OVERRIDE(int, CppDerived, get, ); }
 };
 
 } // namespace class_sh_virtual_py_cpp_mix

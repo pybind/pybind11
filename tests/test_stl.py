@@ -1,8 +1,15 @@
 from __future__ import annotations
 
+import os
+import subprocess
+import sys
+import textwrap
+import weakref
+
 import pytest
 
-import env  # noqa: F401
+import env
+import pybind11_tests
 from pybind11_tests import ConstructorStats, UserType
 from pybind11_tests import stl as m
 
@@ -22,11 +29,137 @@ def test_vector(doc):
     assert doc(m.cast_vector) == "cast_vector() -> list[int]"
     assert (
         doc(m.load_vector)
-        == "load_vector(arg0: collections.abc.Sequence[typing.SupportsInt]) -> bool"
+        == "load_vector(arg0: collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex]) -> bool"
     )
 
     # Test regression caused by 936: pointers to stl containers weren't castable
     assert m.cast_ptr_vector() == ["lvalue", "lvalue"]
+
+    if hasattr(m, "func_with_string_views"):
+
+        def gen():
+            return ("a" + str(x) for x in range(10000, 10010))
+
+        expected = list(gen())
+        assert m.func_with_string_views(gen()) == expected
+        assert m.func_with_string_views(x.encode() for x in gen()) == expected
+        assert (
+            m.func_with_string_views(bytearray(x.encode()) for x in gen()) == expected
+        )
+
+
+@pytest.mark.skipif(
+    not hasattr(m, "string_view_life_support_check"), reason="no <string_view>"
+)
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
+def test_string_view_life_support_during_argument_conversion():
+    # Design background: PR #6096, "Why these lifetime tests are deliberately
+    # implementation-aware".
+    # This test uses conversion of a later argument as a checkpoint between
+    # loading the string views and entering the C++ function. Argument casters
+    # run left-to-right: after the first argument creates the views, the second
+    # argument's __index__ clears the list that owned their Python strings and
+    # forces GC. The C++ probe checks only whether those strings were destroyed,
+    # never the potentially dangling views. Zero during the call proves that
+    # loader life support worked; dead weakrefs afterward prove that it did not
+    # keep the strings alive too long.
+    destroyed = []
+
+    class TrackedString(str):
+        pass
+
+    source = [TrackedString("first"), TrackedString("second")]
+    weakrefs = [weakref.ref(item, lambda _: destroyed.append(None)) for item in source]
+
+    # Clear the only Python owners after the views have loaded, but before the
+    # bound function is called.
+    class ClearSourceOnIndex:
+        def __index__(self):
+            source.clear()
+            pytest.gc_collect()
+            return 0
+
+    assert (
+        m.string_view_life_support_check(source, ClearSourceOnIndex(), destroyed) == 0
+    )
+    assert source == []
+    pytest.gc_collect()
+    assert len(destroyed) == 2
+    assert all(ref() is None for ref in weakrefs)
+
+
+@pytest.mark.skipif(
+    not hasattr(m, "string_view_life_support_check"), reason="no <string_view>"
+)
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
+@pytest.mark.parametrize(
+    ("element_type", "values"),
+    [
+        pytest.param(str, ("first", "second"), id="str"),
+        pytest.param(bytes, (b"first", b"second"), id="bytes"),
+        pytest.param(bytearray, (b"first", b"second"), id="bytearray"),
+    ],
+)
+def test_string_view_life_support_for_generator(element_type, values):
+    destroyed = []
+
+    class Tracked(element_type):
+        def __del__(self):
+            destroyed.append(None)
+
+    def source():
+        for value in values:
+            yield Tracked(value)
+
+    class CollectGarbageOnIndex:
+        def __index__(self):
+            pytest.gc_collect()
+            return 0
+
+    assert (
+        m.string_view_life_support_check(source(), CollectGarbageOnIndex(), destroyed)
+        == 0
+    )
+    pytest.gc_collect()
+    assert len(destroyed) == len(values)
+
+
+@pytest.mark.skipif(
+    not hasattr(m, "nested_string_view_life_support_check"),
+    reason="no <string_view>",
+)
+@pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
+def test_string_view_life_support_for_nested_containers():
+    # Design background: PR #6096, "Why these lifetime tests are deliberately
+    # implementation-aware". This uses the later-argument checkpoint described
+    # in test_string_view_life_support_during_argument_conversion. Here,
+    # clearing the outer list also releases the inner lists, verifying that life
+    # support reaches every Python string backing a view in the recursively
+    # converted std::vector<std::vector<std::string_view>>.
+    destroyed = []
+
+    class TrackedString(str):
+        def __del__(self):
+            destroyed.append(None)
+
+    source = [
+        [TrackedString("first"), TrackedString("second")],
+        [TrackedString("third"), TrackedString("fourth")],
+    ]
+
+    class ClearSourceOnIndex:
+        def __index__(self):
+            source.clear()
+            pytest.gc_collect()
+            return 0
+
+    assert (
+        m.nested_string_view_life_support_check(source, ClearSourceOnIndex(), destroyed)
+        == 0
+    )
+    assert source == []
+    pytest.gc_collect()
+    assert len(destroyed) == 4
 
 
 def test_deque():
@@ -51,7 +184,7 @@ def test_array(doc):
     )
     assert (
         doc(m.load_array)
-        == 'load_array(arg0: typing.Annotated[collections.abc.Sequence[typing.SupportsInt], "FixedSize(2)"]) -> bool'
+        == 'load_array(arg0: typing.Annotated[collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex], "FixedSize(2)"]) -> bool'
     )
 
 
@@ -72,7 +205,7 @@ def test_valarray(doc):
     assert doc(m.cast_valarray) == "cast_valarray() -> list[int]"
     assert (
         doc(m.load_valarray)
-        == "load_valarray(arg0: collections.abc.Sequence[typing.SupportsInt]) -> bool"
+        == "load_valarray(arg0: collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex]) -> bool"
     )
 
 
@@ -234,7 +367,7 @@ def test_reference_sensitive_optional(doc):
 
     assert (
         doc(m.double_or_zero_refsensitive)
-        == "double_or_zero_refsensitive(arg0: typing.SupportsInt | None) -> int"
+        == "double_or_zero_refsensitive(arg0: typing.SupportsInt | typing.SupportsIndex | None) -> int"
     )
 
     assert m.half_or_none_refsensitive(0) is None
@@ -352,7 +485,7 @@ def test_variant(doc):
 
     assert (
         doc(m.load_variant)
-        == "load_variant(arg0: typing.SupportsInt | str | typing.SupportsFloat | None) -> str"
+        == "load_variant(arg0: typing.SupportsInt | typing.SupportsIndex | str | typing.SupportsFloat | typing.SupportsIndex | None) -> str"
     )
 
 
@@ -368,7 +501,7 @@ def test_variant_monostate(doc):
 
     assert (
         doc(m.load_monostate_variant)
-        == "load_monostate_variant(arg0: None | typing.SupportsInt | str) -> str"
+        == "load_monostate_variant(arg0: None | typing.SupportsInt | typing.SupportsIndex | str) -> str"
     )
 
 
@@ -388,7 +521,7 @@ def test_stl_pass_by_pointer(msg):
         msg(excinfo.value)
         == """
         stl_pass_by_pointer(): incompatible function arguments. The following argument types are supported:
-            1. (v: collections.abc.Sequence[typing.SupportsInt] = None) -> list[int]
+            1. (v: collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex] = None) -> list[int]
 
         Invoked with:
     """
@@ -400,7 +533,7 @@ def test_stl_pass_by_pointer(msg):
         msg(excinfo.value)
         == """
         stl_pass_by_pointer(): incompatible function arguments. The following argument types are supported:
-            1. (v: collections.abc.Sequence[typing.SupportsInt] = None) -> list[int]
+            1. (v: collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex] = None) -> list[int]
 
         Invoked with: None
     """
@@ -497,6 +630,62 @@ def test_list_caster_fully_consumes_generator_object():
     with pytest.raises(TypeError):
         m.pass_std_vector_int(gen_obj)
     assert not tuple(gen_obj)
+
+
+def test_list_caster_rejects_class_named_generator():
+    class generator:
+        pass
+
+    with pytest.raises(TypeError, match="incompatible function arguments"):
+        m.pass_std_vector_int(generator())
+
+
+@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
+@pytest.mark.skipif(env.ANDROID or env.IOS, reason="Requires subprocess support")
+def test_generator_check_does_not_deadlock():
+    """Two threads doing the first generator conversion at once must both finish.
+
+    The stable-ABI generator check imports `types` once. If the import releases the GIL
+    while another thread holds it and waits on the once-only guard, neither thread can
+    proceed. Runs in a subprocess so a regression shows up as a timeout, not a hang.
+    """
+    script = textwrap.dedent(
+        f"""
+        import sys
+        import threading
+
+        sys.path.insert(0, {os.path.dirname(env.__file__)!r})
+        sys.path.insert(0, {os.path.dirname(pybind11_tests.__file__)!r})
+
+        from pybind11_tests import stl as m
+
+        # A cold import runs importlib Python code, which can release the GIL.
+        del sys.modules["types"]
+        sys.setswitchinterval(1e-6)
+        start = threading.Barrier(2)
+
+        def convert():
+            start.wait()
+            for _ in range(100):
+                assert m.pass_std_vector_int(x for x in (1, 2, 3)) == 112
+
+        threads = [threading.Thread(target=convert) for _ in range(2)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        print("done")
+        """
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == "done"
 
 
 def test_pass_std_set_int():
@@ -615,7 +804,7 @@ def test_sequence_caster_protocol(doc):
     # convert mode
     assert (
         doc(m.roundtrip_std_vector_int)
-        == "roundtrip_std_vector_int(arg0: collections.abc.Sequence[typing.SupportsInt]) -> list[int]"
+        == "roundtrip_std_vector_int(arg0: collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex]) -> list[int]"
     )
     assert m.roundtrip_std_vector_int([1, 2, 3]) == [1, 2, 3]
     assert m.roundtrip_std_vector_int((1, 2, 3)) == [1, 2, 3]
@@ -668,7 +857,7 @@ def test_mapping_caster_protocol(doc):
     # convert mode
     assert (
         doc(m.roundtrip_std_map_str_int)
-        == "roundtrip_std_map_str_int(arg0: collections.abc.Mapping[str, typing.SupportsInt]) -> dict[str, int]"
+        == "roundtrip_std_map_str_int(arg0: collections.abc.Mapping[str, typing.SupportsInt | typing.SupportsIndex]) -> dict[str, int]"
     )
     assert m.roundtrip_std_map_str_int(a1b2c3) == a1b2c3
     assert m.roundtrip_std_map_str_int(FormalMappingLike(**a1b2c3)) == a1b2c3
@@ -690,7 +879,7 @@ def test_mapping_caster_protocol(doc):
 
 
 def test_set_caster_protocol(doc):
-    from collections.abc import Set
+    from collections.abc import Set as AbstractSet
 
     # Implements the Set protocol without explicitly inheriting from collections.abc.Set.
     class BareSetLike:
@@ -708,13 +897,13 @@ def test_set_caster_protocol(doc):
 
     # Implements the Set protocol by reusing BareSetLike's implementation.
     # Additionally, inherits from collections.abc.Set.
-    class FormalSetLike(BareSetLike, Set):
+    class FormalSetLike(BareSetLike, AbstractSet):
         pass
 
     # convert mode
     assert (
         doc(m.roundtrip_std_set_int)
-        == "roundtrip_std_set_int(arg0: collections.abc.Set[typing.SupportsInt]) -> set[int]"
+        == "roundtrip_std_set_int(arg0: collections.abc.Set[typing.SupportsInt | typing.SupportsIndex]) -> set[int]"
     )
     assert m.roundtrip_std_set_int({1, 2, 3}) == {1, 2, 3}
     assert m.roundtrip_std_set_int(FormalSetLike(1, 2, 3)) == {1, 2, 3}
@@ -733,3 +922,15 @@ def test_set_caster_protocol(doc):
         m.roundtrip_std_set_int_noconvert(FormalSetLike(1, 2, 3))
     with pytest.raises(TypeError):
         m.roundtrip_std_set_int_noconvert(BareSetLike(1, 2, 3))
+
+
+@pytest.mark.parametrize(
+    "name", ["map", "zip", "dict_keys", "dict_values", "dict_items"]
+)
+def test_non_iterable_user_class_named_like_builtin_iterable(name):
+    obj = type(name, (), {})()
+    with pytest.raises(TypeError, match="incompatible function arguments"):
+        m.pass_std_vector_int(obj)
+    if name == "dict_keys":
+        with pytest.raises(TypeError, match="incompatible function arguments"):
+            m.pass_std_set_int(obj)

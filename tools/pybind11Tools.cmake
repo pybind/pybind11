@@ -37,7 +37,7 @@ endif()
 
 # A user can set versions manually too
 set(Python_ADDITIONAL_VERSIONS
-    "3.12;3.11;3.10;3.9;3.8"
+    "3.15;3.14;3.13;3.12;3.11;3.10;3.9"
     CACHE INTERNAL "")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
@@ -100,8 +100,8 @@ set(pybind11_INCLUDE_DIRS
     "${pybind11_INCLUDE_DIR}" "${PYTHON_INCLUDE_DIRS}"
     CACHE INTERNAL "Directories where pybind11 and possibly Python headers are located")
 
-# Python debug libraries expose slightly different objects before 3.8
-# https://docs.python.org/3.6/c-api/intro.html#debugging-builds
+# A debug build of Python needs Py_DEBUG to select the matching ABI.
+# https://docs.python.org/3/c-api/intro.html#debugging-builds
 # https://stackoverflow.com/questions/39161202/how-to-work-around-missing-pymodule-create2-in-amd64-win-python35-d-lib
 if(PYTHON_IS_DEBUG)
   set_property(
@@ -139,8 +139,17 @@ endfunction()
 #                     [NO_EXTRAS] [THIN_LTO] [OPT_SIZE] source1 [source2 ...])
 #
 function(pybind11_add_module target_name)
-  set(options "MODULE;SHARED;EXCLUDE_FROM_ALL;NO_EXTRAS;SYSTEM;THIN_LTO;OPT_SIZE")
+  set(options
+      "MODULE;SHARED;EXCLUDE_FROM_ALL;NO_EXTRAS;SYSTEM;THIN_LTO;OPT_SIZE;PRECOMPILE;NO_PRECOMPILE;STABLE_ABI;NO_STABLE_ABI"
+  )
   cmake_parse_arguments(ARG "${options}" "" "" ${ARGN})
+
+  if((ARG_STABLE_ABI OR PYBIND11_STABLE_ABI) AND NOT ARG_NO_STABLE_ABI)
+    message(
+      FATAL_ERROR
+        "${target_name}: STABLE_ABI requires the FindPython mode (PYBIND11_FINDPYTHON=ON) "
+        "and CMake 3.26 or newer.")
+  endif()
 
   if(ARG_MODULE AND ARG_SHARED)
     message(FATAL_ERROR "Can't be both MODULE and SHARED")
@@ -160,6 +169,8 @@ function(pybind11_add_module target_name)
 
   target_link_libraries(${target_name} PRIVATE pybind11::module)
 
+  _pybind11_maybe_precompile(${target_name} "${ARG_PRECOMPILE}" "${ARG_NO_PRECOMPILE}" OFF)
+
   if(ARG_SYSTEM)
     message(
       STATUS
@@ -169,18 +180,7 @@ function(pybind11_add_module target_name)
 
   pybind11_extension(${target_name})
 
-  # -fvisibility=hidden is required to allow multiple modules compiled against
-  # different pybind versions to work properly, and for some features (e.g.
-  # py::module_local).  We force it on everything inside the `pybind11`
-  # namespace; also turning it on for a pybind module compilation here avoids
-  # potential warnings or issues from having mixed hidden/non-hidden types.
-  if(NOT DEFINED CMAKE_CXX_VISIBILITY_PRESET)
-    set_target_properties(${target_name} PROPERTIES CXX_VISIBILITY_PRESET "hidden")
-  endif()
-
-  if(NOT DEFINED CMAKE_CUDA_VISIBILITY_PRESET)
-    set_target_properties(${target_name} PROPERTIES CUDA_VISIBILITY_PRESET "hidden")
-  endif()
+  _pybind11_default_hidden_visibility(${target_name})
 
   if(ARG_NO_EXTRAS)
     return()

@@ -14,11 +14,12 @@
 
 #include <cstdint>
 #include <utility>
+#include <vector>
 
 // Size / dtype checks.
 struct DtypeCheck {
-    py::dtype numpy{};
-    py::dtype pybind11{};
+    py::dtype numpy;
+    py::dtype pybind11;
 };
 
 template <typename T>
@@ -43,11 +44,11 @@ std::vector<DtypeCheck> get_concrete_dtype_checks() {
 }
 
 struct DtypeSizeCheck {
-    std::string name{};
+    std::string name;
     int size_cpp{};
     int size_numpy{};
     // For debugging.
-    py::dtype dtype{};
+    py::dtype dtype;
 };
 
 template <typename T>
@@ -134,9 +135,10 @@ arr_t &mutate_at_t(arr_t &a, Ix... idx) {
 
 #define def_index_fn(name, type)                                                                  \
     sm.def(#name, [](type a) { return name(a); });                                                \
-    sm.def(#name, [](type a, int i) { return name(a, i); });                                      \
-    sm.def(#name, [](type a, int i, int j) { return name(a, i, j); });                            \
-    sm.def(#name, [](type a, int i, int j, int k) { return name(a, i, j, k); });
+    sm.def(#name, [](type a, py::ssize_t i) { return name(a, i); });                              \
+    sm.def(#name, [](type a, py::ssize_t i, py::ssize_t j) { return name(a, i, j); });            \
+    sm.def(#name,                                                                                 \
+           [](type a, py::ssize_t i, py::ssize_t j, py::ssize_t k) { return name(a, i, j, k); });
 
 template <typename T, typename T2>
 py::handle auxiliaries(T &&r, T2 &&r2) {
@@ -245,6 +247,22 @@ TEST_SUBMODULE(numpy_array, sm) {
     sm.def("itemsize", [](const arr &a) { return a.itemsize(); });
     sm.def("nbytes", [](const arr &a) { return a.nbytes(); });
     sm.def("owndata", [](const arr &a) { return a.owndata(); });
+
+#ifdef PYBIND11_HAS_SPAN
+    // test_shape_strides_span
+    sm.def("shape_span", [](const arr &a) {
+        auto span = a.shape_span();
+        return std::vector<py::ssize_t>(span.begin(), span.end());
+    });
+    sm.def("strides_span", [](const arr &a) {
+        auto span = a.strides_span();
+        return std::vector<py::ssize_t>(span.begin(), span.end());
+    });
+    // Test that spans can be used to construct new arrays
+    sm.def("array_from_spans", [](const arr &a) {
+        return py::array(a.dtype(), a.shape_span(), a.strides_span(), a.data(), a);
+    });
+#endif
 
     // test_index_offset
     def_index_fn(index_at, const arr &);

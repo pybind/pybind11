@@ -51,7 +51,7 @@ void bind_ConstructorStats(py::module_ &m) {
         .def_readwrite("copy_constructions", &ConstructorStats::copy_constructions)
         .def_readwrite("move_constructions", &ConstructorStats::move_constructions)
         .def_static("get",
-                    (ConstructorStats & (*) (py::object)) & ConstructorStats::get,
+                    (ConstructorStats & (*)(py::object)) & ConstructorStats::get,
                     py::return_value_policy::reference_internal)
 
         // Not exactly ConstructorStats, but related: expose the internal pybind number of
@@ -89,9 +89,24 @@ PYBIND11_MODULE(pybind11_tests, m, py::mod_gil_not_used()) {
 #endif
     m.attr("cpp_std") = cpp_std();
     m.attr("PYBIND11_INTERNALS_ID") = PYBIND11_INTERNALS_ID;
+    // The Python version the headers were compiled against; differs from the runtime version for
+    // stable-ABI modules.
+    m.attr("COMPILED_PYTHON_VERSION") = py::make_tuple(PY_MAJOR_VERSION, PY_MINOR_VERSION);
+    m.attr("LIMITED_API") =
+#if defined(Py_LIMITED_API)
+        true;
+#else
+        false;
+#endif
     // Free threaded Python uses UINT32_MAX for immortal objects.
     m.attr("PYBIND11_SIMPLE_GIL_MANAGEMENT") =
 #if defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
+        true;
+#else
+        false;
+#endif
+    m.attr("PYBIND11_TEST_SMART_HOLDER") =
+#if defined(PYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE)
         true;
 #else
         false;
@@ -103,6 +118,12 @@ PYBIND11_MODULE(pybind11_tests, m, py::mod_gil_not_used()) {
     m.attr("detailed_error_messages_enabled") = true;
 #else
     m.attr("detailed_error_messages_enabled") = false;
+#endif
+
+#if defined(__cpp_noexcept_function_type)
+    m.attr("defined___cpp_noexcept_function_type") = true;
+#else
+    m.attr("defined___cpp_noexcept_function_type") = false;
 #endif
 
     py::class_<UserType>(m, "UserType", "A `py::class_` type for testing")

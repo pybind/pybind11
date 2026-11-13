@@ -20,12 +20,12 @@ jobs:
     if: github.repository_owner == 'pybind'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v10.3.3
 
       - name: Build SDist and wheels
         run: |
@@ -33,7 +33,7 @@ jobs:
           nox -s build
           nox -s build_global
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: Packages
           path: dist/*
@@ -44,7 +44,7 @@ jobs:
     needs: [build_wheel]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v8
         with:
           name: Packages
           path: dist
@@ -52,8 +52,18 @@ jobs:
       - name: List wheel to be deployed
         run: ls -lha dist/*.whl
 
+      # A final version would shadow the PyPI release with a master snapshot
+      - name: Require a development version
+        run: |
+          for whl in dist/*.whl; do
+            if ! basename "$whl" | grep -Eq '^[^-]+-[0-9.]+(a|b|rc|\.dev)[0-9]+-'; then
+              echo "::error::$whl is not a prerelease; bump master to a development version"
+              exit 1
+            fi
+          done
+
       - name: Upload wheel to Anaconda Cloud as nightly
-        uses: scientific-python/upload-nightly-action@b36e8c0c10dbcfd2e05bf95f17ef8c14fd708dbf # 0.6.2
+        uses: scientific-python/upload-nightly-action@5a74a2a4ec19d7ab8b5317c1cdd356c150d92cd0 # 0.6.6
         with:
           artifacts_path: dist
           anaconda_nightly_upload_token: ${{ secrets.ANACONDA_ORG_UPLOAD_TOKEN }}

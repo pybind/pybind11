@@ -107,6 +107,22 @@ public:
 
     int value;
 };
+// #6142: returning a copy-constructible type with an explicitly deleted move
+// constructor failed to compile inside detail::function_ref (3.1.0 regression).
+// Returning such a type by value requires guaranteed copy elision.
+#if defined(__cpp_guaranteed_copy_elision) && __cpp_guaranteed_copy_elision >= 201606L
+class CopyOnlyDeletedMove {
+public:
+    explicit CopyOnlyDeletedMove(int v) : value{v} {}
+    CopyOnlyDeletedMove(const CopyOnlyDeletedMove &) = default;
+    CopyOnlyDeletedMove &operator=(const CopyOnlyDeletedMove &) = delete;
+    CopyOnlyDeletedMove(CopyOnlyDeletedMove &&) = delete;
+    CopyOnlyDeletedMove &operator=(CopyOnlyDeletedMove &&) = delete;
+
+    int value;
+};
+#endif
+
 PYBIND11_NAMESPACE_BEGIN(pybind11)
 PYBIND11_NAMESPACE_BEGIN(detail)
 template <>
@@ -175,6 +191,13 @@ TEST_SUBMODULE(copy_move_policies, m) {
     // test_lacking_move_ctor
     py::class_<lacking_move_ctor>(m, "lacking_move_ctor")
         .def_static("get_one", &lacking_move_ctor::get_one, py::return_value_policy::move);
+
+    // test_copy_only_deleted_move (#6142)
+#if defined(__cpp_guaranteed_copy_elision) && __cpp_guaranteed_copy_elision >= 201606L
+    py::class_<CopyOnlyDeletedMove>(m, "CopyOnlyDeletedMove")
+        .def_readonly("value", &CopyOnlyDeletedMove::value);
+    m.def("get_copy_only_deleted_move", []() { return CopyOnlyDeletedMove(42); });
+#endif
 
     // test_move_and_copy_casts
     // NOLINTNEXTLINE(performance-unnecessary-value-param)

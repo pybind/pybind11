@@ -84,8 +84,8 @@ The following table provides an overview of available policies:
 | :enum:`return_value_policy::reference_internal`  | If the return value is an lvalue reference or a pointer, the parent object |
 |                                                  | (the implicit ``this``, or ``self`` argument of the called method or       |
 |                                                  | property) is kept alive for at least the lifespan of the return value.     |
-|                                                  | **Otherwise this policy falls back to :enum:`return_value_policy::move`    |
-|                                                  | (see #5528).** Internally, this policy works just like                     |
+|                                                  | **Otherwise this policy falls back to** :enum:`return_value_policy::move`  |
+|                                                  | (see #5528). Internally, this policy works just like                       |
 |                                                  | :enum:`return_value_policy::reference` but additionally applies a          |
 |                                                  | ``keep_alive<0, 1>`` *call policy* (described in the next section) that    |
 |                                                  | prevents the parent object from being garbage collected as long as the     |
@@ -232,6 +232,12 @@ is equivalent to the following pseudocode:
         T scope_guard;
         return foo(args...); // forwarded arguments
     });
+
+Argument conversion, including extraction from type casters, finishes before
+the guards are constructed. A candidate rejected during argument conversion
+does not construct its guards. Call-policy ``precall`` hooks also run before
+guard construction, and the guards are destroyed before Python return-value
+conversion.
 
 The only requirement is that ``T`` is default-constructible, but otherwise any
 scope guard will work. This is very useful in combination with ``gil_scoped_release``.
@@ -437,10 +443,10 @@ Certain argument types may support conversion from one type to another.  Some
 examples of conversions are:
 
 * :ref:`implicit_conversions` declared using ``py::implicitly_convertible<A,B>()``
-* Calling a method accepting a double with an integer argument
-* Calling a ``std::complex<float>`` argument with a non-complex python type
-  (for example, with a float).  (Requires the optional ``pybind11/complex.h``
-  header).
+* Passing an argument that implements ``__float__`` or ``__index__`` to ``float`` or ``double``.
+* Passing an argument that implements ``__int__`` or ``__index__`` to ``int``.
+* Passing an argument that implements ``__complex__``, ``__float__``, or ``__index__`` to ``std::complex<float>``.
+  (Requires the optional ``pybind11/complex.h`` header).
 * Calling a function taking an Eigen matrix reference with a numpy array of the
   wrong type or of an incompatible data layout.  (Requires the optional
   ``pybind11/eigen.h`` header).
@@ -452,24 +458,37 @@ object, such as:
 
 .. code-block:: cpp
 
-    m.def("floats_only", [](double f) { return 0.5 * f; }, py::arg("f").noconvert());
-    m.def("floats_preferred", [](double f) { return 0.5 * f; }, py::arg("f"));
+    m.def("supports_float", [](double f) { return 0.5 * f; }, py::arg("f"));
+    m.def("only_float", [](double f) { return 0.5 * f; }, py::arg("f").noconvert());
 
-Attempting the call the second function (the one without ``.noconvert()``) with
-an integer will succeed, but attempting to call the ``.noconvert()`` version
-will fail with a ``TypeError``:
+``supports_float`` will accept any argument that implements ``__float__`` or ``__index__``.
+``only_float`` will only accept a float or int argument. Anything else will fail with a ``TypeError``:
+
+.. note::
+
+    The noconvert behaviour of float, double and complex has changed to match PEP 484.
+    A float/double argument marked noconvert will accept float or int.
+    A std::complex<float> argument will accept complex, float or int.
 
 .. code-block:: pycon
 
-    >>> floats_preferred(4)
+    class MyFloat:
+        def __init__(self, value: float) -> None:
+            self._value = float(value)
+        def __repr__(self) -> str:
+            return f"MyFloat({self._value})"
+        def __float__(self) -> float:
+            return self._value
+
+    >>> supports_float(MyFloat(4))
     2.0
-    >>> floats_only(4)
+    >>> only_float(MyFloat(4))
     Traceback (most recent call last):
       File "<stdin>", line 1, in <module>
-    TypeError: floats_only(): incompatible function arguments. The following argument types are supported:
+    TypeError: only_float(): incompatible function arguments. The following argument types are supported:
         1. (f: float) -> float
 
-    Invoked with: 4
+    Invoked with: MyFloat(4)
 
 You may, of course, combine this with the :var:`_a` shorthand notation (see
 :ref:`keyword_args`) and/or :ref:`default_args`.  It is also permitted to omit

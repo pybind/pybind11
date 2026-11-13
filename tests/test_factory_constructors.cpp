@@ -73,7 +73,7 @@ public:
 // Inheritance test
 class TestFactory4 : public TestFactory3 {
 public:
-    TestFactory4() : TestFactory3() { print_default_created(this); }
+    TestFactory4() { print_default_created(this); }
     explicit TestFactory4(int v) : TestFactory3(v) { print_created(this, v); }
     ~TestFactory4() override { print_destroyed(this); }
 };
@@ -376,8 +376,12 @@ TEST_SUBMODULE(factory_constructors, m) {
             py::print("noisy placement new");
             return p;
         }
-        static void operator delete(void *p, size_t) {
+        static void operator delete(void *p) noexcept {
             py::print("noisy delete");
+            ::operator delete(p);
+        }
+        static void operator delete(void *p, size_t) {
+            py::print("noisy delete size");
             ::operator delete(p);
         }
         static void operator delete(void *, void *) { py::print("noisy placement delete"); }
@@ -401,11 +405,10 @@ TEST_SUBMODULE(factory_constructors, m) {
     pyNoisyAlloc.def(py::init([](double d, int) { return NoisyAlloc(d); }));
     // Old-style placement new init; requires preallocation
     ignoreOldStyleInitWarnings([&pyNoisyAlloc]() {
-        pyNoisyAlloc.def("__init__",
-                         [](NoisyAlloc &a, double d, double) { new (&a) NoisyAlloc(d); });
+        pyNoisyAlloc.def("__init__", [](NoisyAlloc &a, int i, double) { new (&a) NoisyAlloc(i); });
     });
     // Requires deallocation of previous overload preallocated value:
-    pyNoisyAlloc.def(py::init([](int i, double) { return new NoisyAlloc(i); }));
+    pyNoisyAlloc.def(py::init([](double d, double) { return new NoisyAlloc(d); }));
     // Regular again: requires yet another preallocation
     ignoreOldStyleInitWarnings([&pyNoisyAlloc]() {
         pyNoisyAlloc.def(

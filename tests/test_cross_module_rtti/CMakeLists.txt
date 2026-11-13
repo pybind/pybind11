@@ -40,7 +40,10 @@ target_compile_features(test_cross_module_rtti_lib PUBLIC cxx_std_11)
 
 generate_export_header(test_cross_module_rtti_lib)
 
-pybind11_add_module(test_cross_module_rtti_bindings SHARED bindings.cpp)
+# The embedding executable cannot use the stable ABI, and must share internals with the bindings;
+# the precompiled library would be built for the stable ABI too.
+pybind11_add_module(test_cross_module_rtti_bindings SHARED NO_STABLE_ABI NO_PRECOMPILE
+                    bindings.cpp)
 target_link_libraries(test_cross_module_rtti_bindings
                       PUBLIC test_cross_module_rtti_lib::test_cross_module_rtti_lib)
 
@@ -60,7 +63,9 @@ add_custom_target(
   test_cross_module_rtti
   COMMAND "$<TARGET_FILE:test_cross_module_rtti_main>"
   DEPENDS test_cross_module_rtti_main
-  WORKING_DIRECTORY "$<TARGET_FILE_DIR:test_cross_module_rtti_main>")
+  WORKING_DIRECTORY "$<TARGET_FILE_DIR:test_cross_module_rtti_main>"
+  USES_TERMINAL # Ensures output is shown immediately (not buffered and possibly lost on crash)
+)
 
 set_target_properties(test_cross_module_rtti_bindings PROPERTIES LIBRARY_OUTPUT_DIRECTORY
                                                                  "${CMAKE_CURRENT_BINARY_DIR}")

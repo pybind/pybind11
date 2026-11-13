@@ -14,7 +14,7 @@ def test_multiple_inheritance_cpp():
     assert mt.bar() == 4
 
 
-@pytest.mark.xfail("env.PYPY")
+@pytest.mark.xfail("env.PYPY_PRE_7_3_23")
 def test_multiple_inheritance_mix1():
     class Base1:
         def __init__(self, i):
@@ -53,7 +53,7 @@ def test_multiple_inheritance_mix2():
     assert mt.bar() == 4
 
 
-@pytest.mark.xfail("env.PYPY")
+@pytest.mark.xfail("env.PYPY_PRE_7_3_23")
 def test_multiple_inheritance_python():
     class MI1(m.Base1, m.Base2):
         def __init__(self, i, j):
@@ -266,9 +266,18 @@ def test_mi_static_properties():
 def test_mi_dynamic_attributes():
     """Mixing bases with and without dynamic attribute support"""
 
-    for d in (m.VanillaDictMix1(), m.VanillaDictMix2()):
+    class PyDictMix12(m.WithDict, m.WithDict2):
+        def __init__(self):
+            m.WithDict.__init__(self)
+            m.WithDict2.__init__(self)
+
+    for cls in (m.VanillaDictMix1, m.VanillaDictMix2, m.DictMix12, PyDictMix12):
+        d = cls()
         d.dynamic = 1
         assert d.dynamic == 1
+        del d
+        # The dict must be cleared without crashing (PyPy 3.12)
+        pytest.gc_collect()
 
 
 def test_mi_unaligned_base():

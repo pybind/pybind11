@@ -875,6 +875,12 @@ The ``__setstate__`` part of the ``py::pickle()`` definition follows the same
 rules as the single-argument version of ``py::init()``. The return type can be
 a value, pointer or holder type. See :ref:`custom_constructors` for details.
 
+Calling ``__new__`` directly creates the Python wrapper without constructing its C++ value.
+Outside deprecated placement-new constructor dispatch, passing such an uninitialized wrapper to
+bound C++ code raises ``ValueError``. Calling its ``__init__`` or a pickle-generated
+``__setstate__`` can still finish construction normally. See :ref:`old_style_placement_new` for
+the compatibility behavior and safety limitations of deprecated placement-new callbacks.
+
 An instance can now be pickled as follows:
 
 .. code-block:: python
@@ -1381,33 +1387,58 @@ You can do that using ``py::custom_type_setup``:
 
 .. code-block:: cpp
 
-   struct OwnsPythonObjects {
-       py::object value = py::none();
+   struct ContainerOwnsPythonObjects {
+       std::vector<py::object> list;
+
+       void append(const py::object &obj) { list.emplace_back(obj); }
+       py::object at(py::ssize_t index) const {
+           if (index >= size() || index < 0) {
+               throw py::index_error("Index out of range");
+           }
+           return list.at(py::size_t(index));
+       }
+       py::ssize_t size() const { return py::ssize_t_cast(list.size()); }
+       void clear() { list.clear(); }
    };
-   py::class_<OwnsPythonObjects> cls(
-       m, "OwnsPythonObjects", py::custom_type_setup([](PyHeapTypeObject *heap_type) {
+
+   py::class_<ContainerOwnsPythonObjects> cls(
+       m, "ContainerOwnsPythonObjects", py::custom_type_setup([](PyHeapTypeObject *heap_type) {
            auto *type = &heap_type->ht_type;
            type->tp_flags |= Py_TPFLAGS_HAVE_GC;
            type->tp_traverse = [](PyObject *self_base, visitproc visit, void *arg) {
-   // https://docs.python.org/3/c-api/typeobj.html#c.PyTypeObject.tp_traverse
-   #if PY_VERSION_HEX >= 0x03090000
+               // https://docs.python.org/3/c-api/typeobj.html#c.PyTypeObject.tp_traverse
                Py_VISIT(Py_TYPE(self_base));
-   #endif
                if (py::detail::is_holder_constructed(self_base)) {
-                   auto &self = py::cast<OwnsPythonObjects&>(py::handle(self_base));
-                   Py_VISIT(self.value.ptr());
+                   auto &self = py::cast<ContainerOwnsPythonObjects &>(py::handle(self_base));
+                   for (auto &item : self.list) {
+                       Py_VISIT(item.ptr());
+                   }
                }
                return 0;
            };
            type->tp_clear = [](PyObject *self_base) {
                if (py::detail::is_holder_constructed(self_base)) {
-                   auto &self = py::cast<OwnsPythonObjects&>(py::handle(self_base));
-                   self.value = py::none();
+                   auto &self = py::cast<ContainerOwnsPythonObjects &>(py::handle(self_base));
+                   for (auto &item : self.list) {
+                       Py_CLEAR(item.ptr());
+                   }
+                   self.list.clear();
                }
                return 0;
            };
        }));
    cls.def(py::init<>());
-   cls.def_readwrite("value", &OwnsPythonObjects::value);
+   cls.def("append", &ContainerOwnsPythonObjects::append);
+   cls.def("at", &ContainerOwnsPythonObjects::at);
+   cls.def("size", &ContainerOwnsPythonObjects::size);
+   cls.def("clear", &ContainerOwnsPythonObjects::clear);
+
+.. note::
+
+   The ``py::detail::is_holder_constructed()`` guards above are required. During garbage
+   collection, ``tp_traverse`` and ``tp_clear`` may be handed an instance whose C++ value has
+   not been constructed yet -- for example one created with ``__new__`` before ``__init__``
+   has run. Casting such an instance raises ``ValueError``, and an exception must not be
+   allowed to escape either of these slots.
 
 .. versionadded:: 2.8

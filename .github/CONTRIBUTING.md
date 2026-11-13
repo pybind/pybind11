@@ -1,6 +1,8 @@
 Thank you for your interest in this project! Please refer to the following
 sections on how to contribute code and bug reports.
 
+For AI-assisted contributions, also see the [AI policy](../AI_POLICY.md).
+
 ### Reporting bugs
 
 Before submitting a question or bug report, please take a moment of your time
@@ -33,6 +35,10 @@ the following rules to make the process as smooth as possible:
   to verify your code passes before pushing to save time.
 * This project has a strong focus on providing general solutions using a
   minimal amount of code, thus small pull requests are greatly preferred.
+
+New contributors may have **at most two open PRs per person in this repository
+at a time, including drafts**, whether or not AI was used. Before opening a third,
+wait for one to be merged or closed, unless maintainers explicitly agree otherwise.
 
 ### Licensing of contributions
 
@@ -165,7 +171,7 @@ The valid options are:
 * Use `cmake --build build -j12` to build with 12 cores (for example).
 * Use `-G` and the name of a generator to use something different. `cmake
   --help` lists the generators available.
-      - On Unix, setting `CMAKE_GENERATER=Ninja` in your environment will give
+      - On Unix, setting `CMAKE_GENERATOR=Ninja` in your environment will give
         you automatic multithreading on all your CMake projects!
 * Open the `CMakeLists.txt` with QtCreator to generate for that IDE.
 * You can use `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON` to generate the `.json` file

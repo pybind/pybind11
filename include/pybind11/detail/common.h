@@ -10,16 +10,64 @@
 #pragma once
 
 #include <pybind11/conduit/wrap_include_python_h.h>
-#if PY_VERSION_HEX < 0x03080000
-#    error "PYTHON < 3.8 IS UNSUPPORTED. pybind11 v2.13 was the last to support Python 3.7."
+#if PY_VERSION_HEX < 0x03090000
+#    error "PYTHON < 3.9 IS UNSUPPORTED. pybind11 v3.0 was the last to support Python 3.8."
+#endif
+
+// Python stable ABI (PEP 384) support. Requires CPython 3.12+ (PyType_FromMetaclass) and a
+// matching Py_LIMITED_API value. See docs/advanced/stable_abi.rst for the feature matrix.
+#if defined(Py_LIMITED_API)
+#    if defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
+#        error "Py_LIMITED_API is only supported with CPython."
+#    endif
+#    if PY_VERSION_HEX < 0x030C0000 || Py_LIMITED_API + 0 < 0x030C0000
+#        error                                                                                    \
+            "pybind11 requires Py_LIMITED_API >= 0x030C0000 and CPython >= 3.12 for the stable ABI."
+#    endif
+#    if defined(Py_GIL_DISABLED)
+#        if Py_LIMITED_API + 0 < 0x030F0000 || !defined(_Py_OPAQUE_PYOBJECT)
+#            error "The free-threaded stable ABI (abi3t) needs Py_LIMITED_API >= 0x030F0000."
+#        endif
+// PEP 803: PyObject and PyModuleDef are incomplete types; see docs/advanced/stable_abi.rst.
+#        define PYBIND11_OPAQUE_PYOBJECT
+#    endif
+#    if !defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
+#        define PYBIND11_SIMPLE_GIL_MANAGEMENT // gil.h reads thread-state internals
+#    endif
+// The only type-creation path without struct access.
+#    if !defined(PYBIND11_TYPE_CREATION_VIA_SPEC)
+#        define PYBIND11_TYPE_CREATION_VIA_SPEC 1
+#    elif !PYBIND11_TYPE_CREATION_VIA_SPEC
+#        error                                                                                    \
+            "The legacy type-creation path (PYBIND11_TYPE_CREATION_VIA_SPEC=0) needs struct access."
+#    endif
+#    if !defined(PYBIND11_HAS_SUBINTERPRETER_SUPPORT)
+#        define PYBIND11_HAS_SUBINTERPRETER_SUPPORT 0 // reads thread/interpreter state fields
+#    elif PYBIND11_HAS_SUBINTERPRETER_SUPPORT
+#        error "Subinterpreter support is not available under Py_LIMITED_API."
+#    endif
+// The C API version the build may use: the limited API target, not the headers' version.
+#    define PYBIND11_API_VERSION_HEX Py_LIMITED_API
+#else
+#    define PYBIND11_API_VERSION_HEX PY_VERSION_HEX
+#endif
+
+// Heap types declare their extra data as PEP 697 type data when PyObject is opaque: a negative
+// PyType_Spec::basicsize and member offsets relative to that data.
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+#    define PYBIND11_TYPE_DATA_SIZE(T) (-static_cast<int>(sizeof(T)))
+#    define PYBIND11_MEMBER_OFFSET_FLAGS Py_RELATIVE_OFFSET
+#else
+#    define PYBIND11_TYPE_DATA_SIZE(T) (static_cast<int>(sizeof(T)))
+#    define PYBIND11_MEMBER_OFFSET_FLAGS 0
 #endif
 
 // Similar to Python's convention: https://docs.python.org/3/c-api/apiabiversion.html
 // See also: https://github.com/python/cpython/blob/HEAD/Include/patchlevel.h
 /* -- start version constants -- */
 #define PYBIND11_VERSION_MAJOR 3
-#define PYBIND11_VERSION_MINOR 0
-#define PYBIND11_VERSION_MICRO 2
+#define PYBIND11_VERSION_MINOR 2
+#define PYBIND11_VERSION_MICRO 0
 // ALPHA = 0xA, BETA = 0xB, GAMMA = 0xC (release candidate), FINAL = 0xF (stable release)
 // - The release level is set to "alpha" for development versions.
 //   Use 0xA0 (LEVEL=0xA, SERIAL=0) for development versions.
@@ -27,7 +75,7 @@
 #define PYBIND11_VERSION_RELEASE_LEVEL PY_RELEASE_LEVEL_ALPHA
 #define PYBIND11_VERSION_RELEASE_SERIAL 0
 // String version of (micro, release level, release serial), e.g.: 0a0, 0b1, 0rc1, 0
-#define PYBIND11_VERSION_PATCH 2a0
+#define PYBIND11_VERSION_PATCH 0a0
 /* -- end version constants -- */
 
 #if !defined(Py_PACK_FULL_VERSION)
@@ -87,7 +135,7 @@
 #    endif
 #endif
 
-#if defined(__cpp_lib_launder) && !(defined(_MSC_VER) && (_MSC_VER < 1914))
+#if defined(__cpp_lib_launder)
 #    define PYBIND11_STD_LAUNDER std::launder
 #    define PYBIND11_HAS_STD_LAUNDER 1
 #else
@@ -101,6 +149,10 @@
 #else
 #    define PYBIND11_CONSTINIT
 #    define PYBIND11_DTOR_CONSTEXPR
+#endif
+
+#if defined(PYBIND11_CPP20) && defined(__has_include) && __has_include(<barrier>)
+#    define PYBIND11_HAS_STD_BARRIER 1
 #endif
 
 // Compiler version assertions
@@ -128,8 +180,8 @@
 #        error pybind11 requires gcc 4.8 or newer
 #    endif
 #elif defined(_MSC_VER)
-#    if _MSC_VER < 1910
-#        error pybind11 2.10+ requires MSVC 2017 or newer
+#    if _MSC_VER < 1920
+#        error pybind11 3.1+ requires MSVC 2019 or newer
 #    endif
 #endif
 
@@ -156,11 +208,30 @@
 // In contrast, FORWARD DECLARATIONS should never use this macro:
 // https://stackoverflow.com/questions/9317473/forward-declaration-of-inline-functions
 #if defined(PYBIND11_NOINLINE_DISABLED) // Option for maximum portability and experimentation.
-#    define PYBIND11_NOINLINE inline
+#    define PYBIND11_NOINLINE_ATTR
 #elif defined(_MSC_VER)
-#    define PYBIND11_NOINLINE __declspec(noinline) inline
+#    define PYBIND11_NOINLINE_ATTR __declspec(noinline)
 #else
-#    define PYBIND11_NOINLINE __attribute__((noinline)) inline
+#    define PYBIND11_NOINLINE_ATTR __attribute__((noinline))
+#endif
+#define PYBIND11_NOINLINE PYBIND11_NOINLINE_ATTR inline
+
+// PYBIND11_INLINE marks function definitions that live in a `-inl.h` file. It is `inline` in
+// the default header-only mode. Defining PYBIND11_PRECOMPILED makes it empty: the definitions
+// are then compiled once (into a static library linked into each extension module) and the
+// headers only provide declarations.
+#if defined(PYBIND11_PRECOMPILED)
+#    define PYBIND11_INLINE
+#else
+#    define PYBIND11_INLINE inline
+#endif
+
+#if defined(_MSC_VER)
+#    define PYBIND11_ALWAYS_INLINE __forceinline
+#elif defined(__GNUC__)
+#    define PYBIND11_ALWAYS_INLINE __attribute__((__always_inline__)) inline
+#else
+#    define PYBIND11_ALWAYS_INLINE inline
 #endif
 
 #if defined(__MINGW32__)
@@ -214,6 +285,36 @@
 #    define PYBIND11_SIMPLE_GIL_MANAGEMENT
 #endif
 
+// Create the pybind11 type objects (metaclass, static property, instance base and all bound
+// classes) through PyType_FromMetaclass() with PyType_Spec instead of filling in raw
+// PyHeapTypeObject fields. The default on CPython 3.12+ and the only path under the stable ABI;
+// define PYBIND11_TYPE_CREATION_VIA_SPEC=0 to opt out. `py::custom_type_setup()` and
+// metaclasses with a custom `tp_new` still use the legacy path. A user-defined
+// PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET also selects the legacy path: the spec path
+// uses Py_TPFLAGS_MANAGED_DICT, and all bound classes must share one `__dict__` layout.
+#if !defined(PYBIND11_TYPE_CREATION_VIA_SPEC)
+#    if PY_VERSION_HEX >= 0x030C0000 && !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)        \
+        && !defined(PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET)
+#        define PYBIND11_TYPE_CREATION_VIA_SPEC 1
+#    else
+#        define PYBIND11_TYPE_CREATION_VIA_SPEC 0
+#    endif
+#elif PYBIND11_TYPE_CREATION_VIA_SPEC
+#    if PY_VERSION_HEX < 0x030C0000 || defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
+#        error "PYBIND11_TYPE_CREATION_VIA_SPEC requires CPython 3.12 or newer."
+#    endif
+#    if defined(PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET)
+#        error "PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET needs the legacy type creation path"
+#    endif
+#endif
+
+// Direct access to CPython object struct fields and type slots (tp_*, nb_*, ob_item, ...) is
+// available. Not on PyPy (cpyext emulates only part of the layouts) and not under the stable
+// ABI (the structs are opaque). Code that is gated off this falls back to the public API.
+#if !defined(PYPY_VERSION) && !defined(Py_LIMITED_API)
+#    define PYBIND11_HAS_DIRECT_STRUCT_ACCESS
+#endif
+
 #include <cstddef>
 #include <cstring>
 #include <exception>
@@ -248,9 +349,14 @@
 #    define PYBIND11_HAS_U8STRING 1
 #endif
 
-// See description of PR #4246:
+#if defined(PYBIND11_CPP20) && defined(__cpp_lib_span) && __cpp_lib_span >= 202002L
+#    define PYBIND11_HAS_SPAN 1
+#endif
+
+// See description of PR #4246. PyGILState_Check() is not part of the stable ABI.
 #if !defined(PYBIND11_NO_ASSERT_GIL_HELD_INCREF_DECREF) && !defined(NDEBUG)                       \
-    && !defined(PYPY_VERSION) && !defined(PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF)
+    && !defined(PYPY_VERSION) && !defined(Py_LIMITED_API)                                         \
+    && !defined(PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF)
 #    define PYBIND11_ASSERT_GIL_HELD_INCREF_DECREF
 #endif
 
@@ -312,9 +418,15 @@
 //               behavior.
 
 /// Compatibility macros for Python 2 / Python 3 versions TODO: remove
-#define PYBIND11_INSTANCE_METHOD_NEW(ptr, class_) PyInstanceMethod_New(ptr)
-#define PYBIND11_INSTANCE_METHOD_CHECK PyInstanceMethod_Check
-#define PYBIND11_INSTANCE_METHOD_GET_FUNCTION PyInstanceMethod_GET_FUNCTION
+#if !defined(Py_LIMITED_API)
+#    define PYBIND11_INSTANCE_METHOD_NEW(ptr, class_) PyInstanceMethod_New(ptr)
+#    define PYBIND11_INSTANCE_METHOD_CHECK PyInstanceMethod_Check
+#    define PYBIND11_INSTANCE_METHOD_GET_FUNCTION PyInstanceMethod_GET_FUNCTION
+#else // PyInstanceMethod_Type is not part of the stable ABI; see detail/class-inl.h
+#    define PYBIND11_INSTANCE_METHOD_NEW(ptr, class_) ::pybind11::detail::instancemethod_new(ptr)
+#    define PYBIND11_INSTANCE_METHOD_CHECK ::pybind11::detail::is_instancemethod
+#    define PYBIND11_INSTANCE_METHOD_GET_FUNCTION ::pybind11::detail::instancemethod_function
+#endif
 #define PYBIND11_BYTES_CHECK PyBytes_Check
 #define PYBIND11_BYTES_FROM_STRING PyBytes_FromString
 #define PYBIND11_BYTES_FROM_STRING_AND_SIZE PyBytes_FromStringAndSize
@@ -322,6 +434,13 @@
 #define PYBIND11_BYTES_AS_STRING PyBytes_AsString
 #define PYBIND11_BYTES_SIZE PyBytes_Size
 #define PYBIND11_LONG_CHECK(o) PyLong_Check(o)
+// In PyPy 7.3.3, `PyIndex_Check` is implemented by calling `__index__`,
+// while CPython only considers the existence of `nb_index`/`__index__`.
+#if !defined(PYPY_VERSION)
+#    define PYBIND11_INDEX_CHECK(o) PyIndex_Check(o)
+#else
+#    define PYBIND11_INDEX_CHECK(o) hasattr(o, "__index__")
+#endif
 #define PYBIND11_LONG_AS_LONGLONG(o) PyLong_AsLongLong(o)
 #define PYBIND11_LONG_FROM_SIGNED(o) PyLong_FromSsize_t((ssize_t) (o))
 #define PYBIND11_LONG_FROM_UNSIGNED(o) PyLong_FromSize_t((size_t) (o))
@@ -347,9 +466,15 @@
 #define PYBIND11_CONCAT(first, second) first##second
 #define PYBIND11_ENSURE_INTERNALS_READY                                                           \
     {                                                                                             \
-        pybind11::detail::get_internals_pp_manager().unref();                                     \
-        pybind11::detail::get_internals();                                                        \
+        pybind11::detail::ensure_internals();                                                     \
     }
+
+// PyPy has only the macro form.
+#if defined(PYPY_VERSION)
+#    define PYBIND11_PYCFUNCTION_GET_SELF(func) PyCFunction_GET_SELF(func)
+#else
+#    define PYBIND11_PYCFUNCTION_GET_SELF(func) PyCFunction_GetSelf(func)
+#endif
 
 #if !defined(GRAALVM_PYTHON)
 #    define PYBIND11_PYCFUNCTION_GET_DOC(func) ((func)->m_ml->ml_doc)
@@ -365,22 +490,41 @@
         } while (0)
 #endif
 
-#define PYBIND11_CHECK_PYTHON_VERSION                                                             \
-    {                                                                                             \
-        const char *compiled_ver                                                                  \
-            = PYBIND11_TOSTRING(PY_MAJOR_VERSION) "." PYBIND11_TOSTRING(PY_MINOR_VERSION);        \
-        const char *runtime_ver = Py_GetVersion();                                                \
-        size_t len = std::strlen(compiled_ver);                                                   \
-        if (std::strncmp(runtime_ver, compiled_ver, len) != 0                                     \
-            || (runtime_ver[len] >= '0' && runtime_ver[len] <= '9')) {                            \
-            PyErr_Format(PyExc_ImportError,                                                       \
-                         "Python version mismatch: module was compiled for Python %s, "           \
-                         "but the interpreter version is incompatible: %s.",                      \
-                         compiled_ver,                                                            \
-                         runtime_ver);                                                            \
-            return nullptr;                                                                       \
-        }                                                                                         \
-    }
+#if !defined(Py_LIMITED_API)
+#    define PYBIND11_CHECK_PYTHON_VERSION                                                         \
+        {                                                                                         \
+            const char *compiled_ver                                                              \
+                = PYBIND11_TOSTRING(PY_MAJOR_VERSION) "." PYBIND11_TOSTRING(PY_MINOR_VERSION);    \
+            const char *runtime_ver = Py_GetVersion();                                            \
+            size_t len = std::strlen(compiled_ver);                                               \
+            if (std::strncmp(runtime_ver, compiled_ver, len) != 0                                 \
+                || (runtime_ver[len] >= '0' && runtime_ver[len] <= '9')) {                        \
+                PyErr_Format(PyExc_ImportError,                                                   \
+                             "Python version mismatch: module was compiled for Python %s, "       \
+                             "but the interpreter version is incompatible: %s.",                  \
+                             compiled_ver,                                                        \
+                             runtime_ver);                                                        \
+                return nullptr;                                                                   \
+            }                                                                                     \
+        }
+#else
+// A stable-ABI module runs on every CPython from the Py_LIMITED_API version on (abi3).
+#    define PYBIND11_CHECK_PYTHON_VERSION                                                         \
+        {                                                                                         \
+            const unsigned long want_major = (Py_LIMITED_API) >> 24;                              \
+            const unsigned long want_minor = ((Py_LIMITED_API) >> 16) & 0xFF;                     \
+            if ((Py_Version >> 24) != want_major || ((Py_Version >> 16) & 0xFF) < want_minor) {   \
+                PyErr_Format(PyExc_ImportError,                                                   \
+                             "Python version mismatch: module was compiled for the Python "       \
+                             "%lu.%lu stable ABI, but the interpreter version is incompatible: "  \
+                             "%s.",                                                               \
+                             want_major,                                                          \
+                             want_minor,                                                          \
+                             Py_GetVersion());                                                    \
+                return nullptr;                                                                   \
+            }                                                                                     \
+        }
+#endif
 
 #define PYBIND11_CATCH_INIT_EXCEPTIONS                                                            \
     catch (pybind11::error_already_set & e) {                                                     \
@@ -405,19 +549,27 @@
             return m.ptr();
         }
 \endrst */
-#define PYBIND11_PLUGIN(name)                                                                     \
-    PYBIND11_DEPRECATED("PYBIND11_PLUGIN is deprecated, use PYBIND11_MODULE")                     \
-    static PyObject *pybind11_init();                                                             \
-    PYBIND11_PLUGIN_IMPL(name) {                                                                  \
-        PYBIND11_CHECK_PYTHON_VERSION                                                             \
-        PYBIND11_ENSURE_INTERNALS_READY                                                           \
-        try {                                                                                     \
-            return pybind11_init();                                                               \
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+#    define PYBIND11_PLUGIN(name)                                                                 \
+        static_assert(false,                                                                      \
+                      "PYBIND11_PLUGIN is not available under abi3t, use PYBIND11_MODULE");       \
+        static PyObject *pybind11_init()
+#else
+#    define PYBIND11_PLUGIN(name)                                                                 \
+        PYBIND11_DEPRECATED("PYBIND11_PLUGIN is deprecated, use PYBIND11_MODULE")                 \
+        static PyObject *pybind11_init();                                                         \
+        PYBIND11_PLUGIN_IMPL(name) {                                                              \
+            PYBIND11_CHECK_PYTHON_VERSION                                                         \
+            PYBIND11_PRECOMPILED_CONFIG_GUARD                                                     \
+            PYBIND11_ENSURE_INTERNALS_READY                                                       \
+            try {                                                                                 \
+                return pybind11_init();                                                           \
+            }                                                                                     \
+            PYBIND11_CATCH_INIT_EXCEPTIONS                                                        \
+            return nullptr;                                                                       \
         }                                                                                         \
-        PYBIND11_CATCH_INIT_EXCEPTIONS                                                            \
-        return nullptr;                                                                           \
-    }                                                                                             \
-    PyObject *pybind11_init()
+        PyObject *pybind11_init()
+#endif
 
 // this push is for the next several macros
 PYBIND11_WARNING_PUSH
@@ -430,30 +582,55 @@ Note that this is run once for each (sub-)interpreter the module is imported int
 possibly concurrently.  The PyModuleDef is allowed to be static, but the PyObject* resulting from
 PyModuleDef_Init should be treated like any other PyObject (so not shared across interpreters).
  */
-#define PYBIND11_MODULE_PYINIT(name, pre_init, ...)                                               \
-    static int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject *);                                 \
-    PYBIND11_PLUGIN_IMPL(name) {                                                                  \
-        PYBIND11_CHECK_PYTHON_VERSION                                                             \
-        pre_init;                                                                                 \
-        PYBIND11_ENSURE_INTERNALS_READY                                                           \
-        static ::pybind11::detail::slots_array mod_def_slots = ::pybind11::detail::init_slots(    \
-            &PYBIND11_CONCAT(pybind11_exec_, name), ##__VA_ARGS__);                               \
-        static PyModuleDef def{/* m_base */ PyModuleDef_HEAD_INIT,                                \
-                               /* m_name */ PYBIND11_TOSTRING(name),                              \
-                               /* m_doc */ nullptr,                                               \
-                               /* m_size */ 0,                                                    \
-                               /* m_methods */ nullptr,                                           \
-                               /* m_slots */ mod_def_slots.data(),                                \
-                               /* m_traverse */ nullptr,                                          \
-                               /* m_clear */ nullptr,                                             \
-                               /* m_free */ nullptr};                                             \
-        return PyModuleDef_Init(&def);                                                            \
-    }
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+// PEP 793 export hook: PyModuleDef is an incomplete type, so the module is described by a static
+// PySlot array instead.
+#    define PYBIND11_MODULE_PYINIT(name, ...)                                                            \
+        static int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject *);                                    \
+        extern "C" PYBIND11_MAYBE_UNUSED PYBIND11_EXPORT PySlot *PyModExport_##name(void);               \
+        extern "C" PYBIND11_EXPORT PySlot *PyModExport_##name(void) {                                    \
+            PYBIND11_CHECK_PYTHON_VERSION                                                                \
+            PYBIND11_PRECOMPILED_CONFIG_GUARD                                                            \
+            try {                                                                                        \
+                static ::pybind11::detail::export_slots_array mod_slots                                  \
+                    = ::pybind11::detail::init_export_slots(                                             \
+                        PYBIND11_TOSTRING(name), &PYBIND11_CONCAT(pybind11_exec_, name), ##__VA_ARGS__); \
+                return mod_slots.data();                                                                 \
+            }                                                                                            \
+            PYBIND11_CATCH_INIT_EXCEPTIONS                                                               \
+            return nullptr;                                                                              \
+        }
+#else
+#    define PYBIND11_MODULE_PYINIT(name, ...)                                                     \
+        static int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject *);                             \
+        PYBIND11_PLUGIN_IMPL(name) {                                                              \
+            PYBIND11_CHECK_PYTHON_VERSION                                                         \
+            PYBIND11_PRECOMPILED_CONFIG_GUARD                                                     \
+            try {                                                                                 \
+                static ::pybind11::detail::slots_array mod_def_slots                              \
+                    = ::pybind11::detail::init_slots(                                             \
+                        &PYBIND11_CONCAT(pybind11_exec_, name), ##__VA_ARGS__);                   \
+                static PyModuleDef def{/* m_base */ PyModuleDef_HEAD_INIT,                        \
+                                       /* m_name */ PYBIND11_TOSTRING(name),                      \
+                                       /* m_doc */ nullptr,                                       \
+                                       /* m_size */ 0,                                            \
+                                       /* m_methods */ nullptr,                                   \
+                                       /* m_slots */ mod_def_slots.data(),                        \
+                                       /* m_traverse */ nullptr,                                  \
+                                       /* m_clear */ nullptr,                                     \
+                                       /* m_free */ nullptr};                                     \
+                return PyModuleDef_Init(&def);                                                    \
+            }                                                                                     \
+            PYBIND11_CATCH_INIT_EXCEPTIONS                                                        \
+            return nullptr;                                                                       \
+        }
+#endif
 
 #define PYBIND11_MODULE_EXEC(name, variable)                                                      \
     static void PYBIND11_CONCAT(pybind11_init_, name)(::pybind11::module_ &);                     \
     int PYBIND11_CONCAT(pybind11_exec_, name)(PyObject * pm) {                                    \
         try {                                                                                     \
+            PYBIND11_ENSURE_INTERNALS_READY                                                       \
             auto m = pybind11::reinterpret_borrow<::pybind11::module_>(pm);                       \
             if (!pybind11::detail::get_cached_module(m.attr("__spec__").attr("name"))) {          \
                 PYBIND11_CONCAT(pybind11_init_, name)(m);                                         \
@@ -507,8 +684,7 @@ PyModuleDef_Init should be treated like any other PyObject (so not shared across
 
 \endrst */
 #define PYBIND11_MODULE(name, variable, ...)                                                      \
-    PYBIND11_MODULE_PYINIT(                                                                       \
-        name, (pybind11::detail::get_num_interpreters_seen() += 1), ##__VA_ARGS__)                \
+    PYBIND11_MODULE_PYINIT(name, ##__VA_ARGS__)                                                   \
     PYBIND11_MODULE_EXEC(name, variable)
 
 // pop gnu-zero-variadic-macro-arguments
@@ -579,14 +755,10 @@ enum class return_value_policy : uint8_t {
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-inline static constexpr int log2(size_t n, int k = 0) {
-    return (n <= 1) ? k : log2(n >> 1, k + 1);
-}
+static constexpr int log2(size_t n, int k = 0) { return (n <= 1) ? k : log2(n >> 1, k + 1); }
 
 // Returns the size as a multiple of sizeof(void *), rounded up.
-inline static constexpr size_t size_in_ptrs(size_t s) {
-    return 1 + ((s - 1) >> log2(sizeof(void *)));
-}
+static constexpr size_t size_in_ptrs(size_t s) { return 1 + ((s - 1) >> log2(sizeof(void *))); }
 
 /**
  * The space to allocate for simple layout instance holders (see below) in multiple of the size of
@@ -611,7 +783,9 @@ struct nonsimple_values_and_holders {
 
 /// The 'instance' type which needs to be standard layout (need to be able to use 'offsetof')
 struct instance {
+#if !defined(PYBIND11_OPAQUE_PYOBJECT)
     PyObject_HEAD
+#endif
     /// Storage for pointers and holder; see simple_layout, below, for a description
     union {
         void *simple_value_holder[1 + instance_simple_holder_in_ptrs()];
@@ -653,6 +827,24 @@ struct instance {
     bool has_patients : 1;
     /// If true, this Python object needs to be kept alive for the lifetime of the C++ value.
     bool is_alias : 1;
+    /// If true, this instance is being dispatched through a constructor chain containing a
+    /// deprecated old-style placement-new `__init__`/`__setstate__`. Such chains retain the
+    /// historical ability to lazily allocate C++ value storage. This is an instance-wide
+    /// compatibility marker, not per-value construction state or a synchronization mechanism.
+    /// Its intentionally retained safety limitations are documented under
+    /// `old_style_placement_new` in `docs/upgrade.rst` and referenced from
+    /// `docs/advanced/classes.rst`.
+    bool old_style_init_active : 1;
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+    /// Weak reference used by the instance registry: the limited API has no PyUnstable_TryIncRef.
+    PyObject *registry_weakref;
+#endif
+#if defined(Py_LIMITED_API)
+    /// The `__dict__` slot of `py::dynamic_attr()` types, null for all others. The stable ABI
+    /// has no Py_TPFLAGS_MANAGED_DICT; every type reserves the slot so that all pybind11 types
+    /// keep one instance size (PyType_FromMetaclass() rejects bases of different sizes).
+    PyObject *dict;
+#endif
 
     /// Initializes all of the above type/values/holders data (but not the instance values
     /// themselves)
@@ -674,6 +866,31 @@ struct instance {
 
 static_assert(std::is_standard_layout<instance>::value,
               "Internal error: `pybind11::detail::instance` is not standard layout!");
+
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+/// Offset of the `instance` data (PEP 697 type data) from the start of the Python object.
+Py_ssize_t instance_data_offset();
+inline instance *get_instance(PyObject *obj) {
+    return reinterpret_cast<instance *>(reinterpret_cast<char *>(obj) + instance_data_offset());
+}
+inline PyObject *instance_object(instance *inst) {
+    return reinterpret_cast<PyObject *>(reinterpret_cast<char *>(inst) - instance_data_offset());
+}
+#else
+inline instance *get_instance(PyObject *obj) { return reinterpret_cast<instance *>(obj); }
+inline PyObject *instance_object(instance *inst) { return reinterpret_cast<PyObject *>(inst); }
+#endif
+
+/// The C++ data of an object of a pybind11 type with PYBIND11_TYPE_DATA_SIZE(T) as basicsize
+/// (not for `instance`: its offset is cached, see get_instance()).
+template <typename T>
+T *type_data(PyObject *obj) {
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+    return static_cast<T *>(PyObject_GetTypeData(obj, Py_TYPE(obj)));
+#else
+    return reinterpret_cast<T *>(obj);
+#endif
+}
 
 // Some older compilers (e.g. gcc 9.4.0) require
 //     static_assert(always_false<T>::value, "...");
@@ -803,7 +1020,7 @@ using void_t = typename void_t_impl<Ts...>::type;
 #endif
 
 /// Compile-time all/any/none of that check the boolean value of all template types
-#if defined(__cpp_fold_expressions) && !(defined(_MSC_VER) && (_MSC_VER < 1916))
+#if defined(__cpp_fold_expressions)
 template <class... Ts>
 using all_of = bool_constant<(Ts::value && ...)>;
 template <class... Ts>
@@ -1016,6 +1233,17 @@ struct is_instantiation<Class, Class<Us...>> : std::true_type {};
 template <typename T>
 using is_shared_ptr = is_instantiation<std::shared_ptr, T>;
 
+/// Detects whether static_cast<Derived*>(Base*) is valid, i.e. the inheritance is non-virtual.
+/// Used to detect virtual bases: if this is false, pointer adjustments require the implicit_casts
+/// chain rather than reinterpret_cast.
+template <typename Base, typename Derived, typename = void>
+struct is_static_downcastable : std::false_type {};
+template <typename Base, typename Derived>
+struct is_static_downcastable<Base,
+                              Derived,
+                              void_t<decltype(static_cast<Derived *>(std::declval<Base *>()))>>
+    : std::true_type {};
+
 /// Check if T looks like an input iterator
 template <typename T, typename = void>
 struct is_input_iterator : std::false_type {};
@@ -1038,14 +1266,30 @@ struct strip_function_object {
     using type = typename remove_class<decltype(&F::operator())>::type;
 };
 
+// Strip noexcept from a free function type (C++17: noexcept is part of the type).
+template <typename T>
+struct remove_noexcept {
+    using type = T;
+};
+#ifdef __cpp_noexcept_function_type
+template <typename R, typename... A>
+struct remove_noexcept<R(A...) noexcept> {
+    using type = R(A...);
+};
+#endif
+template <typename T>
+using remove_noexcept_t = typename remove_noexcept<T>::type;
+
 // Extracts the function signature from a function, function pointer or lambda.
+// Strips noexcept from the result so that factory/pickle_factory partial specializations
+// (which match plain Return(Args...)) work correctly with noexcept callables (issue #2234).
 template <typename Function, typename F = remove_reference_t<Function>>
-using function_signature_t = conditional_t<
+using function_signature_t = remove_noexcept_t<conditional_t<
     std::is_function<F>::value,
     F,
     typename conditional_t<std::is_pointer<F>::value || std::is_member_pointer<F>::value,
                            std::remove_pointer<F>,
-                           strip_function_object<F>>::type>;
+                           strip_function_object<F>>::type>>;
 
 /// Returns true if the type looks like a lambda: that is, isn't a function, pointer or member
 /// pointer.  Note that this can catch all sorts of other things, too; this is intended to be used
@@ -1098,14 +1342,8 @@ PYBIND11_RUNTIME_EXCEPTION(cast_error, PyExc_RuntimeError) /// Thrown when pybin
                                                            /// casting error
 PYBIND11_RUNTIME_EXCEPTION(reference_cast_error, PyExc_RuntimeError) /// Used internally
 
-[[noreturn]] PYBIND11_NOINLINE void pybind11_fail(const char *reason) {
-    assert(!PyErr_Occurred());
-    throw std::runtime_error(reason);
-}
-[[noreturn]] PYBIND11_NOINLINE void pybind11_fail(const std::string &reason) {
-    assert(!PyErr_Occurred());
-    throw std::runtime_error(reason);
-}
+[[noreturn]] void pybind11_fail(const char *reason);
+[[noreturn]] void pybind11_fail(const std::string &reason);
 
 template <typename T, typename SFINAE = void>
 struct format_descriptor {};
@@ -1152,7 +1390,7 @@ struct format_descriptor<T, detail::enable_if_t<std::is_arithmetic<T>::value>> {
     static std::string format() { return std::string(1, c); }
 };
 
-#if !defined(PYBIND11_CPP17)
+#if !defined(__cpp_inline_variables) || __cpp_inline_variables < 201606L
 
 template <typename T>
 constexpr const char
@@ -1194,11 +1432,41 @@ struct overload_cast_impl {
         -> decltype(pmf) {
         return pmf;
     }
+
+    // Define const/non-const member-pointer selector pairs for qualifier combinations.
+    // The `qualifiers` parameter is used in type position, where extra parentheses are invalid.
+    // NOLINTBEGIN(bugprone-macro-parentheses)
+#define PYBIND11_OVERLOAD_CAST_MEMBER_PTR(qualifiers)                                             \
+    template <typename Return, typename Class>                                                    \
+    constexpr auto operator()(Return (Class::*pmf)(Args...) qualifiers, std::false_type = {})     \
+        const noexcept -> decltype(pmf) {                                                         \
+        return pmf;                                                                               \
+    }                                                                                             \
+    template <typename Return, typename Class>                                                    \
+    constexpr auto operator()(Return (Class::*pmf)(Args...) const qualifiers, std::true_type)     \
+        const noexcept -> decltype(pmf) {                                                         \
+        return pmf;                                                                               \
+    }
+    PYBIND11_OVERLOAD_CAST_MEMBER_PTR(&)
+    PYBIND11_OVERLOAD_CAST_MEMBER_PTR(&&)
+
+#ifdef __cpp_noexcept_function_type
+    template <typename Return>
+    constexpr auto operator()(Return (*pf)(Args...) noexcept) const noexcept -> decltype(pf) {
+        return pf;
+    }
+
+    PYBIND11_OVERLOAD_CAST_MEMBER_PTR(noexcept)
+    PYBIND11_OVERLOAD_CAST_MEMBER_PTR(& noexcept)
+    PYBIND11_OVERLOAD_CAST_MEMBER_PTR(&& noexcept)
+#endif
+#undef PYBIND11_OVERLOAD_CAST_MEMBER_PTR
+    // NOLINTEND(bugprone-macro-parentheses)
 };
 PYBIND11_NAMESPACE_END(detail)
 
 // overload_cast requires variable templates: C++14
-#if defined(PYBIND11_CPP14)
+#if defined(__cpp_variable_templates) && __cpp_variable_templates >= 201304L
 #    define PYBIND11_OVERLOAD_CAST 1
 /// Syntax sugar for resolving overloaded function pointers:
 ///  - regular: static_cast<Return (Class::*)(Arg0, Arg1, Arg2)>(&Class::func)
@@ -1212,7 +1480,8 @@ static constexpr detail::overload_cast_impl<Args...> overload_cast{};
 ///  - sweet:   overload_cast<Arg>(&Class::func, const_)
 static constexpr auto const_ = std::true_type{};
 
-#if !defined(PYBIND11_CPP14) // no overload_cast: providing something that static_assert-fails:
+#if !defined(__cpp_variable_templates) || __cpp_variable_templates < 201304L
+// No overload_cast: providing something that static_assert-fails.
 template <typename... Args>
 struct overload_cast {
     static_assert(detail::deferred_t<std::false_type, Args...>::value,
@@ -1277,7 +1546,7 @@ try_get_shared_from_this(std::enable_shared_from_this<T> *holder_value_ptr) {
 // Use at your own risk!
 // See also https://en.cppreference.com/w/cpp/memory/enable_shared_from_this, and in particular
 // the `std::shared_ptr<Good> gp1 = not_so_good.getptr();` and `try`-`catch` parts of the example.
-#if defined(__cpp_lib_enable_shared_from_this) && (!defined(_MSC_VER) || _MSC_VER >= 1912)
+#if defined(__cpp_lib_enable_shared_from_this)
     return holder_value_ptr->weak_from_this().lock();
 #else
     try {
@@ -1290,19 +1559,10 @@ try_get_shared_from_this(std::enable_shared_from_this<T> *holder_value_ptr) {
 
 // For silencing "unused" compiler warnings in special situations.
 template <typename... Args>
-#if defined(_MSC_VER) && _MSC_VER < 1920 // MSVC 2017
-constexpr
-#endif
-    inline void silence_unused_warnings(Args &&...) {
-}
+inline void silence_unused_warnings(Args &&...) {}
 
-// MSVC warning C4100: Unreferenced formal parameter
-#if defined(_MSC_VER) && _MSC_VER <= 1916
-#    define PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(...)                                         \
-        detail::silence_unused_warnings(__VA_ARGS__)
-#else
-#    define PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(...)
-#endif
+// MSVC warning C4100: Unreferenced formal parameter (only incorrect before MSVC 2019)
+#define PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(...)
 
 // GCC -Wunused-but-set-parameter  All GCC versions (as of July 2021).
 #if defined(__GNUG__) && !defined(__clang__) && !defined(__INTEL_COMPILER)
@@ -1330,18 +1590,23 @@ constexpr
 //                                                                    std::move(args)
 #endif
 
-// Pybind offers detailed error messages by default for all builts that are debug (through the
-// negation of NDEBUG). This can also be manually enabled by users, for any builds, through
-// defining PYBIND11_DETAILED_ERROR_MESSAGES. This information is primarily useful for those
+// Pybind offers detailed error messages by default in debug builds (through the negation of
+// NDEBUG). This can also be manually enabled by users for any build by defining
+// PYBIND11_DETAILED_ERROR_MESSAGES. This information is primarily useful for those
 // who are writing (as opposed to merely using) libraries that use pybind11.
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES) && !defined(NDEBUG)
 #    define PYBIND11_DETAILED_ERROR_MESSAGES
 #endif
 
-// CPython 3.11+ provides Py_TPFLAGS_MANAGED_DICT, but PyPy3.11 does not, see PR #5508.
+// CPython 3.11+ provides Py_TPFLAGS_MANAGED_DICT, but PyPy3.11 does not, see PR #5508. (The
+// stable ABI has neither; it records the `__dict__` offset in type_info::dictoffset instead.)
 #if PY_VERSION_HEX < 0x030B0000 || defined(PYPY_VERSION)
 #    define PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET
 #endif
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
+
+#ifndef PYBIND11_PRECOMPILED
+#    include "common-inl.h" // IWYU pragma: export
+#endif

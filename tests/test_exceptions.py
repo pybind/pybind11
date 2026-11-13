@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import importlib
+import os
+import re
 import sys
+import threading
 
 import pytest
 from custom_exceptions import PythonMyException7
@@ -74,17 +78,38 @@ def test_cross_module_exceptions(msg):
     assert str(excinfo.value) == "'just local'"
 
 
-# TODO: FIXME
 @pytest.mark.xfail(
-    "(env.MACOS and env.PYPY) or env.ANDROID",
+    "(env.MACOS and env.PYPY_PRE_7_3_23) or env.ANDROID or env.FREEBSD",
     raises=RuntimeError,
-    reason="See Issue #2847, PR #2999, PR #4324",
-    strict=not env.PYPY,  # PR 5569
+    reason="See Issue #2847, PR #2999, PR #4324, PR #5925",
 )
 def test_cross_module_exception_translator():
     with pytest.raises(KeyError):
         # translator registered in cross_module_tests
         m.throw_should_be_translated_to_key_error()
+
+
+@pytest.mark.xfail(
+    env.FREEBSD,
+    raises=RuntimeError,
+    reason="Cross-module exception RTTI mismatch on FreeBSD; see PR #5925",
+)
+def test_cross_module_exception_translator_after_later_import():
+    # A module imported later must not shadow translators registered earlier
+    env.check_script_success_in_subprocess(
+        f"""
+        import sys
+        sys.path.insert(0, {os.path.dirname(env.__file__)!r})
+        from pybind11_tests import exceptions as m
+        import pybind11_cross_module_tests
+        import mod_concurrent_import
+        try:
+            m.throw_should_be_translated_to_key_error()
+        except KeyError:
+            pass
+        """,
+        rerun=1,
+    )
 
 
 def test_python_call_in_catch():
@@ -95,14 +120,16 @@ def test_python_call_in_catch():
 
 def ignore_pytest_unraisable_warning(f):
     unraisable = "PytestUnraisableExceptionWarning"
-    if hasattr(pytest, unraisable):  # Python >= 3.8 and pytest >= 6
+    if hasattr(pytest, unraisable):  # pytest >= 6
         dec = pytest.mark.filterwarnings(f"ignore::pytest.{unraisable}")
         return dec(f)
     return f
 
 
 # TODO: find out why this fails on PyPy, https://foss.heptapod.net/pypy/pypy/-/issues/3583
-@pytest.mark.xfail(env.PYPY, reason="Failure on PyPy 3.8 (7.3.7)", strict=False)
+@pytest.mark.xfail(
+    env.PYPY, reason="Failure on PyPy (still fails with 7.3.23)", strict=False
+)
 @ignore_pytest_unraisable_warning
 def test_python_alreadyset_in_destructor(monkeypatch, capsys):
     triggered = False
@@ -111,7 +138,7 @@ def test_python_alreadyset_in_destructor(monkeypatch, capsys):
     default_hook = sys.__unraisablehook__
 
     def hook(unraisable_hook_args):
-        exc_type, exc_value, exc_tb, err_msg, obj = unraisable_hook_args
+        _exc_type, _exc_value, _exc_tb, _err_msg, obj = unraisable_hook_args
         if obj == "already_set demo":
             nonlocal triggered
             triggered = True
@@ -125,6 +152,8 @@ def test_python_alreadyset_in_destructor(monkeypatch, capsys):
     assert triggered is True
 
     _, captured_stderr = capsys.readouterr()
+    # Strip ANSI codes that Python 3.15+ adds to this traceback under FORCE_COLOR.
+    captured_stderr = re.sub(r"\x1b\[[0-?]*[ -/]*m", "", captured_stderr)
     assert captured_stderr.startswith("Exception ignored in: 'already_set demo'")
     assert captured_stderr.rstrip().endswith("KeyError: 'bar'")
 
@@ -202,7 +231,7 @@ def test_custom(msg):
     assert msg(excinfo.value) == "[PythonMyException7]: abc"
 
 
-@pytest.mark.xfail("env.GRAALPY", reason="TODO should get fixed on GraalPy side")
+@pytest.mark.xfail("env.GRAALPY and sys.version_info < (3, 13)")
 def test_nested_throws(capture):
     """Tests nested (e.g. C++ -> Python -> C++) exception handling"""
 
@@ -307,6 +336,16 @@ def test_error_already_set_message_with_malformed_utf8():
     )
 
 
+@pytest.mark.skipif(
+    not hasattr(m, "error_already_set_without_tp_name"),
+    reason="Requires write access to tp_name",
+)
+def test_error_already_set_without_tp_name():
+    assert m.error_already_set_without_tp_name() == (
+        "<EXCEPTION TYPE NAME UNAVAILABLE>: primary message"
+    )
+
+
 class FlakyException(Exception):
     def __init__(self, failure_point):
         if failure_point == "failure_point_init":
@@ -325,6 +364,11 @@ class FlakyException(Exception):
         (ValueError, "plain_str", "ValueError: plain_str"),
         (ValueError, ("tuple_elem",), "ValueError: tuple_elem"),
         (FlakyException, ("happy",), "FlakyException: FlakyException.__str__"),
+        (
+            type("", (Exception,), {}),
+            "primary message",
+            "<EXCEPTION TYPE NAME UNAVAILABLE>: primary message",
+        ),
     ],
 )
 def test_error_already_set_what_with_happy_exceptions(
@@ -335,14 +379,54 @@ def test_error_already_set_what_with_happy_exceptions(
     assert what == expected_what
 
 
+def test_error_already_set_unnamed_exception_roundtrip():
+    unnamed_error = type("", (Exception,), {})
+    try:
+        raise unnamed_error("primary message")
+    except Exception as exc:
+        original = exc
+    original_trace = original.__traceback__
+    what, error_set, matches, exc_type, value, trace = m.error_already_set_roundtrip(
+        original, original_trace
+    )
+    assert what.startswith("<EXCEPTION TYPE NAME UNAVAILABLE>: primary message")
+    if not env.PYPY and not env.GRAALPY:
+        assert "): test_error_already_set_unnamed_exception_roundtrip" in what
+    assert not error_set
+    assert matches
+    assert exc_type is unnamed_error
+    assert value is original
+    assert trace is original_trace
+
+
+def test_error_already_set_unnamed_secondary_exception():
+    unnamed_error = type("", (Exception,), {})
+
+    class BadStrError(Exception):
+        def __str__(self):
+            raise unnamed_error("secondary message")
+
+    what, error_set = m.error_already_set_what(BadStrError, "primary message")
+    assert what.startswith(
+        "BadStrError: <MESSAGE UNAVAILABLE DUE TO ANOTHER EXCEPTION>"
+    )
+    assert (
+        "MESSAGE UNAVAILABLE DUE TO EXCEPTION: "
+        "<EXCEPTION TYPE NAME UNAVAILABLE>: secondary message"
+    ) in what
+    assert not error_set
+
+
 def _test_flaky_exception_failure_point_init_before_py_3_12():
     with pytest.raises(RuntimeError) as excinfo:
         m.error_already_set_what(FlakyException, ("failure_point_init",))
     lines = str(excinfo.value).splitlines()
     # PyErr_NormalizeException replaces the original FlakyException with ValueError:
     assert lines[:3] == [
-        "pybind11::error_already_set: MISMATCH of original and normalized active exception types:"
-        " ORIGINAL FlakyException REPLACED BY ValueError: triggered_failure_point_init",
+        (
+            "pybind11::error_already_set: MISMATCH of original and normalized active exception types:"
+            " ORIGINAL FlakyException REPLACED BY ValueError: triggered_failure_point_init"
+        ),
         "",
         "At:",
     ]
@@ -399,6 +483,27 @@ def test_flaky_exception_failure_point_str():
     )
 
 
+@pytest.mark.skipif("env.PYPY or env.GRAALPY", reason="No traceback in what()")
+def test_error_already_set_what_traceback(capture):
+    def inner():
+        raise ValueError("deep")
+
+    def outer():
+        inner()
+
+    with capture:
+        m.try_catch(ValueError, outer)
+    lines = str(capture).splitlines()
+    assert lines[:3] == ["ValueError: deep", "", "At:"]
+    assert lines[3].endswith(
+        f"test_exceptions.py({inner.__code__.co_firstlineno + 1}): inner"
+    )
+    assert lines[4].endswith(
+        f"test_exceptions.py({outer.__code__.co_firstlineno + 1}): outer"
+    )
+    assert lines[5].endswith("): test_error_already_set_what_traceback")
+
+
 def test_cross_module_interleaved_error_already_set():
     with pytest.raises(RuntimeError) as excinfo:
         m.test_cross_module_interleaved_error_already_set()
@@ -437,3 +542,31 @@ def test_return_exception_void():
     with pytest.raises(TypeError) as excinfo:
         m.return_exception_void()
     assert "Exception" in str(excinfo.value)
+
+
+@pytest.mark.skipif("not env.PY_GIL_DISABLED", reason="Only relevant without the GIL")
+def test_local_translator_registration_vs_internals_fetch():
+    # Nothing to assert: the race only shows up under TSan, and only with libc++ or
+    # MSVC (the hook isn't built with libstdc++).
+    if "mod_concurrent_import" in sys.modules:
+        pytest.skip("The first import can only be exercised once per process")
+
+    stop = threading.Event()
+    errors = []
+
+    def ensure_internals_loop():
+        try:
+            while not stop.is_set():
+                m.ensure_internals()
+        except Exception as e:
+            errors.append(e)
+
+    reader = threading.Thread(target=ensure_internals_loop)
+    reader.start()
+    try:
+        importlib.import_module("mod_concurrent_import")
+    finally:
+        stop.set()
+        reader.join()
+    if errors:
+        raise errors[0]

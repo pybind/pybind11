@@ -18,25 +18,25 @@ env:
 
 jobs:
   standard:
-    name: "🐍 3.13 latest • ubuntu-latest • x64"
+    name: "🐍 3.15 latest • ubuntu-latest • x64"
     runs-on: ubuntu-latest
     # Only runs when the  'python dev' label is selected
     if: "contains(github.event.pull_request.labels.*.name, 'python dev')"
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
 
-    - name: Setup Python 3.13
-      uses: actions/setup-python@v6
+    - name: Setup Python 3.15
+      uses: actions/setup-python@v7
       with:
-        python-version: "3.13"
+        python-version: "3.15"
         allow-prereleases: true
 
     - name: Setup Boost
       run: sudo apt-get install libboost-dev
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v2.0
+      uses: jwlawson/actions-setup-cmake@v2.2
 
     - name: Run pip installs
       run: |
@@ -56,6 +56,7 @@ jobs:
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
+        -DPYBIND11_EIGEN_REPO=https://github.com/eigen-mirror/eigen.git
         -DCMAKE_CXX_STANDARD=11
         -DCMAKE_BUILD_TYPE=Debug
 
@@ -66,6 +67,7 @@ jobs:
       run: cmake --build build11 --target pytest -j 2
 
     - name: C++11 tests
+      timeout-minutes: 3
       run: cmake --build build11  --target cpptest -j 2
 
     - name: Interface test C++11
@@ -78,6 +80,7 @@ jobs:
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
+        -DPYBIND11_EIGEN_REPO=https://github.com/eigen-mirror/eigen.git
         -DCMAKE_CXX_STANDARD=17
 
     - name: Build C++17
@@ -87,6 +90,7 @@ jobs:
       run: cmake --build build17 --target pytest
 
     - name: C++17 tests
+      timeout-minutes: 3
       run: cmake --build build17 --target cpptest
 
     # Third build - C++17 mode with unstable ABI
@@ -96,6 +100,7 @@ jobs:
         -DPYBIND11_WERROR=ON
         -DDOWNLOAD_CATCH=ON
         -DDOWNLOAD_EIGEN=ON
+        -DPYBIND11_EIGEN_REPO=https://github.com/eigen-mirror/eigen.git
         -DCMAKE_CXX_STANDARD=17
         -DPYBIND11_INTERNALS_VERSION=10000000
 

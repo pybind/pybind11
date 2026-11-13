@@ -58,12 +58,12 @@ const char *determine_trampoline_state(const std::shared_ptr<VB> &sp) {
 
 struct PyVirtBaseSH : VirtBaseSH, py::trampoline_self_life_support, trampoline_is_alive_simple {
     using VirtBaseSH::VirtBaseSH;
-    int get_code() override { PYBIND11_OVERRIDE(int, VirtBaseSH, get_code); }
+    int get_code() override { PYBIND11_OVERRIDE(int, VirtBaseSH, get_code, ); }
 };
 
 struct PyVirtBaseSP : VirtBaseSP, trampoline_is_alive_simple { // self-life-support not available
     using VirtBaseSP::VirtBaseSP;
-    int get_code() override { PYBIND11_OVERRIDE(int, VirtBaseSP, get_code); }
+    int get_code() override { PYBIND11_OVERRIDE(int, VirtBaseSP, get_code, ); }
 };
 
 template <typename VB>

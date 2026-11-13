@@ -232,6 +232,10 @@ prevent many types of unsupported structures, it is still the user's
 responsibility to use only "plain" structures that can be safely manipulated as
 raw memory without violating invariants.
 
+Types whose spelling contains a comma must be wrapped in ``PYBIND11_TYPE``:
+``PYBIND11_NUMPY_DTYPE(PYBIND11_TYPE(C<int, double>), x, y)``.
+See :ref:`macro_notes`.
+
 Scalar types
 ============
 

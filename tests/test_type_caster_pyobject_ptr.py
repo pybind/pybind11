@@ -103,7 +103,8 @@ def test_return_list_pyobject_ptr_reference():
 
 def test_type_caster_name_via_incompatible_function_arguments_type_error():
     with pytest.raises(
-        TypeError, match=r"1\. \(arg0: object, arg1: typing.SupportsInt\) -> None"
+        TypeError,
+        match=r"1\. \(arg0: object, arg1: typing.SupportsInt \| typing.SupportsIndex\) -> None",
     ):
         m.pass_pyobject_ptr_and_int(ValueHolder(101), ValueHolder(202))
 

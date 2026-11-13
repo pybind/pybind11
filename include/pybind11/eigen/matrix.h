@@ -52,11 +52,20 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 #if EIGEN_VERSION_AT_LEAST(3, 3, 0)
 using EigenIndex = Eigen::Index;
 template <typename Scalar, int Flags, typename StorageIndex>
-using EigenMapSparseMatrix = Eigen::Map<Eigen::SparseMatrix<Scalar, Flags, StorageIndex>>;
+using EigenMapSparseMatrix = Eigen::Map<const Eigen::SparseMatrix<Scalar, Flags, StorageIndex>>;
+template <typename T>
+const T *eigen_sparse_map_ptr(const T *ptr) {
+    return ptr;
+}
 #else
 using EigenIndex = EIGEN_DEFAULT_DENSE_INDEX_TYPE;
 template <typename Scalar, int Flags, typename StorageIndex>
 using EigenMapSparseMatrix = Eigen::MappedSparseMatrix<Scalar, Flags, StorageIndex>;
+// MappedSparseMatrix requires mutable pointers, but the map is only read from.
+template <typename T>
+T *eigen_sparse_map_ptr(const T *ptr) {
+    return const_cast<T *>(ptr);
+}
 #endif
 
 // Matches Eigen::Map, Eigen::Ref, blocks, etc:
@@ -345,6 +354,9 @@ private:
     // Cast implementation
     template <typename CType>
     static handle cast_impl(CType *src, return_value_policy policy, handle parent) {
+        if (!src) {
+            return none().release();
+        }
         switch (policy) {
             case return_value_policy::take_ownership:
             case return_value_policy::automatic:
@@ -690,9 +702,9 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
                                      StorageIndex>(shape[0].cast<Index>(),
                                                    shape[1].cast<Index>(),
                                                    std::move(nnz),
-                                                   outerIndices.mutable_data(),
-                                                   innerIndices.mutable_data(),
-                                                   values.mutable_data());
+                                                   eigen_sparse_map_ptr(outerIndices.data()),
+                                                   eigen_sparse_map_ptr(innerIndices.data()),
+                                                   eigen_sparse_map_ptr(values.data()));
 
         return true;
     }

@@ -32,23 +32,45 @@ void interleaved_error_already_set() {
 
 constexpr char kModuleName[] = "cross_module_interleaved_error_already_set";
 
+#if !defined(PYBIND11_OPAQUE_PYOBJECT)
 struct PyModuleDef moduledef = {
     PyModuleDef_HEAD_INIT, kModuleName, nullptr, 0, nullptr, nullptr, nullptr, nullptr, nullptr};
+#endif
+
+int module_exec(PyObject *m) {
+    static_assert(sizeof(&interleaved_error_already_set) == sizeof(void *),
+                  "Function pointer must have the same size as void *");
+    return PyModule_AddObject(
+        m,
+        "funcaddr",
+        PyLong_FromVoidPtr(reinterpret_cast<void *>(&interleaved_error_already_set)));
+}
 
 } // namespace
 
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+// PEP 793 export hook: PyModuleDef is an incomplete type under the abi3t stable ABI.
+extern "C" PYBIND11_EXPORT PySlot *PyModExport_cross_module_interleaved_error_already_set() {
+    PyABIInfo_VAR(abi_info);
+    static PySlot slots[] = {PySlot_PTR(Py_mod_name, kModuleName),
+                             {Py_mod_exec, 0, {0}, {reinterpret_cast<void *>(&module_exec)}},
+                             PySlot_PTR(Py_mod_gil, Py_MOD_GIL_NOT_USED),
+                             PySlot_PTR_STATIC(Py_mod_abi, &abi_info),
+                             {0, 0, {0}, {nullptr}}};
+    return slots;
+}
+#else
 extern "C" PYBIND11_EXPORT PyObject *PyInit_cross_module_interleaved_error_already_set() {
     PyObject *m = PyModule_Create(&moduledef);
     if (m != nullptr) {
-        static_assert(sizeof(&interleaved_error_already_set) == sizeof(void *),
-                      "Function pointer must have the same size as void *");
-#ifdef Py_GIL_DISABLED
+#    ifdef Py_GIL_DISABLED
         PyUnstable_Module_SetGIL(m, Py_MOD_GIL_NOT_USED);
-#endif
-        PyModule_AddObject(
-            m,
-            "funcaddr",
-            PyLong_FromVoidPtr(reinterpret_cast<void *>(&interleaved_error_already_set)));
+#    endif
+        if (module_exec(m) != 0) {
+            Py_DECREF(m);
+            return nullptr;
+        }
     }
     return m;
 }
+#endif

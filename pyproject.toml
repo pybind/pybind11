@@ -16,13 +16,13 @@ classifiers = [
     "Topic :: Utilities",
     "Programming Language :: C++",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
     "Programming Language :: Python :: Implementation :: PyPy",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: C++",
@@ -33,12 +33,12 @@ keywords = [
     "Python bindings",
 ]
 dynamic = ["version", "optional-dependencies"]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 
 [project.urls]
 Homepage = "https://github.com/pybind/pybind11"
 Documentation = "https://pybind11.readthedocs.io/"
-"Bug Tracker" = "https://github.com/pybind/pybind11/issues"
+"Issue Tracker" = "https://github.com/pybind/pybind11/issues"
 Discussions = "https://github.com/pybind/pybind11/discussions"
 Changelog = "https://pybind11.readthedocs.io/en/latest/changelog.html"
 Chat = "https://gitter.im/pybind/Lobby"
@@ -57,9 +57,11 @@ pybind11 = "pybind11.share.pkgconfig"
 test = [
   "pytest",
   "build",
-  "tomlkit",
 ]
-dev = [{ include-group = "test" }]
+dev = [
+  "tomlkit",
+  { include-group = "test" }
+]
 
 
 [tool.scikit-build]
@@ -117,7 +119,7 @@ override-dependencies = ["pybind11-global"]
 
 [tool.mypy]
 files = ["pybind11"]
-python_version = "3.8"
+python_version = "3.9"
 strict = true
 enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
 warn_unreachable = true
@@ -128,7 +130,7 @@ ignore_missing_imports = true
 
 
 [tool.pylint]
-master.py-version = "3.8"
+master.py-version = "3.9"
 reports.output-format = "colorized"
 messages_control.disable = [
   "design",
@@ -152,6 +154,8 @@ extend-select = [
   "C4",          # flake8-comprehensions
   "EM",          # flake8-errmsg
   "ICN",         # flake8-import-conventions
+  "ISC",         # flake8-implicit-str-concat
+  "PERF",        # Perflint
   "PGH",         # pygrep-hooks
   "PIE",         # flake8-pie
   "PL",          # pylint
@@ -177,8 +181,41 @@ isort.required-imports = ["from __future__ import annotations"]
   "EM",
   "N",
   "E721",
+  "BLE001", # Tests capture and re-report exceptions from workers and callbacks
+  "DTZ",    # test_chrono.py checks naive local-time round-tripping on purpose
+  "FLY002", # Joining a list keeps long signatures one-per-line
+  "RUF012", # ClassVar annotations are noise in test fixtures
+  "RUF063", # test_pytypes.py reads __annotations__ from __dict__ deliberately
 ]
 "tests/test_call_policies.py" = ["PLC1901"]
+"docs/benchmark.py" = ["DTZ"]
 
 [tool.repo-review]
 ignore = ["PP"]
+
+[tool.typos]
+files.extend-exclude = ["/cpython"]
+
+[tool.typos.default.extend-identifiers]
+ser_no = "ser_no"
+SerNo = "SerNo"
+StrLits = "StrLits"
+
+[tool.typos.default.extend-words]
+nd = "nd"
+valu = "valu"
+fo = "fo"
+quater = "quater"
+optin = "optin"
+othr = "othr"
+# NumPy uses "writeable" in public API names and flags.
+writeable = "writeable"
+Writeable = "Writeable"
+WRITEABLE = "WRITEABLE"
+
+#[tool.typos.type.cpp.extend-words]
+setp = "setp"
+ot = "ot"
+
+[tool.typos.type.json.extend-words]
+ba = "ba"

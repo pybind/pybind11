@@ -97,6 +97,7 @@ struct metaclass {
     explicit metaclass(handle value) : value(value) {}
 };
 
+#if !defined(Py_LIMITED_API)
 /// Specifies a custom callback with signature `void (PyHeapTypeObject*)` that
 /// may be used to customize the Python type.
 ///
@@ -106,6 +107,8 @@ struct metaclass {
 /// work with later versions of pybind11.  You may wish to consult the
 /// implementation of `make_new_python_type` in `detail/classes.h` to understand
 /// the context in which the callback will be run.
+///
+/// Not available under the stable ABI (`Py_LIMITED_API`): PyHeapTypeObject is opaque there.
 struct custom_type_setup {
     using callback = std::function<void(PyHeapTypeObject *heap_type)>;
 
@@ -113,6 +116,7 @@ struct custom_type_setup {
 
     callback value;
 };
+#endif
 
 /// Annotation that marks a class as local to the module:
 struct module_local {
@@ -282,9 +286,7 @@ struct function_record {
 
 /// Special data structure which (temporarily) holds metadata about a bound class
 struct type_record {
-    PYBIND11_NOINLINE type_record()
-        : multiple_inheritance(false), dynamic_attr(false), buffer_protocol(false),
-          module_local(false), is_final(false), release_gil_before_calling_cpp_dtor(false) {}
+    type_record();
 
     /// Handle to the parent scope
     handle scope;
@@ -329,7 +331,9 @@ struct type_record {
     handle metaclass;
 
     /// Custom type setup.
+#if !defined(Py_LIMITED_API)
     custom_type_setup::callback custom_type_setup_callback;
+#endif
 
     /// Multiple inheritance marker
     bool multiple_inheritance : 1;
@@ -351,40 +355,7 @@ struct type_record {
 
     holder_enum_t holder_enum_v = holder_enum_t::undefined;
 
-    PYBIND11_NOINLINE void add_base(const std::type_info &base, void *(*caster)(void *) ) {
-        auto *base_info = detail::get_type_info(base, false);
-        if (!base_info) {
-            std::string tname(base.name());
-            detail::clean_type_id(tname);
-            pybind11_fail("generic_type: type \"" + std::string(name)
-                          + "\" referenced unknown base type \"" + tname + "\"");
-        }
-
-        // SMART_HOLDER_BAKEIN_FOLLOW_ON: Refine holder compatibility checks.
-        bool this_has_unique_ptr_holder = (holder_enum_v == holder_enum_t::std_unique_ptr);
-        bool base_has_unique_ptr_holder
-            = (base_info->holder_enum_v == holder_enum_t::std_unique_ptr);
-        if (this_has_unique_ptr_holder != base_has_unique_ptr_holder) {
-            std::string tname(base.name());
-            detail::clean_type_id(tname);
-            pybind11_fail("generic_type: type \"" + std::string(name) + "\" "
-                          + (this_has_unique_ptr_holder ? "does not have" : "has")
-                          + " a non-default holder type while its base \"" + tname + "\" "
-                          + (base_has_unique_ptr_holder ? "does not" : "does"));
-        }
-
-        bases.append((PyObject *) base_info->type);
-
-#ifdef PYBIND11_BACKWARD_COMPATIBILITY_TP_DICTOFFSET
-        dynamic_attr |= base_info->type->tp_dictoffset != 0;
-#else
-        dynamic_attr |= (base_info->type->tp_flags & Py_TPFLAGS_MANAGED_DICT) != 0;
-#endif
-
-        if (caster) {
-            base_info->implicit_casts.emplace_back(type, caster);
-        }
-    }
+    void add_base(const std::type_info &base, void *(*caster)(void *) );
 };
 
 inline function_call::function_call(const function_record &f, handle p) : func(f), parent(p) {
@@ -409,7 +380,9 @@ struct process_attribute_default {
     /// Default implementation: do nothing
     static void init(const T &, function_record *) {}
     static void init(const T &, type_record *) {}
+    /// Runs after argument conversion succeeded, before the call.
     static void precall(function_call &) {}
+    /// Runs after the call succeeded. The handle is null if return-value conversion failed.
     static void postcall(function_call &, handle) {}
 };
 
@@ -600,12 +573,14 @@ struct process_attribute<dynamic_attr> : process_attribute_default<dynamic_attr>
     static void init(const dynamic_attr &, type_record *r) { r->dynamic_attr = true; }
 };
 
+#if !defined(Py_LIMITED_API)
 template <>
 struct process_attribute<custom_type_setup> {
     static void init(const custom_type_setup &value, type_record *r) {
         r->custom_type_setup_callback = value.value;
     }
 };
+#endif
 
 template <>
 struct process_attribute<is_final> : process_attribute_default<is_final> {
@@ -650,8 +625,8 @@ struct process_attribute<call_guard<Ts...>> : process_attribute_default<call_gua
 
 /**
  * Process a keep_alive call policy -- invokes keep_alive_impl during the
- * pre-call handler if both Nurse, Patient != 0 and use the post-call handler
- * otherwise
+ * pre-call handler (after argument conversion succeeded) if both Nurse,
+ * Patient != 0 and use the post-call handler otherwise
  */
 template <size_t Nurse, size_t Patient>
 struct process_attribute<keep_alive<Nurse, Patient>>
@@ -703,6 +678,12 @@ struct process_attributes {
 };
 
 template <typename T>
+struct is_keep_alive : std::false_type {};
+
+template <size_t Nurse, size_t Patient>
+struct is_keep_alive<keep_alive<Nurse, Patient>> : std::true_type {};
+
+template <typename T>
 using is_call_guard = is_instantiation<call_guard, T>;
 
 /// Extract the ``type`` from the first `call_guard` in `Extras...` (or `void_type` if none found)
@@ -715,8 +696,14 @@ template <typename... Extra,
           size_t self = constexpr_sum(std::is_same<is_method, Extra>::value...)>
 constexpr bool expected_num_args(size_t nargs, bool has_args, bool has_kwargs) {
     PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(nargs, has_args, has_kwargs);
-    return named == 0 || (self + named + size_t(has_args) + size_t(has_kwargs)) == nargs;
+    return named == 0
+           || (self + named + static_cast<size_t>(has_args) + static_cast<size_t>(has_kwargs))
+                  == nargs;
 }
 
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
+
+#ifndef PYBIND11_PRECOMPILED
+#    include "attr-inl.h" // IWYU pragma: export
+#endif

@@ -41,6 +41,22 @@ set(pybind11_INCLUDE_DIRS
     "${pybind11_INCLUDE_DIR}"
     CACHE INTERNAL "Include directory for pybind11 (Python not requested)")
 
+# CMP0190 prohibits calling FindPython with both Interpreter and Development components
+# when cross-compiling, unless the CMAKE_CROSSCOMPILING_EMULATOR variable is defined.
+# Default PYBIND11_USE_CROSSCOMPILING to ON in that case, but never override a value the
+# project set explicitly (e.g. Emscripten/Pyodide defines an emulator yet still wants it ON).
+# PYBIND11_USE_CROSSCOMPILING is undefined for find_package() consumers, but our own
+# CMakeLists.txt always defines it via option(); _PYBIND11_USE_CROSSCOMPILING_DEFAULTED tells
+# us whether that came from the project or from the option() default.
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "4.1"
+   AND NOT DEFINED CMAKE_CROSSCOMPILING_EMULATOR
+   AND (NOT DEFINED PYBIND11_USE_CROSSCOMPILING OR _PYBIND11_USE_CROSSCOMPILING_DEFAULTED))
+  cmake_policy(GET CMP0190 _pybind11_cmp0190)
+  if(_pybind11_cmp0190 STREQUAL "NEW")
+    set(PYBIND11_USE_CROSSCOMPILING "ON")
+  endif()
+endif()
+
 if(CMAKE_CROSSCOMPILING AND PYBIND11_USE_CROSSCOMPILING)
   set(_PYBIND11_CROSSCOMPILING
       ON
@@ -103,7 +119,8 @@ add_library(pybind11::python_link_helper IMPORTED INTERFACE ${optional_global})
 set_property(
   TARGET pybind11::python_link_helper
   APPEND
-  PROPERTY INTERFACE_LINK_OPTIONS "$<$<PLATFORM_ID:Darwin>:LINKER:-undefined,dynamic_lookup>")
+  PROPERTY INTERFACE_LINK_OPTIONS
+           "$<$<PLATFORM_ID:Darwin,iOS,tvOS,watchOS,visionOS>:LINKER:-undefined,dynamic_lookup>")
 
 # ------------------------ Windows extras -------------------------
 
@@ -341,7 +358,11 @@ function(_pybind11_generate_lto target prefer_thin_lto)
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT APPLE)
       # Clang Gold plugin does not support -Os; append -O3 to MinSizeRel builds to override it
       set(linker_append ";$<$<CONFIG:MinSizeRel>:-O3>")
-    elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU" AND NOT MINGW)
+    elseif(
+      CMAKE_CXX_COMPILER_ID MATCHES "GNU"
+      AND NOT MINGW
+      AND NOT APPLE)
+      # GCC on macOS has no linker plugin, which -fno-fat-lto-objects requires
       set(cxx_append ";-fno-fat-lto-objects")
     endif()
 
@@ -443,5 +464,120 @@ function(pybind11_strip target_name)
       TARGET ${target_name}
       POST_BUILD
       COMMAND ${CMAKE_STRIP} ${x_opt} $<TARGET_FILE:${target_name}>)
+  endif()
+endfunction()
+
+# -fvisibility=hidden is required to allow multiple modules compiled against
+# different pybind versions to work properly, and for some features (e.g.
+# py::module_local).  We force it on everything inside the `pybind11`
+# namespace; also turning it on for a pybind module compilation here avoids
+# potential warnings or issues from having mixed hidden/non-hidden types.
+function(_pybind11_default_hidden_visibility target_name)
+  if(NOT DEFINED CMAKE_CXX_VISIBILITY_PRESET)
+    set_target_properties(${target_name} PROPERTIES CXX_VISIBILITY_PRESET "hidden")
+  endif()
+
+  if(NOT DEFINED CMAKE_CUDA_VISIBILITY_PRESET)
+    set_target_properties(${target_name} PROPERTIES CUDA_VISIBILITY_PRESET "hidden")
+  endif()
+endfunction()
+
+# --------------------- pybind11_precompile -------------------------
+
+# Create the pybind11::precompiled static library (once per build tree). It is
+# built from the consumer's project with the consumer's flags; each extension
+# module links its own copy, preserving pybind11's per-module state. Modules
+# using it must compile with PYBIND11_PRECOMPILED, which the PUBLIC compile
+# definition below provides automatically. With STABLE_ABI the library is
+# compiled against the limited API (Py_LIMITED_API); one build tree cannot mix
+# stable-ABI and regular precompiled modules.
+function(pybind11_precompile)
+  cmake_parse_arguments(ARG "STABLE_ABI" "" "" ${ARGN})
+  if(TARGET pybind11_precompiled)
+    get_target_property(_existing_sabi pybind11_precompiled PYBIND11_STABLE_ABI)
+    if(NOT "${_existing_sabi}" STREQUAL "${ARG_STABLE_ABI}")
+      message(
+        FATAL_ERROR
+          "pybind11::precompiled was created for STABLE_ABI=${_existing_sabi}; one build tree "
+          "cannot mix stable-ABI and regular precompiled modules.")
+    endif()
+    if(ARG_STABLE_ABI)
+      _pybind11_stable_abi_hex(_sabi_hex)
+      _pybind11_stable_abi_is_abi3t(_abi3t)
+      get_target_property(_existing_hex pybind11_precompiled PYBIND11_STABLE_ABI_HEX)
+      get_target_property(_existing_abi3t pybind11_precompiled PYBIND11_ABI3T)
+      if(NOT "${_existing_hex}" STREQUAL "${_sabi_hex}" OR NOT "${_existing_abi3t}" STREQUAL
+                                                           "${_abi3t}")
+        message(
+          FATAL_ERROR
+            "pybind11::precompiled must use the same stable ABI target for every "
+            "module (existing: ${_existing_hex}, abi3t=${_existing_abi3t}; "
+            "requested: ${_sabi_hex}, abi3t=${_abi3t}).")
+      endif()
+    endif()
+    return()
+  endif()
+
+  if(PYBIND11_NOPYTHON)
+    message(FATAL_ERROR "pybind11_precompile requires Python headers; it cannot be used "
+                        "with PYBIND11_NOPYTHON")
+  endif()
+
+  if(NOT pybind11_SRC_DIR OR NOT EXISTS "${pybind11_SRC_DIR}")
+    message(FATAL_ERROR "pybind11 library sources not found (pybind11_SRC_DIR: "
+                        "'${pybind11_SRC_DIR}')")
+  endif()
+
+  # CONFIGURE_DEPENDS: an in-place pybind11 upgrade can add src files; a stale
+  # list would fail with confusing undefined symbols.
+  file(GLOB _pybind11_precompile_sources CONFIGURE_DEPENDS "${pybind11_SRC_DIR}/*.cpp")
+  list(FILTER _pybind11_precompile_sources EXCLUDE REGEX "pybind11_combined\\.cpp$")
+
+  add_library(pybind11_precompiled STATIC EXCLUDE_FROM_ALL ${_pybind11_precompile_sources})
+  add_library(pybind11::precompiled ALIAS pybind11_precompiled)
+  target_compile_definitions(pybind11_precompiled PUBLIC PYBIND11_PRECOMPILED)
+  set_target_properties(pybind11_precompiled PROPERTIES PYBIND11_STABLE_ABI "${ARG_STABLE_ABI}")
+  if(ARG_STABLE_ABI)
+    _pybind11_stable_abi_hex(_sabi_hex)
+    _pybind11_stable_abi_is_abi3t(_abi3t)
+    set_target_properties(pybind11_precompiled PROPERTIES PYBIND11_STABLE_ABI_HEX "${_sabi_hex}"
+                                                          PYBIND11_ABI3T "${_abi3t}")
+    # The same define and Python library as a stable ABI module. pybind11::module would add the
+    # version-specific library to the link line of each module.
+    _pybind11_stable_abi_setup(pybind11_precompiled)
+    target_link_libraries(pybind11_precompiled PUBLIC pybind11::headers)
+  else()
+    # pybind11::module (not just pybind11::pybind11): the library must compile with the
+    # interpreter's ABI macros (e.g. Py_GIL_DISABLED, which FindPython attaches to
+    # Python::Module); on free-threaded Windows they select the correct autolink library.
+    target_link_libraries(
+      pybind11_precompiled
+      PUBLIC pybind11::headers
+      PRIVATE pybind11::module)
+  endif()
+  set_target_properties(pybind11_precompiled PROPERTIES POSITION_INDEPENDENT_CODE ON)
+  _pybind11_default_hidden_visibility(pybind11_precompiled)
+  if(NOT DEFINED CMAKE_VISIBILITY_INLINES_HIDDEN)
+    set_target_properties(pybind11_precompiled PROPERTIES VISIBILITY_INLINES_HIDDEN ON)
+  endif()
+  if(MSVC)
+    target_link_libraries(pybind11_precompiled PRIVATE pybind11::windows_extras)
+  endif()
+
+  # The first caller creates the library, so its directory scope supplies the
+  # library's flags and C++ standard; record it to make that visible.
+  message(STATUS "pybind11::precompiled created in ${CMAKE_CURRENT_SOURCE_DIR}")
+endfunction()
+
+# Link pybind11::precompiled when the PRECOMPILE keyword or the global
+# PYBIND11_PRECOMPILE variable requests it, unless NO_PRECOMPILE opts out.
+function(_pybind11_maybe_precompile target_name precompile no_precompile stable_abi)
+  if((precompile OR PYBIND11_PRECOMPILE) AND NOT no_precompile)
+    set(_kw "")
+    if(stable_abi)
+      set(_kw STABLE_ABI)
+    endif()
+    pybind11_precompile(${_kw})
+    target_link_libraries(${target_name} PRIVATE pybind11::precompiled)
   endif()
 endfunction()

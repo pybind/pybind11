@@ -1,6 +1,6 @@
 version: 1.0.{build}
 image:
-- Visual Studio 2017
+- Visual Studio 2019
 test: off
 skip_branch_with_pr: true
 build:
@@ -9,13 +9,20 @@ platform:
 - x86
 environment:
   matrix:
-  - PYTHON: 38
+  - PYTHON: 39
     CONFIG: Debug
 install:
 - ps: |
-    $env:CMAKE_GENERATOR = "Visual Studio 15 2017"
-    if ($env:PLATFORM -eq "x64") { $env:PYTHON = "$env:PYTHON-x64" }
-    $env:PATH = "C:\Python$env:PYTHON\;C:\Python$env:PYTHON\Scripts\;$env:PATH"
+    $env:CMAKE_GENERATOR = "Visual Studio 16 2019"
+    # The 2019 generator defaults to x64, so name the architecture explicitly.
+    if ($env:PLATFORM -eq "x64") {
+      $env:PYTHON = "$env:PYTHON-x64"
+      $env:CMAKE_ARCH = "x64"
+    } else {
+      $env:CMAKE_ARCH = "Win32"
+    }
+    $env:PYTHON_ROOT = "C:\Python$env:PYTHON"
+    $env:PATH = "$env:PYTHON_ROOT\;$env:PYTHON_ROOT\Scripts\;$env:PATH"
     python -W ignore -m pip install --upgrade pip wheel
     python -W ignore -m pip install pytest numpy --no-warn-script-location pytest-timeout
 - ps: |
@@ -23,7 +30,15 @@ install:
     7z x eigen-3.3.7.zip -y > $null
     $env:CMAKE_INCLUDE_PATH = "eigen-3.3.7;$env:CMAKE_INCLUDE_PATH"
 build_script:
+# FindPython looks at the registry before PATH, so it picks the newest Python on
+# the image. Point it at the one that has the test packages.
+#
+# The image also has python39_d.lib, which FindPython uses for a Debug build.
+# pybind11 undefines _DEBUG around Python.h, so pyconfig.h asks for python39.lib
+# and the link fails. Take the release library in Debug too.
 - cmake -G "%CMAKE_GENERATOR%" -A "%CMAKE_ARCH%"
+    -DPython_ROOT_DIR="%PYTHON_ROOT%"
+    -DCMAKE_MAP_IMPORTED_CONFIG_DEBUG=Release
     -DCMAKE_CXX_STANDARD=14
     -DPYBIND11_WERROR=ON
     -DDOWNLOAD_CATCH=ON

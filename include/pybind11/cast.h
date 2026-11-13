@@ -199,8 +199,7 @@ public:                                                                         
     template <typename T_,                                                                        \
               ::pybind11::detail::enable_if_t<                                                    \
                   std::is_same<type, ::pybind11::detail::remove_cv_t<T_>>::value,                 \
-                  int>                                                                            \
-              = 0>                                                                                \
+                  int> = 0>                                                                       \
     static ::pybind11::handle cast(                                                               \
         T_ *src, ::pybind11::return_value_policy policy, ::pybind11::handle parent) {             \
         if (!src)                                                                                 \
@@ -244,39 +243,36 @@ public:
             return false;
         }
 
-#if !defined(PYPY_VERSION)
-        auto index_check = [](PyObject *o) { return PyIndex_Check(o); };
-#else
-        // In PyPy 7.3.3, `PyIndex_Check` is implemented by calling `__index__`,
-        // while CPython only considers the existence of `nb_index`/`__index__`.
-        auto index_check = [](PyObject *o) { return hasattr(o, "__index__"); };
-#endif
-
         if (std::is_floating_point<T>::value) {
-            if (convert || PyFloat_Check(src.ptr())) {
+            if (convert || PyFloat_Check(src.ptr()) || PYBIND11_LONG_CHECK(src.ptr())) {
                 py_value = (py_type) PyFloat_AsDouble(src.ptr());
             } else {
                 return false;
             }
         } else if (PyFloat_Check(src.ptr())
-                   || (!convert && !PYBIND11_LONG_CHECK(src.ptr()) && !index_check(src.ptr()))) {
+                   || !(convert || PYBIND11_LONG_CHECK(src.ptr())
+                        || PYBIND11_INDEX_CHECK(src.ptr()))) {
+            // Explicitly reject float → int conversion even in convert mode.
+            // This prevents silent truncation (e.g., 1.9 → 1).
+            // Only int → float conversion is allowed (widening, no precision loss).
+            // Also reject if none of the conversion conditions are met.
             return false;
         } else {
             handle src_or_index = src;
-            // PyPy: 7.3.7's 3.8 does not implement PyLong_*'s __index__ calls.
-#if defined(PYPY_VERSION)
             object index;
-            if (!PYBIND11_LONG_CHECK(src.ptr())) { // So: index_check(src.ptr())
+            // PyLong_AsUnsignedLong[Long] never calls __index__, so call PyNumber_Index here.
+            if (std::is_unsigned<py_type>::value && !PYBIND11_LONG_CHECK(src.ptr())
+                && PYBIND11_INDEX_CHECK(src.ptr())) {
                 index = reinterpret_steal<object>(PyNumber_Index(src.ptr()));
                 if (!index) {
                     PyErr_Clear();
-                    if (!convert)
+                    if (!convert) {
                         return false;
+                    }
                 } else {
                     src_or_index = index;
                 }
             }
-#endif
             if (std::is_unsigned<py_type>::value) {
                 py_value = as_unsigned<py_type>(src_or_index.ptr());
             } else { // signed integer:
@@ -286,8 +282,10 @@ public:
             }
         }
 
-        // Python API reported an error
-        bool py_err = py_value == (py_type) -1 && PyErr_Occurred();
+        bool py_err = (PyErr_Occurred() != nullptr);
+        if (py_err) {
+            assert(py_value == static_cast<py_type>(-1));
+        }
 
         // Check to see if the conversion is valid (integers should match exactly)
         // Signed/unsigned checks happen elsewhere
@@ -347,9 +345,12 @@ public:
         return PyLong_FromUnsignedLongLong((unsigned long long) src);
     }
 
-    PYBIND11_TYPE_CASTER(T,
-                         io_name<std::is_integral<T>::value>(
-                             "typing.SupportsInt", "int", "typing.SupportsFloat", "float"));
+    PYBIND11_TYPE_CASTER(
+        T,
+        io_name<std::is_integral<T>::value>("typing.SupportsInt | typing.SupportsIndex",
+                                            "int",
+                                            "typing.SupportsFloat | typing.SupportsIndex",
+                                            "float"));
 };
 
 template <typename T>
@@ -391,9 +392,10 @@ public:
         }
 
         /* Check if this is a C++ type */
-        const auto &bases = all_type_info((PyTypeObject *) type::handle_of(h).ptr());
+        const auto &bases
+            = all_type_info(reinterpret_cast<PyTypeObject *>(type::handle_of(h).ptr()));
         if (bases.size() == 1) { // Only allowing loading from a single-value type
-            value = values_and_holders(reinterpret_cast<instance *>(h.ptr())).begin()->value_ptr();
+            value = values_and_holders(get_instance(h.ptr())).begin()->value_ptr();
             return true;
         }
 
@@ -443,10 +445,17 @@ public:
             if (src.is_none()) {
                 res = 0; // None is implicitly converted to False
             }
-#if defined(PYPY_VERSION)
-            // On PyPy, check that "__bool__" attr exists
+#if defined(PYPY_VERSION) || defined(GRAALVM_PYTHON)
+            // Check that the "__bool__" attr exists
             else if (hasattr(src, PYBIND11_BOOL_ATTR)) {
                 res = PyObject_IsTrue(src.ptr());
+            }
+#elif defined(Py_LIMITED_API)
+            // Same as below through the stable ABI (PyType_GetSlot works on static types since
+            // 3.10).
+            else if (auto *nb_bool
+                     = reinterpret_cast<inquiry>(PyType_GetSlot(Py_TYPE(src.ptr()), Py_nb_bool))) {
+                res = nb_bool(src.ptr());
             }
 #else
             // Alternate approach for CPython: this does the same as the above, but optimized
@@ -472,11 +481,9 @@ public:
 
 private:
     // Test if an object is a NumPy boolean (without fetching the type).
-    static inline bool is_numpy_bool(handle object) {
-        const char *type_name = Py_TYPE(object.ptr())->tp_name;
+    static bool is_numpy_bool(handle object) {
         // Name changed to `numpy.bool` in NumPy 2, `numpy.bool_` is needed for 1.x support
-        return std::strcmp("numpy.bool", type_name) == 0
-               || std::strcmp("numpy.bool_", type_name) == 0;
+        return tp_name_is_one_of(Py_TYPE(object.ptr()), {"numpy.bool", "numpy.bool_"});
     }
 };
 
@@ -503,12 +510,11 @@ struct string_caster {
     static constexpr size_t UTF_N = 8 * sizeof(CharT);
 
     bool load(handle src, bool) {
-        handle load_src = src;
         if (!src) {
             return false;
         }
-        if (!PyUnicode_Check(load_src.ptr())) {
-            return load_raw(load_src);
+        if (!PyUnicode_Check(src.ptr())) {
+            return load_raw(src);
         }
 
         // For UTF-8 we avoid the need for a temporary `bytes` object by using
@@ -516,17 +522,22 @@ struct string_caster {
         if (UTF_N == 8) {
             Py_ssize_t size = -1;
             const auto *buffer
-                = reinterpret_cast<const CharT *>(PyUnicode_AsUTF8AndSize(load_src.ptr(), &size));
+                = reinterpret_cast<const CharT *>(PyUnicode_AsUTF8AndSize(src.ptr(), &size));
             if (!buffer) {
                 PyErr_Clear();
                 return false;
             }
             value = StringType(buffer, static_cast<size_t>(size));
+            if (IsView) {
+                // `src` owns the buffer; keep it alive if inside a bound function,
+                // otherwise the caller is responsible for its lifetime.
+                loader_life_support::try_add_patient(src);
+            }
             return true;
         }
 
         auto utfNbytes
-            = reinterpret_steal<object>(PyUnicode_AsEncodedString(load_src.ptr(),
+            = reinterpret_steal<object>(PyUnicode_AsEncodedString(src.ptr(),
                                                                   UTF_N == 8    ? "utf-8"
                                                                   : UTF_N == 16 ? "utf-16"
                                                                                 : "utf-32",
@@ -538,7 +549,7 @@ struct string_caster {
 
         const auto *buffer
             = reinterpret_cast<const CharT *>(PYBIND11_BYTES_AS_STRING(utfNbytes.ptr()));
-        size_t length = (size_t) PYBIND11_BYTES_SIZE(utfNbytes.ptr()) / sizeof(CharT);
+        size_t length = static_cast<size_t>(PYBIND11_BYTES_SIZE(utfNbytes.ptr())) / sizeof(CharT);
         // Skip BOM for UTF-16/32
         if (UTF_N > 8) {
             buffer++;
@@ -599,6 +610,9 @@ private:
                 pybind11_fail("Unexpected PYBIND11_BYTES_AS_STRING() failure.");
             }
             value = StringType(bytes, (size_t) PYBIND11_BYTES_SIZE(src.ptr()));
+            if (IsView) {
+                loader_life_support::try_add_patient(src);
+            }
             return true;
         }
         if (PyByteArray_Check(src.ptr())) {
@@ -609,6 +623,9 @@ private:
                 pybind11_fail("Unexpected PyByteArray_AsString() failure.");
             }
             value = StringType(bytearray, (size_t) PyByteArray_Size(src.ptr()));
+            if (IsView) {
+                loader_life_support::try_add_patient(src);
+            }
             return true;
         }
 
@@ -836,7 +853,7 @@ protected:
         tuple result(size);
         int counter = 0;
         for (auto &entry : entries) {
-            PyTuple_SET_ITEM(result.ptr(), counter++, entry.release().ptr());
+            tuple_set_item(result.ptr(), counter++, entry.release().ptr());
         }
         return result.release();
     }
@@ -908,9 +925,13 @@ protected:
         }
     }
 
+    // The fallback overload always throws; MSVC LTCG then flags this return as unreachable.
+    PYBIND11_WARNING_PUSH
+    PYBIND11_WARNING_DISABLE_MSVC(4702)
     bool set_foreign_holder(handle src) {
         return holder_caster_foreign_helpers::set_foreign_holder(src, (type *) value, &holder);
     }
+    PYBIND11_WARNING_POP
 
     void load_value(value_and_holder &&v_h) {
         if (v_h.holder_constructed()) {
@@ -1016,7 +1037,19 @@ public:
             return smart_holder_type_caster_support::smart_holder_from_shared_ptr(
                 src, policy, parent, srcs.result);
         }
-        return type_caster_base<type>::cast_holder(srcs, &src);
+
+        auto *tinfo = srcs.result.tinfo;
+        if (tinfo != nullptr && tinfo->holder_enum_v == holder_enum_t::std_shared_ptr) {
+            return type_caster_base<type>::cast_holder(srcs, &src);
+        }
+
+        if (parent) {
+            return type_caster_generic::cast_non_owning(
+                srcs, return_value_policy::reference_internal, parent);
+        }
+
+        throw cast_error("Unable to convert std::shared_ptr<T> to Python when the bound type "
+                         "does not use std::shared_ptr or py::smart_holder as its holder type");
     }
 
     // This function will succeed even if the `responsible_parent` does not own the
@@ -1146,8 +1179,7 @@ std::weak_ptr<T> potentially_slicing_weak_ptr(handle obj) {
     if (caster.load(obj, /*convert=*/true)) {
         return caster.potentially_slicing_weak_ptr();
     }
-    const char *obj_type_name = detail::obj_class_name(obj.ptr());
-    throw type_error("\"" + std::string(obj_type_name)
+    throw type_error("\"" + detail::obj_class_name(obj.ptr())
                      + "\" object is not convertible to std::weak_ptr<T> (with T = " + type_id<T>()
                      + ")");
 }
@@ -1465,21 +1497,24 @@ template <>
 struct handle_type_name<weakref> {
     static constexpr auto name = const_name("weakref.ReferenceType");
 };
+// args/Args/kwargs/KWArgs have name as well as typehint included
 template <>
 struct handle_type_name<args> {
-    static constexpr auto name = const_name("*args");
+    static constexpr auto name = io_name("*args", "tuple");
 };
 template <typename T>
 struct handle_type_name<Args<T>> {
-    static constexpr auto name = const_name("*args: ") + make_caster<T>::name;
+    static constexpr auto name
+        = io_name("*args: ", "tuple[") + make_caster<T>::name + io_name("", ", ...]");
 };
 template <>
 struct handle_type_name<kwargs> {
-    static constexpr auto name = const_name("**kwargs");
+    static constexpr auto name = io_name("**kwargs", "dict[str, typing.Any]");
 };
 template <typename T>
 struct handle_type_name<KWArgs<T>> {
-    static constexpr auto name = const_name("**kwargs: ") + make_caster<T>::name;
+    static constexpr auto name
+        = io_name("**kwargs: ", "dict[str, ") + make_caster<T>::name + io_name("", "]");
 };
 template <>
 struct handle_type_name<obj_attr_accessor> {
@@ -1655,8 +1690,7 @@ PYBIND11_NAMESPACE_END(detail)
 template <typename T,
           detail::enable_if_t<!detail::is_pyobject<T>::value
                                   && !detail::is_same_ignoring_cvref<T, PyObject *>::value,
-                              int>
-          = 0>
+                              int> = 0>
 T cast(const handle &handle) {
     using namespace detail;
     constexpr bool is_enum_cast = type_uses_type_caster_enum_type<intrinsic_t<T>>::value;
@@ -1691,8 +1725,7 @@ template <typename T,
           typename Handle,
           detail::enable_if_t<detail::is_same_ignoring_cvref<T, PyObject *>::value
                                   && detail::is_same_ignoring_cvref<Handle, handle>::value,
-                              int>
-          = 0>
+                              int> = 0>
 T cast(Handle &&handle) {
     return handle.inc_ref().ptr();
 }
@@ -1701,8 +1734,7 @@ template <typename T,
           typename Object,
           detail::enable_if_t<detail::is_same_ignoring_cvref<T, PyObject *>::value
                                   && detail::is_same_ignoring_cvref<Object, object>::value,
-                              int>
-          = 0>
+                              int> = 0>
 T cast(Object &&obj) {
     return obj.release().ptr();
 }
@@ -1884,6 +1916,13 @@ enable_if_t<detail::none_of<cast_is_temporary_value_reference<T>,
                             std::is_void<T>>::value,
             T>
 cast_safe(object &&o) {
+    // A registered type returned by value is copied or moved before this frame ends.
+    // Preserve an enclosing frame, and never shorten the lifetime of borrowed results.
+    if (std::is_base_of<type_caster_generic, make_caster<T>>::value && !std::is_reference<T>::value
+        && !std::is_pointer<T>::value && !loader_life_support::is_active()) {
+        loader_life_support life_support;
+        return pybind11::cast<T>(std::move(o));
+    }
     return pybind11::cast<T>(std::move(o));
 }
 
@@ -1905,13 +1944,20 @@ inline cast_error cast_error_unable_to_convert_call_arg(const std::string &name,
 }
 #endif
 
+namespace typing {
+template <typename... Types>
+class Tuple : public tuple {
+    using tuple::tuple;
+};
+} // namespace typing
+
 template <return_value_policy policy = return_value_policy::automatic_reference>
-tuple make_tuple() {
+typing::Tuple<> make_tuple() {
     return tuple(0);
 }
 
 template <return_value_policy policy = return_value_policy::automatic_reference, typename... Args>
-tuple make_tuple(Args &&...args_) {
+typing::Tuple<Args...> make_tuple(Args &&...args_) {
     constexpr size_t size = sizeof...(Args);
     std::array<object, size> args{{reinterpret_steal<object>(
         detail::make_caster<Args>::cast(std::forward<Args>(args_), policy, nullptr))...}};
@@ -1928,9 +1974,14 @@ tuple make_tuple(Args &&...args_) {
     tuple result(size);
     int counter = 0;
     for (auto &arg_value : args) {
-        PyTuple_SET_ITEM(result.ptr(), counter++, arg_value.release().ptr());
+        detail::tuple_set_item(result.ptr(), counter++, arg_value.release().ptr());
     }
+    PYBIND11_WARNING_PUSH
+#ifdef PYBIND11_DETECTED_CLANG_WITH_MISLEADING_CALL_STD_MOVE_EXPLICITLY_WARNING
+    PYBIND11_WARNING_DISABLE_CLANG("-Wreturn-std-move")
+#endif
     return result;
+    PYBIND11_WARNING_POP
 }
 
 /// \ingroup annotations
@@ -2059,8 +2110,7 @@ using is_pos_only = std::is_same<intrinsic_t<T>, pos_only>;
 // forward declaration (definition in attr.h)
 struct function_record;
 
-/// (Inline size chosen mostly arbitrarily; 6 should pad function_call out to two cache lines
-/// (16 pointers) in size.)
+/// Inline size chosen mostly arbitrarily.
 constexpr std::size_t arg_vector_small_size = 6;
 
 /// Internal data associated with a single function call
@@ -2125,17 +2175,17 @@ public:
 
     bool load_args(function_call &call) { return load_impl_sequence(call, indices{}); }
 
-    template <typename Return, typename Guard, typename Func>
+    template <typename Return, typename Guard, typename Func, typename Precall>
     // NOLINTNEXTLINE(readability-const-return-type)
-    enable_if_t<!std::is_void<Return>::value, Return> call(Func &&f) && {
-        return std::move(*this).template call_impl<remove_cv_t<Return>>(
-            std::forward<Func>(f), indices{}, Guard{});
+    enable_if_t<!std::is_void<Return>::value, Return> call(Func &&f, Precall &&precall) && {
+        return std::move(*this).template call_impl<remove_cv_t<Return>, Guard>(
+            std::forward<Func>(f), std::forward<Precall>(precall), indices{});
     }
 
-    template <typename Return, typename Guard, typename Func>
-    enable_if_t<std::is_void<Return>::value, void_type> call(Func &&f) && {
-        std::move(*this).template call_impl<remove_cv_t<Return>>(
-            std::forward<Func>(f), indices{}, Guard{});
+    template <typename Return, typename Guard, typename Func, typename Precall>
+    enable_if_t<std::is_void<Return>::value, void_type> call(Func &&f, Precall &&precall) && {
+        std::move(*this).template call_impl<remove_cv_t<Return>, Guard>(
+            std::forward<Func>(f), std::forward<Precall>(precall), indices{});
         return void_type();
     }
 
@@ -2144,6 +2194,11 @@ private:
 
     template <size_t... Is>
     bool load_impl_sequence(function_call &call, index_sequence<Is...>) {
+        PYBIND11_WARNING_PUSH
+#if !defined(__clang__) && defined(__GNUC__) && __GNUC__ >= 13
+        // Work around a GCC -Warray-bounds false positive in argument_vector usage.
+        PYBIND11_WARNING_DISABLE_GCC("-Warray-bounds")
+#endif
 #ifdef __cpp_fold_expressions
         if ((... || !std::get<Is>(argcasters).load(call.args[Is], call.args_convert[Is]))) {
             return false;
@@ -2155,97 +2210,136 @@ private:
             }
         }
 #endif
+        PYBIND11_WARNING_POP
         return true;
     }
 
-    template <typename Return, typename Func, size_t... Is, typename Guard>
-    Return call_impl(Func &&f, index_sequence<Is...>, Guard &&) && {
-        return std::forward<Func>(f)(cast_op<Args>(std::move(std::get<Is>(argcasters)))...);
+    template <typename Return, typename Guard, typename Func, typename Precall, size_t... Is>
+    Return call_impl(Func &&f, Precall &&precall, index_sequence<Is...>) && {
+        // Func provides function_ref::invoke_with_guard, whose typed parameters finish conversion
+        // before precall. Direct casts and returns preserve copy elision (see issue #6142).
+        return std::forward<Func>(f).template invoke_with_guard<Guard>(
+            std::forward<Precall>(precall), cast_op<Args>(std::move(std::get<Is>(argcasters)))...);
     }
 
     std::tuple<make_caster<Args>...> argcasters;
 };
 
-/// Helper class which collects only positional arguments for a Python function call.
-/// A fancier version below can collect any argument, but this one is optimal for simple calls.
-template <return_value_policy policy>
-class simple_collector {
-public:
-    template <typename... Ts>
-    explicit simple_collector(Ts &&...values)
-        : m_args(pybind11::make_tuple<policy>(std::forward<Ts>(values)...)) {}
-
-    const tuple &args() const & { return m_args; }
-    dict kwargs() const { return {}; }
-
-    tuple args() && { return std::move(m_args); }
-
-    /// Call a Python function and pass the collected arguments
-    object call(PyObject *ptr) const {
-        PyObject *result = PyObject_CallObject(ptr, m_args.ptr());
-        if (!result) {
-            throw error_already_set();
-        }
-        return reinterpret_steal<object>(result);
-    }
-
-private:
-    tuple m_args;
-};
+// [workaround(intel)] Separate function required here
+// We need to put this into a separate function because the Intel compiler
+// fails to compile enable_if_t<!all_of<is_positional<Args>...>::value>
+// (tested with ICC 2021.1 Beta 20200827).
+template <typename... Args>
+constexpr bool args_has_keyword_or_ds() {
+    return any_of<is_keyword_or_ds<Args>...>::value;
+}
 
 /// Helper class which collects positional, keyword, * and ** arguments for a Python function call
 template <return_value_policy policy>
 class unpacking_collector {
 public:
     template <typename... Ts>
-    explicit unpacking_collector(Ts &&...values) {
-        // Tuples aren't (easily) resizable so a list is needed for collection,
-        // but the actual function call strictly requires a tuple.
-        auto args_list = list();
-        using expander = int[];
-        (void) expander{0, (process(args_list, std::forward<Ts>(values)), 0)...};
+    explicit unpacking_collector(Ts &&...values)
+        : m_names(reinterpret_steal<tuple>(
+              handle())) // initialize to null to avoid useless allocation of 0-length tuple
+    {
+        /*
+        Python can sometimes utilize an extra space before the arguments to prepend `self`.
+        This is important enough that there is a special flag for it:
+        PY_VECTORCALL_ARGUMENTS_OFFSET.
+        All we have to do is allocate an extra space at the beginning of this array, and set the
+        flag. Note that the extra space is not passed directly in to vectorcall.
+        */
+        m_args.reserve(sizeof...(values) + 1);
+        m_args.push_back_null();
 
-        m_args = std::move(args_list);
+        if (args_has_keyword_or_ds<Ts...>()) {
+            list names_list;
+
+            // collect_arguments guarantees this can't be constructed with kwargs before the last
+            // positional so we don't need to worry about Ts... being in anything but normal python
+            // order.
+            using expander = int[];
+            (void) expander{0, (process(names_list, std::forward<Ts>(values)), 0)...};
+
+            m_names = reinterpret_steal<tuple>(PyList_AsTuple(names_list.ptr()));
+        } else {
+            auto not_used
+                = reinterpret_steal<list>(handle()); // initialize as null (to avoid an allocation)
+
+            using expander = int[];
+            (void) expander{0, (process(not_used, std::forward<Ts>(values)), 0)...};
+        }
     }
-
-    const tuple &args() const & { return m_args; }
-    const dict &kwargs() const & { return m_kwargs; }
-
-    tuple args() && { return std::move(m_args); }
-    dict kwargs() && { return std::move(m_kwargs); }
 
     /// Call a Python function and pass the collected arguments
     object call(PyObject *ptr) const {
-        PyObject *result = PyObject_Call(ptr, m_args.ptr(), m_kwargs.ptr());
+        size_t nargs = m_args.size() - 1; // -1 for PY_VECTORCALL_ARGUMENTS_OFFSET (see ctor)
+        if (m_names) {
+            nargs -= m_names.size();
+        }
+        PyObject *result = PyObject_Vectorcall(
+            ptr, m_args.data() + 1, nargs | PY_VECTORCALL_ARGUMENTS_OFFSET, m_names.ptr());
         if (!result) {
             throw error_already_set();
         }
         return reinterpret_steal<object>(result);
     }
 
+    tuple args() const {
+        size_t nargs = m_args.size() - 1; // -1 for PY_VECTORCALL_ARGUMENTS_OFFSET (see ctor)
+        if (m_names) {
+            nargs -= m_names.size();
+        }
+        tuple val(nargs);
+        for (size_t i = 0; i < nargs; ++i) {
+            // +1 for PY_VECTORCALL_ARGUMENTS_OFFSET (see ctor)
+            val[i] = reinterpret_borrow<object>(m_args[i + 1]);
+        }
+        return val;
+    }
+
+    dict kwargs() const {
+        dict val;
+        if (m_names) {
+            size_t offset = m_args.size() - m_names.size();
+            for (size_t i = 0; i < m_names.size(); ++i, ++offset) {
+                val[m_names[i]] = reinterpret_borrow<object>(m_args[offset]);
+            }
+        }
+        return val;
+    }
+
 private:
+    // normal argument, possibly needing conversion
     template <typename T>
-    void process(list &args_list, T &&x) {
-        auto o = reinterpret_steal<object>(
-            detail::make_caster<T>::cast(std::forward<T>(x), policy, {}));
-        if (!o) {
+    void process(list & /*names_list*/, T &&x) {
+        handle h = detail::make_caster<T>::cast(std::forward<T>(x), policy, {});
+        if (!h) {
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
-            throw cast_error_unable_to_convert_call_arg(std::to_string(args_list.size()));
+            throw cast_error_unable_to_convert_call_arg(std::to_string(m_args.size() - 1));
 #else
-            throw cast_error_unable_to_convert_call_arg(std::to_string(args_list.size()),
+            throw cast_error_unable_to_convert_call_arg(std::to_string(m_args.size() - 1),
                                                         type_id<T>());
 #endif
         }
-        args_list.append(std::move(o));
+        m_args.push_back_steal(h.ptr()); // cast returns a new reference
     }
 
-    void process(list &args_list, detail::args_proxy ap) {
+    // * unpacking
+    void process(list & /*names_list*/, detail::args_proxy ap) {
+        if (!ap) {
+            return;
+        }
         for (auto a : ap) {
-            args_list.append(a);
+            m_args.push_back_borrow(a.ptr());
         }
     }
 
-    void process(list & /*args_list*/, arg_v a) {
+    // named argument
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
+    void process(list &names_list, arg_v a) {
+        assert(names_list);
         if (!a.name) {
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
             nameless_argument_error();
@@ -2253,7 +2347,8 @@ private:
             nameless_argument_error(a.type);
 #endif
         }
-        if (m_kwargs.contains(a.name)) {
+        auto name = str(a.name);
+        if (names_list.contains(name)) {
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
             multiple_values_error();
 #else
@@ -2267,22 +2362,27 @@ private:
             throw cast_error_unable_to_convert_call_arg(a.name, a.type);
 #endif
         }
-        m_kwargs[a.name] = std::move(a.value);
+        names_list.append(std::move(name));
+        m_args.push_back_borrow(a.value.ptr());
     }
 
-    void process(list & /*args_list*/, detail::kwargs_proxy kp) {
+    // ** unpacking
+    void process(list &names_list, detail::kwargs_proxy kp) {
         if (!kp) {
             return;
         }
-        for (auto k : reinterpret_borrow<dict>(kp)) {
-            if (m_kwargs.contains(k.first)) {
+        assert(names_list);
+        for (auto &&k : reinterpret_borrow<dict>(kp)) {
+            auto name = str(k.first);
+            if (names_list.contains(name)) {
 #if !defined(PYBIND11_DETAILED_ERROR_MESSAGES)
                 multiple_values_error();
 #else
-                multiple_values_error(str(k.first));
+                multiple_values_error(name);
 #endif
             }
-            m_kwargs[k.first] = k.second;
+            names_list.append(std::move(name));
+            m_args.push_back_borrow(k.second.ptr());
         }
     }
 
@@ -2308,46 +2408,27 @@ private:
     }
 
 private:
-    tuple m_args;
-    dict m_kwargs;
+    ref_small_vector<arg_vector_small_size> m_args;
+    tuple m_names;
 };
 
-// [workaround(intel)] Separate function required here
-// We need to put this into a separate function because the Intel compiler
-// fails to compile enable_if_t<!all_of<is_positional<Args>...>::value>
-// (tested with ICC 2021.1 Beta 20200827).
-template <typename... Args>
-constexpr bool args_are_all_positional() {
-    return all_of<is_positional<Args>...>::value;
-}
-
-/// Collect only positional arguments for a Python function call
-template <return_value_policy policy,
-          typename... Args,
-          typename = enable_if_t<args_are_all_positional<Args...>()>>
-simple_collector<policy> collect_arguments(Args &&...args) {
-    return simple_collector<policy>(std::forward<Args>(args)...);
-}
-
-/// Collect all arguments, including keywords and unpacking (only instantiated when needed)
-template <return_value_policy policy,
-          typename... Args,
-          typename = enable_if_t<!args_are_all_positional<Args...>()>>
+/// Collect all arguments, including keywords and unpacking
+template <return_value_policy policy, typename... Args>
 unpacking_collector<policy> collect_arguments(Args &&...args) {
     // Following argument order rules for generalized unpacking according to PEP 448
-    static_assert(constexpr_last<is_positional, Args...>()
-                          < constexpr_first<is_keyword_or_ds, Args...>()
-                      && constexpr_last<is_s_unpacking, Args...>()
-                             < constexpr_first<is_ds_unpacking, Args...>(),
-                  "Invalid function call: positional args must precede keywords and ** unpacking; "
-                  "* unpacking must precede ** unpacking");
+    static_assert(
+        constexpr_last<is_positional, Args...>() < constexpr_first<is_keyword_or_ds, Args...>(),
+        "Invalid function call: positional args must precede keywords and */** unpacking;");
+    static_assert(constexpr_last<is_s_unpacking, Args...>()
+                      < constexpr_first<is_ds_unpacking, Args...>(),
+                  "Invalid function call: * unpacking must precede ** unpacking");
     return unpacking_collector<policy>(std::forward<Args>(args)...);
 }
 
 template <typename Derived>
 template <return_value_policy policy, typename... Args>
 object object_api<Derived>::operator()(Args &&...args) const {
-#ifndef NDEBUG
+#if !defined(NDEBUG) && !defined(Py_LIMITED_API) // PyGILState_Check: not in the stable ABI
     if (!PyGILState_Check()) {
         pybind11_fail("pybind11::object_api<>::operator() PyGILState_Check() failure.");
     }

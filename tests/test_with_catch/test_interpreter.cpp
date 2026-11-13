@@ -1,9 +1,13 @@
 #include <pybind11/critical_section.h>
 #include <pybind11/embed.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl_bind.h>
 
 // Silence MSVC C++17 deprecation warning from Catch regarding std::uncaught_exceptions (up to
 // catch 2.0.1; this should be fixed in the next catch release after 2.0.1).
 PYBIND11_WARNING_DISABLE_MSVC(4996)
+
+#include "catch_skip.h"
 
 #include <catch.hpp>
 #include <cstdlib>
@@ -14,6 +18,122 @@ PYBIND11_WARNING_DISABLE_MSVC(4996)
 
 namespace py = pybind11;
 using namespace py::literals;
+
+struct ImplicitReturnItem {
+    explicit ImplicitReturnItem(int value) : value(value) {}
+    int value;
+};
+struct ImplicitReturnValues : std::vector<std::shared_ptr<ImplicitReturnItem>> {
+    using std::vector<std::shared_ptr<ImplicitReturnItem>>::vector;
+    static int instances;
+    struct Counter {
+        Counter() { ++instances; }
+        Counter(const Counter &) { ++instances; }
+        ~Counter() { --instances; }
+    } counter;
+};
+int ImplicitReturnValues::instances = 0;
+PYBIND11_MAKE_OPAQUE(ImplicitReturnValues)
+
+struct ImplicitReturnProvider {
+    virtual ~ImplicitReturnProvider() = default;
+    virtual ImplicitReturnValues values() = 0;
+    virtual const ImplicitReturnValues &reference() = 0;
+    virtual ImplicitReturnValues *pointer() = 0;
+#ifdef PYBIND11_HAS_STRING_VIEW
+    virtual std::u16string_view view() = 0;
+#endif
+};
+
+struct PyImplicitReturnProvider : ImplicitReturnProvider {
+    ImplicitReturnValues values() override {
+        PYBIND11_OVERRIDE_PURE(ImplicitReturnValues, ImplicitReturnProvider, values, );
+    }
+    const ImplicitReturnValues &reference() override {
+        PYBIND11_OVERRIDE_PURE(const ImplicitReturnValues &, ImplicitReturnProvider, reference, );
+    }
+    ImplicitReturnValues *pointer() override {
+        PYBIND11_OVERRIDE_PURE(ImplicitReturnValues *, ImplicitReturnProvider, pointer, );
+    }
+#ifdef PYBIND11_HAS_STRING_VIEW
+    std::u16string_view view() override {
+        PYBIND11_OVERRIDE_PURE(std::u16string_view, ImplicitReturnProvider, view, );
+    }
+#endif
+};
+
+PYBIND11_EMBEDDED_MODULE(implicit_return_module, m, py::multiple_interpreters::not_supported()) {
+    py::class_<ImplicitReturnItem, std::shared_ptr<ImplicitReturnItem>>(m, "Item").def(
+        py::init<int>());
+    py::bind_vector<ImplicitReturnValues>(m, "Values");
+    py::implicitly_convertible<py::list, ImplicitReturnValues>();
+    py::class_<ImplicitReturnProvider, PyImplicitReturnProvider>(m, "Provider").def(py::init<>());
+}
+
+TEST_CASE("Implicit conversions in native trampoline returns") {
+    py::dict locals;
+    py::exec(R"(
+        from implicit_return_module import Item, Provider
+        class PythonProvider(Provider):
+            def __init__(self):
+                super().__init__()
+                self.result = [Item(17), Item(-4), Item(99)]
+                self.fresh = False
+            def values(self):
+                return list(self.result) if self.fresh else self.result
+            def reference(self):
+                return self.result
+            def pointer(self):
+                return self.result
+            def view(self):
+                return "hello"
+        provider = PythonProvider()
+    )",
+             locals);
+    py::object provider = locals["provider"];
+    auto *cpp_provider = provider.cast<ImplicitReturnProvider *>();
+
+    SECTION("Copy from a retained Python return value") { provider.attr("fresh") = false; }
+    SECTION("Move from a temporary Python return value") { provider.attr("fresh") = true; }
+
+    REQUIRE(ImplicitReturnValues::instances == 0);
+    // An enclosing bound call already owns its conversion temporaries. They must
+    // not be destroyed earlier by a nested return-conversion frame.
+    auto bound_call = py::cpp_function([&]() {
+        auto result = cpp_provider->values();
+        return ImplicitReturnValues::instances;
+    });
+    REQUIRE(bound_call().cast<int>() == 2);
+    REQUIRE(ImplicitReturnValues::instances == 0);
+
+    // A short-lived return-conversion frame cannot support a borrowed result.
+    REQUIRE_THROWS_AS(cpp_provider->reference(), py::cast_error);
+    REQUIRE_THROWS_AS(cpp_provider->pointer(), py::cast_error);
+#ifdef PYBIND11_HAS_STRING_VIEW
+    REQUIRE_THROWS_AS(cpp_provider->view(), py::cast_error);
+#endif
+
+    // Calling from native C++ is essential: a bound function would already provide
+    // a loader frame and hide the missing life support during return conversion.
+    for (int i = 0; i < 3; ++i) {
+        auto result = cpp_provider->values();
+        REQUIRE(ImplicitReturnValues::instances == 1);
+        REQUIRE(result.size() == 3);
+        REQUIRE(result[0]->value == 17);
+        REQUIRE(result[1]->value == -4);
+        REQUIRE(result[2]->value == 99);
+    }
+    REQUIRE_THROWS_AS(cpp_provider->reference(), py::cast_error);
+
+    auto retained = cpp_provider->values();
+    provider.attr("result").attr("clear")();
+    REQUIRE(retained[0]->value == 17);
+    REQUIRE(retained[1]->value == -4);
+    REQUIRE(retained[2]->value == 99);
+
+    provider.attr("result") = py::make_tuple("invalid");
+    REQUIRE_THROWS_AS(cpp_provider->values(), py::cast_error);
+}
 
 size_t get_sys_path_size() {
     auto sys_path = py::module::import("sys").attr("path");
@@ -45,8 +165,8 @@ private:
 class PyWidget final : public Widget {
     using Widget::Widget;
 
-    int the_answer() const override { PYBIND11_OVERRIDE_PURE(int, Widget, the_answer); }
-    std::string argv0() const override { PYBIND11_OVERRIDE_PURE(std::string, Widget, argv0); }
+    int the_answer() const override { PYBIND11_OVERRIDE_PURE(int, Widget, the_answer, ); }
+    std::string argv0() const override { PYBIND11_OVERRIDE_PURE(std::string, Widget, argv0, ); }
 };
 
 class test_override_cache_helper {
@@ -62,7 +182,7 @@ public:
 };
 
 class test_override_cache_helper_trampoline : public test_override_cache_helper {
-    int func() override { PYBIND11_OVERRIDE(int, test_override_cache_helper, func); }
+    int func() override { PYBIND11_OVERRIDE(int, test_override_cache_helper, func, ); }
 };
 
 PYBIND11_EMBEDDED_MODULE(widget_module, m, py::multiple_interpreters::per_interpreter_gil()) {
@@ -76,7 +196,7 @@ PYBIND11_EMBEDDED_MODULE(widget_module, m, py::multiple_interpreters::per_interp
     sub.def("add", [](int i, int j) { return i + j; });
 }
 
-PYBIND11_EMBEDDED_MODULE(trampoline_module, m) {
+PYBIND11_EMBEDDED_MODULE(trampoline_module, m, py::multiple_interpreters::not_supported()) {
     py::class_<test_override_cache_helper,
                test_override_cache_helper_trampoline,
                std::shared_ptr<test_override_cache_helper>>(m, "test_override_cache_helper")
@@ -84,11 +204,31 @@ PYBIND11_EMBEDDED_MODULE(trampoline_module, m) {
         .def("func", &test_override_cache_helper::func);
 }
 
-PYBIND11_EMBEDDED_MODULE(throw_exception, ) { throw std::runtime_error("C++ Error"); }
+enum class SomeEnum { value1, value2 }; // Added in PR #6015
 
-PYBIND11_EMBEDDED_MODULE(throw_error_already_set, ) {
+PYBIND11_EMBEDDED_MODULE(enum_module, m, py::multiple_interpreters::per_interpreter_gil()) {
+    py::enum_<SomeEnum>(m, "SomeEnum")
+        .value("value1", SomeEnum::value1)
+        .value("value2", SomeEnum::value2);
+}
+
+PYBIND11_EMBEDDED_MODULE(throw_exception, , py::multiple_interpreters::not_supported()) {
+    throw std::runtime_error("C++ Error");
+}
+
+PYBIND11_EMBEDDED_MODULE(throw_error_already_set, , py::multiple_interpreters::not_supported()) {
     auto d = py::dict();
     d["missing"].cast<py::object>();
+}
+
+static int internals_init_module_executions = 0;
+
+PYBIND11_EMBEDDED_MODULE(internals_init_module,
+                         m,
+                         py::mod_gil_not_used(),
+                         py::multiple_interpreters::per_interpreter_gil()) {
+    ++internals_init_module_executions;
+    m.def("answer", []() { return 42; });
 }
 
 TEST_CASE("PYTHONPATH is used to update sys.path") {
@@ -185,7 +325,6 @@ TEST_CASE("There can be only one interpreter") {
     py::initialize_interpreter();
 }
 
-#if PY_VERSION_HEX >= PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX
 TEST_CASE("Custom PyConfig") {
     py::finalize_interpreter();
     PyConfig config;
@@ -248,9 +387,8 @@ TEST_CASE("scoped_interpreter with PyConfig_InitPythonConfig and argv") {
     }
     py::initialize_interpreter();
 }
-#endif
 
-TEST_CASE("Add program dir to path pre-PyConfig") {
+TEST_CASE("Add program dir to path without PyConfig") {
     py::finalize_interpreter();
     size_t path_size_add_program_dir_to_path_false = 0;
     {
@@ -264,7 +402,6 @@ TEST_CASE("Add program dir to path pre-PyConfig") {
     py::initialize_interpreter();
 }
 
-#if PY_VERSION_HEX >= PYBIND11_PYCONFIG_SUPPORT_PY_VERSION_HEX
 TEST_CASE("Add program dir to path using PyConfig") {
     py::finalize_interpreter();
     size_t path_size_add_program_dir_to_path_false = 0;
@@ -282,9 +419,39 @@ TEST_CASE("Add program dir to path using PyConfig") {
     }
     py::initialize_interpreter();
 }
-#endif
 
-TEST_CASE("Restart the interpreter") {
+TEST_CASE("Internals are initialized when a module executes", "[internals_init]") {
+    // Use a fresh interpreter so that another module cannot have populated its internals.
+    py::finalize_interpreter();
+    py::initialize_interpreter();
+    internals_init_module_executions = 0;
+    REQUIRE_FALSE(has_state_dict_internals_obj());
+    REQUIRE(py::detail::get_local_internals_capsule() == nullptr);
+
+    auto *definition = PyInit_internals_init_module();
+    REQUIRE(definition != nullptr);
+    REQUIRE_FALSE(has_state_dict_internals_obj());
+    REQUIRE(py::detail::get_local_internals_capsule() == nullptr);
+
+    auto spec = py::module_::import("importlib.util")
+                    .attr("spec_from_loader")("internals_init_module", py::none());
+    auto *module_def = reinterpret_cast<PyModuleDef *>(definition);
+    auto module
+        = py::reinterpret_steal<py::module_>(PyModule_FromDefAndSpec(module_def, spec.ptr()));
+    REQUIRE(module);
+    module.attr("__spec__") = spec;
+    REQUIRE_FALSE(has_state_dict_internals_obj());
+    REQUIRE(py::detail::get_local_internals_capsule() == nullptr);
+    REQUIRE(internals_init_module_executions == 0);
+
+    REQUIRE(PyModule_ExecDef(module.ptr(), module_def) == 0);
+    REQUIRE(has_state_dict_internals_obj());
+    REQUIRE(py::detail::get_local_internals_capsule() != nullptr);
+    REQUIRE(internals_init_module_executions == 1);
+    REQUIRE(module.attr("answer")().cast<int>() == 42);
+}
+
+TEST_CASE("Restart the interpreter", "[internals_init]") {
     // Verify pre-restart state.
     REQUIRE(py::module_::import("widget_module").attr("add")(1, 2).cast<int>() == 3);
     REQUIRE(has_state_dict_internals_obj());
@@ -310,6 +477,8 @@ TEST_CASE("Restart the interpreter") {
     REQUIRE(get_details_as_uintptr() != 0);
     REQUIRE(get_details_as_uintptr()
             == py::module_::import("external_module").attr("internals_at")().cast<uintptr_t>());
+    REQUIRE(py::module_::import("external_module").attr("A")(321).attr("value").cast<int>()
+            == 321);
 
     // Make sure that an interpreter with no get_internals() created until finalize still gets the
     // internals destroyed
@@ -341,6 +510,28 @@ TEST_CASE("Restart the interpreter") {
     auto py_module = py::module_::import("test_interpreter");
     auto py_widget = py_module.attr("DerivedWidget")("Hello after restart");
     REQUIRE(py_widget.attr("the_message").cast<std::string>() == "Hello after restart");
+}
+
+TEST_CASE("Enum module survives restart") { // Added in PR #6015
+    // Regression test for gh-5976: py::enum_ uses def_property_static, which
+    // calls process_attributes::init after initialize_generic's strdup loop,
+    // leaving arg names as string literals. Without the fix, destruct() would
+    // call free() on those literals during interpreter finalization.
+    PYBIND11_CATCH2_SKIP_IF(PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION == 12,
+                            "Pre-existing crash in enum cleanup during finalize on Python 3.12");
+
+    {
+        // Scoped so that no reference to the old interpreter's module survives the restart.
+        auto enum_mod = py::module_::import("enum_module");
+        REQUIRE(enum_mod.attr("SomeEnum").attr("value1").attr("name").cast<std::string>()
+                == "value1");
+    }
+
+    py::finalize_interpreter();
+    py::initialize_interpreter();
+
+    auto enum_mod = py::module_::import("enum_module");
+    REQUIRE(enum_mod.attr("SomeEnum").attr("value2").attr("name").cast<std::string>() == "value2");
 }
 
 TEST_CASE("Execution frame") {
@@ -481,3 +672,32 @@ TEST_CASE("make_iterator can be called before then after finalizing an interpret
 
     py::initialize_interpreter();
 }
+
+#ifdef PYBIND11_HAS_STRING_VIEW
+TEST_CASE("Casting to a string_view outside a bound function") {
+    // Regression for PR #6092: view casters add the source to loader_life_support, but
+    // outside a bound function there is no frame. The caller owns the source's lifetime
+    // here, so the cast must succeed rather than throw.
+    py::str unicode("hello");
+    py::bytes bytes_obj("world", 5);
+    auto bytearray_obj
+        = py::reinterpret_steal<py::object>(PyByteArray_FromStringAndSize("bytes", 5));
+
+    REQUIRE(py::cast<std::string_view>(unicode) == "hello");
+    REQUIRE(py::cast<std::string_view>(bytes_obj) == "world");
+    REQUIRE(py::cast<std::string_view>(bytearray_obj) == "bytes");
+
+    // Wide string views require an encoded temporary. With no loader life-support
+    // frame, returning a view into that temporary must fail.
+    REQUIRE_THROWS_AS(py::cast<std::u16string_view>(unicode), py::cast_error);
+    REQUIRE_THROWS_AS(py::cast<std::u32string_view>(unicode), py::cast_error);
+
+    // Bound-function dispatch provides a frame that keeps both temporaries alive.
+    auto accepts_wide_views
+        = py::cpp_function([](std::u16string_view value16, std::u32string_view value32) {
+              return value16 == std::u16string_view(u"hello")
+                     && value32 == std::u32string_view(U"hello");
+          });
+    REQUIRE(accepts_wide_views(unicode, unicode).cast<bool>());
+}
+#endif

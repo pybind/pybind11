@@ -13,6 +13,16 @@
 #include <cstdlib>
 
 #if defined(__GNUG__)
+#    if !defined(__has_include)
+// All supported Clang versions provide __has_include, but GCC versions before 5 do not.
+// Preserve the previous unconditional __GNUG__ behavior for those older, still-supported
+// GCC versions (see PR #6145).
+#        define PYBIND11_HAS_CXXABI_H
+#    elif __has_include(<cxxabi.h>)
+#        define PYBIND11_HAS_CXXABI_H
+#    endif
+#endif
+#if defined(PYBIND11_HAS_CXXABI_H)
 #    include <cxxabi.h>
 #endif
 
@@ -32,34 +42,28 @@ inline void erase_all(std::string &string, const std::string &search) {
     }
 }
 
-PYBIND11_NOINLINE void clean_type_id(std::string &name) {
-#if defined(__GNUG__)
-    int status = 0;
-    std::unique_ptr<char, void (*)(void *)> res{
-        abi::__cxa_demangle(name.c_str(), nullptr, nullptr, &status), std::free};
-    if (status == 0) {
-        name = res.get();
-    }
-#else
-    detail::erase_all(name, "class ");
-    detail::erase_all(name, "struct ");
-    detail::erase_all(name, "enum ");
-#endif
-    detail::erase_all(name, "pybind11::");
-}
+void clean_type_id(std::string &name);
 
-inline std::string clean_type_id(const char *typeid_name) {
-    std::string name(typeid_name);
-    detail::clean_type_id(name);
-    return name;
-}
+std::string clean_type_id(const char *typeid_name);
 
 PYBIND11_NAMESPACE_END(detail)
 
 /// Return a string representation of a C++ type
 template <typename T>
-static std::string type_id() {
+std::string type_id() {
     return detail::clean_type_id(typeid(T).name());
 }
 
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+// typeid() needs a complete type; PyObject is opaque under the abi3t stable ABI.
+template <>
+inline std::string type_id<PyObject>() {
+    return "PyObject";
+}
+#endif
+
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
+
+#ifndef PYBIND11_PRECOMPILED
+#    include "typeid-inl.h" // IWYU pragma: export
+#endif

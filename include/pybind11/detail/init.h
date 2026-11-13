@@ -206,8 +206,8 @@ void construct(value_and_holder &v_h, Alias<Class> &&result, bool) {
 template <typename T, typename D>
 smart_holder init_smart_holder_from_unique_ptr(std::unique_ptr<T, D> &&unq_ptr,
                                                bool void_cast_raw_ptr) {
-    void *void_ptr = void_cast_raw_ptr ? static_cast<void *>(unq_ptr.get()) : nullptr;
-    return smart_holder::from_unique_ptr(std::move(unq_ptr), void_ptr);
+    return smart_holder::from_unique_ptr(
+        std::move(unq_ptr), /*mi_subobject_ptr*/ nullptr, void_cast_raw_ptr);
 }
 
 template <typename Class,
@@ -304,16 +304,15 @@ struct constructor {
             extra...);
     }
 
-    template <
-        typename Class,
-        typename... Extra,
-        enable_if_t<Class::has_alias && std::is_constructible<Cpp<Class>, Args...>::value, int>
-        = 0>
+    template <typename Class,
+              typename... Extra,
+              enable_if_t<Class::has_alias && std::is_constructible<Cpp<Class>, Args...>::value,
+                          int> = 0>
     static void execute(Class &cl, const Extra &...extra) {
         cl.def(
             "__init__",
             [](value_and_holder &v_h, Args... args) {
-                if (Py_TYPE(v_h.inst) == v_h.type->type) {
+                if (v_h.type_is_exact()) {
                     v_h.value_ptr()
                         = construct_or_initialize<Cpp<Class>>(std::forward<Args>(args)...);
                 } else {
@@ -325,11 +324,10 @@ struct constructor {
             extra...);
     }
 
-    template <
-        typename Class,
-        typename... Extra,
-        enable_if_t<Class::has_alias && !std::is_constructible<Cpp<Class>, Args...>::value, int>
-        = 0>
+    template <typename Class,
+              typename... Extra,
+              enable_if_t<Class::has_alias && !std::is_constructible<Cpp<Class>, Args...>::value,
+                          int> = 0>
     static void execute(Class &cl, const Extra &...extra) {
         cl.def(
             "__init__",
@@ -345,11 +343,10 @@ struct constructor {
 // Implementing class for py::init_alias<...>()
 template <typename... Args>
 struct alias_constructor {
-    template <
-        typename Class,
-        typename... Extra,
-        enable_if_t<Class::has_alias && std::is_constructible<Alias<Class>, Args...>::value, int>
-        = 0>
+    template <typename Class,
+              typename... Extra,
+              enable_if_t<Class::has_alias && std::is_constructible<Alias<Class>, Args...>::value,
+                          int> = 0>
     static void execute(Class &cl, const Extra &...extra) {
         cl.def(
             "__init__",
@@ -370,8 +367,15 @@ template <typename CFunc,
 struct factory;
 
 // Specialization for py::init(Func)
+// Note: The 4th template parameter `void_type()` is explicitly specified to resolve a
+// template ambiguity with the dual-factory specialization below when compiled with
+// nvcc + GCC (see #5565). Without it, both specializations match equally well for the
+// single-factory case, since the 4th parameter defaults to
+// `function_signature_t<void_type(*)()>` = `void_type()`, which the dual-factory
+// specialization can also decompose as `AReturn(AArgs...)` with `AReturn=void_type`
+// and `AArgs={}`.
 template <typename Func, typename Return, typename... Args>
-struct factory<Func, void_type (*)(), Return(Args...)> {
+struct factory<Func, void_type (*)(), Return(Args...), void_type()> {
     remove_reference_t<Func> class_factory;
 
     // NOLINTNEXTLINE(google-explicit-constructor)
@@ -384,7 +388,7 @@ struct factory<Func, void_type (*)(), Return(Args...)> {
     // instance, or the alias needs to be constructible from a `Class &&` argument.
     template <typename Class, typename... Extra>
     void execute(Class &cl, const Extra &...extra) && {
-#if defined(PYBIND11_CPP14)
+#if defined(__cpp_init_captures) && __cpp_init_captures >= 201304L
         cl.def(
             "__init__",
             [func = std::move(class_factory)]
@@ -395,8 +399,7 @@ struct factory<Func, void_type (*)(), Return(Args...)> {
             [func]
 #endif
             (value_and_holder &v_h, Args... args) {
-                construct<Class>(
-                    v_h, func(std::forward<Args>(args)...), Py_TYPE(v_h.inst) != v_h.type->type);
+                construct<Class>(v_h, func(std::forward<Args>(args)...), !v_h.type_is_exact());
             },
             is_new_style_constructor(),
             extra...);
@@ -431,7 +434,7 @@ struct factory<CFunc, AFunc, CReturn(CArgs...), AReturn(AArgs...)> {
         static_assert(Class::has_alias,
                       "The two-argument version of `py::init()` can "
                       "only be used if the class has an alias");
-#if defined(PYBIND11_CPP14)
+#if defined(__cpp_init_captures) && __cpp_init_captures >= 201304L
         cl.def(
             "__init__",
             [class_func = std::move(class_factory), alias_func = std::move(alias_factory)]
@@ -443,7 +446,7 @@ struct factory<CFunc, AFunc, CReturn(CArgs...), AReturn(AArgs...)> {
             [class_func, alias_func]
 #endif
             (value_and_holder &v_h, CArgs... args) {
-                if (Py_TYPE(v_h.inst) == v_h.type->type) {
+                if (v_h.type_is_exact()) {
                     // If the instance type equals the registered type we don't have inheritance,
                     // so don't need the alias and can construct using the class function:
                     construct<Class>(v_h, class_func(std::forward<CArgs>(args)...), false);
@@ -476,9 +479,9 @@ void setstate(value_and_holder &v_h, std::pair<T, O> &&result, bool need_alias) 
         return;
     }
     // Our tests never run into an unset dict, but being careful here for now (see #5658)
-    auto dict = getattr((PyObject *) v_h.inst, "__dict__", none());
+    auto dict = getattr(instance_object(v_h.inst), "__dict__", none());
     if (dict.is_none()) {
-        setattr((PyObject *) v_h.inst, "__dict__", d);
+        setattr(instance_object(v_h.inst), "__dict__", d);
     } else {
         // Keep the original object dict and just update it
         if (PyDict_Update(dict.ptr(), d.ptr()) < 0) {
@@ -501,9 +504,15 @@ template <typename Get,
           typename NewInstance,
           typename ArgState>
 struct pickle_factory<Get, Set, RetState(Self), NewInstance(ArgState)> {
-    static_assert(std::is_same<intrinsic_t<RetState>, intrinsic_t<ArgState>>::value,
-                  "The type returned by `__getstate__` must be the same "
-                  "as the argument accepted by `__setstate__`");
+    using Ret = intrinsic_t<RetState>;
+    using Arg = intrinsic_t<ArgState>;
+
+    // Subclasses are now allowed for support between type hint and generic versions of types
+    // (e.g.) typing::List <--> list
+    static_assert(std::is_same<Ret, Arg>::value || std::is_base_of<Ret, Arg>::value
+                      || std::is_base_of<Arg, Ret>::value,
+                  "The type returned by `__getstate__` must be the same or subclass of the "
+                  "argument accepted by `__setstate__`");
 
     remove_reference_t<Get> get;
     remove_reference_t<Set> set;
@@ -514,7 +523,7 @@ struct pickle_factory<Get, Set, RetState(Self), NewInstance(ArgState)> {
     void execute(Class &cl, const Extra &...extra) && {
         cl.def("__getstate__", std::move(get), pos_only());
 
-#if defined(PYBIND11_CPP14)
+#if defined(__cpp_init_captures) && __cpp_init_captures >= 201304L
         cl.def(
             "__setstate__",
             [func = std::move(set)]
@@ -525,8 +534,7 @@ struct pickle_factory<Get, Set, RetState(Self), NewInstance(ArgState)> {
             [func]
 #endif
             (value_and_holder &v_h, ArgState state) {
-                setstate<Class>(
-                    v_h, func(std::forward<ArgState>(state)), Py_TYPE(v_h.inst) != v_h.type->type);
+                setstate<Class>(v_h, func(std::forward<ArgState>(state)), !v_h.type_is_exact());
             },
             is_new_style_constructor(),
             extra...);

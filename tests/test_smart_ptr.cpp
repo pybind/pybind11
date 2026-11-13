@@ -83,6 +83,24 @@ private:
     // for demonstration purpose only, this imitates smart pointer with a const-only pointer
 };
 
+template <typename T>
+class shared_ptr_as_custom_holder {
+    std::shared_ptr<T> ptr_;
+
+public:
+    using element_type = T;
+
+    shared_ptr_as_custom_holder() = default;
+
+    explicit shared_ptr_as_custom_holder(T *) {
+        throw std::runtime_error("invalid shared_ptr_as_custom_holder constructor call");
+    }
+
+    explicit shared_ptr_as_custom_holder(std::shared_ptr<T> ptr) : ptr_(std::move(ptr)) {}
+
+    T *get() const { return ptr_.get(); }
+};
+
 // Custom object with builtin reference counting (see 'object.h' for the implementation)
 class MyObject1 : public Object {
 public:
@@ -220,7 +238,7 @@ struct SharedPtrRef {
         ~A() { print_destroyed(this); }
     };
 
-    A value = {};
+    A value;
     std::shared_ptr<A> shared = std::make_shared<A>();
 };
 
@@ -228,14 +246,26 @@ struct SharedPtrRef {
 struct SharedFromThisRef {
     struct B : std::enable_shared_from_this<B> {
         B() { print_created(this); }
-        // NOLINTNEXTLINE(bugprone-copy-constructor-init)
+        // NOLINTNEXTLINE(bugprone-copy-constructor-init, readability-redundant-member-init)
         B(const B &) : std::enable_shared_from_this<B>() { print_copy_created(this); }
+        // NOLINTNEXTLINE(readability-redundant-member-init)
         B(B &&) noexcept : std::enable_shared_from_this<B>() { print_move_created(this); }
         ~B() { print_destroyed(this); }
     };
 
-    B value = {};
+    B value;
     std::shared_ptr<B> shared = std::make_shared<B>();
+};
+
+class Issue6064UnsafePath {
+public:
+    static std::shared_ptr<Issue6064UnsafePath> create() {
+        return {new Issue6064UnsafePath(), [](Issue6064UnsafePath *ptr) { delete ptr; }};
+    }
+
+private:
+    Issue6064UnsafePath() = default;
+    ~Issue6064UnsafePath() = default;
 };
 
 // Issue #865: shared_from_this doesn't work with virtual inheritance
@@ -245,6 +275,28 @@ struct SharedFromThisVBase : std::enable_shared_from_this<SharedFromThisVBase> {
     virtual ~SharedFromThisVBase() = default;
 };
 struct SharedFromThisVirt : virtual SharedFromThisVBase {};
+
+// Issue #5989: static_pointer_cast where dynamic_pointer_cast is needed
+// (virtual inheritance with shared_ptr holder)
+struct SftVirtBase : std::enable_shared_from_this<SftVirtBase> {
+    SftVirtBase() = default;
+    virtual ~SftVirtBase() = default;
+    static std::shared_ptr<SftVirtBase> create() { return std::make_shared<SftVirtBase>(); }
+    virtual std::string name() { return "SftVirtBase"; }
+};
+struct SftVirtDerived : SftVirtBase {
+    using SftVirtBase::SftVirtBase;
+    static std::shared_ptr<SftVirtDerived> create() { return std::make_shared<SftVirtDerived>(); }
+    std::string name() override { return "SftVirtDerived"; }
+};
+struct SftVirtDerived2 : virtual SftVirtDerived {
+    using SftVirtDerived::SftVirtDerived;
+    static std::shared_ptr<SftVirtDerived2> create() {
+        return std::make_shared<SftVirtDerived2>();
+    }
+    std::string name() override { return "SftVirtDerived2"; }
+    std::string call_name(const std::shared_ptr<SftVirtDerived2> &d2) { return d2->name(); }
+};
 
 // test_move_only_holder
 struct C {
@@ -300,6 +352,45 @@ struct ElementList {
     std::vector<std::shared_ptr<ElementBase>> l;
 };
 
+// test_holder_ctor_calls_python_override
+class RetainNotifier {
+public:
+    virtual ~RetainNotifier() = default;
+    virtual void on_retain() {}
+    void add_ref() {
+        ++ref_count_;
+        on_retain();
+    }
+    void release() {
+        if (--ref_count_ == 0) {
+            delete this;
+        }
+    }
+
+private:
+    int ref_count_ = 0;
+};
+
+class PyRetainNotifier : public RetainNotifier {
+public:
+    void on_retain() override { PYBIND11_OVERRIDE(void, RetainNotifier, on_retain, ); }
+};
+
+// Holder whose constructor calls back into the object, so constructing it runs user code
+// (including Python overrides of on_retain()).
+template <typename T>
+class notifying_intrusive_ptr {
+    T *ptr_;
+
+public:
+    explicit notifying_intrusive_ptr(T *p) : ptr_(p) { ptr_->add_ref(); }
+    notifying_intrusive_ptr(const notifying_intrusive_ptr &other)
+        : notifying_intrusive_ptr(other.ptr_) {}
+    notifying_intrusive_ptr &operator=(const notifying_intrusive_ptr &) = delete;
+    ~notifying_intrusive_ptr() { ptr_->release(); }
+    T *get() const { return ptr_; }
+};
+
 } // namespace
 
 // ref<T> is a wrapper for 'Object' which uses intrusive reference counting
@@ -318,12 +409,14 @@ struct holder_helper<ref<T>> {
 // Make pybind aware of the ref-counted wrapper type (s):
 PYBIND11_DECLARE_HOLDER_TYPE(T, ref<T>, true)
 PYBIND11_DECLARE_HOLDER_TYPE(T, const_only_shared_ptr<T>, true)
+PYBIND11_DECLARE_HOLDER_TYPE(T, shared_ptr_as_custom_holder<T>, )
 // The following is not required anymore for std::shared_ptr, but it should compile without error:
-PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>)
-PYBIND11_DECLARE_HOLDER_TYPE(T, huge_unique_ptr<T>)
-PYBIND11_DECLARE_HOLDER_TYPE(T, custom_unique_ptr<T>)
-PYBIND11_DECLARE_HOLDER_TYPE(T, shared_ptr_with_addressof_operator<T>)
-PYBIND11_DECLARE_HOLDER_TYPE(T, unique_ptr_with_addressof_operator<T>)
+PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>, )
+PYBIND11_DECLARE_HOLDER_TYPE(T, huge_unique_ptr<T>, )
+PYBIND11_DECLARE_HOLDER_TYPE(T, custom_unique_ptr<T>, )
+PYBIND11_DECLARE_HOLDER_TYPE(T, shared_ptr_with_addressof_operator<T>, )
+PYBIND11_DECLARE_HOLDER_TYPE(T, unique_ptr_with_addressof_operator<T>, )
+PYBIND11_DECLARE_HOLDER_TYPE(T, notifying_intrusive_ptr<T>, true)
 
 namespace holder_caster_traits_test {
 struct example_base {};
@@ -478,6 +571,10 @@ TEST_SUBMODULE(smart_ptr, m) {
         .def(py::init([](const std::string &value) { return MyObject6::createObject(value); }))
         .def_property_readonly("value", &MyObject6::value);
 
+    py::class_<Issue6064UnsafePath, shared_ptr_as_custom_holder<Issue6064UnsafePath>>(
+        m, "Issue6064UnsafePath");
+    m.def("get_issue6064_unsafe_path_shared_ptr", []() { return Issue6064UnsafePath::create(); });
+
     // test_shared_ptr_and_references
     using A = SharedPtrRef::A;
     py::class_<A, std::shared_ptr<A>>(m, "A");
@@ -521,10 +618,22 @@ TEST_SUBMODULE(smart_ptr, m) {
     py::class_<SharedFromThisVirt, std::shared_ptr<SharedFromThisVirt>>(m, "SharedFromThisVirt")
         .def_static("get", []() { return sft.get(); });
 
+    // Issue #5989: static_pointer_cast where dynamic_pointer_cast is needed
+    py::class_<SftVirtBase, std::shared_ptr<SftVirtBase>>(m, "SftVirtBase")
+        .def(py::init<>(&SftVirtBase::create))
+        .def("name", &SftVirtBase::name);
+    py::class_<SftVirtDerived, SftVirtBase, std::shared_ptr<SftVirtDerived>>(m, "SftVirtDerived")
+        .def(py::init<>(&SftVirtDerived::create));
+    py::class_<SftVirtDerived2, SftVirtDerived, std::shared_ptr<SftVirtDerived2>>(
+        m, "SftVirtDerived2")
+        .def(py::init<>(&SftVirtDerived2::create))
+        .def("call_name", &SftVirtDerived2::call_name, py::arg("d2"));
+
     // test_move_only_holder
     py::class_<C, custom_unique_ptr<C>>(m, "TypeWithMoveOnlyHolder")
         .def_static("make", []() { return custom_unique_ptr<C>(new C); })
         .def_static("make_as_object", []() { return py::cast(custom_unique_ptr<C>(new C)); });
+    m.def("get_type_with_move_only_holder_shared_ptr", []() { return std::make_shared<C>(); });
 
     // test_holder_with_addressof_operator
     using HolderWithAddressOf = shared_ptr_with_addressof_operator<TypeForHolderWithAddressOf>;
@@ -588,6 +697,11 @@ TEST_SUBMODULE(smart_ptr, m) {
         .def(py::init<>())
         .def_readwrite("ptr",
                        &ContainerUsingPrivateESFT::ptr); // <- access ESFT through shared_ptr
+
+    // test_holder_ctor_calls_python_override
+    py::class_<RetainNotifier, PyRetainNotifier, notifying_intrusive_ptr<RetainNotifier>>(
+        m, "RetainNotifier")
+        .def(py::init<>());
 
     holder_caster_traits_test::wrap(m);
 }

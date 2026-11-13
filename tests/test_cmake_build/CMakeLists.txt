@@ -20,6 +20,15 @@ function(pybind11_add_build_test name)
     list(APPEND build_options "-DCMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD}")
   endif()
 
+  # Forward option-driven defines so the nested projects can verify they propagate
+  # through the pybind11_headers usage requirements.
+  foreach(opt IN ITEMS PYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION
+                       PYBIND11_SIMPLE_GIL_MANAGEMENT PYBIND11_STABLE_ABI PYBIND11_ABI3T)
+    if(${opt})
+      list(APPEND build_options "-D${opt}=ON")
+    endif()
+  endforeach()
+
   if(NOT ARG_INSTALL)
     list(APPEND build_options "-Dpybind11_SOURCE_DIR=${pybind11_SOURCE_DIR}")
   else()
@@ -60,12 +69,22 @@ possibly_uninitialized(PYTHON_MODULE_EXTENSION Python_INTERPRETER_ID)
 
 pybind11_add_build_test(subdirectory_function)
 pybind11_add_build_test(subdirectory_target)
+pybind11_add_build_test(subdirectory_precompile)
 if("${PYTHON_MODULE_EXTENSION}" MATCHES "pypy"
    OR "${Python_INTERPRETER_ID}" STREQUAL "PyPy"
-   OR "${PYTHON_MODULE_EXTENSION}" MATCHES "graalpy")
-  message(STATUS "Skipping embed test on PyPy or GraalPy")
+   OR "${PYTHON_MODULE_EXTENSION}" MATCHES "graalpy"
+   OR PYBIND11_STABLE_ABI)
+  message(STATUS "Skipping embed test on PyPy, GraalPy, or under the stable ABI")
 else()
   pybind11_add_build_test(subdirectory_embed)
+endif()
+if(PYBIND11_STABLE_ABI
+   AND CMAKE_VERSION VERSION_GREATER_EQUAL 3.26
+   AND NOT CMAKE_GENERATOR_PLATFORM MATCHES "Win32")
+  pybind11_add_build_test(subdirectory_stable_abi)
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    pybind11_add_build_test(subdirectory_stable_abi_android)
+  endif()
 endif()
 
 if(PYBIND11_INSTALL)
@@ -77,10 +96,12 @@ if(PYBIND11_INSTALL)
     pybind11_add_build_test(installed_function INSTALL)
   endif()
   pybind11_add_build_test(installed_target INSTALL)
+  pybind11_add_build_test(installed_precompile INSTALL)
   if(NOT
      ("${PYTHON_MODULE_EXTENSION}" MATCHES "pypy"
       OR "${Python_INTERPRETER_ID}" STREQUAL "PyPy"
-      OR "${PYTHON_MODULE_EXTENSION}" MATCHES "graalpy"))
+      OR "${PYTHON_MODULE_EXTENSION}" MATCHES "graalpy"
+      OR PYBIND11_STABLE_ABI))
     pybind11_add_build_test(installed_embed INSTALL)
   endif()
 endif()

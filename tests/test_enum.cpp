@@ -24,6 +24,15 @@ TEST_SUBMODULE(enums, m) {
         .value("Two", ScopedEnum::Two)
         .value("Three", ScopedEnum::Three);
 
+    // test_enum_custom_str
+    enum class CustomStrEnum { A = 1, B = 2 };
+    py::enum_<CustomStrEnum>(m, "CustomStrEnum")
+        .value("A", CustomStrEnum::A)
+        .value("B", CustomStrEnum::B)
+        .def("__str__", [](CustomStrEnum value) {
+            return "CustomStrEnum value " + std::to_string(static_cast<int>(value));
+        });
+
     m.def("test_scoped_enum", [](ScopedEnum z) {
         return "ScopedEnum::" + std::string(z == ScopedEnum::Two ? "Two" : "Three");
     });
@@ -49,6 +58,12 @@ TEST_SUBMODULE(enums, m) {
         .value("EFirstMode", ClassWithUnscopedEnum::EFirstMode)
         .value("ESecondMode", ClassWithUnscopedEnum::ESecondMode)
         .export_values();
+
+    // test_scalar_comparison_with_index_object
+    enum UnscopedInt32Enum : std::int32_t { I32Three = 3 };
+    py::enum_<UnscopedInt32Enum>(m, "UnscopedInt32Enum").value("Three", I32Three);
+    enum UnscopedUInt32Enum : std::uint32_t { U32Three = 3 };
+    py::enum_<UnscopedUInt32Enum>(m, "UnscopedUInt32Enum").value("Three", U32Three);
 
     // test_enum_to_int
     m.def("test_enum_to_int", [](int) {});

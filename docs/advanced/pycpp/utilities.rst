@@ -7,11 +7,13 @@ Using Python's print function in C++
 The usual way to write output in C++ is using ``std::cout`` while in Python one
 would use ``print``. Since these methods use different buffers, mixing them can
 lead to output order issues. To resolve this, pybind11 modules can use the
-:func:`py::print` function which writes to Python's ``sys.stdout`` for consistency.
+:func:`py::print` function, which writes through Python's printing machinery.
 
-Python's ``print`` function is replicated in the C++ API including optional
-keyword arguments ``sep``, ``end``, ``file``, ``flush``. Everything works as
-expected in Python:
+:func:`py::print` delegates each call to the ``print`` entry in the current
+execution frame's built-ins (normally ``builtins.print``). When no Python frame
+is executing, it uses the active interpreter's built-ins. With the standard
+built-in, optional keyword arguments ``sep``, ``end``, ``file``, and ``flush``
+work as they do in Python:
 
 .. code-block:: cpp
 
@@ -20,6 +22,10 @@ expected in Python:
 
     auto args = py::make_tuple("unpacked", true);
     py::print("->", *args, "end"_a="<-"); // -> unpacked True <-
+
+With the standard built-in, omitting ``file`` or passing
+``"file"_a = py::none()`` uses the current ``sys.stdout``. Other output and
+error behavior is likewise supplied by the active Python runtime.
 
 .. _ostream_redirect:
 

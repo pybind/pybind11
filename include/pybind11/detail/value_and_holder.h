@@ -25,6 +25,10 @@ struct value_and_holder {
           vh{inst->simple_layout ? inst->simple_value_holder
                                  : &inst->nonsimple.values_and_holders[vpos]} {}
 
+    /// True if the Python object is exactly the bound type, i.e. not a Python subclass that
+    /// may need the alias (trampoline) type.
+    bool type_is_exact() const;
+
     // Default constructor (used to signal a value-and-holder not found by get_value_and_holder())
     value_and_holder() = default;
 
@@ -54,7 +58,8 @@ struct value_and_holder {
         } else if (v) {
             inst->nonsimple.status[index] |= instance::status_holder_constructed;
         } else {
-            inst->nonsimple.status[index] &= (std::uint8_t) ~instance::status_holder_constructed;
+            inst->nonsimple.status[index]
+                &= static_cast<std::uint8_t>(~instance::status_holder_constructed);
         }
     }
     bool instance_registered() const {
@@ -69,7 +74,8 @@ struct value_and_holder {
         } else if (v) {
             inst->nonsimple.status[index] |= instance::status_instance_registered;
         } else {
-            inst->nonsimple.status[index] &= (std::uint8_t) ~instance::status_instance_registered;
+            inst->nonsimple.status[index]
+                &= static_cast<std::uint8_t>(~instance::status_instance_registered);
         }
     }
 };
@@ -82,7 +88,7 @@ struct value_and_holder {
 //                for `tp_traverse` and `tp_clear` implementations.
 // WARNING: The caller is responsible for ensuring that the `reinterpret_cast` is valid.
 inline bool is_holder_constructed(PyObject *obj) {
-    auto *const instance = reinterpret_cast<pybind11::detail::instance *>(obj);
+    auto *const instance = get_instance(obj);
     return instance->get_value_and_holder().holder_constructed();
 }
 
