@@ -145,9 +145,8 @@ public:
     cpp_function() = default;
     // NOLINTNEXTLINE(google-explicit-constructor)
     cpp_function(std::nullptr_t) {}
-    cpp_function(std::nullptr_t, const is_setter &) {}
-    cpp_function(std::nullptr_t, const is_method &) {}
-    cpp_function(std::nullptr_t, const is_setter &, const is_method &) {}
+    template <typename... Extra>
+    cpp_function(std::nullptr_t, const Extra &...) {}
 
     /// Construct a cpp_function from a vanilla function pointer
     template <typename Return, typename... Args, typename... Extra>
