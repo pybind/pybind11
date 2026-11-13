@@ -224,6 +224,22 @@ def test_string_view(capture):
     assert m.str_from_type_with_both_operator_string_and_string_view() == "success"
 
 
+@pytest.mark.skipif(not hasattr(m, "has_string_view"), reason="no <string_view>")
+@pytest.mark.skipif(
+    env.PYPY or env.GRAALPY, reason="buffer exports are released lazily by the GC"
+)
+def test_string_view_bytearray_locked():
+    """A string_view into a bytearray must not dangle if the bytearray is resized"""
+    buf = bytearray(b"x" * 64)
+    with pytest.raises(BufferError):
+        m.string_view_call_then_copy(buf, lambda: buf.extend(b"y" * 1_000_000))
+    assert buf == b"x" * 64
+    # The export is released once the call returns
+    buf.extend(b"y")
+    assert len(buf) == 65
+    assert m.string_view_call_then_copy(buf, lambda: None) == bytes(buf)
+
+
 def test_integer_casting():
     """Issue #929 - out-of-range integer values shouldn't be accepted"""
     assert m.i32_str(-1) == "-1"
