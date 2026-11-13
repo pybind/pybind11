@@ -158,7 +158,9 @@ public:
     /// Construct a cpp_function from a lambda function (possibly with internal state)
     template <typename Func,
               typename... Extra,
-              typename = detail::enable_if_t<detail::is_lambda<Func>::value>>
+              typename = detail::enable_if_t<
+                  detail::is_lambda<Func>::value
+                  && !detail::is_same_ignoring_cvref<Func, std::nullptr_t>::value>>
     // NOLINTNEXTLINE(google-explicit-constructor)
     cpp_function(Func &&f, const Extra &...extra) {
         initialize(
@@ -1680,10 +1682,10 @@ public:
                 std::free(doc_prev);
                 rec_fget->doc = PYBIND11_COMPAT_STRDUP(rec_fget->doc);
             }
-            // Args added by process_attributes (e.g. "self" via is_method + pos_only/kw_only)
-            // need their strings strdup'd: initialize_generic's strdup loop already ran during
-            // cpp_function construction, so it won't process these late additions. Without this,
-            // destruct() would call free() on string literals. See gh-5976.
+            // process_attributes can add args after construction, e.g. "self" from is_method +
+            // pos_only/kw_only when a user-supplied cpp_function lacks is_method. The strdup loop
+            // in initialize_generic already ran, so strdup them here, or destruct() would free()
+            // string literals. See gh-5976.
             for (auto i = args_before; i < rec_fget->args.size(); ++i) {
                 if (rec_fget->args[i].name) {
                     rec_fget->args[i].name = PYBIND11_COMPAT_STRDUP(rec_fget->args[i].name);
