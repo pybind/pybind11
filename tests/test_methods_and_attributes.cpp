@@ -435,12 +435,11 @@ TEST_SUBMODULE(methods_and_attributes, m) {
         .def_property("def_property", &TestProperties::get, &TestProperties::set)
         .def_property(
             "def_property_lambda",
-            [](const TestProperties& self) { return self.get(); },
-            [](TestProperties& self) { return self.set(); })
-        .def_property(
-            "def_property_cpp_function",
-            py::cpp_function(&TestProperties::get),
-            py::cpp_function(&TestProperties::set))
+            [](const TestProperties &self) { return self.get(); },
+            [](TestProperties &self) { return self.set(); })
+        .def_property("def_property_cpp_function",
+                      py::cpp_function(&TestProperties::get),
+                      py::cpp_function(&TestProperties::set))
         .def_property("def_property_impossible", nullptr, nullptr)
         .def_readonly_static("def_readonly_static", &TestProperties::static_value)
         .def_readwrite_static("def_readwrite_static", &TestProperties::static_value)
