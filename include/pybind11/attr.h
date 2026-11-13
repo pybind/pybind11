@@ -30,6 +30,12 @@ struct is_method {
 /// Annotation for setters
 struct is_setter {};
 
+/// Annotation for classmethods
+struct is_classmethod {
+    handle class_;
+    explicit is_classmethod(const handle &c) : class_(c) {}
+};
+
 /// Annotation for operators
 struct is_operator {};
 
@@ -429,6 +435,16 @@ struct process_attribute<is_method> : process_attribute_default<is_method> {
     }
 };
 
+/// Process an attribute which indicates that this function is a classmethod
+template <>
+struct process_attribute<is_classmethod> : process_attribute_default<is_classmethod> {
+    static void init(const is_classmethod &s, function_record *r) {
+        r->is_method = true;
+        r->scope = s.class_;
+        r->args.emplace_back("cls", nullptr, handle(), /*convert=*/true, /*none=*/false);
+    }
+};
+
 /// Process an attribute which indicates that this function is a setter
 template <>
 struct process_attribute<is_setter> : process_attribute_default<is_setter> {
@@ -693,7 +709,8 @@ using extract_guard_t = typename exactly_one_t<is_call_guard, call_guard<>, Extr
 /// Check the number of named arguments at compile time
 template <typename... Extra,
           size_t named = constexpr_sum(std::is_base_of<arg, Extra>::value...),
-          size_t self = constexpr_sum(std::is_same<is_method, Extra>::value...)>
+          size_t self = constexpr_sum(std::is_same<is_method, Extra>::value...,
+                                      std::is_same<is_classmethod, Extra>::value...)>
 constexpr bool expected_num_args(size_t nargs, bool has_args, bool has_kwargs) {
     PYBIND11_WORKAROUND_INCORRECT_MSVC_C4100(nargs, has_args, has_kwargs);
     return named == 0

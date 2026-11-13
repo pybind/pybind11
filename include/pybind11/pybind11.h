@@ -460,7 +460,8 @@ protected:
             constexpr bool has_kw_only_args = any_of<std::is_same<kw_only, Extra>...>::value,
                            has_pos_only_args = any_of<std::is_same<pos_only, Extra>...>::value,
                            has_arg_annotations = any_of<is_keyword<Extra>...>::value;
-            constexpr bool has_is_method = any_of<std::is_same<is_method, Extra>...>::value;
+            constexpr bool has_is_method = any_of<std::is_same<is_method, Extra>...,
+                                                  std::is_same<is_classmethod, Extra>...>::value;
             // The implicit `self` argument is not present and not counted in method definitions.
             constexpr bool has_args = cast_in::args_pos >= 0;
             constexpr bool is_method_with_self_arg_only = has_is_method && !has_args;
@@ -1435,6 +1436,18 @@ public:
                         extra...);
         auto cf_name = cf.name();
         attr(std::move(cf_name)) = staticmethod(std::move(cf));
+        return *this;
+    }
+
+    template <typename Func, typename... Extra>
+    class_ &def_classmethod(const char *name_, Func &&f, const Extra &...extra) {
+        cpp_function cf(std::forward<Func>(f),
+                        name(name_),
+                        is_classmethod(*this),
+                        sibling(getattr(*this, name_, none())),
+                        extra...);
+        auto cf_name = cf.name();
+        attr(std::move(cf_name)) = classmethod(std::move(cf));
         return *this;
     }
 

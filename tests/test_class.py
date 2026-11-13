@@ -103,6 +103,25 @@ def test_pass_unique_ptr():
     assert "ToBeHeldByUniquePtr" in str(execinfo.value)
 
 
+def test_classmethod():
+    num_instances = 10
+    assert not hasattr(m.NoConstructor, "seq_id")
+    for i in range(num_instances):
+        m.NoConstructor.new_instance_seq_id()
+        assert m.NoConstructor.seq_id == i + 1
+
+    m.NoConstructor.new_instance_seq_id_arg(unused=42)
+    assert m.NoConstructor.unused == 42
+    assert m.NoConstructor.seq_id == num_instances + 1
+
+    assert m.NoConstructor.new_instance_seq_id.__doc__.startswith(
+        "new_instance_seq_id(cls: type) ->"
+    )
+    assert m.NoConstructor.new_instance_seq_id_arg.__doc__.startswith(
+        "new_instance_seq_id_arg(cls: type, unused: typing.SupportsInt"
+    )
+
+
 def test_type():
     assert m.check_type(1) == m.DerivedClass1
     with pytest.raises(RuntimeError) as execinfo:
