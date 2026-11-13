@@ -51,4 +51,10 @@ TEST_SUBMODULE(class_release_gil_before_calling_cpp_dtor, m) {
         reg.erase(unique_key);
         return std::to_string(res);
     });
+
+    // CPython turns PyGILState_Check off (it always returns 1) once a subinterpreter exists
+    m.def("PyGILState_Check_is_reliable", []() {
+        py::gil_scoped_release release;
+        return PyGILState_Check() == 0;
+    });
 }
