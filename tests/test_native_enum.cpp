@@ -225,6 +225,11 @@ TEST_SUBMODULE(native_enum, m) {
             .finalize();
     });
 
+#if !defined(NDEBUG)
+    m.attr("native_enum_duplicate_value_name_check_enabled") = true;
+#else
+    m.attr("native_enum_duplicate_value_name_check_enabled") = false;
+#endif
     m.def("native_enum_duplicate_value_name", [](py::module_ &m) {
         enum fake { x, y };
         py::native_enum<fake>(m, "fake_native_enum_duplicate_value_name", "enum.IntEnum")

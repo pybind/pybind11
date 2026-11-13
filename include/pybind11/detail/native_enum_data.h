@@ -188,6 +188,7 @@ inline void native_enum_data::finalize() {
         pybind11_fail("pybind11::native_enum<...>(\"" + enum_name_encoded
                       + "\"): an object with that name is already defined");
     }
+#if !defined(NDEBUG)
     set member_names;
     for (auto member : members) {
         object member_name = member[int_(0)];
@@ -198,6 +199,7 @@ inline void native_enum_data::finalize() {
         }
         member_names.add(member_name);
     }
+#endif
     auto py_enum_type = import_or_getattr(native_type_name, " (native_type_name)");
     auto py_enum = py_enum_type(enum_name, members);
     object module_name = get_module_name_if_available(parent_scope);
