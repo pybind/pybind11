@@ -585,6 +585,14 @@ def test_array_cast_sequence():
     assert m.array_cast_sequence((1, 2, 3)) == [1, 2, 3]
 
 
+def test_large_array():
+    assert m.sum_large_array(range(102400)) == 102399 * 102400 // 2
+    with pytest.raises(TypeError):
+        m.sum_large_array(range(10))
+    with pytest.raises(TypeError):
+        m.sum_large_array([0] * 102399 + ["x"])
+
+
 class SequenceWithChangingLen:
     """Reports `lens[0]` when first asked for its length, `lens[1]` after that."""
 
