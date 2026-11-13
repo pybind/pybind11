@@ -450,11 +450,12 @@ handle smart_holder_from_unique_ptr(std::unique_ptr<T, D> &&src,
         src_raw_void_ptr = nullptr;
     }
     auto smhldr = smart_holder::from_unique_ptr(std::move(src), src_raw_void_ptr);
-    tinfo->init_instance(inst_raw_ptr, static_cast<const void *>(&smhldr));
-
+    // Before init_instance, which publishes the instance to other threads.
     if (policy == return_value_policy::reference_internal) {
         keep_alive_impl(inst, parent);
     }
+
+    tinfo->init_instance(inst_raw_ptr, static_cast<const void *>(&smhldr));
 
     return inst.release();
 }
@@ -513,11 +514,12 @@ handle smart_holder_from_shared_ptr(const std::shared_ptr<T> &src,
     valueptr = src_raw_void_ptr;
 
     auto smhldr = smart_holder::from_shared_ptr(std::shared_ptr<void>(src, src_raw_void_ptr));
-    tinfo->init_instance(inst_raw_ptr, static_cast<const void *>(&smhldr));
-
+    // Before init_instance, which publishes the instance to other threads.
     if (policy == return_value_policy::reference_internal) {
         keep_alive_impl(inst, parent);
     }
+
+    tinfo->init_instance(inst_raw_ptr, static_cast<const void *>(&smhldr));
 
     return inst.release();
 }
