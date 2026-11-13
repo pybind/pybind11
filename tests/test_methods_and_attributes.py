@@ -187,6 +187,12 @@ def test_properties_docstring():
     assert m.TestProperties.def_property.fget.__doc__.strip() == TestPropertiesGetDocstring
     assert m.TestProperties.def_property.fset.__doc__.strip() == TestPropertiesSetDocstring
 
+    assert m.TestProperties.def_property_lambda.fget.__doc__.strip() == TestPropertiesGetDocstring
+    assert m.TestProperties.def_property_lambda.fset.__doc__.strip() == TestPropertiesSetDocstring
+
+    assert m.TestProperties.def_property_cpp_function.fget.__doc__.strip() == TestPropertiesGetDocstring
+    assert m.TestProperties.def_property_cpp_function.fset.__doc__.strip() == TestPropertiesSetDocstring
+
 
 def test_static_properties():
     assert m.TestProperties.def_readonly_static == 1
