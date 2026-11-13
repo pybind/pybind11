@@ -89,6 +89,11 @@ def test_cross_module_exception_translator():
         m.throw_should_be_translated_to_key_error()
 
 
+@pytest.mark.xfail(
+    env.FREEBSD,
+    raises=RuntimeError,
+    reason="Cross-module exception RTTI mismatch on FreeBSD; see PR #5925",
+)
 def test_cross_module_exception_translator_after_later_import():
     # A module imported later must not shadow translators registered earlier
     env.check_script_success_in_subprocess(
