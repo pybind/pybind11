@@ -704,6 +704,36 @@ struct ItemsViewImpl : public detail::items_view {
     Map &map;
 };
 
+inline set view_set_method(const object &lhs, const char *method, const object &rhs) {
+    return reinterpret_steal<set>(set(lhs).attr(method)(rhs).release());
+}
+
+// Set operations for KeysView / ItemsView. Like dict views, the results are plain sets.
+template <typename View>
+void add_view_set_operations(class_<View> &cl) {
+    using O = const object &;
+    cl.def("__and__",
+           [](O self, O other) { return view_set_method(self, "intersection", other); });
+    cl.def("__rand__",
+           [](O self, O other) { return view_set_method(self, "intersection", other); });
+    cl.def("__or__", [](O self, O other) { return view_set_method(self, "union", other); });
+    cl.def("__ror__", [](O self, O other) { return view_set_method(self, "union", other); });
+    cl.def("__sub__", [](O self, O other) { return view_set_method(self, "difference", other); });
+    cl.def("__rsub__", [](O self, O other) { return view_set_method(other, "difference", self); });
+    cl.def("__xor__",
+           [](O self, O other) { return view_set_method(self, "symmetric_difference", other); });
+    cl.def("__rxor__",
+           [](O self, O other) { return view_set_method(self, "symmetric_difference", other); });
+    cl.def("__eq__", [](O self, O other) { return set(self).equal(other); });
+    cl.def("__ne__", [](O self, O other) { return set(self).not_equal(other); });
+    cl.def("__lt__", [](O self, O other) { return set(self) < other; });
+    cl.def("__le__", [](O self, O other) { return set(self) <= other; });
+    cl.def("__gt__", [](O self, O other) { return set(self) > other; });
+    cl.def("__ge__", [](O self, O other) { return set(self) >= other; });
+    cl.def("isdisjoint",
+           [](O self, O other) { return set(self).attr("isdisjoint")(other).cast<bool>(); });
+}
+
 inline str format_message_key_error_key_object(handle py_key) {
     str message = "pybind11::bind_map key";
     if (!py_key) {
@@ -770,6 +800,7 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
                       keep_alive<0, 1>() /* Essential: keep view alive while iterator exists */
         );
         keys_view.def("__contains__", &KeysView::contains);
+        detail::add_view_set_operations(keys_view);
     }
     // Similarly for ValuesView:
     if (!detail::get_type_info(typeid(ValuesView))) {
@@ -788,6 +819,7 @@ class_<Map, holder_type> bind_map(handle scope, const std::string &name, Args &&
                        &ItemsView::iter,
                        keep_alive<0, 1>() /* Essential: keep view alive while iterator exists */
         );
+        detail::add_view_set_operations(items_view);
     }
 
     cl.def(init<>());
