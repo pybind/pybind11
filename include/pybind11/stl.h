@@ -399,44 +399,84 @@ struct array_caster {
     using value_conv = make_caster<Value>;
 
 private:
+    // On the heap because `ArrayType` is not necessarily default constructible.
     std::unique_ptr<ArrayType> value;
 
-    template <bool R = Resizable, enable_if_t<R, int> = 0>
+    // A `std::array` can only be populated in one of two ways:
+    // * Aggregate-initialize it from `Size` initializers, which copy or move constructs the
+    //   elements. This needs a temporary `std::vector` and an `index_sequence` of `Size`
+    //   elements, which is very slow to compile for large `Size` (#5765).
+    // * Default-construct it, then assign the elements, as for `std::valarray`. In general that
+    //   is not equivalent: a default constructor can have side effects, and an assignment
+    //   operator does not necessarily do what the copy constructor does (`boost::multi_array`,
+    //   for example, does not resize on assignment). It is therefore used only for `Value`
+    //   types for which it cannot be told apart from constructing the elements.
     bool convert_elements(handle seq, bool convert) {
-        auto l = reinterpret_borrow<sequence>(seq);
-        value.reset(new ArrayType{});
-        // Using `resize` to preserve the behavior exactly as it was before PR #5305
+        // What `cast_op<Value &&>` yields, e.g. `Value &` for types registered with `py::class_`.
+        // Not in class scope: a `value_conv` that is only used for `cast()` does not need to
+        // have a `cast_op_type`.
+        using value_cast_op_type = typename value_conv::template cast_op_type<Value &&>;
+        // The conditions are on `Value` rather than `ArrayType`, to keep the selection
+        // independent of `Size`: a `std::array` with `Size == 0` can be trivially default
+        // constructible even if `Value` is not.
+        using assign_elements = bool_constant<
+            Resizable
+            || (std::is_trivially_default_constructible<Value>::value
+                && std::is_trivially_copyable<Value>::value
+                && std::is_trivially_assignable<Value &, value_cast_op_type>::value)>;
+        return convert_elements(seq, convert, assign_elements{});
+    }
+
+    // Returns a default-constructed array for `size` elements, or `nullptr` if `size` is not
+    // acceptable. `ArrayType()` rather than `ArrayType{}`: the latter is ill-formed for `Value`
+    // types with an explicit default constructor.
+    static std::unique_ptr<ArrayType> make_array(size_t size, std::true_type /*Resizable*/) {
+        std::unique_ptr<ArrayType> array(new ArrayType());
         // For the `resize` to work, `Value` must be default constructible.
         // For `std::valarray`, this is a requirement:
         // https://en.cppreference.com/w/cpp/named_req/NumericType
-        value->resize(l.size());
-        size_t ctr = 0;
-        for (const auto &it : l) {
+        array->resize(size);
+        return array;
+    }
+    static std::unique_ptr<ArrayType> make_array(size_t size, std::false_type /*Resizable*/) {
+        return std::unique_ptr<ArrayType>(size == Size ? new ArrayType() : nullptr);
+    }
+
+    // Both overloads below index `l` up to a size that is determined only once, rather than
+    // iterating over `l`: the accesses stay in bounds even if the length of `l` changes
+    // underneath (e.g. if another thread resizes a list in a free-threaded build).
+
+    bool convert_elements(handle seq, bool convert, std::true_type /*assign_elements*/) {
+        auto l = reinterpret_borrow<sequence>(seq);
+        const size_t size = l.size();
+        auto result = make_array(size, bool_constant<Resizable>{});
+        if (!result) {
+            return false;
+        }
+        for (size_t i = 0; i < size; i++) {
+            const object item = l[i]; // Keeps the item alive while `conv` is in use.
             value_conv conv;
-            if (!conv.load(it, convert)) {
+            if (!conv.load(item, convert)) {
                 return false;
             }
-            (*value)[ctr++] = cast_op<Value &&>(std::move(conv));
+            (*result)[i] = cast_op<Value &&>(std::move(conv));
         }
+        value = std::move(result);
         return true;
     }
 
-    template <bool R = Resizable, enable_if_t<!R, int> = 0>
-    bool convert_elements(handle seq, bool convert) {
+    bool convert_elements(handle seq, bool convert, std::false_type /*assign_elements*/) {
         auto l = reinterpret_borrow<sequence>(seq);
-        if (l.size() != Size) {
+        const size_t size = l.size();
+        if (size != Size) {
             return false;
         }
-        // The `temp` storage is needed to support `Value` types that are not
-        // default-constructible.
-        // Deliberate choice: no template specializations, for simplicity, and
-        // because the compile time overhead for the specializations is deemed
-        // more significant than the runtime overhead for the `temp` storage.
         std::vector<Value> temp;
-        temp.reserve(l.size());
-        for (auto it : l) {
+        temp.reserve(size);
+        for (size_t i = 0; i < size; i++) {
+            const object item = l[i]; // Keeps the item alive while `conv` is in use.
             value_conv conv;
-            if (!conv.load(it, convert)) {
+            if (!conv.load(item, convert)) {
                 return false;
             }
             temp.emplace_back(cast_op<Value &&>(std::move(conv)));

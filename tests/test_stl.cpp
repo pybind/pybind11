@@ -18,7 +18,11 @@
 
 #include <pybind11/typing.h>
 
+#include <array>
+#include <numeric>
+#include <stdexcept>
 #include <string>
+#include <valarray>
 #include <vector>
 
 #if defined(PYBIND11_TEST_BOOST)
@@ -61,6 +65,24 @@ struct visit_helper<boost::variant> {
 #endif
 
 PYBIND11_MAKE_OPAQUE(std::vector<std::string, std::allocator<std::string>>)
+
+// An element type with a caster that only supports the C++ to Python direction.
+struct CastOnlyElement {
+    int val;
+};
+
+namespace PYBIND11_NAMESPACE {
+namespace detail {
+template <>
+struct type_caster<CastOnlyElement> {
+    static constexpr auto name = const_name("int");
+
+    static handle cast(const CastOnlyElement &src, return_value_policy, handle) {
+        return int_(src.val).release();
+    }
+};
+} // namespace detail
+} // namespace PYBIND11_NAMESPACE
 
 /// Issue #528: templated constructor
 struct TplCtorClass {
@@ -169,6 +191,11 @@ struct type_caster<ReferenceSensitiveOptional<T>>
 } // namespace detail
 } // namespace PYBIND11_NAMESPACE
 
+template <typename T>
+std::vector<int> array_element_vals(const std::array<T, 2> &a) {
+    return {a[0].val, a[1].val};
+}
+
 int pass_std_vector_int(const std::vector<int> &v) {
     int zum = 100;
     for (const int i : v) {
@@ -215,16 +242,82 @@ TEST_SUBMODULE(stl, m) {
     };
 
     // test_array_no_default_ctor
-    py::class_<NoDefaultCtor>(m, "NoDefaultCtor").def_readonly("val", &NoDefaultCtor::val);
+    py::class_<NoDefaultCtor>(m, "NoDefaultCtor")
+        .def(py::init<int>())
+        .def_readonly("val", &NoDefaultCtor::val);
     py::class_<NoDefaultCtorArray>(m, "NoDefaultCtorArray")
         .def(py::init<int>())
         .def_readwrite("arr", &NoDefaultCtorArray::arr);
+
+    // test_array_element_types
+    // `array_caster` assigns the elements of a `std::array` only if `Value` is trivial enough
+    // for that to be indistinguishable from copy constructing them. `ExplicitDefaultCtor` is the
+    // one type here that qualifies.
+    // `std::array<ExplicitDefaultCtor, N>{}` is ill-formed, `std::array<ExplicitDefaultCtor, N>()`
+    // is not.
+    struct ExplicitDefaultCtor {
+        explicit ExplicitDefaultCtor() = default;
+        explicit ExplicitDefaultCtor(int val) : val{val} {}
+        int val;
+    };
+    static_assert(std::is_trivially_default_constructible<ExplicitDefaultCtor>::value
+                      && std::is_trivially_copyable<ExplicitDefaultCtor>::value,
+                  "ExplicitDefaultCtor is meant to have its array elements assigned.");
+    // Move assignable, but the elements of an array cannot be assigned: the caster for a type
+    // registered with `py::class_` yields an lvalue reference.
+    struct NotCopyAssignable {
+        NotCopyAssignable() = default;
+        explicit NotCopyAssignable(int val) : val{val} {}
+        NotCopyAssignable(const NotCopyAssignable &) = default;
+        NotCopyAssignable &operator=(const NotCopyAssignable &) = delete;
+        NotCopyAssignable &operator=(NotCopyAssignable &&) = default;
+        int val;
+    };
+    // Assigning is not equivalent to copy constructing, in the manner of `boost::multi_array`,
+    // which does not resize on assignment.
+    struct AssignIsNoOp {
+        AssignIsNoOp() = default;
+        explicit AssignIsNoOp(int val) : val{val} {}
+        AssignIsNoOp(const AssignIsNoOp &) = default;
+        AssignIsNoOp &operator=(const AssignIsNoOp &) { return *this; }
+        int val;
+    };
+    // Trivially copyable, but the default constructor must not be called.
+    struct ThrowingDefaultCtor {
+        ThrowingDefaultCtor() { throw std::runtime_error("ThrowingDefaultCtor"); }
+        explicit ThrowingDefaultCtor(int val) : val{val} {}
+        int val = 0;
+    };
+    py::class_<ExplicitDefaultCtor>(m, "ExplicitDefaultCtor").def(py::init<int>());
+    py::class_<NotCopyAssignable>(m, "NotCopyAssignable").def(py::init<int>());
+    py::class_<AssignIsNoOp>(m, "AssignIsNoOp").def(py::init<int>());
+    py::class_<ThrowingDefaultCtor>(m, "ThrowingDefaultCtor").def(py::init<int>());
+    m.def("load_array_explicit_default_ctor", &array_element_vals<ExplicitDefaultCtor>);
+    m.def("load_array_not_copy_assignable", &array_element_vals<NotCopyAssignable>);
+    m.def("load_array_assign_is_no_op", &array_element_vals<AssignIsNoOp>);
+    m.def("load_array_throwing_default_ctor", &array_element_vals<ThrowingDefaultCtor>);
+
+    m.def("cast_array_cast_only_element", []() {
+        return std::array<CastOnlyElement, 2>{{CastOnlyElement{1}, CastOnlyElement{2}}};
+    });
+
+    // test_array_nested
+    m.def("nested_array_cast_sequence",
+          [](std::array<std::array<std::string, 2>, 2> x) { return x; });
+
+    // test_array_large
+    // #5765: this was very slow to compile when `array_caster` needed an `index_sequence` of
+    // `Size` elements for all element types.
+    m.def("sum_large_array", [](const std::array<int, 102400> &a) {
+        return std::accumulate(a.begin(), a.end(), 0LL);
+    });
 
     // test_valarray
     m.def("cast_valarray", []() { return std::valarray<int>{1, 4, 9}; });
     m.def("load_valarray", [](const std::valarray<int> &v) {
         return v.size() == 3 && v[0] == 1 && v[1] == 4 && v[2] == 9;
     });
+    m.def("valarray_cast_sequence", [](std::valarray<int> x) { return x; });
 
     // test_map
     m.def("cast_map", []() { return std::map<std::string, std::string>{{"key", "value"}}; });
