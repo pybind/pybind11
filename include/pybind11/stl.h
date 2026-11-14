@@ -79,7 +79,8 @@ inline bool object_is_instance_with_one_of_tp_names(PyObject *obj,
     if (PyType_Check(obj)) {
         return false;
     }
-    return tp_name_is_one_of(Py_TYPE(obj), tp_names);
+    // A user-defined class can have the same name without being iterable.
+    return tp_name_is_one_of(Py_TYPE(obj), tp_names) && PyIterable_Check(obj);
 }
 
 inline bool object_is_generator(PyObject *obj) {

@@ -16,6 +16,8 @@
 
 #include "internals.h"
 
+#include <iterator>
+
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
 PYBIND11_NAMESPACE_BEGIN(detail)
 
@@ -148,12 +150,19 @@ PYBIND11_INLINE void check_internals_local_exception_translator(internals *inter
         // Not with_exception_translators(): that calls get_internals(), which runs this hook.
         pycritical_section lock(internals_ptr->exception_translator_mutex);
 #    endif
-        for (auto et : internals_ptr->registered_exception_translators) {
-            if (et == &translate_local_exception) {
+        auto &translators = internals_ptr->registered_exception_translators;
+        auto before_last = translators.before_begin();
+        for (auto it = translators.begin(); it != translators.end(); ++it) {
+            if (*it == &translate_local_exception) {
                 return;
             }
+            if (std::next(it) != translators.end()) {
+                before_last = it;
+            }
         }
-        internals_ptr->registered_exception_translators.push_front(&translate_local_exception);
+        // Insert ahead of the default translator at the end, not at the front: a fallback at the
+        // front would shadow translators that other modules registered earlier.
+        translators.insert_after(before_last, &translate_local_exception);
     }
 }
 #endif

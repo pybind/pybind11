@@ -2203,7 +2203,13 @@ public:
         return object::operator[](std::forward<T>(o));
     }
     detail::sequence_iterator begin() const { return {*this, 0}; }
-    detail::sequence_iterator end() const { return {*this, PySequence_Size(m_ptr)}; }
+    detail::sequence_iterator end() const {
+        ssize_t result = PySequence_Size(m_ptr);
+        if (result == -1) {
+            throw error_already_set();
+        }
+        return {*this, result};
+    }
 };
 
 class list : public object {
@@ -2558,7 +2564,12 @@ args_proxy object_api<D>::operator*() const {
 template <typename D>
 template <typename T>
 bool object_api<D>::contains(T &&item) const {
-    return attr("__contains__")(std::forward<T>(item)).template cast<bool>();
+    const int result
+        = PySequence_Contains(derived().ptr(), object_or_cast(std::forward<T>(item)).ptr());
+    if (result == -1) {
+        throw error_already_set();
+    }
+    return result != 0;
 }
 
 template <typename D>

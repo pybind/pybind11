@@ -168,6 +168,80 @@ def test_properties():
     assert NO_SETTER_MSG in str(excinfo.value)
 
 
+TestPropertiesGetDocstring = (
+    "(self: pybind11_tests.methods_and_attributes.TestProperties) -> int"
+)
+TestPropertiesSetDocstring = "(self: pybind11_tests.methods_and_attributes.TestProperties, arg0: typing.SupportsInt | typing.SupportsIndex) -> None"
+
+
+def test_properties_docstring():
+    assert (
+        m.TestProperties.def_readonly.fget.__doc__.strip() == TestPropertiesGetDocstring
+    )
+
+    assert (
+        m.TestProperties.def_readwrite.fget.__doc__.strip()
+        == TestPropertiesGetDocstring
+    )
+    assert (
+        m.TestProperties.def_readwrite.fset.__doc__.strip()
+        == TestPropertiesSetDocstring
+    )
+
+    assert (
+        m.TestProperties.def_writeonly.fset.__doc__.strip()
+        == TestPropertiesSetDocstring
+    )
+
+    assert (
+        m.TestProperties.def_property_writeonly.fset.__doc__.strip()
+        == TestPropertiesSetDocstring
+    )
+
+    assert (
+        m.TestProperties.def_property_readonly.fget.__doc__.strip()
+        == TestPropertiesGetDocstring
+    )
+
+    assert (
+        m.TestProperties.def_property.fget.__doc__.strip() == TestPropertiesGetDocstring
+    )
+    assert (
+        m.TestProperties.def_property.fset.__doc__.strip() == TestPropertiesSetDocstring
+    )
+
+    assert (
+        m.TestProperties.def_property_lambda.fget.__doc__.strip()
+        == TestPropertiesGetDocstring
+    )
+    assert (
+        m.TestProperties.def_property_lambda.fset.__doc__.strip()
+        == TestPropertiesSetDocstring
+    )
+
+
+@pytest.mark.xfail(
+    reason="The signature of a cpp_function without is_method is fixed at construction",
+    strict=True,
+)
+def test_properties_docstring_cpp_function_getter():
+    assert (
+        m.TestProperties.def_property_cpp_function.fget.__doc__.strip()
+        == TestPropertiesGetDocstring
+    )
+
+
+@pytest.mark.xfail(
+    reason="The signature of a cpp_function without is_method is fixed at construction",
+    strict=True,
+)
+def test_properties_docstring_cpp_function_setter():
+    assert (
+        m.TestProperties.def_property_cpp_function.fset.__doc__.strip()
+        == TestPropertiesSetDocstring
+    )
+
+
 def test_static_properties():
     assert m.TestProperties.def_readonly_static == 1
     with pytest.raises(AttributeError) as excinfo:

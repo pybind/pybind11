@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import os
 import re
 import sys
 import threading
@@ -86,6 +87,29 @@ def test_cross_module_exception_translator():
     with pytest.raises(KeyError):
         # translator registered in cross_module_tests
         m.throw_should_be_translated_to_key_error()
+
+
+@pytest.mark.xfail(
+    env.FREEBSD,
+    raises=RuntimeError,
+    reason="Cross-module exception RTTI mismatch on FreeBSD; see PR #5925",
+)
+def test_cross_module_exception_translator_after_later_import():
+    # A module imported later must not shadow translators registered earlier
+    env.check_script_success_in_subprocess(
+        f"""
+        import sys
+        sys.path.insert(0, {os.path.dirname(env.__file__)!r})
+        from pybind11_tests import exceptions as m
+        import pybind11_cross_module_tests
+        import mod_concurrent_import
+        try:
+            m.throw_should_be_translated_to_key_error()
+        except KeyError:
+            pass
+        """,
+        rerun=1,
+    )
 
 
 def test_python_call_in_catch():

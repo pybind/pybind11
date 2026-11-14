@@ -51,9 +51,6 @@ jobs:
           - runs-on: ubuntu-latest
             python-version: 'pypy-3.11-v7.3.23'
             cmake-args: -DCMAKE_CXX_STANDARD=17
-          - runs-on: ubuntu-latest
-            python-version: 'pypy-3.11-v8.0.1'
-            cmake-args: -DCMAKE_CXX_STANDARD=17
           # Keep 8.0.0 to test the deallocation and memoryview workarounds (PR #6197).
           - runs-on: ubuntu-latest
             python-version: 'pypy-3.12-v8.0.0'
@@ -389,16 +386,9 @@ jobs:
             python-version: '3.12'
             cmake-args: -DPYBIND11_TEST_SMART_HOLDER=ON -DPYBIND11_SIMPLE_GIL_MANAGEMENT=ON
           - runs-on: ubuntu-latest
-            python-version: '3.14'
-            cmake-args: -DCMAKE_CXX_STANDARD=14
-          - runs-on: ubuntu-latest
             python-version: '3.15t'
             cmake-args: -DCMAKE_CXX_STANDARD=17 -DPYBIND11_TEST_SMART_HOLDER=ON
 
-          # No SciPy for macOS ARM
-          - runs-on: macos-15-intel
-            python-version: '3.9'
-            cmake-args: -DCMAKE_CXX_STANDARD=14
           - runs-on: macos-15-intel
             python-version: '3.13'
             cmake-args: -DCMAKE_CXX_STANDARD=11
@@ -414,13 +404,8 @@ jobs:
           - runs-on: macos-latest
             python-version: 'pypy-3.12-v8.0.1'
           - runs-on: macos-latest
-            python-version: 'graalpy-25.0'
-          - runs-on: macos-latest
             python-version: 'graalpy-25.3'
 
-          - runs-on: windows-latest
-            python-version: '3.9'
-            cmake-args: -DPYBIND11_TEST_SMART_HOLDER=ON
           - runs-on: windows-2022
             python-version: '3.9'
             cmake-args: -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -DPYBIND11_NUMPY_1_ONLY=ON
@@ -434,9 +419,6 @@ jobs:
           - runs-on: windows-2022
             python-version: '3.13'
             cmake-args: -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebugDLL
-          - runs-on: windows-latest
-            python-version: '3.14'
-            cmake-args: -DCMAKE_CXX_STANDARD=20
           - runs-on: windows-latest
             python-version: '3.14t'
             cmake-args: -DCMAKE_CXX_STANDARD=23
