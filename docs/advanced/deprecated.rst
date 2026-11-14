@@ -172,11 +172,6 @@ kept until at least pybind11 4.0.
      - Version
      - Year
      - Warning
-   * - C++11
-     - C++14 or newer
-     - 3.0
-     - 2025
-     - None
    * - FindPythonLibs mode (CMake)
      - FindPython mode (``PYBIND11_FINDPYTHON=ON``)
      - 3.0
