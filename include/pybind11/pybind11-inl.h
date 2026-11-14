@@ -1333,6 +1333,23 @@ PYBIND11_INLINE void generic_type::initialize(const type_record &rec) {
     tinfo->module_local = rec.module_local;
     tinfo->holder_enum_v = rec.holder_enum_v;
 
+    if (rec.module_local) {
+        tinfo->module_local_load = &type_caster_generic::local_load;
+    }
+
+    // Finish all writes to tinfo before other threads can see it (free-threading).
+    if (rec.bases.size() > 1 || rec.multiple_inheritance) {
+        mark_parents_nonsimple(tinfo->type);
+        tinfo->simple_ancestors = false;
+    } else if (rec.bases.size() == 1) {
+        auto *parent_tinfo = get_type_info(reinterpret_cast<PyTypeObject *>(rec.bases[0].ptr()));
+        assert(parent_tinfo != nullptr);
+        bool parent_simple_ancestors = parent_tinfo->simple_ancestors;
+        tinfo->simple_ancestors = parent_simple_ancestors;
+        // The parent can no longer be a simple type if it has MI and has a child
+        parent_tinfo->simple_type = parent_tinfo->simple_type && parent_simple_ancestors;
+    }
+
     with_internals([&](internals &internals) {
         auto tindex = std::type_index(*rec.type);
         tinfo->direct_conversions = &internals.direct_conversions[tindex];
@@ -1358,21 +1375,8 @@ PYBIND11_INLINE void generic_type::initialize(const type_record &rec) {
         PYBIND11_WARNING_POP
     });
 
-    if (rec.bases.size() > 1 || rec.multiple_inheritance) {
-        mark_parents_nonsimple(tinfo->type);
-        tinfo->simple_ancestors = false;
-    } else if (rec.bases.size() == 1) {
-        auto *parent_tinfo = get_type_info(reinterpret_cast<PyTypeObject *>(rec.bases[0].ptr()));
-        assert(parent_tinfo != nullptr);
-        bool parent_simple_ancestors = parent_tinfo->simple_ancestors;
-        tinfo->simple_ancestors = parent_simple_ancestors;
-        // The parent can no longer be a simple type if it has MI and has a child
-        parent_tinfo->simple_type = parent_tinfo->simple_type && parent_simple_ancestors;
-    }
-
     if (rec.module_local) {
         // Stash the local typeinfo and loader so that external modules can access it.
-        tinfo->module_local_load = &type_caster_generic::local_load;
         setattr(m_ptr, PYBIND11_MODULE_LOCAL_ID, capsule(tinfo));
     }
 }
