@@ -11,58 +11,192 @@ and will be removed in a future version. The default mode is also going to
 change to ``"new"`` from ``"compat"`` in the future.
 
 The following features were deprecated before pybind11 3.0, and may be removed
-in minor releases of pybind11 3.x.
+in minor releases of pybind11 3.x. "Compiler" means a ``[[deprecated]]``
+warning at compile time. Items that started to warn in 3.x will be kept
+until at least pybind11 4.0.
 
-.. list-table:: Deprecated Features
+.. list-table:: Deprecated before 3.0
    :header-rows: 1
-   :widths: 30 15 10
+   :widths: 30 30 8 8 14
 
    * - Feature
-     - Deprecated Version
+     - Replacement
+     - Version
      - Year
-   * - ``py::metaclass()``
-     - 2.1
-     - 2017
-   * - ``PYBIND11_PLUGIN``
-     - 2.2
-     - 2017
-   * - ``py::set_error()`` replacing ``operator()``
-     - 2.12
-     - 2024
-   * - ``get_type_overload``
-     - 2.6
-     - 2020
-   * - ``call()``
+     - Warning
+   * - ``handle::call(...)``
+     - ``operator()(...)``
+     - 1.8
+     - 2016
+     - Compiler
+   * - ``py::base<T>()``
+     - ``py::class_<T, Base>``
      - 2.0
      - 2016
-   * - ``.str()``
-     - ?
-     -
-   * - ``.get_type()``
+     - Compiler
+   * - ``handle::check()``
+     - ``handle::operator bool()``
+     - 2.0
+     - 2016
+     - Compiler
+   * - ``Name::check()`` on ``py::object`` subclasses
+     - ``py::isinstance<Name>(obj)``
+     - 2.0
+     - 2016
+     - Compiler
+   * - ``object(handle, bool)`` and ``Name(handle, bool)``
+     - ``py::reinterpret_borrow`` / ``py::reinterpret_steal``
+     - 2.0
+     - 2016
+     - Compiler
+   * - ``capsule(PyObject *, bool)``
+     - ``py::reinterpret_borrow`` / ``py::reinterpret_steal``
+     - 2.0
+     - 2016
+     - Compiler
+   * - ``array_t<T>(handle, bool)``
+     - ``array_t<T>::ensure()``
+     - 2.0
+     - 2016
+     - Compiler
+   * - ``obj.attr(...)`` as ``bool``
+     - ``py::hasattr(obj, ...)``
+     - 2.0
+     - 2016
+     - Compiler
+   * - ``obj[key]`` as ``bool``
+     - ``obj.contains(key)``
+     - 2.0
+     - 2016
+     - Compiler
+   * - ``obj.str()``
+     - ``py::str(obj)``
+     - 2.1
+     - 2017
+     - Compiler
+   * - ``py::metaclass()`` without arguments
+     - Remove it (default since 2.1)
+     - 2.1
+     - 2017
+     - Compiler
+   * - ``handle::operator==`` / ``operator!=``
+     - ``obj1.is(obj2)``
+     - 2.2
+     - 2017
+     - Compiler
+   * - ``error_already_set::clear()``
+     - Remove it (does nothing)
+     - 2.2
+     - 2017
+     - Compiler
+   * - ``PYBIND11_PLUGIN``
+     - ``PYBIND11_MODULE``
+     - 2.2
+     - 2017
+     - Compiler
+   * - ``#include <pybind11/common.h>``
+     - ``#include <pybind11/pybind11.h>``
+     - 2.2.1
+     - 2017
+     - ``#warning``
+   * - Old-style placement-new ``__init__`` / ``__setstate__``
+     - ``py::init(...)`` / ``py::pickle(...)``
+     - 2.2
+     - 2017
+     - Runtime, debug builds only
+   * - ``py::module_(name, doc)`` constructor
+     - ``PYBIND11_MODULE`` or ``module_::create_extension_module``
      - 2.6
-     -
-   * - ``==`` and ``!=``
-     - 2.2
-     - 2017
-   * - ``.check()``
-     - ?
-     -
-   * - ``object(handle, bool)``
-     - ?
-     -
-   * - ``error_already_set.clear()``
-     - 2.2
-     - 2017
-   * - ``obj.attr(…)`` as ``bool``
-     - ?
-     -
-   * - ``.contains``
-     - ? (maybe 2.4)
-     -
-   * - ``py::capsule`` two-argument with destructor
-     - ?
-     -
+     - 2020
+     - Compiler
+   * - ``get_type_overload``
+     - ``get_override``
+     - 2.6
+     - 2020
+     - Compiler
+   * - ``obj.get_type()``
+     - ``py::type::handle_of(obj)``
+     - 2.6
+     - 2020
+     - Compiler (since 3.0)
+   * - ``PYBIND11_OVERLOAD*`` macros, ``get_overload``
+     - ``PYBIND11_OVERRIDE*``, ``get_override``
+     - 2.6
+     - 2020
+     - Compiler (since 3.2)
+   * - ``PYBIND11_CPP_STANDARD`` (CMake)
+     - ``CMAKE_CXX_STANDARD``
+     - 2.6
+     - 2020
+     - CMake
+   * - ``pybind11_add_module(... SYSTEM)`` (CMake)
+     - Remove it (does nothing)
+     - 2.6
+     - 2020
+     - CMake
+   * - ``PYTHON_VERSION`` as an input (CMake)
+     - ``PYBIND11_PYTHON_VERSION``
+     - 2.6
+     - 2020
+     - CMake
+   * - ``py::capsule(value, destructor)``
+     - ``py::capsule(value, name, destructor)``
+     - 2.10.1
+     - 2022
+     - Compiler
+   * - ``py::exception<T>::operator()(message)``
+     - ``py::set_error(exc, message)``
+     - 2.12
+     - 2024
+     - Compiler
+   * - ``py::arg_t<T>``
+     - ``py::arg_v``
+     - 2.0
+     - 2016
+     - Compiler (since 3.2)
+   * - ``py::detail::_(...)``
+     - ``py::detail::const_name(...)``
+     - 2.9.1
+     - 2022
+     - Compiler (since 3.2)
 
+The following features were deprecated in pybind11 3.0 or later. They will be
+kept until at least pybind11 4.0.
+
+.. list-table:: Deprecated in 3.x
+   :header-rows: 1
+   :widths: 30 30 8 8 14
+
+   * - Feature
+     - Replacement
+     - Version
+     - Year
+     - Warning
+   * - C++11
+     - C++14 or newer
+     - 3.0
+     - 2025
+     - None
+   * - FindPythonLibs mode (CMake)
+     - FindPython mode (``PYBIND11_FINDPYTHON=ON``)
+     - 3.0
+     - 2025
+     - None
+   * - ``py::enum_``
+     - ``py::native_enum``
+     - 3.0
+     - 2025
+     - None
+   * - ``py::module_::module_def``
+     - ``PyModuleDef``
+     - 3.0
+     - 2025
+     - Compiler (since 3.2)
+   * - ``py::mod_gil_not_used(bool)``
+     - ``py::mod_gil_not_used()`` / ``py::mod_gil_used()``
+     - 3.1
+     - 2026
+     - Compiler
 
 
 .. _deprecated_enum:
