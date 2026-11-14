@@ -140,6 +140,30 @@ TEST_SUBMODULE(iostream, m) {
               std::cout << msg_after << std::flush;
           });
 
+    m.def("redirect_unflushed", [](const std::string &msg, const py::object &stream) {
+        py::scoped_ostream_redirect redir(std::cout, stream);
+        std::cout << msg;
+    });
+
+    m.def("redirect_flushed", [](const std::string &msg, const py::object &stream) {
+        {
+            py::scoped_ostream_redirect redir(std::cout, stream);
+            std::cout << msg << std::flush;
+        }
+        // A failing flush() sets badbit.
+        std::cout.clear();
+    });
+
+    m.def("redirect_unflushed_with_pending_error",
+          [](const std::string &msg, const py::object &stream) {
+              PyErr_SetString(PyExc_KeyError, "pending");
+              {
+                  py::scoped_ostream_redirect redir(std::cout, stream);
+                  std::cout << msg;
+              }
+              throw py::error_already_set();
+          });
+
     // Redirect a stream whose original rdbuf is nullptr, then move the redirect.
     // Verifies that nullptr is correctly restored (not confused with a moved-from sentinel).
     m.def("move_redirect_null_rdbuf", [](const std::string &msg) {
