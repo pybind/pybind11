@@ -65,6 +65,24 @@ struct visit_helper<boost::variant> {
 
 PYBIND11_MAKE_OPAQUE(std::vector<std::string, std::allocator<std::string>>)
 
+// An element type with a caster that only supports the C++ to Python direction.
+struct CastOnlyElement {
+    int val;
+};
+
+namespace PYBIND11_NAMESPACE {
+namespace detail {
+template <>
+struct type_caster<CastOnlyElement> {
+    static constexpr auto name = const_name("int");
+
+    static handle cast(const CastOnlyElement &src, return_value_policy, handle) {
+        return int_(src.val).release();
+    }
+};
+} // namespace detail
+} // namespace PYBIND11_NAMESPACE
+
 /// Issue #528: templated constructor
 struct TplCtorClass {
     template <typename T>
@@ -250,6 +268,10 @@ TEST_SUBMODULE(stl, m) {
     });
     m.def("load_array_not_copy_assignable", [](const std::array<NotCopyAssignable, 2> &a) {
         return std::vector<int>{a[0].val, a[1].val};
+    });
+
+    m.def("cast_array_cast_only_element", []() {
+        return std::array<CastOnlyElement, 2>{{CastOnlyElement{1}, CastOnlyElement{2}}};
     });
 
     // test_array_nested
