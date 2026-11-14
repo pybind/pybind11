@@ -18,7 +18,10 @@
 
 #include <pybind11/typing.h>
 
+#include <array>
+#include <numeric>
 #include <string>
+#include <valarray>
 #include <vector>
 
 #if defined(PYBIND11_TEST_BOOST)
@@ -215,16 +218,57 @@ TEST_SUBMODULE(stl, m) {
     };
 
     // test_array_no_default_ctor
-    py::class_<NoDefaultCtor>(m, "NoDefaultCtor").def_readonly("val", &NoDefaultCtor::val);
+    py::class_<NoDefaultCtor>(m, "NoDefaultCtor")
+        .def(py::init<int>())
+        .def_readonly("val", &NoDefaultCtor::val);
     py::class_<NoDefaultCtorArray>(m, "NoDefaultCtorArray")
         .def(py::init<int>())
         .def_readwrite("arr", &NoDefaultCtorArray::arr);
+
+    // test_array_element_types
+    // `std::array<ExplicitDefaultCtor, N>{}` is ill-formed, `std::array<ExplicitDefaultCtor, N>()`
+    // is not.
+    struct ExplicitDefaultCtor {
+        explicit ExplicitDefaultCtor() = default;
+        explicit ExplicitDefaultCtor(int val) : val{val} {}
+        int val = 0;
+    };
+    // Default constructible and move assignable, but the elements of an array cannot be
+    // assigned: the caster for a type registered with `py::class_` yields an lvalue reference.
+    struct NotCopyAssignable {
+        NotCopyAssignable() = default;
+        explicit NotCopyAssignable(int val) : val{val} {}
+        NotCopyAssignable(const NotCopyAssignable &) = default;
+        NotCopyAssignable &operator=(const NotCopyAssignable &) = delete;
+        NotCopyAssignable &operator=(NotCopyAssignable &&) = default;
+        int val = 0;
+    };
+    py::class_<ExplicitDefaultCtor>(m, "ExplicitDefaultCtor").def(py::init<int>());
+    py::class_<NotCopyAssignable>(m, "NotCopyAssignable").def(py::init<int>());
+    m.def("load_array_explicit_default_ctor", [](const std::array<ExplicitDefaultCtor, 2> &a) {
+        return std::vector<int>{a[0].val, a[1].val};
+    });
+    m.def("load_array_not_copy_assignable", [](const std::array<NotCopyAssignable, 2> &a) {
+        return std::vector<int>{a[0].val, a[1].val};
+    });
+
+    // test_array_nested
+    m.def("nested_array_cast_sequence",
+          [](std::array<std::array<std::string, 2>, 2> x) { return x; });
+
+    // test_array_large
+    // #5765: this was very slow to compile when `array_caster` needed an `index_sequence` of
+    // `Size` elements for all element types.
+    m.def("sum_large_array", [](const std::array<int, 102400> &a) {
+        return std::accumulate(a.begin(), a.end(), 0LL);
+    });
 
     // test_valarray
     m.def("cast_valarray", []() { return std::valarray<int>{1, 4, 9}; });
     m.def("load_valarray", [](const std::valarray<int> &v) {
         return v.size() == 3 && v[0] == 1 && v[1] == 4 && v[2] == 9;
     });
+    m.def("valarray_cast_sequence", [](std::valarray<int> x) { return x; });
 
     // test_map
     m.def("cast_map", []() { return std::map<std::string, std::string>{{"key", "value"}}; });

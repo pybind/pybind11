@@ -193,6 +193,46 @@ def test_array_no_default_ctor():
     assert [e.val for e in lst.arr] == [13, 23]
     lst.arr = m.NoDefaultCtorArray(4).arr
     assert [e.val for e in lst.arr] == [14, 24]
+    lst.arr = (m.NoDefaultCtor(i) for i in (5, 6))
+    assert [e.val for e in lst.arr] == [5, 6]
+    with pytest.raises(TypeError):
+        lst.arr = [m.NoDefaultCtor(7)]
+    with pytest.raises(TypeError):
+        lst.arr = [m.NoDefaultCtor(7), 8]
+    assert [e.val for e in lst.arr] == [5, 6]
+
+
+@pytest.mark.parametrize(
+    ("load", "item_type"),
+    [
+        (m.load_array_explicit_default_ctor, m.ExplicitDefaultCtor),
+        (m.load_array_not_copy_assignable, m.NotCopyAssignable),
+    ],
+)
+def test_array_element_types(load, item_type):
+    assert load([item_type(1), item_type(2)]) == [1, 2]
+    with pytest.raises(TypeError):
+        load([item_type(1)])
+    with pytest.raises(TypeError):
+        load([item_type(1), 2])
+
+
+def test_array_nested():
+    assert m.nested_array_cast_sequence([("a", "b"), ["c", "d"]]) == [
+        ["a", "b"],
+        ["c", "d"],
+    ]
+    with pytest.raises(TypeError):
+        m.nested_array_cast_sequence([("a", "b"), ("c",)])
+
+
+def test_array_large():
+    size = 102400
+    assert m.sum_large_array(range(size)) == (size - 1) * size // 2
+    with pytest.raises(TypeError):
+        m.sum_large_array(range(size - 1))
+    with pytest.raises(TypeError):
+        m.sum_large_array([0] * (size - 1) + ["x"])
 
 
 def test_valarray(doc):
@@ -201,6 +241,10 @@ def test_valarray(doc):
     assert lst == [1, 4, 9]
     assert m.load_valarray(lst)
     assert m.load_valarray(tuple(lst))
+    assert m.valarray_cast_sequence(i * i for i in range(4)) == [0, 1, 4, 9]
+    assert m.valarray_cast_sequence([]) == []
+    with pytest.raises(TypeError):
+        m.valarray_cast_sequence([1, "x"])
 
     assert doc(m.cast_valarray) == "cast_valarray() -> list[int]"
     assert (
@@ -583,6 +627,77 @@ def test_stl_ownership():
 
 def test_array_cast_sequence():
     assert m.array_cast_sequence((1, 2, 3)) == [1, 2, 3]
+
+
+def load_array_no_default_ctor(seq):
+    holder = m.NoDefaultCtorArray(0)
+    holder.arr = seq
+    return [e.val for e in holder.arr]
+
+
+# (load, item_type, size): one entry for each of the element loops in `array_caster`.
+ARRAY_CASTER_LOADS = [
+    pytest.param(m.array_cast_sequence, int, 3, id="array"),
+    pytest.param(m.valarray_cast_sequence, int, 3, id="valarray"),
+    pytest.param(load_array_no_default_ctor, m.NoDefaultCtor, 2, id="array_fallback"),
+]
+
+
+class SequenceWithChangingLen:
+    """Reports `lens[0]` when first asked for its length, `lens[1]` after that."""
+
+    def __init__(self, items, lens):
+        self.items = items
+        self.lens = list(lens)
+        self.indices = []
+
+    def __len__(self):
+        return self.lens.pop(0) if len(self.lens) > 1 else self.lens[0]
+
+    def __getitem__(self, index):
+        self.indices.append(index)
+        return self.items[index]
+
+
+@pytest.mark.parametrize(("load", "item_type", "size"), ARRAY_CASTER_LOADS)
+@pytest.mark.parametrize("len_change", [-1, 1])
+def test_array_caster_len_changes(load, item_type, size, len_change):
+    """The length is determined only once, which rules out out-of-bounds accesses."""
+    items = [item_type(i) for i in range(size + 1)]
+    seq = SequenceWithChangingLen(items, [size, size + len_change])
+    assert load(seq) == list(range(size))
+    assert seq.indices == list(range(size))
+
+
+@pytest.mark.parametrize(("load", "item_type", "size"), ARRAY_CASTER_LOADS)
+def test_array_caster_len_exceeds_items(load, item_type, size):
+    items = [item_type(i) for i in range(size - 1)]
+    seq = SequenceWithChangingLen(items, [size])
+    with pytest.raises(IndexError):
+        load(seq)
+    assert seq.indices == list(range(size))
+
+
+@pytest.mark.parametrize(
+    ("load", "item_type"),
+    [
+        pytest.param(
+            m.load_array_explicit_default_ctor, m.ExplicitDefaultCtor, id="array"
+        ),
+        pytest.param(load_array_no_default_ctor, m.NoDefaultCtor, id="array_fallback"),
+    ],
+)
+def test_array_caster_items_created_on_the_fly(load, item_type):
+    """Each item is kept alive until its value was copied (no use-after-free)."""
+
+    class OnTheFly:
+        def __len__(self):
+            return 2
+
+        def __getitem__(self, index):
+            return item_type(index + 10)  # The caster holds the only reference.
+
+    assert load(OnTheFly()) == [10, 11]
 
 
 def test_issue_1561():
