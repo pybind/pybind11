@@ -556,6 +556,14 @@ protected:
     /// Main dispatch logic for calls to functions bound using pybind11
     static PyObject *
     dispatcher(PyObject *self, PyObject *const *args_in_arr, size_t nargsf, PyObject *kwnames_in);
+    static PyObject *dispatcher_module_self(PyObject *self,
+                                            PyObject *const *args_in_arr,
+                                            size_t nargsf,
+                                            PyObject *kwnames_in);
+    static PyObject *dispatch(const detail::function_record *overloads,
+                              PyObject *const *args_in_arr,
+                              size_t nargsf,
+                              PyObject *kwnames_in);
 
     static ssize_t keyword_index(PyObject *haystack, char const *needle) {
         /* kwargs is usually very small (<= 5 entries).  The arg strings are typically interned.

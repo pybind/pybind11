@@ -507,6 +507,7 @@ struct local_internals {
 
     std::forward_list<ExceptionTranslator> registered_exception_translators;
     PyTypeObject *function_record_py_type = nullptr;
+    PyTypeObject *function_record_module_py_type = nullptr;
 };
 
 enum class holder_enum_t : uint8_t {
