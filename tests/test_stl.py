@@ -196,8 +196,6 @@ def test_array_no_default_ctor():
     lst.arr = (m.NoDefaultCtor(i) for i in (5, 6))
     assert [e.val for e in lst.arr] == [5, 6]
     with pytest.raises(TypeError):
-        lst.arr = [m.NoDefaultCtor(7)]
-    with pytest.raises(TypeError):
         lst.arr = [m.NoDefaultCtor(7), 8]
     assert [e.val for e in lst.arr] == [5, 6]
 
@@ -222,6 +220,9 @@ def test_array_no_default_ctor():
             m.load_array_throwing_default_ctor,
             m.ThrowingDefaultCtor,
             id="throwing_default_ctor",
+        ),
+        pytest.param(
+            m.load_array_no_default_ctor, m.NoDefaultCtor, id="no_default_ctor"
         ),
     ],
 )
@@ -649,17 +650,18 @@ def test_array_cast_sequence():
     assert m.array_cast_sequence((1, 2, 3)) == [1, 2, 3]
 
 
-def load_array_no_default_ctor(seq):
-    holder = m.NoDefaultCtorArray(0)
-    holder.arr = seq
-    return [e.val for e in holder.arr]
-
-
 # (load, item_type, size): one entry for each of the element loops in `array_caster`.
 ARRAY_CASTER_LOADS = [
-    pytest.param(m.array_cast_sequence, int, 3, id="array_assign"),
+    pytest.param(
+        m.load_array_explicit_default_ctor,
+        m.ExplicitDefaultCtor,
+        2,
+        id="array_assign",
+    ),
     pytest.param(m.valarray_cast_sequence, int, 3, id="valarray"),
-    pytest.param(load_array_no_default_ctor, m.NoDefaultCtor, 2, id="array_construct"),
+    pytest.param(
+        m.load_array_no_default_ctor, m.NoDefaultCtor, 2, id="array_construct"
+    ),
 ]
 
 
@@ -698,28 +700,18 @@ def test_array_caster_len_exceeds_items(load, item_type, size):
     assert seq.indices == list(range(size))
 
 
-@pytest.mark.parametrize(
-    ("load", "item_type"),
-    [
-        pytest.param(
-            m.load_array_explicit_default_ctor,
-            m.ExplicitDefaultCtor,
-            id="array_assign",
-        ),
-        pytest.param(load_array_no_default_ctor, m.NoDefaultCtor, id="array_construct"),
-    ],
-)
-def test_array_caster_items_created_on_the_fly(load, item_type):
+@pytest.mark.parametrize(("load", "item_type", "size"), ARRAY_CASTER_LOADS)
+def test_array_caster_items_created_on_the_fly(load, item_type, size):
     """Each item is kept alive until its value was copied (no use-after-free)."""
 
     class OnTheFly:
         def __len__(self):
-            return 2
+            return size
 
         def __getitem__(self, index):
             return item_type(index + 10)  # The sequence does not retain the item.
 
-    assert load(OnTheFly()) == [10, 11]
+    assert load(OnTheFly()) == list(range(10, 10 + size))
 
 
 def test_issue_1561():

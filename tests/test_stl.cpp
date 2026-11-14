@@ -296,6 +296,7 @@ TEST_SUBMODULE(stl, m) {
     m.def("load_array_not_copy_assignable", &array_element_vals<NotCopyAssignable>);
     m.def("load_array_assign_is_no_op", &array_element_vals<AssignIsNoOp>);
     m.def("load_array_throwing_default_ctor", &array_element_vals<ThrowingDefaultCtor>);
+    m.def("load_array_no_default_ctor", &array_element_vals<NoDefaultCtor>);
 
     m.def("cast_array_cast_only_element", []() {
         return std::array<CastOnlyElement, 2>{{CastOnlyElement{1}, CastOnlyElement{2}}};

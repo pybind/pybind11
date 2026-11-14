@@ -402,23 +402,17 @@ private:
     // On the heap because `ArrayType` is not necessarily default constructible.
     std::unique_ptr<ArrayType> value;
 
-    // A `std::array` can only be populated in one of two ways:
-    // * Aggregate-initialize it from `Size` initializers, which copy or move constructs the
-    //   elements. This needs a temporary `std::vector` and an `index_sequence` of `Size`
-    //   elements, which is very slow to compile for large `Size` (#5765).
-    // * Default-construct it, then assign the elements, as for `std::valarray`. In general that
-    //   is not equivalent: a default constructor can have side effects, and an assignment
-    //   operator does not necessarily do what the copy constructor does (`boost::multi_array`,
-    //   for example, does not resize on assignment). It is therefore used only for `Value`
-    //   types for which it cannot be told apart from constructing the elements.
+    // A `std::array` is aggregate-initialized from a temporary `std::vector`, which needs an
+    // `index_sequence` of `Size` elements: very slow to compile for large `Size` (#5765).
+    // Assigning to the elements of a default-constructed array avoids that, but is used only
+    // for `Value` types for which it cannot be told apart from constructing the elements
+    // (`boost::multi_array`, for example, does not resize on assignment).
     bool convert_elements(handle seq, bool convert) {
-        // What `cast_op<Value &&>` yields, e.g. `Value &` for types registered with `py::class_`.
         // Not in class scope: a `value_conv` that is only used for `cast()` does not need to
         // have a `cast_op_type`.
         using value_cast_op_type = typename value_conv::template cast_op_type<Value &&>;
-        // The conditions are on `Value` rather than `ArrayType`, to keep the selection
-        // independent of `Size`: a `std::array` with `Size == 0` can be trivially default
-        // constructible even if `Value` is not.
+        // On `Value` rather than `ArrayType`: a `std::array` with `Size == 0` can be trivially
+        // default constructible even if `Value` is not.
         using assign_elements = bool_constant<
             Resizable
             || (std::is_trivially_default_constructible<Value>::value
@@ -432,9 +426,6 @@ private:
     // types with an explicit default constructor.
     static std::unique_ptr<ArrayType> make_array(size_t size, std::true_type /*Resizable*/) {
         std::unique_ptr<ArrayType> array(new ArrayType());
-        // For the `resize` to work, `Value` must be default constructible.
-        // For `std::valarray`, this is a requirement:
-        // https://en.cppreference.com/w/cpp/named_req/NumericType
         array->resize(size);
         return array;
     }
@@ -445,6 +436,7 @@ private:
     // Both overloads below index `l` up to a size that is determined only once, rather than
     // iterating over `l`: the accesses stay in bounds even if the length of `l` changes
     // underneath (e.g. if another thread resizes a list in a free-threaded build).
+    // Each item is owned by `item`, which keeps it alive while `conv` is in use.
 
     bool convert_elements(handle seq, bool convert, std::true_type /*assign_elements*/) {
         auto l = reinterpret_borrow<sequence>(seq);
@@ -454,8 +446,8 @@ private:
             return false;
         }
         for (size_t i = 0; i < size; i++) {
-            value_conv conv;          // Constructed before the item is fetched.
-            const object item = l[i]; // Keeps the item alive while `conv` is in use.
+            const object item = accessor_policies::sequence_item::get(l, i);
+            value_conv conv;
             if (!conv.load(item, convert)) {
                 return false;
             }
@@ -474,8 +466,8 @@ private:
         std::vector<Value> temp;
         temp.reserve(size);
         for (size_t i = 0; i < size; i++) {
-            value_conv conv;          // Constructed before the item is fetched.
-            const object item = l[i]; // Keeps the item alive while `conv` is in use.
+            const object item = accessor_policies::sequence_item::get(l, i);
+            value_conv conv;
             if (!conv.load(item, convert)) {
                 return false;
             }
