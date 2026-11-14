@@ -794,6 +794,24 @@ def test_sparse_readonly(layout, readonly):
             assert not getattr(matrix, name).flags.writeable
 
 
+@pytest.mark.parametrize("layout", ["r", "c"])
+def test_sparse_noncanonical(layout):
+    sp = pytest.importorskip("scipy.sparse")
+    matrix_type = sp.csr_matrix if layout == "r" else sp.csc_matrix
+    # Unsorted inner indices, plus a duplicate entry (summed by scipy)
+    data = np.array([3, 1, 2, 4], dtype=np.float32)
+    indices = np.array([2, 0, 2, 1])
+    indptr = np.array([0, 3, 4, 4])
+    matrix = matrix_type((data, indices, indptr), shape=(3, 3))
+    assert not matrix.has_canonical_format
+
+    expected = matrix.toarray()
+    result = getattr(m, f"sparse_copy_{layout}")(matrix)
+    np.testing.assert_array_equal(result.toarray(), expected)
+    # The input is not modified
+    np.testing.assert_array_equal(matrix.indices, indices)
+
+
 def test_sparse_signature(doc):
     pytest.importorskip("scipy")
     assert (
