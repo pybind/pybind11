@@ -228,6 +228,61 @@ def test_map_string_double():
     assert list(values) == [1, 2.5, -1]
     assert list(items) == [("a", 1), ("b", 2.5), ("c", -1)]
 
+
+def test_map_view_set_operations():
+    mm = m.MapStringDouble()
+    mm["a"] = 1
+    mm["b"] = 2.5
+    keys = mm.keys()
+    items = mm.items()
+
+    assert keys & {"a", "c"} == {"a"}
+    assert keys | {"c"} == {"a", "b", "c"}
+    assert keys - {"a"} == {"b"}
+    assert keys ^ {"a", "c"} == {"b", "c"}
+    assert {"a", "c"} & keys == {"a"}
+    assert {"c"} | keys == {"a", "b", "c"}
+    assert {"a", "c"} - keys == {"c"}
+    assert {"a", "c"} ^ keys == {"b", "c"}
+    assert isinstance(keys & {"a"}, set)
+    # Like dict views, any iterable is accepted
+    assert keys & ["a", "c"] == {"a"}
+    assert ["a", "c"] - keys == {"c"}
+    assert keys & keys == {"a", "b"}
+
+    assert keys == {"a", "b"}
+    assert {"a", "b"} == keys
+    assert keys == mm.keys()
+    assert keys != {"a"}
+    assert keys != ["a", "b"]
+    assert keys <= {"a", "b"}
+    assert keys < {"a", "b", "c"}
+    assert keys >= {"a"}
+    assert keys > {"a"}
+    assert not keys < {"a", "b"}
+    assert {"a"} < keys
+    assert keys <= mm.keys()
+    assert keys.isdisjoint({"c"})
+    assert not keys.isdisjoint(["a"])
+    with pytest.raises(TypeError):
+        _ = keys & 1
+    with pytest.raises(TypeError):
+        _ = keys < ["a", "b", "c"]
+
+    assert items & {("a", 1.0), ("c", 3.0)} == {("a", 1.0)}
+    assert items | {("c", 3.0)} == {("a", 1.0), ("b", 2.5), ("c", 3.0)}
+    assert items - {("a", 1.0)} == {("b", 2.5)}
+    assert items ^ {("a", 1.0)} == {("b", 2.5)}
+    assert {("a", 1.0)} - items == set()
+    assert items == {("a", 1.0), ("b", 2.5)}
+    assert items == dict(mm.items()).items()
+    assert items > {("a", 1.0)}
+    assert items.isdisjoint({("a", 2.0)})
+
+    # Results are snapshots, the views stay live
+    mm["c"] = -1
+    assert keys & {"a", "c"} == {"a", "c"}
+
     um = m.UnorderedMapStringDouble()
     um["ua"] = 1.1
     um["ub"] = 2.6
