@@ -217,6 +217,10 @@ def test_array_element_types(load, item_type):
         load([item_type(1), 2])
 
 
+def test_array_cast_only_element():
+    assert m.cast_array_cast_only_element() == [1, 2]
+
+
 def test_array_nested():
     assert m.nested_array_cast_sequence([("a", "b"), ["c", "d"]]) == [
         ["a", "b"],
@@ -695,7 +699,7 @@ def test_array_caster_items_created_on_the_fly(load, item_type):
             return 2
 
         def __getitem__(self, index):
-            return item_type(index + 10)  # The caster holds the only reference.
+            return item_type(index + 10)  # The sequence does not retain the item.
 
     assert load(OnTheFly()) == [10, 11]
 

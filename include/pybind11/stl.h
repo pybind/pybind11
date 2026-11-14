@@ -402,9 +402,6 @@ private:
     // On the heap because `ArrayType` is not necessarily default constructible.
     std::unique_ptr<ArrayType> value;
 
-    // What `cast_op<Value &&>` yields, e.g. `Value &` for types registered with `py::class_`.
-    using value_cast_op_type = typename value_conv::template cast_op_type<Value &&>;
-
     // A `std::array` can only be populated in one of two ways:
     // * Default-construct it, then assign the elements. This is the general path, which
     //   `std::valarray` shares.
@@ -412,10 +409,17 @@ private:
     //   types that rule out the general path. It needs a temporary `std::vector` and an
     //   `index_sequence` of `Size` elements, which is very slow to compile for large `Size`
     //   (#5765).
-    using assign_elements
-        = bool_constant<Resizable
-                        || (std::is_default_constructible<ArrayType>::value
-                            && std::is_assignable<Value &, value_cast_op_type>::value)>;
+    bool convert_elements(handle seq, bool convert) {
+        // What `cast_op<Value &&>` yields, e.g. `Value &` for types registered with `py::class_`.
+        // Not in class scope: a `value_conv` that is only used for `cast()` does not need to
+        // have a `cast_op_type`.
+        using value_cast_op_type = typename value_conv::template cast_op_type<Value &&>;
+        using assign_elements
+            = bool_constant<Resizable
+                            || (std::is_default_constructible<ArrayType>::value
+                                && std::is_assignable<Value &, value_cast_op_type>::value)>;
+        return convert_elements(seq, convert, assign_elements{});
+    }
 
     // Returns a default-constructed array for `size` elements, or `nullptr` if `size` is not
     // acceptable. `ArrayType()` rather than `ArrayType{}`: the latter is ill-formed for `Value`
@@ -432,9 +436,9 @@ private:
         return std::unique_ptr<ArrayType>(size == Size ? new ArrayType() : nullptr);
     }
 
-    // Both `convert_elements` overloads index `l` up to a size that is determined only once,
-    // rather than iterating over `l`: the accesses stay in bounds even if the length of `l`
-    // changes underneath (e.g. if another thread resizes a list in a free-threaded build).
+    // Both overloads below index `l` up to a size that is determined only once, rather than
+    // iterating over `l`: the accesses stay in bounds even if the length of `l` changes
+    // underneath (e.g. if another thread resizes a list in a free-threaded build).
 
     bool convert_elements(handle seq, bool convert, std::true_type /*assign_elements*/) {
         auto l = reinterpret_borrow<sequence>(seq);
@@ -481,7 +485,7 @@ public:
             return false;
         }
         if (isinstance<sequence>(src)) {
-            return convert_elements(src, convert, assign_elements{});
+            return convert_elements(src, convert);
         }
         if (!convert) {
             return false;
@@ -491,8 +495,7 @@ public:
         // the generator is not left in an unpredictable (to the caller) partially-consumed
         // state.
         assert(isinstance<iterable>(src));
-        return convert_elements(
-            tuple(reinterpret_borrow<iterable>(src)), convert, assign_elements{});
+        return convert_elements(tuple(reinterpret_borrow<iterable>(src)), convert);
     }
 
     template <typename T>
