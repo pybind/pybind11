@@ -199,6 +199,20 @@ PYBIND11_NAMESPACE_BEGIN(function_record_PyTypeObject_methods)
 PYBIND11_INLINE void tp_dealloc_impl(PyObject *self) {
     // Save type before PyObject_Free invalidates self.
     auto *type = Py_TYPE(self);
+#if defined(PYBIND11_FUNCTION_RECORD_QUALNAME)
+    if (PyModule_Check(self) != 0) {
+        cpp_function::destruct(function_record_module_data(self));
+        function_record_module_data(self) = nullptr;
+#    if defined(Py_LIMITED_API)
+        auto dealloc = reinterpret_cast<destructor>(PyType_GetSlot(&PyModule_Type, Py_tp_dealloc));
+#    else
+        auto dealloc = PyModule_Type.tp_dealloc;
+#    endif
+        dealloc(self);
+        Py_DECREF(type);
+        return;
+    }
+#endif
     auto *py_func_rec = function_record_data(self);
     cpp_function::destruct(py_func_rec->cpp_func_rec);
     py_func_rec->cpp_func_rec = nullptr;
@@ -667,9 +681,15 @@ PYBIND11_INLINE void cpp_function::initialize_generic(unique_function_record &&u
             = reinterpret_cast<PyCFunction>(reinterpret_cast<void (*)()>(dispatcher));
         rec->def->ml_flags = METH_FASTCALL | METH_KEYWORDS;
 
-        object py_func_rec = detail::function_record_PyObject_New();
-        detail::function_record_data(py_func_rec.ptr())->cpp_func_rec = unique_rec.release();
+        object py_func_rec = detail::function_record_PyObject_New(rec->scope, rec);
+        unique_rec.release();
         guarded_strdup.release();
+#if defined(PYBIND11_FUNCTION_RECORD_QUALNAME)
+        if (PyModule_Check(py_func_rec.ptr()) != 0) {
+            rec->def->ml_meth = reinterpret_cast<PyCFunction>(
+                reinterpret_cast<void (*)()>(dispatcher_module_self));
+        }
+#endif
 
         object scope_module = detail::get_scope_module(rec->scope);
         m_ptr = PyCFunction_NewEx(rec->def, py_func_rec.ptr(), scope_module.ptr());
@@ -701,8 +721,8 @@ PYBIND11_INLINE void cpp_function::initialize_generic(unique_function_record &&u
             // chain.
             chain_start = rec;
             rec->next = chain;
-            auto *py_func_rec = detail::function_record_data(PYBIND11_PYCFUNCTION_GET_SELF(m_ptr));
-            py_func_rec->cpp_func_rec = unique_rec.release();
+            *detail::function_record_ptr_location(PYBIND11_PYCFUNCTION_GET_SELF(m_ptr))
+                = unique_rec.release();
             guarded_strdup.release();
         } else {
             // Or end of chain (normal behavior)
@@ -839,8 +859,27 @@ PYBIND11_INLINE PyObject *cpp_function::dispatcher(PyObject *self,
                                                    PyObject *const *args_in_arr,
                                                    size_t nargsf,
                                                    PyObject *kwnames_in) {
+    return dispatch(
+        detail::function_record_ptr_from_dispatcher_self(self), args_in_arr, nargsf, kwnames_in);
+}
+
+#if defined(PYBIND11_FUNCTION_RECORD_QUALNAME)
+PYBIND11_INLINE PyObject *cpp_function::dispatcher_module_self(PyObject *self,
+                                                               PyObject *const *args_in_arr,
+                                                               size_t nargsf,
+                                                               PyObject *kwnames_in) {
+    return dispatch(detail::function_record_ptr_from_dispatcher_module_self(self),
+                    args_in_arr,
+                    nargsf,
+                    kwnames_in);
+}
+#endif
+
+PYBIND11_INLINE PyObject *cpp_function::dispatch(const detail::function_record *overloads,
+                                                 PyObject *const *args_in_arr,
+                                                 size_t nargsf,
+                                                 PyObject *kwnames_in) {
     using namespace detail;
-    const function_record *overloads = function_record_ptr_from_dispatcher_self(self);
     assert(overloads != nullptr);
 
     /* Iterator over the list of potentially admissible overloads */

@@ -30,6 +30,26 @@ inline function_record_PyObject *function_record_data(PyObject *obj) {
     return type_data<function_record_PyObject>(obj);
 }
 
+// Python computes the `__qualname__` of a builtin function from its `__self__`, which is the
+// function record. A module gives no prefix, so the record of a function that is not in a class
+// is a module subclass. The record type for the functions in a class has the `__qualname__` of
+// that class.
+#if !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)
+#    define PYBIND11_FUNCTION_RECORD_QUALNAME
+#endif
+
+#if defined(PYBIND11_FUNCTION_RECORD_QUALNAME)
+/// The record pointer of a function record that is a module subclass.
+inline function_record *&function_record_module_data(PyObject *obj) {
+#    if PY_VERSION_HEX >= 0x030C0000
+    return *static_cast<function_record **>(PyObject_GetTypeData(obj, Py_TYPE(obj)));
+#    else
+    return *reinterpret_cast<function_record **>(reinterpret_cast<char *>(obj)
+                                                 + PyModule_Type.tp_basicsize);
+#    endif
+}
+#endif
+
 PYBIND11_NAMESPACE_BEGIN(function_record_PyTypeObject_methods)
 
 PyObject *tp_new_impl(PyTypeObject *type, PyObject *args, PyObject *kwds);
@@ -83,6 +103,8 @@ static PyMethodDef tp_methods_impl[]
 constexpr char tp_plainname_impl[] = PYBIND11_DETAIL_FUNCTION_RECORD_TP_PLAINNAME;
 constexpr char tp_qualname_impl[]
     = PYBIND11_DUMMY_MODULE_NAME "." PYBIND11_DETAIL_FUNCTION_RECORD_TP_PLAINNAME;
+constexpr char tp_module_qualname_impl[]
+    = PYBIND11_DUMMY_MODULE_NAME "." PYBIND11_DETAIL_FUNCTION_RECORD_TP_PLAINNAME "_module";
 
 PYBIND11_NAMESPACE_END(function_record_PyTypeObject_methods)
 
@@ -123,6 +145,64 @@ inline bool function_record_PyTypeObject_name_matches(PyTypeObject *obj_type) {
            || tp_name_equals(obj_type, function_record_PyTypeObject_methods::tp_plainname_impl);
 }
 
+#if defined(PYBIND11_FUNCTION_RECORD_QUALNAME)
+inline PyTypeObject *get_function_record_module_PyTypeObject() {
+    PYBIND11_LOCK_INTERNALS(get_internals());
+    PyTypeObject *&py_type_obj = detail::get_local_internals().function_record_module_py_type;
+    if (!py_type_obj) {
+        static PyType_Slot slots[]
+            = {{Py_tp_dealloc,
+                reinterpret_cast<void *>(function_record_PyTypeObject_methods::tp_dealloc_impl)},
+               {Py_tp_methods,
+                reinterpret_cast<void *>(function_record_PyTypeObject_methods::tp_methods_impl)},
+               // The module `tp_getattro` needs the module `__dict__`.
+               {Py_tp_getattro, reinterpret_cast<void *>(PyObject_GenericGetAttr)},
+               {0, nullptr}};
+        PyType_Spec spec = {function_record_PyTypeObject_methods::tp_module_qualname_impl,
+#    if PY_VERSION_HEX >= 0x030C0000
+                            -static_cast<int>(sizeof(function_record *)),
+#    else
+                            static_cast<int>(PyModule_Type.tp_basicsize
+                                             + static_cast<Py_ssize_t>(sizeof(function_record *))),
+#    endif
+                            0,
+                            Py_TPFLAGS_DEFAULT,
+                            slots};
+        PyObject *py_obj
+            = PyType_FromSpecWithBases(&spec, reinterpret_cast<PyObject *>(&PyModule_Type));
+        if (py_obj == nullptr) {
+            throw error_already_set();
+        }
+        py_type_obj = reinterpret_cast<PyTypeObject *>(py_obj);
+    }
+    return py_type_obj;
+}
+
+inline bool is_function_record_module_PyObject(PyObject *obj) {
+    PyTypeObject *obj_type = Py_TYPE(obj);
+    return obj_type == get_function_record_module_PyTypeObject()
+           || tp_name_equals(obj_type,
+                             function_record_PyTypeObject_methods::tp_module_qualname_impl);
+}
+
+// The function record type for the functions in the class `scope`. It is in the class
+// `__dict__`, so that all extension modules use the same one.
+inline object get_function_record_PyTypeObject(handle scope) {
+    constexpr const char *key = "__pybind11_function_record_type__";
+    object scope_dict = scope.attr("__dict__");
+    if (scope_dict.contains(key)) {
+        return scope_dict[key];
+    }
+    auto py_type_obj = reinterpret_steal<object>(PyType_FromSpec(&function_record_PyType_Spec));
+    if (!py_type_obj) {
+        throw error_already_set();
+    }
+    setattr(py_type_obj, "__qualname__", scope.attr("__qualname__"));
+    setattr(scope, key, py_type_obj);
+    return py_type_obj;
+}
+#endif
+
 inline bool is_function_record_PyObject(PyObject *obj) {
     if (PyType_Check(obj) != 0) {
         return false;
@@ -138,11 +218,22 @@ inline bool is_function_record_PyObject(PyObject *obj) {
     return function_record_PyTypeObject_name_matches(obj_type);
 }
 
-inline function_record *function_record_ptr_from_PyObject(PyObject *obj) {
+/// The location of the record pointer in a function record object of any layout, or nullptr.
+inline function_record **function_record_ptr_location(PyObject *obj) {
+#if defined(PYBIND11_FUNCTION_RECORD_QUALNAME)
+    if (is_function_record_module_PyObject(obj)) {
+        return &function_record_module_data(obj);
+    }
+#endif
     if (is_function_record_PyObject(obj)) {
-        return function_record_data(obj)->cpp_func_rec;
+        return &function_record_data(obj)->cpp_func_rec;
     }
     return nullptr;
+}
+
+inline function_record *function_record_ptr_from_PyObject(PyObject *obj) {
+    function_record **location = function_record_ptr_location(obj);
+    return location != nullptr ? *location : nullptr;
 }
 
 // The `self` of cpp_function::dispatcher() is always the function_record_PyObject that was
@@ -156,12 +247,39 @@ inline function_record *function_record_ptr_from_dispatcher_self(PyObject *self)
     return function_record_data(self)->cpp_func_rec;
 }
 
-inline object function_record_PyObject_New() {
+#if defined(PYBIND11_FUNCTION_RECORD_QUALNAME)
+// Same as function_record_ptr_from_dispatcher_self(), for a record that is a module subclass.
+inline function_record *function_record_ptr_from_dispatcher_module_self(PyObject *self) {
+    assert(self != nullptr);
+    assert(PyModule_Check(self) != 0);
+    return function_record_module_data(self);
+}
+#endif
+
+/// A new function record object for a function in `scope`, which holds `rec`.
+inline object function_record_PyObject_New(handle scope, function_record *rec) {
+#if defined(PYBIND11_FUNCTION_RECORD_QUALNAME)
+    if (!scope || PyType_Check(scope.ptr()) == 0) {
+        // Not the module `tp_new`: it adds a `__dict__`, and the free-threaded build then
+        // defers the deallocation to the garbage collector.
+        auto py_func_rec = reinterpret_steal<object>(
+            PyType_GenericAlloc(get_function_record_module_PyTypeObject(), 0));
+        if (!py_func_rec) {
+            throw error_already_set();
+        }
+        function_record_module_data(py_func_rec.ptr()) = rec;
+        return py_func_rec;
+    }
+    object py_type_obj = get_function_record_PyTypeObject(scope);
+    PyObject *py_func_rec = PyObject_New(PyObject, (PyTypeObject *) py_type_obj.ptr());
+#else
+    (void) scope;
     PyObject *py_func_rec = PyObject_New(PyObject, get_function_record_PyTypeObject());
+#endif
     if (py_func_rec == nullptr) {
         throw error_already_set();
     }
-    function_record_data(py_func_rec)->cpp_func_rec = nullptr; // For clarity. Redundant.
+    function_record_data(py_func_rec)->cpp_func_rec = rec;
     return reinterpret_steal<object>(py_func_rec);
 }
 
