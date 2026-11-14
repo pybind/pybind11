@@ -451,7 +451,9 @@ private:
     // Both overloads below index `l` up to a size that is determined only once, rather than
     // iterating over `l`: the accesses stay in bounds even if the length of `l` changes
     // underneath (e.g. if another thread resizes a list in a free-threaded build).
-    // Each item is owned by `item`, which keeps it alive while `conv` is in use.
+    // `item` is an accessor: the item is fetched by `item.ptr()`, that is after `conv` is
+    // constructed, as when iterating over `l`. It keeps the item alive while `conv` is in use.
+    // Passing `item.ptr()` rather than `item` avoids a temporary `object`.
 
     bool convert_elements(handle seq, bool convert, std::true_type /*assign_elements*/) {
         auto l = reinterpret_borrow<sequence>(seq);
@@ -461,9 +463,9 @@ private:
             return false;
         }
         for (size_t i = 0; i < size; i++) {
-            const object item = accessor_policies::sequence_item::get(l, i);
+            const auto item = l[i];
             value_conv conv;
-            if (!conv.load(item, convert)) {
+            if (!conv.load(item.ptr(), convert)) {
                 return false;
             }
             (*result)[i] = cast_op<Value &&>(std::move(conv));
@@ -481,9 +483,9 @@ private:
         std::vector<Value> temp;
         temp.reserve(size);
         for (size_t i = 0; i < size; i++) {
-            const object item = accessor_policies::sequence_item::get(l, i);
+            const auto item = l[i];
             value_conv conv;
-            if (!conv.load(item, convert)) {
+            if (!conv.load(item.ptr(), convert)) {
                 return false;
             }
             temp.emplace_back(cast_op<Value &&>(std::move(conv)));
