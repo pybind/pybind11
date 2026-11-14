@@ -394,6 +394,20 @@ ArrayType vector_to_array(V &&v) {
     return vector_to_array_impl<ArrayType, V>(std::forward<V>(v), make_index_sequence<N>{});
 }
 
+// The element types for which `array_caster` assigns the elements of a `std::array`, instead of
+// constructing them: types for which that makes no difference.
+// * Scalar types, which have no constructors, assignment operators or destructors.
+// * The numeric types (`is_fmt_numeric`), which are assumed to be plain values. They include
+//   `std::complex` (with pybind11/complex.h).
+// * `std::array`s of such types.
+// Other class types are always constructed. Type traits cannot identify the ones for which
+// assigning would be equivalent: they miss constructor templates that take over from the copy
+// and move constructors, and the difference between direct- and copy-initialization.
+template <typename T>
+struct is_plain_array_element : any_of<std::is_scalar<T>, is_fmt_numeric<T>> {};
+template <typename T, size_t N>
+struct is_plain_array_element<std::array<T, N>> : is_plain_array_element<T> {};
+
 template <typename ArrayType, typename Value, bool Resizable, size_t Size = 0>
 struct array_caster {
     using value_conv = make_caster<Value>;
@@ -405,19 +419,20 @@ private:
     // A `std::array` is aggregate-initialized from a temporary `std::vector`, which needs an
     // `index_sequence` of `Size` elements: very slow to compile for large `Size` (#5765).
     // Assigning to the elements of a default-constructed array avoids that, but is used only
-    // for `Value` types for which it cannot be told apart from constructing the elements
-    // (`boost::multi_array`, for example, does not resize on assignment).
+    // for the `Value` types for which it makes no difference: `is_plain_array_element`.
+    // (In general it does: `boost::multi_array`, for example, does not resize on assignment.)
     bool convert_elements(handle seq, bool convert) {
         // Not in class scope: a `value_conv` that is only used for `cast()` does not need to
         // have a `cast_op_type`.
         using value_cast_op_type = typename value_conv::template cast_op_type<Value &&>;
-        // On `Value` rather than `ArrayType`: a `std::array` with `Size == 0` can be trivially
-        // default constructible even if `Value` is not.
+        // The caster also has to yield a `Value`, rather than something that converts to it, and
+        // the assignment has to be possible: it is not for a `std::array` of `const` elements.
         using assign_elements = bool_constant<
             Resizable
-            || (std::is_trivially_default_constructible<Value>::value
-                && std::is_trivially_copyable<Value>::value
-                && std::is_trivially_assignable<Value &, value_cast_op_type>::value)>;
+            || (is_plain_array_element<Value>::value
+                && std::is_same<remove_cv_t<remove_reference_t<value_cast_op_type>>,
+                                remove_cv_t<Value>>::value
+                && std::is_assignable<Value &, value_cast_op_type>::value)>;
         return convert_elements(seq, convert, assign_elements{});
     }
 

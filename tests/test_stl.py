@@ -201,33 +201,37 @@ def test_array_no_default_ctor():
 
 
 @pytest.mark.parametrize(
-    ("load", "item_type"),
+    ("load", "item_type", "offset"),
     [
-        pytest.param(
-            m.load_array_explicit_default_ctor,
-            m.ExplicitDefaultCtor,
-            id="explicit_default_ctor",
-        ),
         pytest.param(
             m.load_array_not_copy_assignable,
             m.NotCopyAssignable,
+            0,
             id="not_copy_assignable",
         ),
         pytest.param(
-            m.load_array_assign_is_no_op, m.AssignIsNoOp, id="assign_is_no_op"
+            m.load_array_assign_is_no_op, m.AssignIsNoOp, 0, id="assign_is_no_op"
         ),
         pytest.param(
             m.load_array_throwing_default_ctor,
             m.ThrowingDefaultCtor,
+            0,
             id="throwing_default_ctor",
         ),
         pytest.param(
-            m.load_array_no_default_ctor, m.NoDefaultCtor, id="no_default_ctor"
+            m.load_array_no_default_ctor, m.NoDefaultCtor, 0, id="no_default_ctor"
+        ),
+        pytest.param(
+            m.load_array_ctor_template_lvalue,
+            m.CtorTemplateLvalue,
+            100,
+            id="ctor_template_lvalue",
         ),
     ],
 )
-def test_array_element_types(load, item_type):
-    assert load([item_type(1), item_type(2)]) == [1, 2]
+def test_array_element_types(load, item_type, offset):
+    # `offset` is what the constructor template adds when the elements are constructed.
+    assert load([item_type(1), item_type(2)]) == [1 + offset, 2 + offset]
     with pytest.raises(TypeError):
         load([item_type(1)])
     with pytest.raises(TypeError):
@@ -245,6 +249,13 @@ def test_array_nested():
     ]
     with pytest.raises(TypeError):
         m.nested_array_cast_sequence([("a", "b"), ("c",)])
+    assert m.nested_numeric_array_cast_sequence([(1, 2j), [3.5, 4]]) == [
+        [1, 2j],
+        [3.5, 4],
+    ]
+    with pytest.raises(TypeError):
+        m.nested_numeric_array_cast_sequence([(1, 2j), [3.5]])
+    assert m.load_array_opaque_const_int_array([m.make_opaque_const_int_array()]) == 7
 
 
 def test_array_large():
@@ -254,6 +265,16 @@ def test_array_large():
         m.sum_large_array(range(size - 1))
     with pytest.raises(TypeError):
         m.sum_large_array([0] * (size - 1) + ["x"])
+
+    total = (size - 1) * size // 2
+    assert m.sum_large_complex_array([complex(i, -i) for i in range(size)]) == complex(
+        total, -total
+    )
+    assert m.sum_large_complex_array(range(size)) == total
+    with pytest.raises(TypeError):
+        m.sum_large_complex_array(range(size - 1))
+    with pytest.raises(TypeError):
+        m.sum_large_complex_array([0j] * (size - 1) + ["x"])
 
 
 def test_valarray(doc):
@@ -652,12 +673,7 @@ def test_array_cast_sequence():
 
 # (load, item_type, size): one entry for each of the element loops in `array_caster`.
 ARRAY_CASTER_LOADS = [
-    pytest.param(
-        m.load_array_explicit_default_ctor,
-        m.ExplicitDefaultCtor,
-        2,
-        id="array_assign",
-    ),
+    pytest.param(m.load_array_enum, m.ArrayElementEnum, 2, id="array_assign"),
     pytest.param(m.valarray_cast_sequence, int, 3, id="valarray"),
     pytest.param(
         m.load_array_no_default_ctor, m.NoDefaultCtor, 2, id="array_construct"
