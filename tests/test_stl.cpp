@@ -20,6 +20,7 @@
 
 #include <array>
 #include <numeric>
+#include <stdexcept>
 #include <string>
 #include <valarray>
 #include <vector>
@@ -190,6 +191,11 @@ struct type_caster<ReferenceSensitiveOptional<T>>
 } // namespace detail
 } // namespace PYBIND11_NAMESPACE
 
+template <typename T>
+std::vector<int> array_element_vals(const std::array<T, 2> &a) {
+    return {a[0].val, a[1].val};
+}
+
 int pass_std_vector_int(const std::vector<int> &v) {
     int zum = 100;
     for (const int i : v) {
@@ -244,31 +250,52 @@ TEST_SUBMODULE(stl, m) {
         .def_readwrite("arr", &NoDefaultCtorArray::arr);
 
     // test_array_element_types
+    // `array_caster` assigns the elements of a `std::array` only if `Value` is trivial enough
+    // for that to be indistinguishable from copy constructing them. `ExplicitDefaultCtor` is the
+    // one type here that qualifies.
     // `std::array<ExplicitDefaultCtor, N>{}` is ill-formed, `std::array<ExplicitDefaultCtor, N>()`
     // is not.
     struct ExplicitDefaultCtor {
         explicit ExplicitDefaultCtor() = default;
         explicit ExplicitDefaultCtor(int val) : val{val} {}
-        int val = 0;
+        int val;
     };
-    // Default constructible and move assignable, but the elements of an array cannot be
-    // assigned: the caster for a type registered with `py::class_` yields an lvalue reference.
+    static_assert(std::is_trivially_default_constructible<ExplicitDefaultCtor>::value
+                      && std::is_trivially_copyable<ExplicitDefaultCtor>::value,
+                  "ExplicitDefaultCtor is meant to have its array elements assigned.");
+    // Move assignable, but the elements of an array cannot be assigned: the caster for a type
+    // registered with `py::class_` yields an lvalue reference.
     struct NotCopyAssignable {
         NotCopyAssignable() = default;
         explicit NotCopyAssignable(int val) : val{val} {}
         NotCopyAssignable(const NotCopyAssignable &) = default;
         NotCopyAssignable &operator=(const NotCopyAssignable &) = delete;
         NotCopyAssignable &operator=(NotCopyAssignable &&) = default;
+        int val;
+    };
+    // Assigning is not equivalent to copy constructing, in the manner of `boost::multi_array`,
+    // which does not resize on assignment.
+    struct AssignIsNoOp {
+        AssignIsNoOp() = default;
+        explicit AssignIsNoOp(int val) : val{val} {}
+        AssignIsNoOp(const AssignIsNoOp &) = default;
+        AssignIsNoOp &operator=(const AssignIsNoOp &) { return *this; }
+        int val;
+    };
+    // Trivially copyable, but the default constructor must not be called.
+    struct ThrowingDefaultCtor {
+        ThrowingDefaultCtor() { throw std::runtime_error("ThrowingDefaultCtor"); }
+        explicit ThrowingDefaultCtor(int val) : val{val} {}
         int val = 0;
     };
     py::class_<ExplicitDefaultCtor>(m, "ExplicitDefaultCtor").def(py::init<int>());
     py::class_<NotCopyAssignable>(m, "NotCopyAssignable").def(py::init<int>());
-    m.def("load_array_explicit_default_ctor", [](const std::array<ExplicitDefaultCtor, 2> &a) {
-        return std::vector<int>{a[0].val, a[1].val};
-    });
-    m.def("load_array_not_copy_assignable", [](const std::array<NotCopyAssignable, 2> &a) {
-        return std::vector<int>{a[0].val, a[1].val};
-    });
+    py::class_<AssignIsNoOp>(m, "AssignIsNoOp").def(py::init<int>());
+    py::class_<ThrowingDefaultCtor>(m, "ThrowingDefaultCtor").def(py::init<int>());
+    m.def("load_array_explicit_default_ctor", &array_element_vals<ExplicitDefaultCtor>);
+    m.def("load_array_not_copy_assignable", &array_element_vals<NotCopyAssignable>);
+    m.def("load_array_assign_is_no_op", &array_element_vals<AssignIsNoOp>);
+    m.def("load_array_throwing_default_ctor", &array_element_vals<ThrowingDefaultCtor>);
 
     m.def("cast_array_cast_only_element", []() {
         return std::array<CastOnlyElement, 2>{{CastOnlyElement{1}, CastOnlyElement{2}}};
