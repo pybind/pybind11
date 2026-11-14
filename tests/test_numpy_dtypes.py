@@ -118,6 +118,13 @@ def test_format_descriptors():
     ]
 
 
+def test_const_members():
+    assert m.const_double_format() == "d"
+    assert m.register_const_members_dtype() == np.dtype(
+        {"names": ["x", "y"], "formats": ["f8", "f8"], "offsets": [0, 8]}
+    )
+
+
 def test_dtype(simple_dtype):
     from sys import byteorder
 
