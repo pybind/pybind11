@@ -20,7 +20,7 @@ MD_ENTRY = re.compile(
     (?:\s*<!--.*?-->)?                     # Optionally match one comment
     (?P<content>.*?)                       # Lazily capture content until...
     (?=                                    # Lookahead for one of the following:
-        ^-{3,}\s*$                         #   A line with 3 or more dashes
+        ^(?:-{3,}|_{3,}|\*{3,})\s*$        #   A horizontal rule (---, ___, ***)
       | ^<!--\s*readthedocs                #   A comment starting with 'readthedocs'
       | ^\#\#                              #   A new heading
       | \Z                                 #   End of string
@@ -71,6 +71,7 @@ old = []
 cats_descr = {
     "feat": "New Features",
     "fix": "Bug fixes",
+    "refactor": "Refactoring",
     "docs": "Documentation",
     "tests": "Tests",
     "ci": "CI",
