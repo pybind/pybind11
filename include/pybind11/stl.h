@@ -222,9 +222,10 @@ public:
         for (auto &&value : src) {
             auto value_ = reinterpret_steal<object>(
                 key_conv::cast(detail::forward_like<T>(value), policy, parent));
-            if (!value_ || !s.add(std::move(value_))) {
+            if (!value_) {
                 return handle();
             }
+            s.add(std::move(value_));
         }
         return s.release();
     }

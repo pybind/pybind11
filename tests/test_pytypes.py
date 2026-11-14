@@ -160,6 +160,13 @@ def test_set(capture, doc):
     assert doc(m.print_anyset) == "print_anyset(arg0: set | frozenset) -> None"
 
 
+def test_set_add_unhashable():
+    s = set()
+    with pytest.raises(TypeError, match="unhashable"):
+        m.set_add(s, [])
+    assert s == set()
+
+
 def test_frozenset(capture, doc):
     s = m.get_frozenset()
     assert isinstance(s, frozenset)
