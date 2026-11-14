@@ -153,6 +153,6 @@ def test_overriding_eq_reset_hash():
 
 
 def test_return_set_of_unhashable():
-    with pytest.raises(TypeError) as excinfo:
+    with pytest.raises(TypeError, match="unhashable type") as excinfo:
         m.get_unhashable_HashMe_set()
-    assert "unhashable type" in str(excinfo.value.__cause__)
+    assert excinfo.value.__cause__ is None
