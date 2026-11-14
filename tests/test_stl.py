@@ -205,8 +205,24 @@ def test_array_no_default_ctor():
 @pytest.mark.parametrize(
     ("load", "item_type"),
     [
-        (m.load_array_explicit_default_ctor, m.ExplicitDefaultCtor),
-        (m.load_array_not_copy_assignable, m.NotCopyAssignable),
+        pytest.param(
+            m.load_array_explicit_default_ctor,
+            m.ExplicitDefaultCtor,
+            id="explicit_default_ctor",
+        ),
+        pytest.param(
+            m.load_array_not_copy_assignable,
+            m.NotCopyAssignable,
+            id="not_copy_assignable",
+        ),
+        pytest.param(
+            m.load_array_assign_is_no_op, m.AssignIsNoOp, id="assign_is_no_op"
+        ),
+        pytest.param(
+            m.load_array_throwing_default_ctor,
+            m.ThrowingDefaultCtor,
+            id="throwing_default_ctor",
+        ),
     ],
 )
 def test_array_element_types(load, item_type):
@@ -641,9 +657,9 @@ def load_array_no_default_ctor(seq):
 
 # (load, item_type, size): one entry for each of the element loops in `array_caster`.
 ARRAY_CASTER_LOADS = [
-    pytest.param(m.array_cast_sequence, int, 3, id="array"),
+    pytest.param(m.array_cast_sequence, int, 3, id="array_assign"),
     pytest.param(m.valarray_cast_sequence, int, 3, id="valarray"),
-    pytest.param(load_array_no_default_ctor, m.NoDefaultCtor, 2, id="array_fallback"),
+    pytest.param(load_array_no_default_ctor, m.NoDefaultCtor, 2, id="array_construct"),
 ]
 
 
@@ -686,9 +702,11 @@ def test_array_caster_len_exceeds_items(load, item_type, size):
     ("load", "item_type"),
     [
         pytest.param(
-            m.load_array_explicit_default_ctor, m.ExplicitDefaultCtor, id="array"
+            m.load_array_explicit_default_ctor,
+            m.ExplicitDefaultCtor,
+            id="array_assign",
         ),
-        pytest.param(load_array_no_default_ctor, m.NoDefaultCtor, id="array_fallback"),
+        pytest.param(load_array_no_default_ctor, m.NoDefaultCtor, id="array_construct"),
     ],
 )
 def test_array_caster_items_created_on_the_fly(load, item_type):
