@@ -713,25 +713,25 @@ template <typename View>
 void add_view_set_operations(class_<View> &cl) {
     using O = const object &;
     cl.def("__and__",
-           [](O self, O other) { return view_set_method(self, "intersection", other); });
+           [](O view, O other) { return view_set_method(view, "intersection", other); });
     cl.def("__rand__",
-           [](O self, O other) { return view_set_method(self, "intersection", other); });
-    cl.def("__or__", [](O self, O other) { return view_set_method(self, "union", other); });
-    cl.def("__ror__", [](O self, O other) { return view_set_method(self, "union", other); });
-    cl.def("__sub__", [](O self, O other) { return view_set_method(self, "difference", other); });
-    cl.def("__rsub__", [](O self, O other) { return view_set_method(other, "difference", self); });
+           [](O view, O other) { return view_set_method(view, "intersection", other); });
+    cl.def("__or__", [](O view, O other) { return view_set_method(view, "union", other); });
+    cl.def("__ror__", [](O view, O other) { return view_set_method(view, "union", other); });
+    cl.def("__sub__", [](O view, O other) { return view_set_method(view, "difference", other); });
+    cl.def("__rsub__", [](O view, O other) { return view_set_method(other, "difference", view); });
     cl.def("__xor__",
-           [](O self, O other) { return view_set_method(self, "symmetric_difference", other); });
+           [](O view, O other) { return view_set_method(view, "symmetric_difference", other); });
     cl.def("__rxor__",
-           [](O self, O other) { return view_set_method(self, "symmetric_difference", other); });
-    cl.def("__eq__", [](O self, O other) { return set(self).equal(other); });
-    cl.def("__ne__", [](O self, O other) { return set(self).not_equal(other); });
-    cl.def("__lt__", [](O self, O other) { return set(self) < other; });
-    cl.def("__le__", [](O self, O other) { return set(self) <= other; });
-    cl.def("__gt__", [](O self, O other) { return set(self) > other; });
-    cl.def("__ge__", [](O self, O other) { return set(self) >= other; });
+           [](O view, O other) { return view_set_method(view, "symmetric_difference", other); });
+    cl.def("__eq__", [](O view, O other) { return set(view).equal(other); });
+    cl.def("__ne__", [](O view, O other) { return set(view).not_equal(other); });
+    cl.def("__lt__", [](O view, O other) { return set(view) < other; });
+    cl.def("__le__", [](O view, O other) { return set(view) <= other; });
+    cl.def("__gt__", [](O view, O other) { return set(view) > other; });
+    cl.def("__ge__", [](O view, O other) { return set(view) >= other; });
     cl.def("isdisjoint",
-           [](O self, O other) { return set(self).attr("isdisjoint")(other).cast<bool>(); });
+           [](O view, O other) { return set(view).attr("isdisjoint")(other).cast<bool>(); });
 }
 
 inline str format_message_key_error_key_object(handle py_key) {
