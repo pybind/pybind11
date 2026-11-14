@@ -26,12 +26,7 @@ namespace detail {
 template <>
 struct type_caster<ArgInspector1> {
 public:
-    // Classic
-#ifdef PYBIND11_DETAIL_UNDERSCORE_BACKWARD_COMPATIBILITY
-    PYBIND11_TYPE_CASTER(ArgInspector1, _("ArgInspector1"));
-#else
     PYBIND11_TYPE_CASTER(ArgInspector1, const_name("ArgInspector1"));
-#endif
 
     bool load(handle src, bool convert) {
         value.arg = "loading ArgInspector1 argument " + std::string(convert ? "WITH" : "WITHOUT")

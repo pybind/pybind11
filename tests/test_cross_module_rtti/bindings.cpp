@@ -5,7 +5,7 @@
 class BaseTrampoline : public lib::Base, public pybind11::trampoline_self_life_support {
 public:
     using lib::Base::Base;
-    int get() const override { PYBIND11_OVERLOAD(int, lib::Base, get, ); }
+    int get() const override { PYBIND11_OVERRIDE(int, lib::Base, get, ); }
 };
 
 PYBIND11_MODULE(test_cross_module_rtti_bindings, m, pybind11::mod_gil_used()) {
