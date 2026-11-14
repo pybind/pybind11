@@ -34,7 +34,7 @@ def test_pickle_simple_callable(protocol):
     # This is not expected to create issues because the only purpose of
     # `m.simple_callable.__self__` is to enable pickling: the only method it has is
     # `__reduce_ex__`. Direct access for any other purpose is not supported.
-    # Note that `repr(m.simple_callable.__self__)` shows, e.g.:
+    # Note that `repr(m.simple_callable.__self__)` shows `<module '?'>`, or, for a method:
     # `<pybind11_detail_function_record_v1__gcc_libstdcpp_cxxabi1018 object at 0x...>`
     # It is considered to be as much an implementation detail as the
     # `pybind11::detail::function_record` C++ type is.
