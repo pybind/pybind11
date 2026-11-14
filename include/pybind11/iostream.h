@@ -98,10 +98,9 @@ private:
             auto size = static_cast<size_t>(pptr() - pbase());
             size_t remainder = utf8_remainder();
 
+            object line;
             if (size > remainder) {
-                str line(pbase(), size - remainder);
-                pywrite(std::move(line));
-                pyflush();
+                line = str(pbase(), size - remainder);
             }
 
             // Copy the remainder at the end of the buffer to the beginning:
@@ -110,6 +109,12 @@ private:
             }
             setp(pbase(), epptr());
             pbump(static_cast<int>(remainder));
+
+            // Last, because write() or flush() can raise and the data must not be written twice.
+            if (line) {
+                pywrite(std::move(line));
+                pyflush();
+            }
         }
         return 0;
     }
@@ -150,12 +155,20 @@ public:
 
     /// Sync before destroy
     ~pythonbuf() override {
+        if (pbase() == pptr()) {
+            return;
+        }
+        // Destructors must not throw.
         try {
-            _sync();
-        } catch (error_already_set &e) {
-            // The stream's write() or flush() raised, and destructors must not throw.
             gil_scoped_acquire gil;
-            e.discard_as_unraisable(__func__);
+            // Keep an error that is already set.
+            error_scope scope;
+            try {
+                _sync();
+            } catch (error_already_set &e) {
+                e.discard_as_unraisable(__func__);
+            }
+        } catch (...) { // NOLINT(bugprone-empty-catch)
         }
     }
 };
