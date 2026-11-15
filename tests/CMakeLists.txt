@@ -72,7 +72,6 @@ option(DOWNLOAD_EIGEN "Download EIGEN" OFF)
 option(PYBIND11_CUDA_TESTS "Enable building CUDA tests" OFF)
 option(PYBIND11_TEST_SMART_HOLDER "Change the default to smart holder" OFF)
 option(PYBIND11_TEST_PRECOMPILE "Build the test modules against the precompiled library" OFF)
-option(PYBIND11_BUILD_FUZZERS "Build the OSS-Fuzz harnesses" OFF)
 option(PYBIND11_TEST_STABLE_ABI "Build the test modules for the stable ABI (Py_LIMITED_API)" OFF)
 
 if(PYBIND11_TEST_PRECOMPILE)

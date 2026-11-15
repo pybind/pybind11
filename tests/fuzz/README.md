@@ -16,7 +16,8 @@ reached through that layer.
 
 ## Build and replay
 
-The target is off unless requested, so the normal test matrix does not need
+The target is off unless requested. Replay needs a C++ compiler, CPython's
+embedding library, and LLVM's `fuzzer/FuzzedDataProvider.h`; it does not need
 libFuzzer:
 
 ```bash
@@ -25,34 +26,50 @@ cmake --build build --target pybind_fuzzer
 cmake --build build --target fuzz_replay
 ```
 
-`fuzz_replay` runs `LLVMFuzzerTestOneInput` on every file in
-`tests/fuzz/corpus`. To reproduce one OSS-Fuzz artifact:
+CMake finds the header through `clang -print-resource-dir`. If Clang is not
+on `PATH`, set `-DPYBIND11_FUZZER_INCLUDE_DIR=/path/to/include`, where that
+directory contains `fuzzer/FuzzedDataProvider.h`. GCC can use this header too.
+
+`fuzz_replay` first checks the decoded fields of the `exec_success` seed,
+then runs `LLVMFuzzerTestOneInput` on every file in `tests/fuzz/corpus`.
+To reproduce one OSS-Fuzz artifact with the standalone binary:
 
 ```bash
 ./build/tests/fuzz/pybind_fuzzer /path/to/crash
 ```
 
 OSS-Fuzz sets `LIB_FUZZING_ENGINE` and links that instead of `fuzz_replay.cc`.
-The callback is the same either way. Standalone replay uses the same
-`ConsumeRandomLengthString` length split, so the checked-in corpus exercises
-the callback without a libFuzzer toolchain. An artifact produced by OSS-Fuzz
-should be rerun with libFuzzer (`-runs=1 <file>`); the standalone binary is the
-maintainer path for inputs in `tests/fuzz/corpus` and for files reduced to the
-same framing.
+Both builds use the same callback and input decoder. When reproducing a
+sanitizer finding, enable the same sanitizer in the replay build. The
+libFuzzer binary can also replay one artifact with `-runs=1 <file>`.
+
+## Input format
+
+The decoder reads five strings, in order: Python code, an `os` attribute
+name, a `Decimal` argument, a `Decimal` method name, and text for `py::str`.
+It calls `FuzzedDataProvider::ConsumeRandomLengthString` once for each field.
+A backslash followed by any non-backslash byte ends a field; two consecutive
+backslashes encode a literal backslash. The last field can end at EOF.
+For example, the `exec_success` seed contains these bytes:
+
+```text
+x = 1\!getcwd\!1\!as_tuple\!ok\!
+```
+
+This upstream harness uses five fields. The older OSS-Fuzz copy consumed an
+additional, independent string for the unused tuple argument, so artifacts
+from that version need the matching older harness for reproduction.
 
 ## Reducing a crash
 
 1. Rebuild with `-DPYBIND11_BUILD_FUZZERS=ON` and rerun the artifact.
-2. Delete trailing bytes until the crash disappears, then restore the last
-   required byte. Repeat from the front if the first string is not involved.
-3. The remaining strings are, in order: code passed to `py::exec`, the `os`
-   attribute name, the `Decimal` argument, the `Decimal` method name, and the
-   `py::str` argument.
-4. Turn the surviving call into a normal `tests/test_*.py` regression. If the
+2. Reduce the decoded strings while preserving their separators, rerunning
+   the input after each change. Empty fields still need separators when a
+   later field is involved.
+3. Turn the surviving call into a normal `tests/test_*.py` regression. If the
    crash is only reachable through embedding, add it beside
    `tests/test_with_catch` instead.
 
-Arbitrary `py::exec` is intentionally broad and is the behavior of the current
-OSS-Fuzz target. A later harness can drive explicit `class_`, `def`, and caster
-operations; that should be a separate target so this move does not change what
-OSS-Fuzz is already running.
+Arbitrary `py::exec` is intentionally broad and retains the operations of the
+existing OSS-Fuzz target. A later harness can drive explicit `class_`, `def`,
+and caster operations as a separate target.

@@ -1,19 +1,4 @@
-# Optional OSS-Fuzz harness. Off by default so the normal test matrix does not
-# need a libFuzzer toolchain. OSS-Fuzz and the corpus-replay CI job both build
-# this same target.
-option(PYBIND11_BUILD_FUZZERS "Build the OSS-Fuzz harnesses" OFF)
-
-# Present even when the harness is not built, so a normal CI configure does not
-# fail if something asks for the target by name.
-function(pybind11_add_disabled_fuzz_replay)
-  add_custom_target(
-    fuzz_replay
-    COMMAND ${CMAKE_COMMAND} -E echo "PYBIND11_BUILD_FUZZERS did not produce pybind_fuzzer"
-    COMMAND ${CMAKE_COMMAND} -E false)
-endfunction()
-
 if(NOT PYBIND11_BUILD_FUZZERS)
-  pybind11_add_disabled_fuzz_replay()
   return()
 endif()
 
@@ -23,15 +8,38 @@ if("${PYTHON_MODULE_EXTENSION}" MATCHES "pypy"
    OR "${Python_INTERPRETER_ID}" STREQUAL "PyPy"
    OR "${PYTHON_MODULE_EXTENSION}" MATCHES "graalpy")
   message(STATUS "Skipping fuzz harness on PyPy or GraalPy")
-  pybind11_add_disabled_fuzz_replay()
   return()
 endif()
 
 if(TARGET Python::Module AND NOT TARGET Python::Python)
   message(STATUS "Skipping fuzz harness since no embed libs found")
-  pybind11_add_disabled_fuzz_replay()
   return()
 endif()
+
+if(NOT PYBIND11_FUZZER_INCLUDE_DIR)
+  find_program(_pybind11_fuzz_clang NAMES clang)
+  if(_pybind11_fuzz_clang)
+    execute_process(
+      COMMAND "${_pybind11_fuzz_clang}" -print-resource-dir
+      OUTPUT_VARIABLE _pybind11_fuzz_resource_dir
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
+  endif()
+endif()
+find_path(
+  PYBIND11_FUZZER_INCLUDE_DIR fuzzer/FuzzedDataProvider.h
+  HINTS "${_pybind11_fuzz_resource_dir}/include"
+  DOC "Directory containing fuzzer/FuzzedDataProvider.h")
+if(NOT EXISTS "${PYBIND11_FUZZER_INCLUDE_DIR}/fuzzer/FuzzedDataProvider.h")
+  message(
+    FATAL_ERROR
+      "FuzzedDataProvider.h not found. Install Clang's development headers or set "
+      "PYBIND11_FUZZER_INCLUDE_DIR to the directory containing fuzzer/FuzzedDataProvider.h")
+endif()
+
+# Copy only this portable header: Clang's full resource include directory also
+# contains compiler-specific standard headers that cannot be used with GCC.
+configure_file("${PYBIND11_FUZZER_INCLUDE_DIR}/fuzzer/FuzzedDataProvider.h"
+               "${CMAKE_CURRENT_BINARY_DIR}/include/fuzzer/FuzzedDataProvider.h" COPYONLY)
 
 set(_pybind11_fuzz_sources pybind_fuzzer.cc)
 # OSS-Fuzz exports LIB_FUZZING_ENGINE to the object that provides main().
@@ -41,23 +49,25 @@ if(DEFINED ENV{LIB_FUZZING_ENGINE} AND NOT "$ENV{LIB_FUZZING_ENGINE}" STREQUAL "
 else()
   list(APPEND _pybind11_fuzz_sources fuzz_replay.cc)
   set(_pybind11_fuzz_engine "")
-  set(_pybind11_fuzz_standalone ON)
 endif()
 
 add_executable(pybind_fuzzer ${_pybind11_fuzz_sources})
-pybind11_enable_warnings(pybind_fuzzer)
+add_executable(test_fuzz_input test_fuzz_input.cc)
+foreach(target pybind_fuzzer test_fuzz_input)
+  pybind11_enable_warnings(${target})
+  target_include_directories(${target} SYSTEM PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/include")
+endforeach()
 target_link_libraries(pybind_fuzzer PRIVATE pybind11::embed)
-if(_pybind11_fuzz_standalone)
-  target_compile_definitions(pybind_fuzzer PRIVATE PYBIND11_FUZZER_STANDALONE)
-else()
+if(_pybind11_fuzz_engine)
   target_link_libraries(pybind_fuzzer PRIVATE ${_pybind11_fuzz_engine})
 endif()
 
 file(GLOB _pybind11_fuzz_corpus CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/corpus/*")
 add_custom_target(
   fuzz_replay
+  COMMAND "$<TARGET_FILE:test_fuzz_input>" "${CMAKE_CURRENT_SOURCE_DIR}/corpus/exec_success"
   COMMAND "$<TARGET_FILE:pybind_fuzzer>" ${_pybind11_fuzz_corpus}
-  DEPENDS pybind_fuzzer
+  DEPENDS pybind_fuzzer test_fuzz_input
   WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
   USES_TERMINAL
   COMMENT "Replaying the checked-in fuzz corpus")
