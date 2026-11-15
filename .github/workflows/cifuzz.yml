@@ -1,7 +1,6 @@
 name: CIFuzz
 
 on:
-  pull_request:
   workflow_dispatch:
 
 permissions: {}
@@ -11,7 +10,7 @@ jobs:
     # CIFuzz builds through the OSS-Fuzz project, not this repository's CMake
     # cache. The job is allowed to fail until oss-fuzz's pybind11 build.sh
     # compiles tests/fuzz/pybind_fuzzer.cc with LIB_FUZZING_ENGINE set
-    # (google/oss-fuzz#16274). The corpus replay job in ci.yml is the required check.
+    # (google/oss-fuzz#16274). Corpus replay in CI provides the required check.
     continue-on-error: true
     runs-on: ubuntu-latest
     permissions:
