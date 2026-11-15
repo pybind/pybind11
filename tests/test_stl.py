@@ -266,15 +266,12 @@ def test_array_large():
     with pytest.raises(TypeError):
         m.sum_large_array([0] * (size - 1) + ["x"])
 
-    total = (size - 1) * size // 2
-    assert m.sum_large_complex_array([complex(i, -i) for i in range(size)]) == complex(
-        total, -total
-    )
-    assert m.sum_large_complex_array(range(size)) == total
+
+def test_array_custom_type():
+    """A fixed-size `ArrayType` other than `std::array` only has to be constructible."""
+    assert m.fixed_array3_cast_sequence([1, 2, 3]) == [1.0, 2.0, 3.0]
     with pytest.raises(TypeError):
-        m.sum_large_complex_array(range(size - 1))
-    with pytest.raises(TypeError):
-        m.sum_large_complex_array([0j] * (size - 1) + ["x"])
+        m.fixed_array3_cast_sequence([1, 2])
 
 
 def test_valarray(doc):

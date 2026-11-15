@@ -1363,8 +1363,6 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 // complex float,double,long double.  Note that the long double types only participate when long
 // double is actually longer than double (it isn't under MSVC).
 // NB: not only the string below but also complex.h and numpy.h rely on this order.
-// `array_caster` in stl.h relies on `value`: it assumes that a numeric type is a plain value, for
-// which default-constructing, copying and assigning have no observable effect beyond the value.
 template <typename T, typename SFINAE = void>
 struct is_fmt_numeric {
     static constexpr bool value = false;

@@ -14,6 +14,7 @@
 #include "detail/descr.h"
 #include "detail/type_caster_base.h"
 
+#include <complex>
 #include <deque>
 #include <initializer_list>
 #include <list>
@@ -397,14 +398,16 @@ ArrayType vector_to_array(V &&v) {
 // The element types for which `array_caster` assigns the elements of a `std::array`, instead of
 // constructing them: types for which that makes no difference.
 // * Scalar types, which have no constructors, assignment operators or destructors.
-// * The numeric types (`is_fmt_numeric`), which are assumed to be plain values. They include
-//   `std::complex` (with pybind11/complex.h).
+// * `std::complex` of an arithmetic type. It is matched here, not through a trait that
+//   pybind11/complex.h specializes: the result must not depend on the headers included.
 // * `std::array`s of such types.
 // Other class types are always constructed. Type traits cannot identify the ones for which
 // assigning would be equivalent: they miss constructor templates that take over from the copy
 // and move constructors, and the difference between direct- and copy-initialization.
 template <typename T>
-struct is_plain_array_element : any_of<std::is_scalar<T>, is_fmt_numeric<T>> {};
+struct is_plain_array_element : std::is_scalar<T> {};
+template <typename T>
+struct is_plain_array_element<std::complex<T>> : std::is_arithmetic<T> {};
 template <typename T, size_t N>
 struct is_plain_array_element<std::array<T, N>> : is_plain_array_element<T> {};
 
@@ -421,6 +424,8 @@ private:
     // Assigning to the elements of a default-constructed array avoids that, but is used only
     // for the `Value` types for which it makes no difference: `is_plain_array_element`.
     // (In general it does: `boost::multi_array`, for example, does not resize on assignment.)
+    // It is also used only for `std::array` itself: another `ArrayType` does not need to have a
+    // default constructor or a mutable `operator[]`.
     bool convert_elements(handle seq, bool convert) {
         // Not in class scope: a `value_conv` that is only used for `cast()` does not need to
         // have a `cast_op_type`.
@@ -429,7 +434,8 @@ private:
         // the assignment has to be possible: it is not for a `std::array` of `const` elements.
         using assign_elements = bool_constant<
             Resizable
-            || (is_plain_array_element<Value>::value
+            || (std::is_same<ArrayType, std::array<Value, Size>>::value
+                && is_plain_array_element<Value>::value
                 && std::is_same<remove_cv_t<remove_reference_t<value_cast_op_type>>,
                                 remove_cv_t<Value>>::value
                 && std::is_assignable<Value &, value_cast_op_type>::value)>;
@@ -448,12 +454,22 @@ private:
         return std::unique_ptr<ArrayType>(size == Size ? new ArrayType() : nullptr);
     }
 
-    // Both overloads below index `l` up to a size that is determined only once, rather than
-    // iterating over `l`: the accesses stay in bounds even if the length of `l` changes
-    // underneath (e.g. if another thread resizes a list in a free-threaded build).
-    // `item` is an accessor: the item is fetched by `item.ptr()`, that is after `conv` is
-    // constructed, as when iterating over `l`. It keeps the item alive while `conv` is in use.
-    // Passing `item.ptr()` rather than `item` avoids a temporary `object`.
+    // Loads the items of `l` one by one and passes each loaded caster to `sink(i, conv)`.
+    // Indexes `l` up to `size`, which the caller determines only once, rather than iterating
+    // over `l`: the accesses stay in bounds even if the length of `l` changes underneath (e.g.
+    // if another thread resizes a list in a free-threaded build).
+    template <typename Sink>
+    static bool load_elements(const sequence &l, size_t size, bool convert, Sink &&sink) {
+        for (size_t i = 0; i < size; i++) {
+            value_conv conv;          // Before the item is fetched, as when iterating over `l`.
+            const object item = l[i]; // Keeps the item alive while `conv` is in use.
+            if (!conv.load(item, convert)) {
+                return false;
+            }
+            sink(i, std::move(conv));
+        }
+        return true;
+    }
 
     bool convert_elements(handle seq, bool convert, std::true_type /*assign_elements*/) {
         auto l = reinterpret_borrow<sequence>(seq);
@@ -462,13 +478,10 @@ private:
         if (!result) {
             return false;
         }
-        for (size_t i = 0; i < size; i++) {
-            const auto item = l[i];
-            value_conv conv;
-            if (!conv.load(item.ptr(), convert)) {
-                return false;
-            }
-            (*result)[i] = cast_op<Value &&>(std::move(conv));
+        if (!load_elements(l, size, convert, [&](size_t i, value_conv &&conv) {
+                (*result)[i] = cast_op<Value &&>(std::move(conv));
+            })) {
+            return false;
         }
         value = std::move(result);
         return true;
@@ -482,13 +495,10 @@ private:
         }
         std::vector<Value> temp;
         temp.reserve(size);
-        for (size_t i = 0; i < size; i++) {
-            const auto item = l[i];
-            value_conv conv;
-            if (!conv.load(item.ptr(), convert)) {
-                return false;
-            }
-            temp.emplace_back(cast_op<Value &&>(std::move(conv)));
+        if (!load_elements(l, size, convert, [&](size_t, value_conv &&conv) {
+                temp.emplace_back(cast_op<Value &&>(std::move(conv)));
+            })) {
+            return false;
         }
         value.reset(new ArrayType(vector_to_array<ArrayType, Size>(std::move(temp))));
         return true;

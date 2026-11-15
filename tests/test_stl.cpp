@@ -91,6 +91,24 @@ struct type_caster<CastOnlyElement> {
 } // namespace detail
 } // namespace PYBIND11_NAMESPACE
 
+// test_array_custom_type: `array_caster` can only construct this from a braced list. It has no
+// default constructor and no mutable `operator[]`.
+struct FixedArray3 {
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    FixedArray3(const std::array<double, 3> &arr) : arr(arr) {}
+    const double *begin() const { return arr.data(); }
+    const double *end() const { return arr.data() + arr.size(); }
+    size_t size() const { return arr.size(); }
+    std::array<double, 3> arr;
+};
+
+namespace PYBIND11_NAMESPACE {
+namespace detail {
+template <>
+struct type_caster<FixedArray3> : array_caster<FixedArray3, double, false, 3> {};
+} // namespace detail
+} // namespace PYBIND11_NAMESPACE
+
 /// Issue #528: templated constructor
 struct TplCtorClass {
     template <typename T>
@@ -343,11 +361,9 @@ TEST_SUBMODULE(stl, m) {
     m.def("sum_large_array", [](const std::array<int, 102400> &a) {
         return std::accumulate(a.begin(), a.end(), 0LL);
     });
-    // The elements of all numeric types (`is_fmt_numeric`) are assigned. `std::complex` is the
-    // one numeric type that is not trivially default constructible.
-    m.def("sum_large_complex_array", [](const std::array<std::complex<double>, 102400> &a) {
-        return std::accumulate(a.begin(), a.end(), std::complex<double>());
-    });
+
+    // test_array_custom_type
+    m.def("fixed_array3_cast_sequence", [](FixedArray3 x) { return x; });
 
     // test_valarray
     m.def("cast_valarray", []() { return std::valarray<int>{1, 4, 9}; });

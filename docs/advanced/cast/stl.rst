@@ -25,19 +25,6 @@ In particular, containers of C++ string views have additional
 
     Arbitrary nesting of any of these types is possible.
 
-.. note::
-
-    The optional headers that provide type casters (:file:`pybind11/stl.h`,
-    :file:`pybind11/complex.h`, ...) must be visible consistently wherever the
-    casters or traits they provide affect a conversion. If such a header
-    affects the conversion of a type in one translation unit of an extension
-    module, it must be included in every translation unit that converts that
-    type. Otherwise the C++ One Definition Rule (ODR) is violated. This applies
-    to :file:`pybind11/complex.h` for a ``std::array<>`` of ``std::complex<>``
-    even if ``std::complex<>`` is :ref:`opaque <opaque>` or has a custom type
-    caster, because the conversion of such an array depends on a trait that
-    the header specializes.
-
 .. seealso::
 
     The file :file:`tests/test_stl.cpp` contains a complete
