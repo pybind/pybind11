@@ -416,8 +416,8 @@ private:
         // https://en.cppreference.com/w/cpp/named_req/NumericType
         value->resize(size);
         for (size_t i = 0; i < size; i++) {
+            value_conv conv;          // Constructed before the item is fetched.
             const object item = l[i]; // Keeps the item alive while `conv` is in use.
-            value_conv conv;
             if (!conv.load(item, convert)) {
                 return false;
             }
@@ -441,8 +441,8 @@ private:
         std::vector<Value> temp;
         temp.reserve(size);
         for (size_t i = 0; i < size; i++) {
+            value_conv conv;          // Constructed before the item is fetched.
             const object item = l[i]; // Keeps the item alive while `conv` is in use.
-            value_conv conv;
             if (!conv.load(item, convert)) {
                 return false;
             }
