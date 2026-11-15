@@ -22,12 +22,23 @@ namespace py = pybind11;
 
 namespace {
 
+struct interpreter {
+    py::scoped_interpreter guard{};
+
+    interpreter() {
+        // Construct both managers before this static finishes construction so
+        // they remain alive when guard finalizes the interpreter at process exit.
+        (void) py::detail::get_internals_pp_manager();
+        (void) py::detail::get_local_internals_pp_manager();
+    }
+};
+
 int exercise(const std::string &code,
              const std::string &attr_name,
              const std::string &decimal_text,
              const std::string &decimal_attr,
              const std::string &text) {
-    static py::scoped_interpreter guard{};
+    static interpreter guard{};
     try {
         auto locals = py::dict();
         py::exec(code, py::globals(), locals);
