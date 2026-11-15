@@ -92,3 +92,80 @@ TEST_CASE("argument_vector reserve then push_back") {
         }));
     }
 }
+
+namespace {
+
+// Extra references so that a buggy double-decref cannot free the object under
+// test and turn a refcount mismatch into a crash.
+constexpr int kRefPadding = 100;
+
+using ref_small_vector = py::detail::ref_small_vector<2>;
+
+void fill_with_borrowed(ref_small_vector &vec, PyObject *obj, std::size_t count) {
+    for (std::size_t ii = 0; ii < count; ++ii) {
+        vec.push_back_borrow(obj);
+    }
+}
+
+void check_move_construct(std::size_t count) {
+    py::list obj;
+    for (int ii = 0; ii < kRefPadding; ++ii) {
+        Py_INCREF(obj.ptr());
+    }
+    const auto initial = obj.ref_count();
+    {
+        ref_small_vector src;
+        fill_with_borrowed(src, obj.ptr(), count);
+        REQUIRE(obj.ref_count() == initial + static_cast<py::ssize_t>(count));
+
+        ref_small_vector dst(std::move(src));
+        REQUIRE(dst.size() == count);
+        // NOLINTNEXTLINE(bugprone-use-after-move,clang-analyzer-cplusplus.Move)
+        REQUIRE(src.size() == 0);
+        REQUIRE(obj.ref_count() == initial + static_cast<py::ssize_t>(count));
+    }
+    REQUIRE(obj.ref_count() == initial);
+    for (int ii = 0; ii < kRefPadding; ++ii) {
+        Py_DECREF(obj.ptr());
+    }
+}
+
+void check_move_assign(std::size_t count) {
+    py::list obj;
+    for (int ii = 0; ii < kRefPadding; ++ii) {
+        Py_INCREF(obj.ptr());
+    }
+    const auto initial = obj.ref_count();
+    {
+        ref_small_vector src;
+        fill_with_borrowed(src, obj.ptr(), count);
+        ref_small_vector dst;
+        fill_with_borrowed(dst, obj.ptr(), 1);
+        dst = std::move(src);
+        REQUIRE(dst.size() == count);
+        // NOLINTNEXTLINE(bugprone-use-after-move,clang-analyzer-cplusplus.Move)
+        REQUIRE(src.size() == 0);
+        REQUIRE(obj.ref_count() == initial + static_cast<py::ssize_t>(count));
+    }
+    REQUIRE(obj.ref_count() == initial);
+    for (int ii = 0; ii < kRefPadding; ++ii) {
+        Py_DECREF(obj.ptr());
+    }
+}
+
+} // namespace
+
+TEST_CASE("ref_small_vector move construction releases each reference once") {
+    // 0..2 use the inline array, 3 and 5 use the heap vector.
+    for (std::size_t count :
+         {std::size_t(0), std::size_t(1), std::size_t(2), std::size_t(3), std::size_t(5)}) {
+        check_move_construct(count);
+    }
+}
+
+TEST_CASE("ref_small_vector move assignment releases each reference once") {
+    for (std::size_t count :
+         {std::size_t(0), std::size_t(1), std::size_t(2), std::size_t(3), std::size_t(5)}) {
+        check_move_assign(count);
+    }
+}

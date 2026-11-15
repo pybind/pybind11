@@ -677,6 +677,68 @@ def test_complex_method_error_with_index():
         m.complex_convert(ComplexAndIndex())
 
 
+@pytest.mark.parametrize("function", [m.complex_convert, m.complex_noconvert])
+def test_complex_method_wrong_return_type(function):
+    class BadComplex:
+        def __complex__(self):
+            return 2.0
+
+    with pytest.raises(TypeError):
+        function(BadComplex())
+
+
+def test_complex_method_instance_shadow_ignored():
+    # Special-method lookup reads the type, not an instance attribute.
+    class Shadowed:
+        def __complex__(self):
+            return 1.0 + 2.0j
+
+    value = Shadowed()
+    value.__complex__ = lambda: 9.0 + 10.0j
+    assert m.complex_convert(value) == 1.0 + 2.0j
+
+
+@pytest.mark.parametrize("base", [object, int, float])
+@pytest.mark.parametrize("descriptor", [staticmethod, classmethod])
+def test_complex_method_descriptors(base, descriptor):
+    class Convertible(base):
+        @descriptor
+        def __complex__(*args):
+            assert args == (() if descriptor is staticmethod else (Convertible,))
+            return 1.0 + 2.0j
+
+    value = Convertible()
+    assert m.complex_convert(value) == complex(value) == 1.0 + 2.0j
+    if base is not object:
+        assert m.complex_noconvert(value) == 1.0 + 2.0j
+
+
+def test_complex_callable_without_descriptor():
+    class ComplexCallable:
+        def __call__(self):
+            return 3.0 + 4.0j
+
+    class Convertible:
+        __complex__ = ComplexCallable()
+
+    value = Convertible()
+    assert m.complex_convert(value) == complex(value) == 3.0 + 4.0j
+
+
+def test_complex_custom_descriptor():
+    class ComplexDescriptor:
+        def __get__(self, instance, owner):
+            return lambda: complex(instance.real, instance.imag)
+
+    class Convertible:
+        __complex__ = ComplexDescriptor()
+        real = 5.0
+        imag = 6.0
+
+    value = Convertible()
+    assert m.complex_convert(value) == complex(value) == 5.0 + 6.0j
+
+
 def test_overload_resolution_float_int():
     """
     Test overload resolution behavior when int can match float (added with PR #5879).

@@ -143,9 +143,9 @@ PYBIND11_NAMESPACE_END(detail)
 class cpp_function : public function {
 public:
     cpp_function() = default;
+    template <typename... Extra>
     // NOLINTNEXTLINE(google-explicit-constructor)
-    cpp_function(std::nullptr_t) {}
-    cpp_function(std::nullptr_t, const is_setter &) {}
+    cpp_function(std::nullptr_t, const Extra &...) {}
 
     /// Construct a cpp_function from a vanilla function pointer
     template <typename Return, typename... Args, typename... Extra>
@@ -157,7 +157,9 @@ public:
     /// Construct a cpp_function from a lambda function (possibly with internal state)
     template <typename Func,
               typename... Extra,
-              typename = detail::enable_if_t<detail::is_lambda<Func>::value>>
+              typename = detail::enable_if_t<
+                  detail::is_lambda<Func>::value
+                  && !detail::is_same_ignoring_cvref<Func, std::nullptr_t>::value>>
     // NOLINTNEXTLINE(google-explicit-constructor)
     cpp_function(Func &&f, const Extra &...extra) {
         initialize(
@@ -562,15 +564,15 @@ protected:
          * second lexicographic check. This is wildly expensive for huge argument lists, but those
          * are incredibly rare so we optimize for the vastly common case of just a couple of args.
          */
-        auto n = PyTuple_GET_SIZE(haystack);
+        auto n = detail::tuple_size(haystack);
         auto s = reinterpret_steal<pybind11::str>(PyUnicode_InternFromString(needle));
         for (ssize_t i = 0; i < n; ++i) {
-            if (PyTuple_GET_ITEM(haystack, i) == s.ptr()) {
+            if (detail::tuple_get_item(haystack, i) == s.ptr()) {
                 return i;
             }
         }
         for (ssize_t i = 0; i < n; ++i) {
-            if (PyUnicode_Compare(PyTuple_GET_ITEM(haystack, i), s.ptr()) == 0) {
+            if (PyUnicode_Compare(detail::tuple_get_item(haystack, i), s.ptr()) == 0) {
                 return i;
             }
         }
@@ -720,6 +722,41 @@ inline slots_array init_slots(int (*exec_fn)(PyObject *), Options &&...options) 
     return mod_def_slots;
 }
 
+#if defined(PYBIND11_OPAQUE_PYOBJECT)
+/// PEP 793 slot array; large enough for every slot below plus the zero sentinel.
+using export_slots_array = std::array<PySlot, 7>;
+
+template <typename... Options>
+inline export_slots_array
+init_export_slots(const char *name, int (*exec_fn)(PyObject *), Options &&...options) noexcept {
+    export_slots_array slots{};
+    size_t next_slot = 0;
+    auto data_slot = [&](int id, const void *value, uint16_t flags) {
+        slots[next_slot].sl_id = static_cast<uint16_t>(id);
+        slots[next_slot].sl_flags = flags;
+        slots[next_slot].sl_ptr = const_cast<void *>(value);
+        ++next_slot;
+    };
+    auto func_slot = [&](int id, _Py_funcptr_t fn) {
+        slots[next_slot].sl_id = static_cast<uint16_t>(id);
+        slots[next_slot].sl_func = fn;
+        ++next_slot;
+    };
+    PyABIInfo_VAR(abi_info);
+    data_slot(Py_mod_name, name, PySlot_INTPTR);
+    data_slot(Py_mod_abi, &abi_info, PySlot_STATIC);
+    func_slot(Py_mod_create, reinterpret_cast<_Py_funcptr_t>(&cached_create_module));
+    if (exec_fn != nullptr) {
+        func_slot(Py_mod_exec, reinterpret_cast<_Py_funcptr_t>(exec_fn));
+    }
+    data_slot(Py_mod_multiple_interpreters, multi_interp_slot(options...), PySlot_INTPTR);
+    if (gil_not_used_option(options...)) {
+        data_slot(Py_mod_gil, Py_MOD_GIL_NOT_USED, PySlot_INTPTR);
+    }
+    return slots;
+}
+#endif
+
 PYBIND11_NAMESPACE_END(detail)
 
 /// Wrapper for Python extension modules
@@ -727,11 +764,13 @@ class module_ : public object {
 public:
     PYBIND11_OBJECT_DEFAULT(module_, object, PyModule_Check)
 
+#if !defined(PYBIND11_OPAQUE_PYOBJECT)
     /// Create a new top-level Python module with the given name and docstring
     PYBIND11_DEPRECATED("Use PYBIND11_MODULE or module_::create_extension_module instead")
     explicit module_(const char *name, const char *doc = nullptr) {
         *this = create_extension_module(name, doc, new PyModuleDef());
     }
+#endif
 
     /** \rst
         Create Python binding for a new function within the module scope. ``Func``
@@ -782,6 +821,7 @@ public:
     // DEPRECATED (since PR #5688): Use PyModuleDef directly instead.
     using module_def = PyModuleDef;
 
+#if !defined(PYBIND11_OPAQUE_PYOBJECT)
     /** \rst
         Create a new top-level module that can be used as the main module of a C extension.
 
@@ -791,6 +831,7 @@ public:
                                            const char *doc,
                                            PyModuleDef *def,
                                            mod_gil_not_used gil_not_used = mod_gil_used());
+#endif
 };
 
 PYBIND11_NAMESPACE_BEGIN(detail)
@@ -825,10 +866,19 @@ protected:
 
     void install_buffer_funcs(buffer_info *(*get_buffer)(PyObject *, void *),
                               void *get_buffer_data) {
-        auto *type = reinterpret_cast<PyHeapTypeObject *>(m_ptr);
-        auto *tinfo = detail::get_type_info(&type->ht_type);
+        auto *type = reinterpret_cast<PyTypeObject *>(m_ptr);
+        auto *tinfo = detail::get_type_info(type);
 
-        if (!type->ht_type.tp_as_buffer) {
+        // Stable-ABI builds require Python 3.12+, so defined(Py_LIMITED_API) is redundant.
+        // Retain it to document that these builds must use the public slot API.
+#if defined(Py_LIMITED_API) || PY_VERSION_HEX >= 0x030A0000
+        const bool has_getbuffer = PyType_GetSlot(type, Py_bf_getbuffer) != nullptr;
+#else
+        // PyType_GetSlot() does not see slots inherited through tp_as_buffer before Python 3.10.
+        const bool has_getbuffer
+            = type->tp_as_buffer != nullptr && type->tp_as_buffer->bf_getbuffer != nullptr;
+#endif
+        if (!has_getbuffer) {
             pybind11_fail("To be able to register buffer protocol support for the type '"
                           + get_fully_qualified_tp_name(tinfo->type)
                           + "' the associated class<>(..) invocation must "
@@ -1537,7 +1587,7 @@ public:
     template <typename Getter, typename... Extra>
     class_ &def_property_readonly(const char *name, const Getter &fget, const Extra &...extra) {
         return def_property_readonly(name,
-                                     cpp_function(method_adaptor<type>(fget)),
+                                     cpp_function(method_adaptor<type>(fget), is_method(*this)),
                                      return_value_policy::reference_internal,
                                      extra...);
     }
@@ -1570,7 +1620,10 @@ public:
     class_ &
     def_property(const char *name, const Getter &fget, const Setter &fset, const Extra &...extra) {
         return def_property(
-            name, fget, cpp_function(method_adaptor<type>(fset), is_setter()), extra...);
+            name,
+            fget,
+            cpp_function(method_adaptor<type>(fset), is_setter(), is_method(*this)),
+            extra...);
     }
     template <typename Getter, typename... Extra>
     class_ &def_property(const char *name,
@@ -1578,7 +1631,7 @@ public:
                          const cpp_function &fset,
                          const Extra &...extra) {
         return def_property(name,
-                            cpp_function(method_adaptor<type>(fget)),
+                            cpp_function(method_adaptor<type>(fget), is_method(*this)),
                             fset,
                             return_value_policy::reference_internal,
                             extra...);
@@ -1628,10 +1681,10 @@ public:
                 std::free(doc_prev);
                 rec_fget->doc = PYBIND11_COMPAT_STRDUP(rec_fget->doc);
             }
-            // Args added by process_attributes (e.g. "self" via is_method + pos_only/kw_only)
-            // need their strings strdup'd: initialize_generic's strdup loop already ran during
-            // cpp_function construction, so it won't process these late additions. Without this,
-            // destruct() would call free() on string literals. See gh-5976.
+            // process_attributes can add args after construction, e.g. "self" from is_method +
+            // pos_only/kw_only when a user-supplied cpp_function lacks is_method. The strdup loop
+            // in initialize_generic already ran, so strdup them here, or destruct() would free()
+            // string literals. See gh-5976.
             for (auto i = args_before; i < rec_fget->args.size(); ++i) {
                 if (rec_fget->args[i].name) {
                     rec_fget->args[i].name = PYBIND11_COMPAT_STRDUP(rec_fget->args[i].name);
@@ -1864,7 +1917,7 @@ private:
             return nullptr;
         }
 
-        handle func_self = PyCFunction_GET_SELF(h.ptr());
+        handle func_self = PYBIND11_PYCFUNCTION_GET_SELF(h.ptr());
         if (!func_self) {
             throw error_already_set();
         }
@@ -2068,7 +2121,7 @@ public:
         attr("__setstate__") = cpp_function(
             [](detail::value_and_holder &v_h, Scalar arg) {
                 detail::initimpl::setstate<Base>(
-                    v_h, static_cast<Type>(arg), Py_TYPE(v_h.inst) != v_h.type->type);
+                    v_h, static_cast<Type>(arg), !v_h.type_is_exact());
             },
             detail::is_new_style_constructor(),
             pybind11::name("__setstate__"),

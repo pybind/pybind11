@@ -777,6 +777,23 @@ def test_sparse():
     assert_sparse_equal_ref(m.sparse_copy_c(m.sparse_r()))
 
 
+@pytest.mark.parametrize("layout", ["r", "c"])
+@pytest.mark.parametrize("readonly", ["data", "indices", "indptr", "all"])
+def test_sparse_readonly(layout, readonly):
+    pytest.importorskip("scipy")
+    matrix = getattr(m, f"sparse_{layout}")()
+    for name in ("data", "indices", "indptr"):
+        if readonly in (name, "all"):
+            getattr(matrix, name).flags.writeable = False
+
+    result = getattr(m, f"sparse_copy_{layout}")(matrix)
+    assert_sparse_equal_ref(result)
+    assert_sparse_equal_ref(matrix)
+    for name in ("data", "indices", "indptr"):
+        if readonly in (name, "all"):
+            assert not getattr(matrix, name).flags.writeable
+
+
 def test_sparse_signature(doc):
     pytest.importorskip("scipy")
     assert (

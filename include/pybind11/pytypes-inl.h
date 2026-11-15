@@ -28,13 +28,12 @@ PYBIND11_INLINE error_fetch_and_normalize::error_fetch_and_normalize(const char 
                       + " called while "
                         "Python error indicator not set.");
     }
-    const char *exc_type_name_orig = detail::obj_class_name(m_type.ptr());
-    if (exc_type_name_orig == nullptr) {
-        pybind11_fail("Internal error: " + std::string(called)
-                      + " failed to obtain the name "
-                        "of the original active exception type.");
+    constexpr const char *exc_type_name_unavailable = "<EXCEPTION TYPE NAME UNAVAILABLE>";
+    m_lazy_error_string = detail::obj_class_name(m_type.ptr());
+    if (m_lazy_error_string.empty()) {
+        // A missing display name must not prevent reporting or restoring the primary error.
+        m_lazy_error_string = exc_type_name_unavailable;
     }
-    m_lazy_error_string = exc_type_name_orig;
 #if PY_VERSION_HEX >= 0x030C0000
     // The presence of __notes__ is likely due to exception normalization
     // errors, although that is not necessarily true, therefore insert a
@@ -50,19 +49,19 @@ PYBIND11_INLINE error_fetch_and_normalize::error_fetch_and_normalize(const char 
 #else
     // PyErr_NormalizeException() may change the exception type if there are cascading
     // failures. This can potentially be extremely confusing.
+    const object exc_type_orig = m_type;
     PyErr_NormalizeException(&m_type.ptr(), &m_value.ptr(), &m_trace.ptr());
     if (m_type.ptr() == nullptr) {
         pybind11_fail("Internal error: " + std::string(called)
                       + " failed to normalize the "
                         "active exception.");
     }
-    const char *exc_type_name_norm = detail::obj_class_name(m_type.ptr());
-    if (exc_type_name_norm == nullptr) {
-        pybind11_fail("Internal error: " + std::string(called)
-                      + " failed to obtain the name "
-                        "of the normalized active exception type.");
-    }
-    if (exc_type_name_norm != m_lazy_error_string) {
+    // Detect a type replacement independently of whether its display name is available.
+    if (exc_type_orig.ptr() != m_type.ptr()) {
+        std::string exc_type_name_norm = detail::obj_class_name(m_type.ptr());
+        if (exc_type_name_norm.empty()) {
+            exc_type_name_norm = exc_type_name_unavailable;
+        }
         std::string msg = std::string(called)
                           + ": MISMATCH of original and normalized "
                             "active exception types: ";
@@ -118,7 +117,7 @@ PYBIND11_INLINE std::string error_fetch_and_normalize::format_value_and_trace() 
             } else {
                 result += "\n__notes__ (len=" + std::to_string(len_notes) + "):";
                 for (ssize_t i = 0; i < len_notes; i++) {
-                    PyObject *note = PyList_GET_ITEM(notes.ptr(), i);
+                    PyObject *note = PyList_GetItem(notes.ptr(), i);
                     auto note_bytes = reinterpret_steal<object>(
                         PyUnicode_AsEncodedString(note, "utf-8", "backslashreplace"));
                     if (!note_bytes) {
@@ -150,17 +149,10 @@ PYBIND11_INLINE std::string error_fetch_and_normalize::format_value_and_trace() 
     if (m_trace) {
 #if !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)
         // Attribute access instead of struct access: the traceback, frame and code object
-        // layouts are not part of the stable ABI. Returns a null object on failure.
-        auto get_attr = [](handle obj, const char *name) {
-            auto value = reinterpret_steal<object>(PyObject_GetAttrString(obj.ptr(), name));
-            if (!value) {
-                // Known flaw: all secondary exceptions raised by this lookup are silently
-                // discarded, including KeyboardInterrupt and SystemError.
-                // Reading tb_frame can invoke audit hooks that raise such exceptions.
-                PyErr_Clear();
-            }
-            return value;
-        };
+        // layouts are not part of the stable ABI. A missing attribute gives a null object.
+        // Known flaw: all secondary exceptions raised by the lookup are silently discarded,
+        // including KeyboardInterrupt and SystemError (reading tb_frame can invoke audit hooks).
+        auto get_attr = [](handle obj, const char *name) { return getattr(obj, name, handle()); };
 
         // Get the deepest trace possible.
         object tb = m_trace;

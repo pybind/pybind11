@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import os
 import re
 import sys
 import threading
@@ -86,6 +87,29 @@ def test_cross_module_exception_translator():
     with pytest.raises(KeyError):
         # translator registered in cross_module_tests
         m.throw_should_be_translated_to_key_error()
+
+
+@pytest.mark.xfail(
+    env.FREEBSD,
+    raises=RuntimeError,
+    reason="Cross-module exception RTTI mismatch on FreeBSD; see PR #5925",
+)
+def test_cross_module_exception_translator_after_later_import():
+    # A module imported later must not shadow translators registered earlier
+    env.check_script_success_in_subprocess(
+        f"""
+        import sys
+        sys.path.insert(0, {os.path.dirname(env.__file__)!r})
+        from pybind11_tests import exceptions as m
+        import pybind11_cross_module_tests
+        import mod_concurrent_import
+        try:
+            m.throw_should_be_translated_to_key_error()
+        except KeyError:
+            pass
+        """,
+        rerun=1,
+    )
 
 
 def test_python_call_in_catch():
@@ -312,6 +336,16 @@ def test_error_already_set_message_with_malformed_utf8():
     )
 
 
+@pytest.mark.skipif(
+    not hasattr(m, "error_already_set_without_tp_name"),
+    reason="Requires write access to tp_name",
+)
+def test_error_already_set_without_tp_name():
+    assert m.error_already_set_without_tp_name() == (
+        "<EXCEPTION TYPE NAME UNAVAILABLE>: primary message"
+    )
+
+
 class FlakyException(Exception):
     def __init__(self, failure_point):
         if failure_point == "failure_point_init":
@@ -330,6 +364,11 @@ class FlakyException(Exception):
         (ValueError, "plain_str", "ValueError: plain_str"),
         (ValueError, ("tuple_elem",), "ValueError: tuple_elem"),
         (FlakyException, ("happy",), "FlakyException: FlakyException.__str__"),
+        (
+            type("", (Exception,), {}),
+            "primary message",
+            "<EXCEPTION TYPE NAME UNAVAILABLE>: primary message",
+        ),
     ],
 )
 def test_error_already_set_what_with_happy_exceptions(
@@ -338,6 +377,44 @@ def test_error_already_set_what_with_happy_exceptions(
     what, py_err_set_after_what = m.error_already_set_what(exc_type, exc_value)
     assert not py_err_set_after_what
     assert what == expected_what
+
+
+def test_error_already_set_unnamed_exception_roundtrip():
+    unnamed_error = type("", (Exception,), {})
+    try:
+        raise unnamed_error("primary message")
+    except Exception as exc:
+        original = exc
+    original_trace = original.__traceback__
+    what, error_set, matches, exc_type, value, trace = m.error_already_set_roundtrip(
+        original, original_trace
+    )
+    assert what.startswith("<EXCEPTION TYPE NAME UNAVAILABLE>: primary message")
+    if not env.PYPY and not env.GRAALPY:
+        assert "): test_error_already_set_unnamed_exception_roundtrip" in what
+    assert not error_set
+    assert matches
+    assert exc_type is unnamed_error
+    assert value is original
+    assert trace is original_trace
+
+
+def test_error_already_set_unnamed_secondary_exception():
+    unnamed_error = type("", (Exception,), {})
+
+    class BadStrError(Exception):
+        def __str__(self):
+            raise unnamed_error("secondary message")
+
+    what, error_set = m.error_already_set_what(BadStrError, "primary message")
+    assert what.startswith(
+        "BadStrError: <MESSAGE UNAVAILABLE DUE TO ANOTHER EXCEPTION>"
+    )
+    assert (
+        "MESSAGE UNAVAILABLE DUE TO EXCEPTION: "
+        "<EXCEPTION TYPE NAME UNAVAILABLE>: secondary message"
+    ) in what
+    assert not error_set
 
 
 def _test_flaky_exception_failure_point_init_before_py_3_12():

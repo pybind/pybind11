@@ -471,3 +471,9 @@ def test_args_refcount():
     assert m.mixed_args_refcount(myval, myval, myval) == (exp3_3, exp3_3, exp3_3)
 
     assert m.class_default_argument() == "<class 'decimal.Decimal'>"
+
+
+def test_exactly_64_keyword_arguments():
+    # Fills the inline storage of the bool vector that tracks used keywords (on 64-bit).
+    extra = {f"k{i}": i for i in range(63)}
+    assert m.args_kwonly_kwargs(1, 2.5, z=3, **extra) == (1, 2.5, (), 3, extra)

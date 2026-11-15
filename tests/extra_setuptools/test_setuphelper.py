@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+import sysconfig
 from textwrap import dedent
 
 import pytest
@@ -108,6 +109,191 @@ def test_simple_setup_py(monkeypatch, tmpdir, parallel, std):
     subprocess.check_call(
         [sys.executable, "test.py"], stdout=sys.stdout, stderr=sys.stderr
     )
+
+
+@pytest.mark.skipif(
+    sys.implementation.name != "cpython"
+    or sys.version_info < (3, 12)
+    or (sysconfig.get_config_var("Py_GIL_DISABLED") and sys.version_info < (3, 15)),
+    reason="stable ABI needs CPython 3.12+, or 3.15+ when free-threaded (abi3t)",
+)
+@pytest.mark.parametrize(
+    "py_limited_api",
+    [
+        True,
+        pytest.param(
+            "3.15t",
+            marks=pytest.mark.skipif(
+                sys.version_info < (3, 15), reason="abi3t needs CPython 3.15+"
+            ),
+        ),
+    ],
+)
+def test_stable_abi_setup_py(monkeypatch, tmpdir, py_limited_api):
+    monkeypatch.chdir(tmpdir)
+    monkeypatch.syspath_prepend(MAIN_DIR)
+
+    (tmpdir / "setup.py").write_text(
+        dedent(
+            f"""\
+            import sys
+            sys.path.append({MAIN_DIR!r})
+
+            from setuptools import setup
+            from pybind11.setup_helpers import build_ext, Pybind11Extension
+
+            ext_modules = [
+                Pybind11Extension(
+                    "stable_abi_setup",
+                    ["main.cpp"],
+                    cxx_std=17,
+                    py_limited_api={py_limited_api!r},
+                ),
+            ]
+
+            setup(
+                name="stable_abi_setup_package",
+                cmdclass={{"build_ext": build_ext}},
+                ext_modules=ext_modules,
+            )
+            """
+        ),
+        encoding="ascii",
+    )
+
+    (tmpdir / "main.cpp").write_text(
+        dedent(
+            """\
+            #include <pybind11/pybind11.h>
+
+            #if !defined(Py_LIMITED_API)
+            #    error "Py_LIMITED_API should be defined"
+            #endif
+
+            struct Point { int x; };
+
+            PYBIND11_MODULE(stable_abi_setup, m, pybind11::mod_gil_used()) {
+                pybind11::class_<Point>(m, "Point")
+                    .def(pybind11::init<int>())
+                    .def_readwrite("x", &Point::x);
+            }
+            """
+        ),
+        encoding="ascii",
+    )
+
+    subprocess.check_call([sys.executable, "setup.py", "build_ext", "--inplace"])
+
+    built = [f for f in tmpdir.listdir() if f.basename.startswith("stable_abi_setup")]
+    assert len(built) == 1
+    assert ".abi3" in built[0].basename or built[0].ext == ".pyd"
+    abi3t = py_limited_api == "3.15t" or sysconfig.get_config_var("Py_GIL_DISABLED")
+    if not WIN:
+        assert (".abi3t" in built[0].basename) == bool(abi3t)
+
+    (tmpdir / "test.py").write_text(
+        dedent(
+            """\
+            import stable_abi_setup
+            assert stable_abi_setup.Point(4).x == 4
+            """
+        ),
+        encoding="ascii",
+    )
+    subprocess.check_call(
+        [sys.executable, "test.py"], stdout=sys.stdout, stderr=sys.stderr
+    )
+
+
+@pytest.mark.parametrize(
+    ("building", "free_threaded", "value", "expected"),
+    [
+        ((3, 14), False, True, ("Py_LIMITED_API", "0x030C0000")),
+        ((3, 14), False, "3.13", ("Py_LIMITED_API", "0x030D0000")),
+        ((3, 14), False, "cp314", ("Py_LIMITED_API", "0x030E0000")),
+        ((3, 14), False, 0x030C0000, ("Py_LIMITED_API", "0x030C0000")),
+        ((3, 15), False, "3.15t", ("Py_TARGET_ABI3T", "0x030F0000")),
+        ((3, 15), True, True, ("Py_TARGET_ABI3T", "0x030F0000")),
+        ((3, 16), True, "3.15", ("Py_TARGET_ABI3T", "0x030F0000")),
+        ((3, 14), False, "3.11", ValueError),  # below the minimum
+        ((3, 14), False, "3.15", ValueError),  # newer than the headers
+        # Py_TARGET_ABI3T is unknown to the 3.14 headers
+        ((3, 14), False, "3.15t", ValueError),
+        ((3, 14), True, True, ValueError),  # abi3t needs 3.15
+        ((3, 14), False, "later", ValueError),
+    ],
+)
+def test_stable_abi_macro(monkeypatch, building, free_threaded, value, expected):
+    monkeypatch.syspath_prepend(MAIN_DIR)
+    from pybind11.setup_helpers import _stable_abi_macro
+
+    monkeypatch.setattr(sys, "version_info", (*building, 0, "final", 0))
+    monkeypatch.setattr(
+        sysconfig,
+        "get_config_var",
+        lambda name: int(free_threaded) if name == "Py_GIL_DISABLED" else None,
+    )
+    if expected is ValueError:
+        with pytest.raises(ValueError):
+            _stable_abi_macro(value)
+    else:
+        assert _stable_abi_macro(value) == expected
+
+
+@pytest.mark.parametrize(
+    ("py_limited_api", "define_macros", "expected"),
+    [
+        (True, [("Py_TARGET_ABI3T", "0x030F0000")], "PyModExport_example"),
+        (True, [("Py_TARGET_ABI3T", 0x030F0000)], "PyModExport_example"),
+        ("3.15t", [("Py_LIMITED_API", "0x030C0000")], "PyInit_example"),
+        (True, [("Py_TARGET_ABI3T", "0x03100000")], ValueError),
+        (True, [("Py_LIMITED_API", "0x030B0000")], ValueError),
+        (
+            True,
+            [("Py_LIMITED_API", "0x030C0000"), ("Py_TARGET_ABI3T", "0x030F0000")],
+            ValueError,
+        ),
+    ],
+)
+def test_stable_abi_explicit_macros(
+    monkeypatch, py_limited_api, define_macros, expected
+):
+    monkeypatch.syspath_prepend(MAIN_DIR)
+    from setuptools import Distribution
+
+    from pybind11.setup_helpers import Pybind11Extension, build_ext
+
+    get_config_var = sysconfig.get_config_var
+    with monkeypatch.context() as target:
+        target.setattr(sys, "version_info", (3, 15, 0, "final", 0))
+        target.setattr(
+            sysconfig,
+            "get_config_var",
+            lambda name: 0 if name == "Py_GIL_DISABLED" else get_config_var(name),
+        )
+        if expected is ValueError:
+            with pytest.raises(ValueError):
+                Pybind11Extension(
+                    "example",
+                    [],
+                    include_pybind11=False,
+                    cxx_std=17,
+                    py_limited_api=py_limited_api,
+                    define_macros=define_macros,
+                )
+            return
+        extension = Pybind11Extension(
+            "example",
+            [],
+            include_pybind11=False,
+            cxx_std=17,
+            py_limited_api=py_limited_api,
+            define_macros=define_macros,
+        )
+
+    assert extension.define_macros == define_macros
+    command = build_ext(Distribution({"ext_modules": [extension]}))
+    assert command.get_export_symbols(extension) == [expected]
 
 
 def test_intree_extensions(monkeypatch, tmpdir):

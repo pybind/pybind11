@@ -30,9 +30,19 @@ PYBIND11_INLINE bool type_is_managed_by_our_internals(PyTypeObject *type_obj) {
     });
 }
 
+// True for types bound directly with these internals (`py::class_`), excluding Python subclasses
+// whose base-type information is only cached here.
+PYBIND11_INLINE bool type_is_directly_registered_in_our_internals(PyTypeObject *type_obj) {
+    return with_internals([type_obj](internals &internals) {
+        auto it = internals.registered_types_py.find(type_obj);
+        return it != internals.registered_types_py.end() && it->second.size() == 1
+               && it->second[0]->type == type_obj;
+    });
+}
+
 PYBIND11_INLINE bool is_instance_method_of_type(PyTypeObject *type_obj, PyObject *attr_name) {
-    PyObject *descr = _PyType_Lookup(type_obj, attr_name);
-    return ((descr != nullptr) && PyInstanceMethod_Check(descr));
+    auto descr = type_lookup(type_obj, attr_name);
+    return descr && PYBIND11_INSTANCE_METHOD_CHECK(descr.ptr());
 }
 
 PYBIND11_INLINE object try_get_cpp_conduit_method(PyObject *obj) {

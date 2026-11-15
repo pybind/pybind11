@@ -232,6 +232,12 @@ TEST_SUBMODULE(multiple_inheritance, m) {
     py::class_<WithDict>(m, "WithDict", py::dynamic_attr()).def(py::init<>());
     py::class_<VanillaDictMix1, Vanilla, WithDict>(m, "VanillaDictMix1").def(py::init<>());
     py::class_<VanillaDictMix2, WithDict, Vanilla>(m, "VanillaDictMix2").def(py::init<>());
+    // Two unrelated bases that both have a `__dict__` slot (the stable ABI has no
+    // Py_TPFLAGS_MANAGED_DICT, so the slot is part of the instance layout).
+    struct WithDict2 {};
+    struct DictMix12 : WithDict, WithDict2 {};
+    py::class_<WithDict2>(m, "WithDict2", py::dynamic_attr()).def(py::init<>());
+    py::class_<DictMix12, WithDict, WithDict2>(m, "DictMix12").def(py::init<>());
 
     // test_diamond_inheritance
     // Issue #959: segfault when constructing diamond inheritance instance

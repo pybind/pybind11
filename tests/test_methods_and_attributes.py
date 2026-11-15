@@ -90,6 +90,34 @@ def test_methods_and_attributes():
     assert cstats.move_assignments == 0
 
 
+def test_unbound_method_access():
+    """`Class.method` returns the raw instancemethod, also on Python subclasses"""
+
+    class Sub(m.ExampleMandA):
+        pass
+
+    unbound = m.ExampleMandA.internal1
+    assert Sub.internal1 is unbound
+    assert m.ExampleMandA.__dict__["internal1"] is unbound
+    assert unbound(m.ExampleMandA(7)) == 7
+    assert Sub.__name__ == "Sub"
+
+    # Aliasing through the class keeps the instancemethod
+    Sub.alias = m.ExampleMandA.internal1
+    assert Sub(9).alias() == 9
+
+    # Py_TPFLAGS_METHOD_DESCRIPTOR: `obj.method(...)` skips the bound method. Only pybind11's
+    # own instancemethod (limited API) has it; CPython's PyInstanceMethod_Type does not.
+    if env.LIMITED_API:
+        assert type(unbound).__flags__ & (1 << 17)
+    bound = m.ExampleMandA(5).overloaded
+    assert bound.__self__.internal1() == 5
+    assert bound.__func__ is m.ExampleMandA.overloaded.__func__
+    assert bound(1, 1.0) == "(int, float)"
+    assert m.ExampleMandA(5).overloaded(1, 1.0) == "(int, float)"
+    assert m.ExampleMandA.overloaded(m.ExampleMandA(5), 1, 1.0) == "(int, float)"
+
+
 def test_copy_method():
     """Issue #443: calling copied methods fails in Python 3"""
 
@@ -138,6 +166,80 @@ def test_properties():
     with pytest.raises(AttributeError) as excinfo:
         instance.def_property_impossible = 5
     assert NO_SETTER_MSG in str(excinfo.value)
+
+
+TestPropertiesGetDocstring = (
+    "(self: pybind11_tests.methods_and_attributes.TestProperties) -> int"
+)
+TestPropertiesSetDocstring = "(self: pybind11_tests.methods_and_attributes.TestProperties, arg0: typing.SupportsInt | typing.SupportsIndex) -> None"
+
+
+def test_properties_docstring():
+    assert (
+        m.TestProperties.def_readonly.fget.__doc__.strip() == TestPropertiesGetDocstring
+    )
+
+    assert (
+        m.TestProperties.def_readwrite.fget.__doc__.strip()
+        == TestPropertiesGetDocstring
+    )
+    assert (
+        m.TestProperties.def_readwrite.fset.__doc__.strip()
+        == TestPropertiesSetDocstring
+    )
+
+    assert (
+        m.TestProperties.def_writeonly.fset.__doc__.strip()
+        == TestPropertiesSetDocstring
+    )
+
+    assert (
+        m.TestProperties.def_property_writeonly.fset.__doc__.strip()
+        == TestPropertiesSetDocstring
+    )
+
+    assert (
+        m.TestProperties.def_property_readonly.fget.__doc__.strip()
+        == TestPropertiesGetDocstring
+    )
+
+    assert (
+        m.TestProperties.def_property.fget.__doc__.strip() == TestPropertiesGetDocstring
+    )
+    assert (
+        m.TestProperties.def_property.fset.__doc__.strip() == TestPropertiesSetDocstring
+    )
+
+    assert (
+        m.TestProperties.def_property_lambda.fget.__doc__.strip()
+        == TestPropertiesGetDocstring
+    )
+    assert (
+        m.TestProperties.def_property_lambda.fset.__doc__.strip()
+        == TestPropertiesSetDocstring
+    )
+
+
+@pytest.mark.xfail(
+    reason="The signature of a cpp_function without is_method is fixed at construction",
+    strict=True,
+)
+def test_properties_docstring_cpp_function_getter():
+    assert (
+        m.TestProperties.def_property_cpp_function.fget.__doc__.strip()
+        == TestPropertiesGetDocstring
+    )
+
+
+@pytest.mark.xfail(
+    reason="The signature of a cpp_function without is_method is fixed at construction",
+    strict=True,
+)
+def test_properties_docstring_cpp_function_setter():
+    assert (
+        m.TestProperties.def_property_cpp_function.fset.__doc__.strip()
+        == TestPropertiesSetDocstring
+    )
 
 
 def test_static_properties():
@@ -221,6 +323,9 @@ def test_static_cls():
     instance.static_cls = check_self
 
 
+@pytest.mark.skipif(
+    "env.LIMITED_API", reason="PyType_FromMetaclass picks the most derived metaclass"
+)
 def test_metaclass_override():
     """Overriding pybind11's default metaclass changes the behavior of `static_property`"""
 
@@ -240,7 +345,8 @@ def test_metaclass_override():
 
 
 @pytest.mark.skipif(
-    not hasattr(m, "MetaclassConflictBase"), reason="Not available on GraalPy"
+    not hasattr(m, "MetaclassConflictBase"),
+    reason="Not available on GraalPy or under Py_LIMITED_API",
 )
 def test_metaclass_base_conflict():
     """A base with an unrelated metaclass does not block binding a derived class"""

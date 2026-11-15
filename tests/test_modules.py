@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import builtins
+import sys
+import types
 
 import pytest
 
@@ -118,6 +120,23 @@ def test_builtin_key_type():
     Previous versions of pybind11 would add a unicode key in python 2.
     """
     assert all(type(k) == str for k in dir(builtins))
+
+
+@pytest.mark.skipif(not env.CPYTHON, reason="Relies on sys.getrefcount()")
+def test_def_submodule_does_not_leak_filename():
+    parent = types.ModuleType("pybind11_test_def_submodule_leak")
+    filename = "".join(["not", "_a_real_file.py"])
+    parent.__file__ = filename
+    child_name = parent.__name__ + ".child"
+    try:
+        child = m.def_submodule(parent, "child")
+        assert child.__file__ is filename
+        refcount = sys.getrefcount(filename)
+        for _ in range(10):
+            assert m.def_submodule(parent, "child") is child
+        assert sys.getrefcount(filename) == refcount
+    finally:
+        sys.modules.pop(child_name, None)
 
 
 @pytest.mark.xfail("env.PYPY", reason="PyModule_GetName()")
