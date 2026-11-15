@@ -20,6 +20,7 @@
    :maxdepth: 2
 
    installing
+   supported
    basics
    classes
    compiling
