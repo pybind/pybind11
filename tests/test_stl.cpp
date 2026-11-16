@@ -526,12 +526,18 @@ TEST_SUBMODULE(stl, m) {
     };
 
     // test_variant
-    m.def("load_variant", [](const variant<int, std::string, double, std::nullptr_t> &v) {
-        return py::detail::visit_helper<variant>::call(visitor(), v);
-    });
-    m.def("load_variant_2pass", [](variant<int, double> v) {
-        return py::detail::visit_helper<variant>::call(visitor(), v);
-    });
+    m.def(
+        "load_variant",
+        [](const variant<int, std::string, double, std::nullptr_t> &v) {
+            return py::detail::visit_helper<variant>::call(visitor(), v);
+        },
+        py::returns_non_null());
+    m.def(
+        "load_variant_2pass",
+        [](variant<int, double> v) {
+            return py::detail::visit_helper<variant>::call(visitor(), v);
+        },
+        py::returns_non_null());
     m.def("cast_variant", []() {
         using V = variant<int, std::string>;
         return py::make_tuple(V(5), V("Hello"));

@@ -125,5 +125,9 @@ TEST_SUBMODULE(modules, m) {
         return failures;
     });
 
-    m.def("def_submodule", [](py::module_ m, const char *name) { return m.def_submodule(name); });
+    m.def(
+        "def_submodule",
+        [](py::module_ m, const char *name) { return m.def_submodule(name); },
+        py::arg("arg0"),
+        py::arg("arg1").none(false));
 }

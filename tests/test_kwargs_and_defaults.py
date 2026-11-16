@@ -19,7 +19,7 @@ def test_function_signatures(doc):
         doc(m.kw_func2)
         == "kw_func2(x: typing.SupportsInt | typing.SupportsIndex = 100, y: typing.SupportsInt | typing.SupportsIndex = 200) -> str"
     )
-    assert doc(m.kw_func3) == "kw_func3(data: str = 'Hello world!') -> None"
+    assert doc(m.kw_func3) == "kw_func3(data: str | None = 'Hello world!') -> None"
     assert (
         doc(m.kw_func4)
         == "kw_func4(myList: collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex] = [13, 17]) -> str"

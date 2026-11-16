@@ -521,7 +521,7 @@ def test_stl_pass_by_pointer(msg):
         msg(excinfo.value)
         == """
         stl_pass_by_pointer(): incompatible function arguments. The following argument types are supported:
-            1. (v: collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex] = None) -> list[int]
+            1. (v: collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex] | None = None) -> list[int]
 
         Invoked with:
     """
@@ -533,7 +533,7 @@ def test_stl_pass_by_pointer(msg):
         msg(excinfo.value)
         == """
         stl_pass_by_pointer(): incompatible function arguments. The following argument types are supported:
-            1. (v: collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex] = None) -> list[int]
+            1. (v: collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex] | None = None) -> list[int]
 
         Invoked with: None
     """
