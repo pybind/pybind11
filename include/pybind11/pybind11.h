@@ -1673,6 +1673,9 @@ public:
         static_assert(0 == detail::constexpr_sum(detail::is_keep_alive<Extra>::value...),
                       "def_property family does not currently support keep_alive. Use a "
                       "py::cpp_function instead.");
+        static_assert(0 == detail::constexpr_sum(std::is_base_of<returns_non_null, Extra>::value...),
+                      "def_property family does not currently support returns_non_null."
+                      "Use a py::cpp_function instead.");
         auto rec_fget = get_function_record(fget), rec_fset = get_function_record(fset);
         auto *rec_active = rec_fget;
         if (rec_fget) {
