@@ -38,7 +38,7 @@ To reproduce one OSS-Fuzz artifact with the standalone binary:
 ./build/tests/fuzz/pybind_fuzzer /path/to/crash
 ```
 
-OSS-Fuzz sets `LIB_FUZZING_ENGINE` and links that instead of `fuzz_replay.cc`.
+OSS-Fuzz sets `LIB_FUZZING_ENGINE` and links that instead of `fuzz_replay.cpp`.
 Both builds use the same callback and input decoder. When reproducing a
 sanitizer finding, enable the same sanitizer in the replay build. The
 libFuzzer binary can also replay one artifact with `-runs=1 <file>`.

@@ -9,7 +9,7 @@ jobs:
   Fuzzing:
     # CIFuzz builds through the OSS-Fuzz project, not this repository's CMake
     # cache. The job is allowed to fail until oss-fuzz's pybind11 build.sh
-    # compiles tests/fuzz/pybind_fuzzer.cc with LIB_FUZZING_ENGINE set
+    # compiles tests/fuzz/pybind_fuzzer.cpp with LIB_FUZZING_ENGINE set
     # (google/oss-fuzz#16274). Corpus replay in CI provides the required check.
     continue-on-error: true
     runs-on: ubuntu-latest

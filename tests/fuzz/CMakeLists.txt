@@ -41,18 +41,18 @@ endif()
 configure_file("${PYBIND11_FUZZER_INCLUDE_DIR}/fuzzer/FuzzedDataProvider.h"
                "${CMAKE_CURRENT_BINARY_DIR}/include/fuzzer/FuzzedDataProvider.h" COPYONLY)
 
-set(_pybind11_fuzz_sources pybind_fuzzer.cc)
+set(_pybind11_fuzz_sources pybind_fuzzer.cpp)
 # OSS-Fuzz exports LIB_FUZZING_ENGINE to the object that provides main().
 # Locally, link a small file-replay driver instead.
 if(DEFINED ENV{LIB_FUZZING_ENGINE} AND NOT "$ENV{LIB_FUZZING_ENGINE}" STREQUAL "")
   set(_pybind11_fuzz_engine "$ENV{LIB_FUZZING_ENGINE}")
 else()
-  list(APPEND _pybind11_fuzz_sources fuzz_replay.cc)
+  list(APPEND _pybind11_fuzz_sources fuzz_replay.cpp)
   set(_pybind11_fuzz_engine "")
 endif()
 
 add_executable(pybind_fuzzer ${_pybind11_fuzz_sources})
-add_executable(test_fuzz_input test_fuzz_input.cc)
+add_executable(test_fuzz_input test_fuzz_input.cpp)
 foreach(target pybind_fuzzer test_fuzz_input)
   pybind11_enable_warnings(${target})
   target_include_directories(${target} SYSTEM PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/include")
