@@ -257,9 +257,9 @@ struct function_record {
 
     /// True if this function is to be inserted at the beginning of the overload resolution chain
     bool prepend : 1;
-	
-	// True if this function does not return a nullptr
-	bool returns_non_null : 1;
+
+    // True if this function does not return a nullptr
+    bool returns_non_null : 1;
 
     /// Number of arguments (including py::args and/or py::kwargs, if present)
     std::uint16_t nargs;
@@ -624,7 +624,7 @@ struct process_attribute<prepend> : process_attribute_default<prepend> {
 
 template <>
 struct process_attribute<returns_non_null> : process_attribute_default<returns_non_null> {
-   static void init(const returns_non_null &, function_record *r) { r->returns_non_null = true; }
+    static void init(const returns_non_null &, function_record *r) { r->returns_non_null = true; }
 };
 
 /// Process an 'arithmetic' attribute for enums (does nothing here)
