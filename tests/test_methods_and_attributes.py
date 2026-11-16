@@ -604,25 +604,73 @@ def test_accepts_none(msg):
 
 
 def test_accepts_none_docstring():
-    assert m.no_none1.__doc__.strip() == "no_none1(arg0: m.methods_and_attributes.NoneTester) -> int"
-    assert m.no_none2.__doc__.strip() == "no_none2(arg0: m.methods_and_attributes.NoneTester) -> int"
-    assert m.no_none3.__doc__.strip() == "no_none3(arg0: m.methods_and_attributes.NoneTester) -> int"
-    assert m.no_none4.__doc__.strip() == "no_none4(arg0: m.methods_and_attributes.NoneTester) -> int"
-    assert m.no_none5.__doc__.strip() == "no_none5(arg0: m.methods_and_attributes.NoneTester) -> int"
-    assert m.ok_none1.__doc__.strip() == "ok_none1(arg0: m.methods_and_attributes.NoneTester) -> int"
-    assert m.ok_none2.__doc__.strip() == "ok_none2(arg0: m.methods_and_attributes.NoneTester | None) -> int"
-    assert m.ok_none3.__doc__.strip() == "ok_none3(arg0: m.methods_and_attributes.NoneTester | None) -> int"
-    assert m.ok_none4.__doc__.strip() == "ok_none4(arg0: m.methods_and_attributes.NoneTester | None) -> int"
-    assert m.ok_none5.__doc__.strip() == "ok_none5(arg0: m.methods_and_attributes.NoneTester | None) -> int"
+    assert (
+        m.no_none1.__doc__.strip()
+        == "no_none1(arg0: m.methods_and_attributes.NoneTester) -> int"
+    )
+    assert (
+        m.no_none2.__doc__.strip()
+        == "no_none2(arg0: m.methods_and_attributes.NoneTester) -> int"
+    )
+    assert (
+        m.no_none3.__doc__.strip()
+        == "no_none3(arg0: m.methods_and_attributes.NoneTester) -> int"
+    )
+    assert (
+        m.no_none4.__doc__.strip()
+        == "no_none4(arg0: m.methods_and_attributes.NoneTester) -> int"
+    )
+    assert (
+        m.no_none5.__doc__.strip()
+        == "no_none5(arg0: m.methods_and_attributes.NoneTester) -> int"
+    )
+    assert (
+        m.ok_none1.__doc__.strip()
+        == "ok_none1(arg0: m.methods_and_attributes.NoneTester) -> int"
+    )
+    assert (
+        m.ok_none2.__doc__.strip()
+        == "ok_none2(arg0: m.methods_and_attributes.NoneTester | None) -> int"
+    )
+    assert (
+        m.ok_none3.__doc__.strip()
+        == "ok_none3(arg0: m.methods_and_attributes.NoneTester | None) -> int"
+    )
+    assert (
+        m.ok_none4.__doc__.strip()
+        == "ok_none4(arg0: m.methods_and_attributes.NoneTester | None) -> int"
+    )
+    assert (
+        m.ok_none5.__doc__.strip()
+        == "ok_none5(arg0: m.methods_and_attributes.NoneTester | None) -> int"
+    )
 
 
 def test_returns_none_docstring():
-    assert m.return_raw_ptr.__doc__.strip() == "return_raw_ptr() -> m.methods_and_attributes.NoneTester"
-    assert m.return_unique_ptr.__doc__.strip() == "return_unique_ptr() -> m.methods_and_attributes.NoneTester"
-    assert m.return_shared_ptr.__doc__.strip() == "return_shared_ptr() -> m.methods_and_attributes.NoneTester"
-    assert m.return_raw_null_ptr.__doc__.strip() == "return_raw_null_ptr() -> m.methods_and_attributes.NoneTester | None"
-    assert m.return_unique_null_ptr.__doc__.strip() == "return_unique_null_ptr() -> m.methods_and_attributes.NoneTester | None"
-    assert m.return_shared_null_ptr.__doc__.strip() == "return_shared_null_ptr() -> m.methods_and_attributes.NoneTester | None"
+    assert (
+        m.return_raw_ptr.__doc__.strip()
+        == "return_raw_ptr() -> m.methods_and_attributes.NoneTester"
+    )
+    assert (
+        m.return_unique_ptr.__doc__.strip()
+        == "return_unique_ptr() -> m.methods_and_attributes.NoneTester"
+    )
+    assert (
+        m.return_shared_ptr.__doc__.strip()
+        == "return_shared_ptr() -> m.methods_and_attributes.NoneTester"
+    )
+    assert (
+        m.return_raw_null_ptr.__doc__.strip()
+        == "return_raw_null_ptr() -> m.methods_and_attributes.NoneTester | None"
+    )
+    assert (
+        m.return_unique_null_ptr.__doc__.strip()
+        == "return_unique_null_ptr() -> m.methods_and_attributes.NoneTester | None"
+    )
+    assert (
+        m.return_shared_null_ptr.__doc__.strip()
+        == "return_shared_null_ptr() -> m.methods_and_attributes.NoneTester | None"
+    )
 
 
 def test_casts_none():
