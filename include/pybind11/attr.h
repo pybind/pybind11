@@ -130,7 +130,7 @@ struct arithmetic {};
 /// Mark a function for addition at the beginning of the existing overload chain instead of the end
 struct prepend {};
 
-// Dissallow a function to return a nullptr.
+// Disallow a function to return a nullptr.
 struct returns_non_null {};
 
 /** \rst
