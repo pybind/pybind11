@@ -266,7 +266,12 @@ def test_mi_static_properties():
 def test_mi_dynamic_attributes():
     """Mixing bases with and without dynamic attribute support"""
 
-    for cls in (m.VanillaDictMix1, m.VanillaDictMix2):
+    class PyDictMix12(m.WithDict, m.WithDict2):
+        def __init__(self):
+            m.WithDict.__init__(self)
+            m.WithDict2.__init__(self)
+
+    for cls in (m.VanillaDictMix1, m.VanillaDictMix2, m.DictMix12, PyDictMix12):
         d = cls()
         d.dynamic = 1
         assert d.dynamic == 1

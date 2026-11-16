@@ -128,10 +128,16 @@ detail::type_info *get_type_info(const std::type_info &tp, bool throw_if_missing
 
 handle get_type_handle(const std::type_info &tp, bool throw_if_missing);
 
+#if !defined(PYBIND11_OPAQUE_PYOBJECT)
 bool try_incref(PyObject *obj);
+#endif
 
 // Searches the inheritance graph for a registered Python instance, using all_type_info().
 handle find_registered_python_instance(void *src, const detail::type_info *tinfo);
+
+inline bool value_and_holder::type_is_exact() const {
+    return Py_TYPE(instance_object(inst)) == type->type;
+}
 
 // Container for accessing and iterating over an instance's values/holders
 struct values_and_holders {
@@ -142,12 +148,12 @@ private:
 
 public:
     explicit values_and_holders(instance *inst)
-        : inst{inst}, tinfo(all_type_info(Py_TYPE(inst))) {}
+        : inst{inst}, tinfo(all_type_info(Py_TYPE(instance_object(inst)))) {}
 
     explicit values_and_holders(PyObject *obj)
         : inst{nullptr}, tinfo(all_type_info(Py_TYPE(obj))) {
         if (!tinfo.empty()) {
-            inst = reinterpret_cast<instance *>(obj);
+            inst = get_instance(obj);
         }
     }
 
@@ -433,7 +439,7 @@ handle smart_holder_from_unique_ptr(std::unique_ptr<T, D> &&src,
     }
 
     auto inst = reinterpret_steal<object>(make_new_instance(tinfo->type));
-    auto *inst_raw_ptr = reinterpret_cast<instance *>(inst.ptr());
+    auto *inst_raw_ptr = get_instance(inst.ptr());
     inst_raw_ptr->owned = true;
     void *&valueptr = values_and_holders(inst_raw_ptr).begin()->value_ptr();
     valueptr = src_raw_void_ptr;
@@ -501,7 +507,7 @@ handle smart_holder_from_shared_ptr(const std::shared_ptr<T> &src,
     }
 
     auto inst = reinterpret_steal<object>(make_new_instance(tinfo->type));
-    auto *inst_raw_ptr = reinterpret_cast<instance *>(inst.ptr());
+    auto *inst_raw_ptr = get_instance(inst.ptr());
     inst_raw_ptr->owned = true;
     void *&valueptr = values_and_holders(inst_raw_ptr).begin()->value_ptr();
     valueptr = src_raw_void_ptr;
@@ -542,7 +548,7 @@ struct shared_ptr_parent_life_support {
 struct shared_ptr_trampoline_self_life_support {
     PyObject *self;
     explicit shared_ptr_trampoline_self_life_support(instance *inst)
-        : self{reinterpret_cast<PyObject *>(inst)} {
+        : self{instance_object(inst)} {
         gil_scoped_acquire gil;
         Py_INCREF(self);
     }
@@ -581,7 +587,7 @@ struct load_helper : value_and_holder_helper {
 
     void maybe_set_python_instance_is_alias(handle src) {
         if (was_populated) {
-            python_instance_is_alias = reinterpret_cast<instance *>(src.ptr())->is_alias;
+            python_instance_is_alias = get_instance(src.ptr())->is_alias;
         }
     }
 
@@ -845,7 +851,7 @@ public:
         // Case 1: If src is an exact type match for the target type then we can reinterpret_cast
         // the instance's value pointer to the target type:
         if (srctype == typeinfo->type) {
-            this_.load_value(reinterpret_cast<instance *>(src.ptr())->get_value_and_holder());
+            this_.load_value(get_instance(src.ptr())->get_value_and_holder());
             return true;
         }
         // Case 2: We have a derived class
@@ -860,7 +866,7 @@ public:
             // is extremely common, we handle it specially to avoid the loop iterator and type
             // pointer lookup overhead)
             if (bases.size() == 1 && (no_cpp_mi || bases.front()->type == typeinfo->type)) {
-                this_.load_value(reinterpret_cast<instance *>(src.ptr())->get_value_and_holder());
+                this_.load_value(get_instance(src.ptr())->get_value_and_holder());
                 return true;
             }
             // Case 2b: the python type inherits from multiple C++ bases.  Check the bases to see
@@ -870,8 +876,7 @@ public:
                 for (auto *base : bases) {
                     if (no_cpp_mi ? PyType_IsSubtype(base->type, typeinfo->type)
                                   : base->type == typeinfo->type) {
-                        this_.load_value(
-                            reinterpret_cast<instance *>(src.ptr())->get_value_and_holder(base));
+                        this_.load_value(get_instance(src.ptr())->get_value_and_holder(base));
                         return true;
                     }
                 }

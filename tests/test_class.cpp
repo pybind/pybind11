@@ -547,8 +547,10 @@ TEST_SUBMODULE(class_, m) {
     bind_named_class<5>(names, "a.b[c]");
     bind_named_class<6>(base, "a[b.c]");
     bind_named_class<7>(dotted, "Child");
+#if !defined(Py_LIMITED_API)
     auto custom = names.def_submodule("custom");
     bind_named_class<8>(custom, "a[b.c]", py::custom_type_setup([](PyHeapTypeObject *) {}));
+#endif
     names.def("bind_with_metaclass",
               [](py::handle scope, py::handle nested_scope, const py::object &metaclass) {
                   auto module_class

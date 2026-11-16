@@ -135,6 +135,7 @@ def test_mutator_descriptors():
 
 
 def test_cpp_casting():
+    m.reset_refs()  # In case another test already changed it
     assert m.cpp_copy(m.fixed_r()) == 22.0
     assert m.cpp_copy(m.fixed_c()) == 22.0
     z = np.array([[5.0, 6], [7, 8]])
@@ -775,6 +776,23 @@ def test_sparse():
     assert_sparse_equal_ref(m.sparse_copy_c(m.sparse_c()))
     assert_sparse_equal_ref(m.sparse_copy_r(m.sparse_c()))
     assert_sparse_equal_ref(m.sparse_copy_c(m.sparse_r()))
+
+
+@pytest.mark.parametrize("layout", ["r", "c"])
+@pytest.mark.parametrize("readonly", ["data", "indices", "indptr", "all"])
+def test_sparse_readonly(layout, readonly):
+    pytest.importorskip("scipy")
+    matrix = getattr(m, f"sparse_{layout}")()
+    for name in ("data", "indices", "indptr"):
+        if readonly in (name, "all"):
+            getattr(matrix, name).flags.writeable = False
+
+    result = getattr(m, f"sparse_copy_{layout}")(matrix)
+    assert_sparse_equal_ref(result)
+    assert_sparse_equal_ref(matrix)
+    for name in ("data", "indices", "indptr"):
+        if readonly in (name, "all"):
+            assert not getattr(matrix, name).flags.writeable
 
 
 def test_sparse_signature(doc):

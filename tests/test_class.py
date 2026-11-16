@@ -33,6 +33,16 @@ def test_obj_class_name():
     assert m.obj_class_name(UserType) == expected_name
 
 
+def test_obj_class_name_python_subclass():
+    class Derived(UserType):
+        pass
+
+    # The first instance caches the type in pybind11's internals; the name must not change.
+    assert m.obj_class_name(Derived) == "Derived"
+    assert m.obj_class_name(Derived(1)) == "Derived"
+    assert m.obj_class_name(Derived) == "Derived"
+
+
 def test_obj_class_name_dotted():
     name = "a[b.c]"
     cls = getattr(m.class_names, name)
@@ -218,11 +228,13 @@ def test_qualname(doc):
 )
 def test_class_names_match_type(request, placement, name):
     """Bound classes follow Python's naming rules, including literal dots."""
+    if placement == "custom" and env.LIMITED_API:
+        pytest.skip("py::custom_type_setup is not available under Py_LIMITED_API")
     scopes = {
         "module": m.class_names,
         "nested": m.NestBase,
         "child": getattr(m.class_names, "a[b.c]"),
-        "custom": m.class_names.custom,
+        "custom": getattr(m.class_names, "custom", None),
     }
     scope = scopes[placement]
     cls = getattr(scope, name)
@@ -629,6 +641,7 @@ def test_class_refcount():
         pass
 
     for cls in m.Dog, PyDog:
+        pytest.gc_collect()  # Garbage from earlier tests can hold a reference
         refcount_1 = refcount_immortal(cls)
         molly = [cls("Molly") for _ in range(10)]
         refcount_2 = refcount_immortal(cls)

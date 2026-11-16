@@ -4,7 +4,8 @@ import gc
 
 import pytest
 
-from pybind11_tests import class_release_gil_before_calling_cpp_dtor as m
+# Not built under the stable ABI (PyGILState_Check is not part of it)
+m = pytest.importorskip("pybind11_tests.class_release_gil_before_calling_cpp_dtor")
 
 
 @pytest.mark.parametrize(
@@ -15,6 +16,8 @@ from pybind11_tests import class_release_gil_before_calling_cpp_dtor as m
     ],
 )
 def test_gil_state_check_results(probe_type, unique_key, expected_result):
+    if not m.PyGILState_Check_is_reliable():
+        pytest.skip("PyGILState_Check is disabled after a subinterpreter was created")
     probe_type(unique_key)
     gc.collect()
     result = m.PopPyGILState_Check_Result(unique_key)

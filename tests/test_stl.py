@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+import os
+import subprocess
+import sys
+import textwrap
 import weakref
 
 import pytest
 
-import env  # noqa: F401
+import env
+import pybind11_tests
 from pybind11_tests import ConstructorStats, UserType
 from pybind11_tests import stl as m
 
@@ -580,6 +585,42 @@ def test_array_cast_sequence():
     assert m.array_cast_sequence((1, 2, 3)) == [1, 2, 3]
 
 
+class SequenceWithChangingLen:
+    """Reports `lens[0]` when first asked for its length, `lens[1]` after that."""
+
+    def __init__(self, items, lens):
+        self.items = items
+        self.lens = list(lens)
+        self.indices = []
+
+    def __len__(self):
+        return self.lens.pop(0) if len(self.lens) > 1 else self.lens[0]
+
+    def __getitem__(self, index):
+        self.indices.append(index)
+        return self.items[index]
+
+
+ARRAY_CASTER_LOADS = [m.array_cast_sequence, m.valarray_cast_sequence]
+
+
+@pytest.mark.parametrize("load", ARRAY_CASTER_LOADS)
+@pytest.mark.parametrize("len_change", [-1, 1])
+def test_array_caster_len_changes(load, len_change):
+    """The length is determined only once, which rules out out-of-bounds accesses."""
+    seq = SequenceWithChangingLen(list(range(4)), [3, 3 + len_change])
+    assert load(seq) == [0, 1, 2]
+    assert seq.indices == [0, 1, 2]
+
+
+@pytest.mark.parametrize("load", ARRAY_CASTER_LOADS)
+def test_array_caster_len_exceeds_items(load):
+    seq = SequenceWithChangingLen([0, 1], [3])
+    with pytest.raises(IndexError):
+        load(seq)
+    assert seq.indices == [0, 1, 2]
+
+
 def test_issue_1561():
     """check fix for issue #1561"""
     bar = m.Issue1561Outer()
@@ -625,6 +666,62 @@ def test_list_caster_fully_consumes_generator_object():
     with pytest.raises(TypeError):
         m.pass_std_vector_int(gen_obj)
     assert not tuple(gen_obj)
+
+
+def test_list_caster_rejects_class_named_generator():
+    class generator:
+        pass
+
+    with pytest.raises(TypeError, match="incompatible function arguments"):
+        m.pass_std_vector_int(generator())
+
+
+@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
+@pytest.mark.skipif(env.ANDROID or env.IOS, reason="Requires subprocess support")
+def test_generator_check_does_not_deadlock():
+    """Two threads doing the first generator conversion at once must both finish.
+
+    The stable-ABI generator check imports `types` once. If the import releases the GIL
+    while another thread holds it and waits on the once-only guard, neither thread can
+    proceed. Runs in a subprocess so a regression shows up as a timeout, not a hang.
+    """
+    script = textwrap.dedent(
+        f"""
+        import sys
+        import threading
+
+        sys.path.insert(0, {os.path.dirname(env.__file__)!r})
+        sys.path.insert(0, {os.path.dirname(pybind11_tests.__file__)!r})
+
+        from pybind11_tests import stl as m
+
+        # A cold import runs importlib Python code, which can release the GIL.
+        del sys.modules["types"]
+        sys.setswitchinterval(1e-6)
+        start = threading.Barrier(2)
+
+        def convert():
+            start.wait()
+            for _ in range(100):
+                assert m.pass_std_vector_int(x for x in (1, 2, 3)) == 112
+
+        threads = [threading.Thread(target=convert) for _ in range(2)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        print("done")
+        """
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == "done"
 
 
 def test_pass_std_set_int():
@@ -861,3 +958,15 @@ def test_set_caster_protocol(doc):
         m.roundtrip_std_set_int_noconvert(FormalSetLike(1, 2, 3))
     with pytest.raises(TypeError):
         m.roundtrip_std_set_int_noconvert(BareSetLike(1, 2, 3))
+
+
+@pytest.mark.parametrize(
+    "name", ["map", "zip", "dict_keys", "dict_values", "dict_items"]
+)
+def test_non_iterable_user_class_named_like_builtin_iterable(name):
+    obj = type(name, (), {})()
+    with pytest.raises(TypeError, match="incompatible function arguments"):
+        m.pass_std_vector_int(obj)
+    if name == "dict_keys":
+        with pytest.raises(TypeError, match="incompatible function arguments"):
+            m.pass_std_set_int(obj)

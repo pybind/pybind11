@@ -44,6 +44,11 @@ def use_multiprocessing_forkserver_on_linux():
     multiprocessing.set_start_method("forkserver")
 
 
+@pytest.fixture(autouse=True)
+def reset_constructor_stats():
+    pybind11_tests.ConstructorStats.reset_all()
+
+
 _long_marker = re.compile(r"([0-9])L")
 _hexadecimal = re.compile(r"0x[0-9a-fA-F]+")
 
@@ -294,14 +299,16 @@ def pytest_report_header():
 @pytest.fixture
 def backport_typehints() -> Callable[[SanitizedString], SanitizedString]:
     d = {}
-    if sys.version_info < (3, 13):
+    # The spellings are chosen at compile time (a stable-ABI module may run on a newer Python).
+    compiled = tuple(pybind11_tests.COMPILED_PYTHON_VERSION)
+    if compiled < (3, 13):
         d["typing_extensions.TypeIs"] = "typing.TypeIs"
         d["typing_extensions.CapsuleType"] = "types.CapsuleType"
-    if sys.version_info < (3, 12):
+    if compiled < (3, 12):
         d["typing_extensions.Buffer"] = "collections.abc.Buffer"
-    if sys.version_info < (3, 11):
+    if compiled < (3, 11):
         d["typing_extensions.Never"] = "typing.Never"
-    if sys.version_info < (3, 10):
+    if compiled < (3, 10):
         d["typing_extensions.TypeGuard"] = "typing.TypeGuard"
 
     def backport(sanitized_string: SanitizedString) -> SanitizedString:

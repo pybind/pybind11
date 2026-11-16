@@ -433,6 +433,13 @@ TEST_SUBMODULE(methods_and_attributes, m) {
         .def_property("def_property_writeonly", nullptr, &TestProperties::set)
         .def_property_readonly("def_property_readonly", &TestProperties::get)
         .def_property("def_property", &TestProperties::get, &TestProperties::set)
+        .def_property(
+            "def_property_lambda",
+            [](const TestProperties &self) { return self.get(); },
+            [](TestProperties &self, int value) { return self.set(value); })
+        .def_property("def_property_cpp_function",
+                      py::cpp_function(&TestProperties::get),
+                      py::cpp_function(&TestProperties::set))
         .def_property("def_property_impossible", nullptr, nullptr)
         .def_readonly_static("def_readonly_static", &TestProperties::static_value)
         .def_readwrite_static("def_readwrite_static", &TestProperties::static_value)
@@ -493,7 +500,7 @@ TEST_SUBMODULE(methods_and_attributes, m) {
     py::class_<MetaclassOverride>(m, "MetaclassOverride", py::metaclass((PyObject *) &PyType_Type))
         .def_property_readonly_static("readonly", [](const py::object &) { return 1; });
 
-#if !defined(GRAALVM_PYTHON)
+#if !defined(GRAALVM_PYTHON) && !defined(Py_LIMITED_API)
     // test_metaclass_base_conflict: a derived class whose base has a metaclass that is neither a
     // base nor a subtype of pybind11_type (rejected by PyType_FromMetaclass()). GraalPy cannot
     // create a weak reference to a type whose metaclass was created with type().

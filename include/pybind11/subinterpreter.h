@@ -88,6 +88,22 @@ public:
 
         subinterpreter result;
         {
+#if PY_VERSION_HEX < 0x030E0000 && defined(Py_MOD_PER_INTERPRETER_GIL_SUPPORTED)
+            // Several internal CPython modules are not safe when two interpreters initialize
+            // concurrently before 3.14 (see #6071), so only one thread can create at a time.
+            // Initialization in 3.13 takes the main GIL, so a thread must not hold a GIL while it
+            // waits for this mutex.
+            static std::mutex one_at_a_time;
+            std::unique_lock<std::mutex> one_at_a_time_lock(one_at_a_time, std::defer_lock);
+            if (auto *waiting_tstate = detail::get_thread_state_unchecked()) {
+                PyEval_SaveThread();
+                one_at_a_time_lock.lock();
+                PyEval_RestoreThread(waiting_tstate);
+            } else {
+                one_at_a_time_lock.lock();
+            }
+#endif
+
             // we must hold the main GIL in order to create a subinterpreter
             subinterpreter_scoped_activate main_guard(main());
 
@@ -97,21 +113,7 @@ public:
 
             auto *prev_tstate = PyThreadState_Get();
 
-            PyStatus status;
-
-            {
-                /*
-                Several internal CPython modules are lacking proper subinterpreter support in 3.12
-                even though it is "stable" in that version.  This most commonly seems to cause
-                crashes when two interpreters concurrently initialize, which imports several things
-                (like builtins, unicode, codecs).
-                */
-#if PY_VERSION_HEX < 0x030D0000 && defined(Py_MOD_PER_INTERPRETER_GIL_SUPPORTED)
-                static std::mutex one_at_a_time;
-                std::lock_guard<std::mutex> guard(one_at_a_time);
-#endif
-                status = Py_NewInterpreterFromConfig(&result.creation_tstate_, &cfg);
-            }
+            PyStatus status = Py_NewInterpreterFromConfig(&result.creation_tstate_, &cfg);
 
             // this doesn't raise a normal Python exception, it provides an exit() status code.
             if (PyStatus_Exception(status) != 0) {
@@ -220,7 +222,7 @@ public:
     /// Get a non-owning wrapper of the currently active interpreter (if any)
     static subinterpreter current() {
         subinterpreter c;
-        c.istate_ = detail::get_interpreter_state_unchecked();
+        c.istate_ = detail::get_current_interpreter_state();
         c.disarm(); // make destruct a noop, we don't own this...
         return c;
     }
@@ -333,7 +335,7 @@ inline subinterpreter_scoped_activate::subinterpreter_scoped_activate(subinterpr
         pybind11_fail("null subinterpreter");
     }
 
-    if (detail::get_interpreter_state_unchecked() == si.istate_) {
+    if (detail::get_current_interpreter_state() == si.istate_) {
         // we are already on this interpreter, make sure we hold the GIL
         simple_gil_ = true;
         gil_state_ = PyGILState_Ensure();
@@ -357,7 +359,7 @@ inline subinterpreter_scoped_activate::subinterpreter_scoped_activate(
         pybind11_fail("subinterpreter_scoped_activate: empty subinterpreter_thread_state");
     }
 
-    if (detail::get_interpreter_state_unchecked() == ts.istate_) {
+    if (detail::get_current_interpreter_state() == ts.istate_) {
         // We are already on this interpreter -- e.g. nested activation, or a different
         // PyThreadState for the same interpreter is already current on this thread.  Match the
         // fast path of the (subinterpreter const&) overload: just ensure the GIL is held.  The

@@ -79,13 +79,25 @@ inline bool object_is_instance_with_one_of_tp_names(PyObject *obj,
     if (PyType_Check(obj)) {
         return false;
     }
-    const char *obj_tp_name = Py_TYPE(obj)->tp_name;
-    for (const auto *tp_name : tp_names) {
-        if (std::strcmp(obj_tp_name, tp_name) == 0) {
-            return true;
-        }
-    }
-    return false;
+    // A user-defined class can have the same name without being iterable.
+    return tp_name_is_one_of(Py_TYPE(obj), tp_names) && PyIterable_Check(obj);
+}
+
+inline bool object_is_generator(PyObject *obj) {
+#if defined(Py_LIMITED_API)
+    // Exact type check, like PyGen_Check(): a user class named `generator` must not match.
+    // The import can release the GIL, so a plain function-local static could deadlock.
+    PYBIND11_CONSTINIT static gil_safe_call_once_and_store<PyTypeObject *> storage;
+    return Py_TYPE(obj)
+           == storage
+                  .call_once_and_store_result([] {
+                      return reinterpret_cast<PyTypeObject *>(
+                          object(module_::import("types").attr("GeneratorType")).release().ptr());
+                  })
+                  .get_stored();
+#else
+    return PyGen_Check(obj) != 0;
+#endif
 }
 
 inline bool object_is_convertible_to_std_vector(const handle &src) {
@@ -94,7 +106,7 @@ inline bool object_is_convertible_to_std_vector(const handle &src) {
         return !PyUnicode_Check(src.ptr()) && !PyBytes_Check(src.ptr());
     }
     // Allow generators, set/frozenset and several common iterable types.
-    return (PyGen_Check(src.ptr()) != 0) || (PyAnySet_Check(src.ptr()) != 0)
+    return object_is_generator(src.ptr()) || (PyAnySet_Check(src.ptr()) != 0)
            || object_is_instance_with_one_of_tp_names(
                src.ptr(), {"dict_keys", "dict_values", "dict_items", "map", "zip"});
 }
@@ -352,7 +364,7 @@ public:
             if (!value_) {
                 return handle();
             }
-            PyList_SET_ITEM(l.ptr(), index++, value_.release().ptr()); // steals a reference
+            list_set_item(l.ptr(), index++, value_.release().ptr()); // steals a reference
         }
         return l.release();
     }
@@ -389,22 +401,27 @@ struct array_caster {
 private:
     std::unique_ptr<ArrayType> value;
 
+    // Both `convert_elements` overloads index `l` up to a size that is determined only once,
+    // rather than iterating over `l`: the accesses stay in bounds even if the length of `l`
+    // changes underneath (e.g. if another thread resizes a list in a free-threaded build).
+
     template <bool R = Resizable, enable_if_t<R, int> = 0>
     bool convert_elements(handle seq, bool convert) {
         auto l = reinterpret_borrow<sequence>(seq);
+        const size_t size = l.size();
         value.reset(new ArrayType{});
         // Using `resize` to preserve the behavior exactly as it was before PR #5305
         // For the `resize` to work, `Value` must be default constructible.
         // For `std::valarray`, this is a requirement:
         // https://en.cppreference.com/w/cpp/named_req/NumericType
-        value->resize(l.size());
-        size_t ctr = 0;
-        for (const auto &it : l) {
-            value_conv conv;
-            if (!conv.load(it, convert)) {
+        value->resize(size);
+        for (size_t i = 0; i < size; i++) {
+            value_conv conv;          // Constructed before the item is fetched.
+            const object item = l[i]; // Keeps the item alive while `conv` is in use.
+            if (!conv.load(item, convert)) {
                 return false;
             }
-            (*value)[ctr++] = cast_op<Value &&>(std::move(conv));
+            (*value)[i] = cast_op<Value &&>(std::move(conv));
         }
         return true;
     }
@@ -412,7 +429,8 @@ private:
     template <bool R = Resizable, enable_if_t<!R, int> = 0>
     bool convert_elements(handle seq, bool convert) {
         auto l = reinterpret_borrow<sequence>(seq);
-        if (l.size() != Size) {
+        const size_t size = l.size();
+        if (size != Size) {
             return false;
         }
         // The `temp` storage is needed to support `Value` types that are not
@@ -421,10 +439,11 @@ private:
         // because the compile time overhead for the specializations is deemed
         // more significant than the runtime overhead for the `temp` storage.
         std::vector<Value> temp;
-        temp.reserve(l.size());
-        for (auto it : l) {
-            value_conv conv;
-            if (!conv.load(it, convert)) {
+        temp.reserve(size);
+        for (size_t i = 0; i < size; i++) {
+            value_conv conv;          // Constructed before the item is fetched.
+            const object item = l[i]; // Keeps the item alive while `conv` is in use.
+            if (!conv.load(item, convert)) {
                 return false;
             }
             temp.emplace_back(cast_op<Value &&>(std::move(conv)));
@@ -462,7 +481,7 @@ public:
             if (!value_) {
                 return handle();
             }
-            PyList_SET_ITEM(l.ptr(), index++, value_.release().ptr()); // steals a reference
+            list_set_item(l.ptr(), index++, value_.release().ptr()); // steals a reference
         }
         return l.release();
     }

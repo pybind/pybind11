@@ -225,6 +225,7 @@ TEST_SUBMODULE(stl, m) {
     m.def("load_valarray", [](const std::valarray<int> &v) {
         return v.size() == 3 && v[0] == 1 && v[1] == 4 && v[2] == 9;
     });
+    m.def("valarray_cast_sequence", [](std::valarray<int> x) { return x; });
 
     // test_map
     m.def("cast_map", []() { return std::map<std::string, std::string>{{"key", "value"}}; });
