@@ -695,7 +695,19 @@ public:
     }
 
     explicit operator CharT *() {
-        return none ? nullptr : const_cast<CharT *>(static_cast<StringType &>(str_caster).c_str());
+        if (none) {
+            return nullptr;
+        }
+        auto &value = static_cast<StringType &>(str_caster);
+        if (!loader_life_support::is_active()) {
+            return const_cast<CharT *>(value.c_str());
+        }
+        // This caster can be a temporary (e.g. inside a container caster), so the string
+        // must be owned by the call frame instead.
+        std::unique_ptr<StringType> owned(new StringType(std::move(value)));
+        loader_life_support::add_patient(
+            capsule(owned.get(), [](void *ptr) { delete static_cast<StringType *>(ptr); }));
+        return &(*owned.release())[0];
     }
     explicit operator CharT &() {
         if (none) {

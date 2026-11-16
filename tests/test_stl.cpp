@@ -582,6 +582,30 @@ TEST_SUBMODULE(stl, m) {
           [](const std::list<std::string> &) { return 2; });
     m.def("func_with_string_or_vector_string_arg_overload", [](const std::string &) { return 3; });
 
+    // #2245: containers of C strings
+    m.def("func_with_char_ptrs", [](const std::vector<const char *> &strs) {
+        py::list l;
+        for (const char *s : strs) {
+            l.append(s);
+        }
+        return l;
+    });
+    m.def("func_with_nested_char_ptrs",
+          [](const std::map<std::string, std::array<const char *, 2>> &strs) {
+              py::dict d;
+              for (const auto &kv : strs) {
+                  d[py::str(kv.first)] = py::make_tuple(kv.second[0], kv.second[1]);
+              }
+              return d;
+          });
+    m.def("func_with_wchar_ptrs", [](const std::vector<const wchar_t *> &strs) {
+        py::list l;
+        for (const wchar_t *s : strs) {
+            l.append(s);
+        }
+        return l;
+    });
+
 #ifdef PYBIND11_HAS_STRING_VIEW
     m.def("func_with_string_views", [](const std::vector<std::string_view> &svs) {
         py::list l;
