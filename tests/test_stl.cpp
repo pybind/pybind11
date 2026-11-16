@@ -548,7 +548,8 @@ TEST_SUBMODULE(stl, m) {
     m.def("load_monostate_variant",
           [](const variant<std::monostate, int, std::string> &v) -> const char * {
               return py::detail::visit_helper<variant>::call(visitor(), v);
-          });
+          },
+          py::returns_non_null());
     m.def("cast_monostate_variant", []() {
         using V = variant<std::monostate, int, std::string>;
         return py::make_tuple(V{}, V(5), V("Hello"));
