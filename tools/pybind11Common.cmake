@@ -47,11 +47,18 @@ set(pybind11_INCLUDE_DIRS
 # project set explicitly (e.g. Emscripten/Pyodide defines an emulator yet still wants it ON).
 # This applies to find_package() consumers only; the pybind11 project itself computes the same
 # default for its PYBIND11_USE_CROSSCOMPILING option, which is always defined.
-if(CMAKE_VERSION VERSION_GREATER_EQUAL "4.1"
-   AND NOT DEFINED CMAKE_CROSSCOMPILING_EMULATOR
-   AND NOT DEFINED PYBIND11_USE_CROSSCOMPILING)
-  cmake_policy(GET CMP0190 _pybind11_cmp0190)
-  if(_pybind11_cmp0190 STREQUAL "NEW")
+#
+# Without CMP0190, FindPython still finds the interpreter when cross-compiling, but cannot
+# query its ABI flags. It then drops a free-threaded ABI requested with Python_FIND_ABI and
+# rejects the "python3.Xt" headers, so also default to ON in that case.
+if(NOT DEFINED CMAKE_CROSSCOMPILING_EMULATOR AND NOT DEFINED PYBIND11_USE_CROSSCOMPILING)
+  set(_pybind11_cmp0190 "OLD")
+  if(CMAKE_VERSION VERSION_GREATER_EQUAL "4.1")
+    cmake_policy(GET CMP0190 _pybind11_cmp0190)
+  endif()
+  string(TOUPPER "${Python_FIND_ABI}" _pybind11_find_abi)
+  if(_pybind11_cmp0190 STREQUAL "NEW" OR _pybind11_find_abi MATCHES
+                                         "^[^;]*;[^;]*;[^;]*;(ON|TRUE|YES|Y|1)$")
     set(PYBIND11_USE_CROSSCOMPILING "ON")
   endif()
 endif()
