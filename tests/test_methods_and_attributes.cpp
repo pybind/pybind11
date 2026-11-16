@@ -132,7 +132,7 @@ int none4(std::shared_ptr<NoneTester> *obj) { return obj && *obj ? (*obj)->answe
 int none5(const std::shared_ptr<NoneTester> &obj) { return obj ? obj->answer : -1; }
 
 NoneTester *return_raw_ptr() { return new NoneTester; }
-std::unique_ptr<NoneTester> return_unique_ptr() { return std::make_unique<NoneTester>(); }
+std::unique_ptr<NoneTester> return_unique_ptr() { return std::unique_ptr<NoneTester>(new NoneTester); }
 std::shared_ptr<NoneTester> return_shared_ptr() { return std::make_shared<NoneTester>(); }
 NoneTester *return_raw_null_ptr() { return nullptr; }
 std::unique_ptr<NoneTester> return_unique_null_ptr() { return nullptr; }
