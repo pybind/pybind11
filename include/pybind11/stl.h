@@ -174,7 +174,8 @@ template <typename T, bool Keep = cast_refers_to_caster<T>::value>
 class element_casters {
 public:
     struct slot {
-        explicit slot(element_casters &) {}
+        // Value-initialized, as the kept type_casters are.
+        explicit slot(element_casters &) : caster() {}
         make_caster<T> caster;
     };
     void clear() {}
