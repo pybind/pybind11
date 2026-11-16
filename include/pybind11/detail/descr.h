@@ -246,8 +246,8 @@ struct is_nullable<std::unique_ptr<T, D>> : std::true_type {};
 template <typename T>
 using is_nullable_type = is_nullable<remove_cv_t<remove_reference_t<T>>>;
 
-// `@?` is added after nullable types. generate_function_signature() appends " | None"
-// to the return type and argument types unless the argument was declared .none(false).
+// `@?` is added after nullable types.
+// generate_function_signature() appends " | None" to the argument and return types.
 template <typename T, size_t N, typename... Ts>
 constexpr enable_if_t<is_nullable_type<T>::value, descr<N + 2, Ts...>>
 nullable_name(const descr<N, Ts...> &d) {
