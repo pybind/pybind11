@@ -151,7 +151,7 @@ TEST_SUBMODULE(type_caster_pyobject_ptr, m) {
         return i;
     });
 
-    m.def("pass_pyobject_ptr_and_int", [](PyObject *, int) {}, py::arg("arg0").none(false));
+    m.def("pass_pyobject_ptr_and_int", [](PyObject *, int) {}, py::arg("arg0").none(false), py::arg("arg1"));
 
 #ifdef PYBIND11_NO_COMPILE_SECTION // Change to ifndef for manual testing.
     {
