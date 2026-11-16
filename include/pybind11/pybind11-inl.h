@@ -161,19 +161,18 @@ PYBIND11_INLINE std::string generate_function_signature(const char *type_caster_
             }
             if (*(pc + 1) == '?') {
                 // `@?` is used after a type to indicate it is a nullable (pointer) type.
-				// Return values can be None unless marked returns_non_null.
-				// Arguments accept None unless declared with py::arg(...).none(false).
+                // Return values can be None unless marked returns_non_null.
+                // Arguments accept None unless declared with py::arg(...).none(false).
                 ++pc;
-                if (
-					is_return_value.top() ? !func_rec->returns_non_null // is a return that can return null
-					: ( // or and argument ...
-						!(arg_index == 0 && func_rec->is_method) // that is not self ...
-						&& ( // and ...
-							arg_index >= func_rec->args.size() // there is no arg record
-							|| func_rec->args[arg_index].none  // or the arg record is nullable.
-						)
-					)
-				) {
+                if (is_return_value.top()
+                        ? !func_rec->returns_non_null // is a return that can return null
+                        : (                           // or and argument ...
+                              !(arg_index == 0 && func_rec->is_method) // that is not self ...
+                              && (                                     // and ...
+                                  arg_index >= func_rec->args.size()   // there is no arg record
+                                  || func_rec->args[arg_index]
+                                         .none // or the arg record is nullable.
+                                  ))) {
                     signature += " | None";
                 }
                 continue;
