@@ -159,11 +159,24 @@ public:
         return l;
     }
 
-    // Gets constructor stats from a C++ type index
-    static ConstructorStats &get(std::type_index type) {
+    static std::unordered_map<std::type_index, ConstructorStats> &all() {
         static std::unordered_map<std::type_index, ConstructorStats> all_cstats;
-        return all_cstats[type];
+        return all_cstats;
     }
+
+    // Drops values and counts left over from earlier tests, so that tests do not depend on run
+    // order. Live instances stay tracked.
+    static void reset_all() {
+        for (auto &p : all()) {
+            auto &s = p.second;
+            s._values.clear();
+            s.default_constructions = s.copy_constructions = s.move_constructions = 0;
+            s.copy_assignments = s.move_assignments = 0;
+        }
+    }
+
+    // Gets constructor stats from a C++ type index
+    static ConstructorStats &get(std::type_index type) { return all()[type]; }
 
     // Gets constructor stats from a C++ type
     template <typename T>

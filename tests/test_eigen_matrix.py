@@ -135,6 +135,7 @@ def test_mutator_descriptors():
 
 
 def test_cpp_casting():
+    m.reset_refs()  # In case another test already changed it
     assert m.cpp_copy(m.fixed_r()) == 22.0
     assert m.cpp_copy(m.fixed_c()) == 22.0
     z = np.array([[5.0, 6], [7, 8]])
