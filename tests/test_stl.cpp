@@ -91,15 +91,13 @@ struct type_caster<CastOnlyElement> {
 } // namespace detail
 } // namespace PYBIND11_NAMESPACE
 
-// test_array_custom_type: `array_caster` can only construct this from a braced list. It has no
-// default constructor and no mutable `operator[]`.
+// test_array_custom_type: `array_caster` can only construct this from a braced list. The `const`
+// member rules out a default constructor, and there is no `operator[]`.
 struct FixedArray3 {
-    // NOLINTNEXTLINE(google-explicit-constructor)
-    FixedArray3(const std::array<double, 3> &arr) : arr(arr) {}
-    const double *begin() const { return arr.data(); }
-    const double *end() const { return arr.data() + arr.size(); }
-    size_t size() const { return arr.size(); }
-    std::array<double, 3> arr;
+    const double *begin() const { return arr; }
+    const double *end() const { return arr + 3; }
+    size_t size() const { return 3; }
+    const double arr[3];
 };
 
 namespace PYBIND11_NAMESPACE {
