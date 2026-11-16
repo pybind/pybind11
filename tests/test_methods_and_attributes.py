@@ -603,6 +603,19 @@ def test_accepts_none(msg):
     assert "incompatible function arguments" in str(excinfo.value)
 
 
+def test_accepts_none_docstring():
+    assert m.no_none1.__doc__.strip() == "no_none1(arg0: m.methods_and_attributes.NoneTester) -> int"
+    assert m.no_none2.__doc__.strip() == "no_none2(arg0: m.methods_and_attributes.NoneTester) -> int"
+    assert m.no_none3.__doc__.strip() == "no_none3(arg0: m.methods_and_attributes.NoneTester) -> int"
+    assert m.no_none4.__doc__.strip() == "no_none4(arg0: m.methods_and_attributes.NoneTester) -> int"
+    assert m.no_none5.__doc__.strip() == "no_none5(arg0: m.methods_and_attributes.NoneTester) -> int"
+    assert m.ok_none1.__doc__.strip() == "ok_none1(arg0: m.methods_and_attributes.NoneTester) -> int"
+    assert m.ok_none2.__doc__.strip() == "ok_none2(arg0: m.methods_and_attributes.NoneTester | None) -> int"
+    assert m.ok_none3.__doc__.strip() == "ok_none3(arg0: m.methods_and_attributes.NoneTester | None) -> int"
+    assert m.ok_none4.__doc__.strip() == "ok_none4(arg0: m.methods_and_attributes.NoneTester | None) -> int"
+    assert m.ok_none5.__doc__.strip() == "ok_none5(arg0: m.methods_and_attributes.NoneTester | None) -> int"
+
+
 def test_casts_none():
     """#2778: implicit casting from None to object (not pointer)"""
     a = m.NoneCastTester()
