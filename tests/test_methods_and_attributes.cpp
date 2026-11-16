@@ -131,6 +131,13 @@ int none3(std::shared_ptr<NoneTester> &obj) { return obj ? obj->answer : -1; }
 int none4(std::shared_ptr<NoneTester> *obj) { return obj && *obj ? (*obj)->answer : -1; }
 int none5(const std::shared_ptr<NoneTester> &obj) { return obj ? obj->answer : -1; }
 
+NoneTester *return_raw_ptr() { return new NoneTester; }
+std::unique_ptr<NoneTester> return_unique_ptr() { return std::make_unique<NoneTester>(); }
+std::shared_ptr<NoneTester> return_shared_ptr() { return std::make_shared<NoneTester>(); }
+NoneTester *return_raw_null_ptr() { return nullptr; }
+std::unique_ptr<NoneTester> return_unique_null_ptr() { return nullptr; }
+std::shared_ptr<NoneTester> return_shared_null_ptr() { return nullptr; }
+
 // Issue #2778: implicit casting from None to object (not pointer)
 class NoneCastTester {
 public:
@@ -590,6 +597,13 @@ TEST_SUBMODULE(methods_and_attributes, m) {
     m.def("ok_none3", &none3);
     m.def("ok_none4", &none4, py::arg{}.none(true));
     m.def("ok_none5", &none5);
+
+    m.def("return_raw_ptr", &return_raw_ptr, py::returns_non_null());
+    m.def("return_unique_ptr", &return_unique_ptr, py::returns_non_null());
+    m.def("return_shared_ptr", &return_shared_ptr, py::returns_non_null());
+    m.def("return_raw_null_ptr", &return_raw_null_ptr);
+    m.def("return_unique_null_ptr", &return_unique_null_ptr);
+    m.def("return_shared_null_ptr", &return_shared_null_ptr);
 
     m.def("no_none_kwarg", &none2, "a"_a.none(false));
     m.def("no_none_kwarg_kw_only", &none2, py::kw_only(), "a"_a.none(false));

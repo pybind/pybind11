@@ -616,6 +616,15 @@ def test_accepts_none_docstring():
     assert m.ok_none5.__doc__.strip() == "ok_none5(arg0: m.methods_and_attributes.NoneTester | None) -> int"
 
 
+def test_returns_none_docstring():
+    assert m.return_raw_ptr.__doc__.strip() == "return_raw_ptr() -> m.methods_and_attributes.NoneTester"
+    assert m.return_unique_ptr.__doc__.strip() == "return_unique_ptr() -> m.methods_and_attributes.NoneTester"
+    assert m.return_shared_ptr.__doc__.strip() == "return_shared_ptr() -> m.methods_and_attributes.NoneTester"
+    assert m.return_raw_null_ptr.__doc__.strip() == "return_raw_null_ptr() -> m.methods_and_attributes.NoneTester | None"
+    assert m.return_unique_null_ptr.__doc__.strip() == "return_unique_null_ptr() -> m.methods_and_attributes.NoneTester | None"
+    assert m.return_shared_null_ptr.__doc__.strip() == "return_shared_null_ptr() -> m.methods_and_attributes.NoneTester | None"
+
+
 def test_casts_none():
     """#2778: implicit casting from None to object (not pointer)"""
     a = m.NoneCastTester()
