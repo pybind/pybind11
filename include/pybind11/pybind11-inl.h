@@ -161,7 +161,7 @@ PYBIND11_INLINE std::string generate_function_signature(const char *type_caster_
             }
             if (*(pc + 1) == '?') {
                 // `@?` is used after a type to indicate it is a nullable (pointer) type.
-				// Return values can always be None.
+				// Return values can be None unless marked returns_non_null.
 				// Arguments accept None unless declared with py::arg(...).none(false).
                 ++pc;
                 if (
