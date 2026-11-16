@@ -73,7 +73,7 @@ TEST_SUBMODULE(numpy_vectorize, m) {
                            int &e,
                            NonPODClass f,
                            const double g) { return *a + b + c.at(0) + d + e + f.value + g; }),
-                           py::arg("arg0").none(false));
+          py::arg("arg0").none(false));
 
     // test_method_vectorization
     struct VectorizeTestClass {
