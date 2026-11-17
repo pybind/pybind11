@@ -50,9 +50,9 @@ class Object : public object {
 public:
     Object() = default;
     // NOLINTNEXTLINE(google-explicit-constructor)
-    Object(const object& o) : object(o) {}
+    Object(const object &o) : object(o) {}
     // NOLINTNEXTLINE(google-explicit-constructor)
-    Object(object&& other) noexcept : object(std::move(other)) {}
+    Object(object &&other) noexcept : object(std::move(other)) {}
 };
 
 template <typename K, typename V>
