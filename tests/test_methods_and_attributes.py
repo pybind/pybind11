@@ -220,13 +220,9 @@ def test_properties_docstring():
     )
 
 
-TestProperties2GetDocstring = (
-    "(self: pybind11_tests.methods_and_attributes.TestProperties2) -> pybind11_tests.methods_and_attributes.TestProperties"
-)
+TestProperties2GetDocstring = "(self: pybind11_tests.methods_and_attributes.TestProperties2) -> pybind11_tests.methods_and_attributes.TestProperties"
 TestProperties2SetDocstring = "(self: pybind11_tests.methods_and_attributes.TestProperties2, arg0: pybind11_tests.methods_and_attributes.TestProperties) -> None"
-TestProperties2GetDocstringNone = (
-    "(self: pybind11_tests.methods_and_attributes.TestProperties2) -> pybind11_tests.methods_and_attributes.TestProperties | None"
-)
+TestProperties2GetDocstringNone = "(self: pybind11_tests.methods_and_attributes.TestProperties2) -> pybind11_tests.methods_and_attributes.TestProperties | None"
 TestProperties2SetDocstringNone = "(self: pybind11_tests.methods_and_attributes.TestProperties2, arg0: pybind11_tests.methods_and_attributes.TestProperties | None) -> None"
 
 
