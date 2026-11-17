@@ -53,7 +53,9 @@ public:
     Object(const object &o) : object(o) {}
     // NOLINTNEXTLINE(google-explicit-constructor)
     Object(object &&other) noexcept : object(std::move(other)) {}
-    using object::object;
+    Object(handle h, borrowed_t) : object(h, borrowed_t{}) {}
+    Object(handle h, stolen_t) : object(h, stolen_t{}) {}
+    static bool check_(handle h) noexcept { return h.ptr() != nullptr; }
 };
 
 template <typename K, typename V>
