@@ -1170,6 +1170,7 @@ struct property_cpp_function_sh_member_held_by_value {
                     return std::shared_ptr<typename std::add_const<D>::type>(c_sp,
                                                                              &(c_sp.get()->*pm));
                 },
+                returns_non_null(),
                 is_method(hdl));
         }
         return property_cpp_function_classic<T, D>::readonly(pm, hdl);
@@ -1186,6 +1187,7 @@ struct property_cpp_function_sh_member_held_by_value {
                             c_hdl);
                     return std::shared_ptr<D>(c_sp, &(c_sp.get()->*pm));
                 },
+                returns_non_null(),
                 is_method(hdl));
         }
         return property_cpp_function_classic<T, D>::read(pm, hdl);
