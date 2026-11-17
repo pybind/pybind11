@@ -36,7 +36,7 @@ PYBIND11_NAMESPACE_BEGIN(typing)
 
 // Tuple type hint defined in cast.h for use in py::make_tuple to avoid circular includes
 
-template <typename T>
+template <typename T, bool Cast = false>
 class Handle : public handle {
 public:
     Handle() = default;
@@ -45,7 +45,7 @@ public:
     Handle(const handle &h) : handle(h) {}
 };
 
-template <typename T>
+template <typename T, bool Cast = false>
 class Object : public object {
 public:
     Object() = default;
@@ -163,14 +163,14 @@ PYBIND11_NAMESPACE_END(typing)
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-template <typename T, bool Cast = false>
-struct handle_type_name<typing::Handle<T>> {
+template <typename T, bool Cast>
+struct handle_type_name<typing::Handle<T, Cast>> {
     static constexpr auto name = ::pybind11::detail::const_name<Cast>(
         make_caster<T>::name, ::pybind11::detail::return_descr(make_caster<T>::name));
 };
 
-template <typename T, bool Cast = false>
-struct handle_type_name<typing::Object<T>> {
+template <typename T, bool Cast>
+struct handle_type_name<typing::Object<T, Cast>> {
     static constexpr auto name = ::pybind11::detail::const_name<Cast>(
         make_caster<T>::name, ::pybind11::detail::return_descr(make_caster<T>::name));
 };
