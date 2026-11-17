@@ -163,14 +163,20 @@ PYBIND11_NAMESPACE_END(typing)
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
-template <typename T>
+template <typename T, bool Cast = false>
 struct handle_type_name<typing::Handle<T>> {
-    static constexpr auto name = make_caster<T>::name;
+    static constexpr auto name =
+        ::pybind11::detail::const_name<Cast>(
+            make_caster<T>::name,
+            ::pybind11::detail::return_descr(make_caster<T>::name));
 };
 
-template <typename T>
+template <typename T, bool Cast = false>
 struct handle_type_name<typing::Object<T>> {
-    static constexpr auto name = make_caster<T>::name;
+    static constexpr auto name =
+        ::pybind11::detail::const_name<Cast>(
+            make_caster<T>::name,
+            ::pybind11::detail::return_descr(make_caster<T>::name));
 };
 
 template <typename... Types>
