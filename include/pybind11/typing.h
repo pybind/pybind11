@@ -38,12 +38,21 @@ PYBIND11_NAMESPACE_BEGIN(typing)
 
 template <typename T>
 class Handle : public handle {
+public:
+    Handle() = default;
     using handle::handle;
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    Handle(const handle &h) : handle(h) {}
 };
 
 template <typename T>
 class Object : public object {
-    using object::object;
+public:
+    Object() = default;
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    Object(const object& o) : object(o) {}
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    Object(object&& other) noexcept : object(std::move(other)) {}
 };
 
 template <typename K, typename V>
