@@ -919,7 +919,7 @@ TEST_SUBMODULE(pytypes, m) {
           [](py::typing::Handle<py::typing::List<int>>)
               -> py::typing::Handle<py::typing::List<int>> { return py::handle(); });
     m.def("annotate_object",
-          [](const py::typing::Object<py::typing::List<int>>&)
+          [](const py::typing::Object<py::typing::List<int>> &)
               -> py::typing::Object<py::typing::List<int>> { return py::object(); });
     m.def("annotate_tuple_float_str", [](const py::typing::Tuple<py::float_, py::str> &) {});
     m.def("annotate_tuple_empty", [](const py::typing::Tuple<> &) {});
