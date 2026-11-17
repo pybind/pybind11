@@ -1161,7 +1161,8 @@ struct property_cpp_function_sh_member_held_by_value {
         type_info *tinfo = get_type_info(typeid(T), /*throw_if_missing=*/true);
         if (tinfo->holder_enum_v == holder_enum_t::smart_holder) {
             return cpp_function(
-                [pm](typing::Handle<T> c_hdl) -> std::shared_ptr<typename std::add_const<D>::type> {
+                [pm](
+                    typing::Handle<T> c_hdl) -> std::shared_ptr<typename std::add_const<D>::type> {
                     std::shared_ptr<T> c_sp
                         = type_caster<std::shared_ptr<T>>::shared_ptr_with_responsible_parent(
                             c_hdl);

@@ -915,8 +915,12 @@ TEST_SUBMODULE(pytypes, m) {
         return a;
     });
 
-    m.def("annotate_handle", [](py::typing::Handle<py::typing::List<int>>) -> py::typing::Handle<py::typing::List<int>> { return py::handle(); });
-    m.def("annotate_object", [](py::typing::Object<py::typing::List<int>>) -> py::typing::Object<py::typing::List<int>> { return py::object(); });
+    m.def("annotate_handle",
+          [](py::typing::Handle<py::typing::List<int>>)
+              -> py::typing::Handle<py::typing::List<int>> { return py::handle(); });
+    m.def("annotate_object",
+          [](py::typing::Object<py::typing::List<int>>)
+              -> py::typing::Object<py::typing::List<int>> { return py::object(); });
     m.def("annotate_tuple_float_str", [](const py::typing::Tuple<py::float_, py::str> &) {});
     m.def("annotate_tuple_empty", [](const py::typing::Tuple<> &) {});
     m.def("annotate_tuple_variable_length",

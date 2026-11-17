@@ -1030,17 +1030,11 @@ def test_inplace_rshift(a, b):
 
 
 def test_typing_handle_annotations(doc):
-    assert (
-        doc(m.annotate_handle)
-        == "annotate_handle(arg0: list[int]) -> list[int]"
-    )
+    assert doc(m.annotate_handle) == "annotate_handle(arg0: list[int]) -> list[int]"
 
 
 def test_typing_object_annotations(doc):
-    assert (
-        doc(m.annotate_object)
-        == "annotate_object(arg0: list[int]) -> list[int]"
-    )
+    assert doc(m.annotate_object) == "annotate_object(arg0: list[int]) -> list[int]"
 
 
 def test_tuple_nonempty_annotations(doc):
