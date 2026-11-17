@@ -36,6 +36,16 @@ PYBIND11_NAMESPACE_BEGIN(typing)
 
 // Tuple type hint defined in cast.h for use in py::make_tuple to avoid circular includes
 
+template <typename T>
+class Handle : public handle {
+    using handle::handle;
+};
+
+template <typename T>
+class Object : public object {
+    using object::object;
+};
+
 template <typename K, typename V>
 class Dict : public dict {
     using dict::dict;
@@ -140,6 +150,16 @@ class TypeVar : public object {
 PYBIND11_NAMESPACE_END(typing)
 
 PYBIND11_NAMESPACE_BEGIN(detail)
+
+template <typename T>
+struct handle_type_name<typing::Handle<T>> {
+    static constexpr auto name = make_caster<T>::name;
+};
+
+template <typename T>
+struct handle_type_name<typing::Object<T>> {
+    static constexpr auto name = make_caster<T>::name;
+};
 
 template <typename... Types>
 struct handle_type_name<typing::Tuple<Types...>> {
