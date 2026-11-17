@@ -53,6 +53,7 @@ public:
     Object(const object &o) : object(o) {}
     // NOLINTNEXTLINE(google-explicit-constructor)
     Object(object &&other) noexcept : object(std::move(other)) {}
+    using object::object;
 };
 
 template <typename K, typename V>
