@@ -325,6 +325,59 @@ def test_null_rdbuf_restored():
     assert m.get_null_rdbuf_restored("test")
 
 
+class FailingStream:
+    def __init__(self, fail):
+        self.fail = fail
+        self.written = []
+
+    def write(self, text):
+        self.written.append(text)
+        if self.fail == "write":
+            raise ValueError("write failed")
+
+    def flush(self):
+        if self.fail == "flush":
+            raise ValueError("flush failed")
+
+
+@pytest.fixture
+def unraisable(monkeypatch):
+    caught = []
+    monkeypatch.setattr(sys, "unraisablehook", caught.append)
+    return caught
+
+
+unraisablehook_xfail = pytest.mark.xfail(
+    env.PYPY, reason="sys.unraisablehook is not called on PyPy", strict=False
+)
+
+
+@unraisablehook_xfail
+def test_failing_write_in_destructor(unraisable):
+    m.redirect_unflushed("unflushed", FailingStream("write"))
+
+    assert len(unraisable) == 1
+    assert unraisable[0].exc_type is ValueError
+    assert str(unraisable[0].exc_value) == "write failed"
+
+
+def test_failing_flush_writes_once(unraisable):
+    stream = FailingStream("flush")
+    m.redirect_flushed("flushed", stream)
+
+    assert stream.written == ["flushed"]
+    assert not unraisable
+
+
+@unraisablehook_xfail
+def test_failing_write_keeps_pending_error(unraisable):
+    with pytest.raises(KeyError, match="pending"):
+        m.redirect_unflushed_with_pending_error("unflushed", FailingStream("write"))
+
+    assert len(unraisable) == 1
+    assert unraisable[0].exc_type is ValueError
+
+
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
 def test_threading():
     with m.ostream_redirect(stdout=True, stderr=False):
