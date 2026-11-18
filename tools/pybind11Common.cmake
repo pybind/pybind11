@@ -45,12 +45,11 @@ set(pybind11_INCLUDE_DIRS
 # when cross-compiling, unless the CMAKE_CROSSCOMPILING_EMULATOR variable is defined.
 # Default PYBIND11_USE_CROSSCOMPILING to ON in that case, but never override a value the
 # project set explicitly (e.g. Emscripten/Pyodide defines an emulator yet still wants it ON).
-# PYBIND11_USE_CROSSCOMPILING is undefined for find_package() consumers, but our own
-# CMakeLists.txt always defines it via option(); _PYBIND11_USE_CROSSCOMPILING_DEFAULTED tells
-# us whether that came from the project or from the option() default.
+# This applies to find_package() consumers only; the pybind11 project itself computes the same
+# default for its PYBIND11_USE_CROSSCOMPILING option, which is always defined.
 if(CMAKE_VERSION VERSION_GREATER_EQUAL "4.1"
    AND NOT DEFINED CMAKE_CROSSCOMPILING_EMULATOR
-   AND (NOT DEFINED PYBIND11_USE_CROSSCOMPILING OR _PYBIND11_USE_CROSSCOMPILING_DEFAULTED))
+   AND NOT DEFINED PYBIND11_USE_CROSSCOMPILING)
   cmake_policy(GET CMP0190 _pybind11_cmp0190)
   if(_pybind11_cmp0190 STREQUAL "NEW")
     set(PYBIND11_USE_CROSSCOMPILING "ON")
