@@ -21,7 +21,9 @@ jobs:
   # This tests various versions of CMake in various combinations, to make sure
   # the configure step passes.
   cmake:
-    if: github.event.pull_request.draft == false
+    if: >-
+      (github.event.pull_request.draft == false) &&
+      (github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'ci:intentional'))
     strategy:
       fail-fast: false
       matrix:
