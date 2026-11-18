@@ -80,6 +80,9 @@ TEST_SUBMODULE(chrono, m) {
     m.def("test_chrono_float_diff",
           [](std::chrono::duration<float> a, std::chrono::duration<float> b) { return a - b; });
 
+    // test_chrono_duration_out_of_range
+    m.def("test_chrono_int32_ms", [](std::chrono::duration<int32_t, std::milli> d) { return d; });
+
     m.def("test_nano_timepoint",
           [](timestamp start, timespan delta) -> timestamp { return start + delta; });
 

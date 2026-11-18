@@ -14,7 +14,9 @@
 
 #include <chrono>
 #include <cmath>
+#include <cstdint>
 #include <ctime>
+#include <limits>
 #if !defined(Py_LIMITED_API)
 #    include <datetime.h>
 #endif
@@ -149,6 +151,51 @@ PYBIND11_DATETIME_ACCESSOR(time_microsecond, time, microsecond, PyDateTime_TIME_
 PYBIND11_DATETIME_ACCESSOR(time_fold, time, fold, PyDateTime_TIME_GET_FOLD)
 #undef PYBIND11_DATETIME_ACCESSOR
 
+// duration_cast does not check that the result fits in the target rep. For an integral rep, a
+// value that does not fit is signed overflow or an out-of-range (or NaN) float conversion, so the
+// loaders below reject it instead.
+template <typename Duration, typename Source>
+bool duration_fits(const Source &, std::false_type /* integral rep */) {
+    return true;
+}
+
+template <typename Duration>
+bool duration_fits(std::chrono::duration<double> src, std::true_type /* integral rep */) {
+    using rep = typename Duration::rep;
+    // The value duration_cast truncates to rep; NaN fails both comparisons.
+    const double count = std::trunc(
+        std::chrono::duration_cast<std::chrono::duration<double, typename Duration::period>>(src)
+            .count());
+    return count >= static_cast<double>((std::numeric_limits<rep>::min)())
+           && count < static_cast<double>((std::numeric_limits<rep>::max)()) + 1;
+}
+
+template <typename Duration>
+bool duration_fits(std::chrono::microseconds src, std::true_type /* integral rep */) {
+    using rep = typename Duration::rep;
+    using cf = std::ratio_divide<std::micro, typename Duration::period>;
+    // duration_cast computes src * cf::num / cf::den in (at least) intmax_t, then narrows.
+    const std::intmax_t us = src.count();
+    const std::uintmax_t magnitude
+        = us < 0 ? 0 - static_cast<std::uintmax_t>(us) : static_cast<std::uintmax_t>(us);
+    if (magnitude > static_cast<std::uintmax_t>((std::numeric_limits<std::intmax_t>::max)())
+                        / static_cast<std::uintmax_t>(cf::num)) {
+        return false;
+    }
+    const std::intmax_t count = us * cf::num / cf::den;
+    return !(std::is_unsigned<rep>::value && count < 0)
+           && static_cast<std::intmax_t>(static_cast<rep>(count)) == count;
+}
+
+template <typename Duration, typename Source>
+bool checked_duration_cast(const Source &src, Duration &dst) {
+    if (!duration_fits<Duration>(src, std::is_integral<typename Duration::rep>{})) {
+        return false;
+    }
+    dst = std::chrono::duration_cast<Duration>(src);
+    return true;
+}
+
 template <typename type>
 class duration_caster {
 public:
@@ -166,17 +213,29 @@ public:
         if (!src) {
             return false;
         }
+        duration<rep, period> d{};
         // If invoked with datetime.delta object
         if (is_timedelta(src)) {
-            value = type(duration_cast<duration<rep, period>>(
-                days(timedelta_days(src)) + seconds(timedelta_seconds(src))
-                + microseconds(timedelta_microseconds(src))));
+            // A timedelta spans +-999999999 days, more than int64 microseconds can hold.
+            // Its seconds and microseconds are never negative.
+            const days dd(timedelta_days(src));
+            if (dd >= duration_cast<days>(microseconds::max())
+                || dd < duration_cast<days>(microseconds::min())
+                || !checked_duration_cast(
+                    microseconds(dd + seconds(timedelta_seconds(src))
+                                 + microseconds(timedelta_microseconds(src))),
+                    d)) {
+                return false;
+            }
+            value = type(d);
             return true;
         }
         // If invoked with a float we assume it is seconds and convert
         if (PyFloat_Check(src.ptr())) {
-            value = type(duration_cast<duration<rep, period>>(
-                duration<double>(PyFloat_AsDouble(src.ptr()))));
+            if (!checked_duration_cast(duration<double>(PyFloat_AsDouble(src.ptr())), d)) {
+                return false;
+            }
+            value = type(d);
             return true;
         }
         return false;
@@ -302,7 +361,13 @@ public:
             throw error_already_set();
         }
         const auto tt = pybind11::int_(dt.attr("timestamp")()).cast<std::time_t>();
-        value = time_point_cast<Duration>(system_clock::from_time_t(tt) + msecs);
+        // system_clock counts from the time_t epoch. from_time_t would convert to
+        // system_clock::duration first, and nanoseconds overflow outside about 1678-2262.
+        Duration d{};
+        if (!checked_duration_cast(microseconds(seconds(tt) + msecs), d)) {
+            return false;
+        }
+        value = type(d);
         return true;
     }
 
