@@ -135,6 +135,9 @@ private:
 // subinterpreter has its own separate state. The cached result may not shareable across
 // interpreters (e.g., imported modules and their members).
 
+template <typename T>
+class gil_safe_call_once_and_store;
+
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 template <typename T>
@@ -143,9 +146,16 @@ struct call_once_storage {
     std::once_flag once_flag;
     void (*finalize)(T &) = nullptr;
     std::atomic_bool is_initialized{false};
+    // The `gil_safe_call_once_and_store` which caches a pointer into `storage`, if any.
+    // It is a global static, therefore it outlives this storage, which the interpreter owns.
+    gil_safe_call_once_and_store<T> *owner = nullptr;
 
     call_once_storage() = default;
     ~call_once_storage() {
+        // The interpreter destroys this storage, therefore the owner must forget its cache.
+        if (owner != nullptr) {
+            owner->invalidate_cache(reinterpret_cast<T *>(storage));
+        }
         if (is_initialized) {
             if (finalize != nullptr) {
                 finalize(*reinterpret_cast<T *>(storage));
@@ -193,6 +203,8 @@ public:
                 ::new (value->storage) T(fn());
                 value->finalize = finalize_fn;
                 value->is_initialized = true;
+                // Let the storage reset the cache below when the interpreter destroys it.
+                value->owner = this;
                 // Publish the cached pointer before setting the validity flag, so that any reader
                 // which observes the flag as true is guaranteed to also observe this pointer.
                 last_storage_ptr_ = reinterpret_cast<T *>(value->storage);
@@ -216,6 +228,7 @@ public:
             gil_scoped_acquire gil_acq;
             auto *value = get_or_create_storage_in_state_dict();
             result = reinterpret_cast<T *>(value->storage);
+            value->owner = this;
             last_storage_ptr_ = result;
         }
         assert(result != nullptr);
@@ -236,6 +249,17 @@ public:
 
 private:
     using storage_type = detail::call_once_storage<T>;
+    friend storage_type;
+
+    // Called from the destructor of the storage, i.e. when the interpreter which owns the storage
+    // is finalized. The flag is cleared first, so that a reader which observes the flag as true
+    // never loads a null pointer.
+    void invalidate_cache(T *storage_ptr) {
+        if (last_storage_ptr_.load() == storage_ptr) {
+            is_initialized_by_at_least_one_interpreter_ = false;
+            last_storage_ptr_ = nullptr;
+        }
+    }
 
     // Indicator of fast path for single-interpreter case.
     bool is_last_storage_valid() const {
