@@ -48,6 +48,21 @@ def test_vector(doc):
         )
 
 
+def test_char_ptr_containers():
+    """#2245: C strings in a container must stay valid during the call"""
+    short = ["a", "bc", "def"]
+    long = [c * 100 for c in short]
+    for strs in (short, long):
+        assert m.func_with_char_ptrs(strs) == strs
+        assert m.func_with_char_ptrs(s.encode() for s in strs) == strs
+        assert m.func_with_wchar_ptrs(strs) == strs
+    assert m.func_with_char_ptrs(["a", None, "b"]) == ["a", None, "b"]
+    assert m.func_with_nested_char_ptrs({"x": ["a", "b"], "y": long[:2]}) == {
+        "x": ("a", "b"),
+        "y": tuple(long[:2]),
+    }
+
+
 @pytest.mark.skipif(
     not hasattr(m, "string_view_life_support_check"), reason="no <string_view>"
 )
