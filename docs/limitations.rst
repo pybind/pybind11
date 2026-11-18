@@ -45,10 +45,10 @@ Known limitations
 These are issues that are probably solvable, but have not been fixed yet. A
 clean, well written patch would likely be accepted to solve them.
 
-- Type casters are not kept alive recursively.
+- ``py::cast<T>()`` does not keep type casters alive. A ``T`` that refers to
+  data that its type caster owns, such as a container of ``char *``, is valid
+  only as an argument of a bound function.
   `#2527 <https://github.com/pybind/pybind11/issues/2527>`_
-  One consequence is that containers of ``char *`` are currently not supported.
-  `#2245 <https://github.com/pybind/pybind11/issues/2245>`_
 
 Python 3.9.0 warning
 ^^^^^^^^^^^^^^^^^^^^
