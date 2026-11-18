@@ -249,6 +249,20 @@ def test_mixed_args_and_kwargs(msg):
     assert m.args_kwonly_kwargs_defaults(5, 6, 7, m=8, z=9) == (5, 6, (7,), 9, {"m": 8})
 
 
+def test_args_kwonly_noconvert():
+    # The noconvert flag must stay on x, the argument it was given for.
+    assert m.args_kwonly_noconvert(1, 2, x=True, y=1) == ((1, 2), True, True)
+    with pytest.raises(TypeError):
+        m.args_kwonly_noconvert(x=1, y=True)
+
+
+def test_args_kwonly_second_pass():
+    # Only the keyword-only argument can convert, so the second pass must run.
+    assert m.args_kwonly_second_pass(s="a") == "str: a"
+    assert m.args_kwonly_second_pass(b=True) == "bool: True"
+    assert m.args_kwonly_second_pass(b=1) == "bool: True"
+
+
 def test_keyword_only_args(msg):
     assert m.kw_only_all(i=1, j=2) == (1, 2)
     assert m.kw_only_all(j=1, i=2) == (2, 1)
