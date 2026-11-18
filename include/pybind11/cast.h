@@ -819,14 +819,19 @@ protected:
 
     static constexpr bool load_impl(const sequence &, bool, index_sequence<>) { return true; }
 
+    handle load_item(const sequence &seq, size_t index) {
+        items[index] = accessor_policies::sequence_item::get(seq, index);
+        return items[index];
+    }
+
     template <size_t... Is>
     bool load_impl(const sequence &seq, bool convert, index_sequence<Is...>) {
 #ifdef __cpp_fold_expressions
-        if ((... || !std::get<Is>(subcasters).load(seq[Is], convert))) {
+        if ((... || !std::get<Is>(subcasters).load(load_item(seq, Is), convert))) {
             return false;
         }
 #else
-        for (bool r : {std::get<Is>(subcasters).load(seq[Is], convert)...}) {
+        for (bool r : {std::get<Is>(subcasters).load(load_item(seq, Is), convert)...}) {
             if (!r) {
                 return false;
             }
@@ -859,6 +864,8 @@ protected:
     }
 
     Tuple<make_caster<Ts>...> subcasters;
+    // A subcaster can refer to its item, and the sequence does not necessarily keep it alive.
+    std::array<object, size> items;
 };
 
 template <typename T1, typename T2>
