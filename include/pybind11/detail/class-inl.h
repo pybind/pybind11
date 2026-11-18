@@ -732,7 +732,19 @@ PYBIND11_INLINE PyObject *make_new_instance(PyTypeObject *type) {
 
 extern "C" PYBIND11_INLINE PyObject *
 pybind11_object_new(PyTypeObject *type, PyObject *, PyObject *) {
-    return make_new_instance(type);
+    try {
+        // Check before allocating, so a failure never deallocates a half-built instance.
+        if (all_type_info(type).empty()) {
+            std::string msg = get_fully_qualified_tp_name(type)
+                              + ": cannot be instantiated, no pybind11-registered base types";
+            set_error(PyExc_TypeError, msg.c_str());
+            return nullptr;
+        }
+        return make_new_instance(type);
+    } catch (...) {
+        try_translate_exceptions();
+        return nullptr;
+    }
 }
 
 extern "C" PYBIND11_INLINE int pybind11_object_init(PyObject *self, PyObject *, PyObject *) {
