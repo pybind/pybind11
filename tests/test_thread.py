@@ -164,3 +164,83 @@ def test_dispatch_does_not_need_internals_lock():
         f"Subprocess failed with exit code {proc.returncode}.\n"
         f"Output:\n{proc.stdout}\n{proc.stderr}"
     )
+
+
+@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
+@pytest.mark.skipif(env.ANDROID or env.IOS, reason="Requires subprocess support")
+@pytest.mark.skipif(
+    not env.PY_GIL_DISABLED, reason="The instance map is only locked without the GIL"
+)
+def test_override_lookup_result_is_kept_alive():
+    """The wrapper must survive after get_object_handle() releases the map lock."""
+    _run_override_lookup_probe(call_override=False)
+
+
+@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
+@pytest.mark.skipif(env.ANDROID or env.IOS, reason="Requires subprocess support")
+@pytest.mark.skipif(
+    not env.PY_GIL_DISABLED, reason="The instance map is only locked without the GIL"
+)
+def test_override_call_while_wrapper_dies():
+    """PYBIND11_OVERRIDE must keep the wrapper alive while looking up its override."""
+    _run_override_lookup_probe(call_override=True)
+
+
+def _run_override_lookup_probe(call_override):
+    if env.LIMITED_API:
+        pytest.skip("Probe requires the full-API PyMutex_Unlock hook")
+    # Collection can enable the GIL when another test imports a GIL-requiring module.
+    # Isolate each probe and explicitly disable the GIL so full-suite runs exercise it too.
+    import mod_override_lookup_probe as probe
+
+    script = textwrap.dedent(
+        f"""
+        import sys
+        import weakref
+
+        sys.path.insert(0, {os.path.dirname(probe.__file__)!r})
+
+        import mod_override_lookup_probe as probe
+
+        class Derived(probe.Base):
+            def ping(self):
+                return 2
+
+        owners = [Derived()]
+        wrapper_ref = weakref.ref(owners[0])
+        probe.retain(owners[0])
+        probe.start(wrapper_ref, call_override={call_override!r})
+        try:
+            assert probe.wait_parked(), "the worker never released the instance-map shard mutex"
+            owners.clear()
+        finally:
+            probe.release()
+            result = probe.finish()
+        assert not result["park_timed_out"], result
+        assert result["worker_error"] == "", result
+        if {call_override!r}:
+            assert result["ping_result"] in (1, 2), result
+        else:
+            assert result["lookup_returned_nonnull"], result
+            assert result["wrapper_alive_after_lookup"], (
+                "get_object_handle() returned a handle to a wrapper that is already dead"
+            )
+        """
+    )
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-X", "gil=0", "-X", "dev", "-c", script],
+            capture_output=True,
+            text=True,
+            timeout=120,
+            check=False,
+        )
+    except subprocess.TimeoutExpired as ex:
+        pytest.fail(
+            f"Subprocess did not finish within {ex.timeout} s.\n"
+            f"Output:\n{ex.stdout}\n{ex.stderr}"
+        )
+    assert proc.returncode == 0, (
+        f"Subprocess failed with exit code {proc.returncode}.\n"
+        f"Output:\n{proc.stdout}\n{proc.stderr}"
+    )
