@@ -2081,9 +2081,8 @@ arg_v arg::operator=(T &&value) const {
     return {*this, std::forward<T>(value)};
 }
 
-/// Alias for backward compatibility -- to be removed in version 2.0
 template <typename /*unused*/>
-using arg_t = arg_v;
+using arg_t PYBIND11_DEPRECATED("Use py::arg_v instead") = arg_v;
 
 inline namespace literals {
 /** \rst

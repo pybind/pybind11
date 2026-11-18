@@ -40,16 +40,24 @@
 
 CONST_NAME_TESTS(const_name_tests, py::detail::const_name)
 
-#ifdef PYBIND11_DETAIL_UNDERSCORE_BACKWARD_COMPATIBILITY
+// Suppressing the deprecation warning is not worth the trouble for these compilers.
+#if defined(PYBIND11_DETAIL_UNDERSCORE_BACKWARD_COMPATIBILITY) && !defined(__INTEL_COMPILER)      \
+    && !defined(__NVCOMPILER)
+#    define PYBIND11_TEST_UNDERSCORE
+PYBIND11_WARNING_PUSH
+PYBIND11_WARNING_DISABLE_CLANG("-Wdeprecated-declarations")
+PYBIND11_WARNING_DISABLE_GCC("-Wdeprecated-declarations")
+PYBIND11_WARNING_DISABLE_MSVC(4996)
 CONST_NAME_TESTS(underscore_tests, py::detail::_)
+PYBIND11_WARNING_POP
 #endif
 
 TEST_SUBMODULE(const_name, m) {
     m.def("const_name_tests", const_name_tests);
 
-#if defined(PYBIND11_DETAIL_UNDERSCORE_BACKWARD_COMPATIBILITY)
+#if defined(PYBIND11_TEST_UNDERSCORE)
     m.def("underscore_tests", underscore_tests);
 #else
-    m.attr("underscore_tests") = "PYBIND11_DETAIL_UNDERSCORE_BACKWARD_COMPATIBILITY not defined.";
+    m.attr("underscore_tests") = "py::detail::_ not tested.";
 #endif
 }
