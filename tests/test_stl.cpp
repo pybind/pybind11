@@ -7,6 +7,7 @@
     BSD-style license that can be found in the LICENSE file.
 */
 
+#include <pybind11/complex.h>
 #include <pybind11/stl.h>
 
 #include "constructor_stats.h"
@@ -18,7 +19,12 @@
 
 #include <pybind11/typing.h>
 
+#include <array>
+#include <complex>
+#include <numeric>
+#include <stdexcept>
 #include <string>
+#include <valarray>
 #include <vector>
 
 #if defined(PYBIND11_TEST_BOOST)
@@ -61,6 +67,45 @@ struct visit_helper<boost::variant> {
 #endif
 
 PYBIND11_MAKE_OPAQUE(std::vector<std::string, std::allocator<std::string>>)
+
+// test_array_nested: an array with `const` elements cannot be assigned. As an element of another
+// array it has to be constructed.
+using OpaqueConstIntArray = std::array<const int, 2>;
+PYBIND11_MAKE_OPAQUE(OpaqueConstIntArray)
+
+// An element type with a caster that only supports the C++ to Python direction.
+struct CastOnlyElement {
+    int val;
+};
+
+namespace PYBIND11_NAMESPACE {
+namespace detail {
+template <>
+struct type_caster<CastOnlyElement> {
+    static constexpr auto name = const_name("int");
+
+    static handle cast(const CastOnlyElement &src, return_value_policy, handle) {
+        return int_(src.val).release();
+    }
+};
+} // namespace detail
+} // namespace PYBIND11_NAMESPACE
+
+// test_array_custom_type: `array_caster` can only construct this from a braced list. The `const`
+// member rules out a default constructor, and there is no `operator[]`.
+struct FixedArray3 {
+    const double *begin() const { return arr; }
+    const double *end() const { return arr + 3; }
+    size_t size() const { return 3; }
+    const double arr[3];
+};
+
+namespace PYBIND11_NAMESPACE {
+namespace detail {
+template <>
+struct type_caster<FixedArray3> : array_caster<FixedArray3, double, false, 3> {};
+} // namespace detail
+} // namespace PYBIND11_NAMESPACE
 
 /// Issue #528: templated constructor
 struct TplCtorClass {
@@ -169,6 +214,23 @@ struct type_caster<ReferenceSensitiveOptional<T>>
 } // namespace detail
 } // namespace PYBIND11_NAMESPACE
 
+// test_array_element_types (at namespace scope because local classes cannot have member templates)
+// Trivially copyable, but a constructor template takes over the construction from a non-const
+// lvalue, which is what the caster for a registered type yields. It adds 100, idempotently.
+struct CtorTemplateLvalue {
+    CtorTemplateLvalue() = default;
+    explicit CtorTemplateLvalue(int val) : val{val} {}
+    template <typename U>
+    // NOLINTNEXTLINE(bugprone-forwarding-reference-overload, google-explicit-constructor)
+    CtorTemplateLvalue(U &&other) : val{other.val % 100 + 100} {}
+    int val;
+};
+
+template <typename T>
+std::vector<int> array_element_vals(const std::array<T, 2> &a) {
+    return {a[0].val, a[1].val};
+}
+
 int pass_std_vector_int(const std::vector<int> &v) {
     int zum = 100;
     for (const int i : v) {
@@ -215,10 +277,91 @@ TEST_SUBMODULE(stl, m) {
     };
 
     // test_array_no_default_ctor
-    py::class_<NoDefaultCtor>(m, "NoDefaultCtor").def_readonly("val", &NoDefaultCtor::val);
+    py::class_<NoDefaultCtor>(m, "NoDefaultCtor")
+        .def(py::init<int>())
+        .def_readonly("val", &NoDefaultCtor::val);
     py::class_<NoDefaultCtorArray>(m, "NoDefaultCtorArray")
         .def(py::init<int>())
         .def_readwrite("arr", &NoDefaultCtorArray::arr);
+
+    // test_array_element_types
+    // `array_caster` constructs the elements of a `std::array`, except for the element types
+    // for which assigning them instead cannot make a difference: `is_plain_array_element`.
+    // The class types below must all be constructed. They are trivially copyable, though, apart
+    // from `AssignIsNoOp`.
+    enum class ArrayElementEnum {};
+    static_assert(py::detail::is_plain_array_element<int>::value, "");
+    static_assert(py::detail::is_plain_array_element<ArrayElementEnum>::value, "");
+    static_assert(py::detail::is_plain_array_element<NoDefaultCtor *>::value, "");
+    static_assert(py::detail::is_plain_array_element<std::complex<double>>::value, "");
+    static_assert(py::detail::is_plain_array_element<
+                      std::array<std::array<std::complex<float>, 2>, 3>>::value,
+                  "");
+    static_assert(!py::detail::is_plain_array_element<std::string>::value, "");
+    static_assert(!py::detail::is_plain_array_element<NoDefaultCtor>::value, "");
+    static_assert(!py::detail::is_plain_array_element<std::array<std::string, 2>>::value, "");
+    // Move assignable, but the elements of an array cannot be assigned: the caster for a type
+    // registered with `py::class_` yields an lvalue reference.
+    struct NotCopyAssignable {
+        NotCopyAssignable() = default;
+        explicit NotCopyAssignable(int val) : val{val} {}
+        NotCopyAssignable(const NotCopyAssignable &) = default;
+        NotCopyAssignable &operator=(const NotCopyAssignable &) = delete;
+        NotCopyAssignable &operator=(NotCopyAssignable &&) = default;
+        int val;
+    };
+    // Assigning is not equivalent to copy constructing, in the manner of `boost::multi_array`,
+    // which does not resize on assignment.
+    struct AssignIsNoOp {
+        AssignIsNoOp() = default;
+        explicit AssignIsNoOp(int val) : val{val} {}
+        AssignIsNoOp(const AssignIsNoOp &) = default;
+        AssignIsNoOp &operator=(const AssignIsNoOp &) { return *this; }
+        int val;
+    };
+    // Trivially copyable, but the default constructor must not be called.
+    struct ThrowingDefaultCtor {
+        ThrowingDefaultCtor() { throw std::runtime_error("ThrowingDefaultCtor"); }
+        explicit ThrowingDefaultCtor(int val) : val{val} {}
+        int val = 0;
+    };
+    py::enum_<ArrayElementEnum>(m, "ArrayElementEnum");
+    py::class_<NotCopyAssignable>(m, "NotCopyAssignable").def(py::init<int>());
+    py::class_<AssignIsNoOp>(m, "AssignIsNoOp").def(py::init<int>());
+    py::class_<ThrowingDefaultCtor>(m, "ThrowingDefaultCtor").def(py::init<int>());
+    py::class_<CtorTemplateLvalue>(m, "CtorTemplateLvalue").def(py::init<int>());
+    m.def("load_array_enum", [](const std::array<ArrayElementEnum, 2> &a) {
+        return std::vector<int>{static_cast<int>(a[0]), static_cast<int>(a[1])};
+    });
+    m.def("load_array_not_copy_assignable", &array_element_vals<NotCopyAssignable>);
+    m.def("load_array_assign_is_no_op", &array_element_vals<AssignIsNoOp>);
+    m.def("load_array_throwing_default_ctor", &array_element_vals<ThrowingDefaultCtor>);
+    m.def("load_array_no_default_ctor", &array_element_vals<NoDefaultCtor>);
+    m.def("load_array_ctor_template_lvalue", &array_element_vals<CtorTemplateLvalue>);
+
+    m.def("cast_array_cast_only_element", []() {
+        return std::array<CastOnlyElement, 2>{{CastOnlyElement{1}, CastOnlyElement{2}}};
+    });
+
+    // test_array_nested
+    py::class_<OpaqueConstIntArray>(m, "OpaqueConstIntArray");
+    m.def("make_opaque_const_int_array", []() { return OpaqueConstIntArray{{3, 4}}; });
+    m.def("load_array_opaque_const_int_array",
+          [](const std::array<OpaqueConstIntArray, 1> &a) { return a[0][0] + a[0][1]; });
+    m.def("nested_numeric_array_cast_sequence",
+          [](std::array<std::array<std::complex<double>, 2>, 2> x) { return x; });
+    m.def("nested_array_cast_sequence",
+          [](std::array<std::array<std::string, 2>, 2> x) { return x; });
+
+    // test_array_large
+    // #5765: this was very slow to compile when `array_caster` needed an `index_sequence` of
+    // `Size` elements for all element types.
+    m.def("sum_large_array", [](const std::array<int, 102400> &a) {
+        return std::accumulate(a.begin(), a.end(), 0LL);
+    });
+
+    // test_array_custom_type
+    m.def("fixed_array3_cast_sequence", [](FixedArray3 x) { return x; });
 
     // test_valarray
     m.def("cast_valarray", []() { return std::valarray<int>{1, 4, 9}; });
