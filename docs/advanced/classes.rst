@@ -738,6 +738,41 @@ that ignores it:
     py::class_<Foo>(m, "Foo")
         .def_property_readonly_static("foo", [](py::object /* self */) { return Foo(); });
 
+.. _classmethods:
+
+Class methods
+=============
+
+:func:`class_::def_classmethod` binds a function as a Python ``classmethod``.
+Python passes the class as the first argument. The first parameter of the C++
+function must accept it, for example as ``py::type`` or ``py::object``. If the
+method is called on a subclass, the argument is that subclass.
+
+.. code-block:: cpp
+
+    py::class_<Pet>(m, "Pet")
+        .def(py::init<const std::string &>())
+        .def_classmethod(
+            "create",
+            [](const py::type &cls, const std::string &name) { return cls(name); },
+            py::arg("name"));
+
+.. code-block:: pycon
+
+    >>> class Dog(Pet):
+    ...     pass
+    ...
+    >>> type(Dog.create("Molly"))
+    <class '__main__.Dog'>
+
+Do not add a ``py::arg`` annotation for the class argument. It is named ``cls``
+in the signature.
+
+.. note::
+
+    ``__new__`` is a static method in Python. Bind it with
+    :func:`class_::def_static`, not with :func:`class_::def_classmethod`.
+
 Operator overloading
 ====================
 

@@ -1356,13 +1356,21 @@ inline bool PyUnicode_Check_Permissive(PyObject *o) {
 #if !defined(Py_LIMITED_API)
 inline bool PyStaticMethod_Check(PyObject *o) { return Py_TYPE(o) == &PyStaticMethod_Type; }
 inline PyObject *PyStaticMethod_New(PyObject *callable) { return ::PyStaticMethod_New(callable); }
+inline bool PyClassMethod_Check(PyObject *o) { return Py_TYPE(o) == &PyClassMethod_Type; }
+inline PyObject *PyClassMethod_New(PyObject *callable) { return ::PyClassMethod_New(callable); }
 #else
-// PyStaticMethod_Type is not exported by the stable ABI.
+// PyStaticMethod_Type and PyClassMethod_Type are not exported by the stable ABI.
 PyTypeObject *get_staticmethod_type(); // detail/class-inl.h
+PyTypeObject *get_classmethod_type();  // detail/class-inl.h
 inline bool PyStaticMethod_Check(PyObject *o) { return Py_TYPE(o) == get_staticmethod_type(); }
 inline PyObject *PyStaticMethod_New(PyObject *callable) {
     return PyObject_CallFunctionObjArgs(
         reinterpret_cast<PyObject *>(get_staticmethod_type()), callable, nullptr);
+}
+inline bool PyClassMethod_Check(PyObject *o) { return Py_TYPE(o) == get_classmethod_type(); }
+inline PyObject *PyClassMethod_New(PyObject *callable) {
+    return PyObject_CallFunctionObjArgs(
+        reinterpret_cast<PyObject *>(get_classmethod_type()), callable, nullptr);
 }
 #endif
 
@@ -2329,6 +2337,14 @@ public:
                         object,
                         detail::PyStaticMethod_Check,
                         detail::PyStaticMethod_New)
+};
+
+class classmethod : public object {
+public:
+    PYBIND11_OBJECT_CVT(classmethod,
+                        object,
+                        detail::PyClassMethod_Check,
+                        detail::PyClassMethod_New)
 };
 
 class buffer : public object {
