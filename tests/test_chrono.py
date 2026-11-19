@@ -459,6 +459,10 @@ def test_chrono_duration_out_of_range_boundaries():
     # int64 nanoseconds cover about 292 years either side of the epoch
     with pytest.raises(TypeError):
         m.test_nano_timepoint(dt.datetime(2000, 1, 1), dt.timedelta(days=365 * 300))
+    try:
+        dt.datetime(2300, 1, 1).timestamp()
+    except (OverflowError, OSError):
+        return  # 32-bit time_t
     with pytest.raises(TypeError):
         m.test_nano_timepoint(dt.datetime(2300, 1, 1), dt.timedelta(0))
 
