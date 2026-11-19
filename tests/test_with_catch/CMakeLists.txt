@@ -28,11 +28,6 @@ endif()
 
 find_package(Threads REQUIRED)
 
-if(PYBIND11_TEST_SMART_HOLDER)
-  add_compile_definitions(
-    -DPYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE)
-endif()
-
 add_executable(test_with_catch catch.cpp test_args_convert_vector.cpp test_argument_vector.cpp
                                test_interpreter.cpp test_subinterpreter.cpp)
 pybind11_enable_warnings(test_with_catch)
@@ -60,5 +55,13 @@ foreach(config ${CMAKE_CONFIGURATION_TYPES})
                                                    "${CMAKE_CURRENT_BINARY_DIR}")
 endforeach()
 add_dependencies(cpptest external_module)
+
+if(PYBIND11_TEST_SMART_HOLDER)
+  foreach(target test_with_catch external_module)
+    target_compile_definitions(
+      ${target}
+      PRIVATE PYBIND11_RUN_TESTING_WITH_SMART_HOLDER_AS_DEFAULT_BUT_NEVER_USE_IN_PRODUCTION_PLEASE)
+  endforeach()
+endif()
 
 add_dependencies(check cpptest)
