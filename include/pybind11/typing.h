@@ -161,9 +161,6 @@ class TypeVar : public object {
 
 PYBIND11_NAMESPACE_END(typing)
 
-template <>
-bool isinstance<typing::Handle>(handle) = delete;
-
 PYBIND11_NAMESPACE_BEGIN(detail)
 
 template <typename T, bool Cast>
