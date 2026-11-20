@@ -773,7 +773,10 @@ bool isinstance(handle obj) {
            || detail::isinstance_generic(obj, typeid(T));
 }
 
-template <typename T, detail::enable_if_t<std::is_base_of<handle, T>::value && !std::is_base_of<object, T>::value, int> = 0>
+template <
+    typename T,
+    detail::enable_if_t<std::is_base_of<handle, T>::value && !std::is_base_of<object, T>::value,
+                        int> = 0>
 bool isinstance(handle) = delete;
 
 template <>
