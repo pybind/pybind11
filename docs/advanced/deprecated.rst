@@ -109,8 +109,9 @@ until at least pybind11 4.0.
      - 2.6
      - 2020
      - Compiler
-   * - ``get_type_overload``
-     - ``get_override``
+   * - ``get_type_overload(const void *, const detail::type_info *, name)``
+     - ``get_override(const T *, name)``; needs a typed pointer, the type
+       info is found from ``T``
      - 2.6
      - 2020
      - Compiler
@@ -139,7 +140,9 @@ until at least pybind11 4.0.
      - 2.6
      - 2020
      - CMake
-   * - ``py::capsule(value, destructor)``
+   * - ``py::capsule(value, destructor)`` with a ``PyCapsule_Destructor``
+       (``void (*)(PyObject *)``); the ``void (*)(void *)`` overload is not
+       deprecated
      - ``py::capsule(value, name, destructor)``
      - 2.10.1
      - 2022

@@ -2628,7 +2628,7 @@ function get_override(const T *this_ptr, const char *name) {
 
 // Deprecated versions
 
-PYBIND11_DEPRECATED("get_type_overload has been deprecated")
+PYBIND11_DEPRECATED("get_type_overload has been deprecated, use get_override instead")
 inline function
 get_type_overload(const void *this_ptr, const detail::type_info *this_type, const char *name) {
     return detail::get_type_override(this_ptr, this_type, name);
