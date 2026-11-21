@@ -277,6 +277,27 @@ def test_stride_not_multiple_of_scalar_from_python():
     np.testing.assert_array_equal(mat["a"], np.arange(6.0).reshape((2, 3)))
     np.testing.assert_array_equal(mat["b"], np.ones((2, 3), dtype="i1"))
 
+    # A const Ref with fully dynamic strides must copy too.
+    np.testing.assert_array_equal(
+        m.matrix_multiply(mat["a"], np.eye(3)), np.arange(6.0).reshape((2, 3))
+    )
+    reversed_mat = np.arange(6.0).reshape((2, 3))[::-1, ::-1]
+    np.testing.assert_array_equal(
+        m.matrix_multiply(reversed_mat, np.eye(3)), reversed_mat
+    )
+
+    # The stride of an axis of length 1 is not used, so a mutable Ref can map it.
+    buf = np.arange(4.0)
+    column = np.lib.stride_tricks.as_strided(buf, shape=(4, 1), strides=(8, 1))
+    m.add_any(column, 1, 0, 100.0)
+    np.testing.assert_array_equal(buf, [0.0, 101.0, 2.0, 3.0])
+    row = np.lib.stride_tricks.as_strided(buf, shape=(1, 4), strides=(1, 8))
+    m.add_any(row, 0, 2, 100.0)
+    np.testing.assert_array_equal(buf, [0.0, 101.0, 102.0, 3.0])
+    single = np.lib.stride_tricks.as_strided(buf, shape=(1,), strides=(1,))
+    m.add_any(single, 0, 0, 100.0)
+    np.testing.assert_array_equal(buf, [100.0, 101.0, 102.0, 3.0])
+
 
 def test_block_runtime_error_type_caster_eigen_ref_made_a_copy():
     with pytest.raises(RuntimeError) as excinfo:

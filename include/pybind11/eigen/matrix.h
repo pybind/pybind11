@@ -96,7 +96,8 @@ struct EigenConformable {
     EigenDStride stride{0, 0};    // Only valid if negativestrides is false!
     bool negativestrides = false; // If true, do not use stride!
     // A numpy stride that is not a whole number of scalars (e.g. a field of a packed structured
-    // array) cannot be written as an Eigen stride. If true, do not use stride!
+    // array) cannot be written as an Eigen stride. Only set for an axis of length > 1 (the stride
+    // of a shorter axis is not used). If true, do not use stride!
     bool badstrides = false;
 
     // NOLINTNEXTLINE(google-explicit-constructor)
@@ -201,7 +202,8 @@ struct EigenProps {
             }
 
             EigenConformable<row_major> result{np_rows, np_cols, np_rstride, np_cstride};
-            result.badstrides = !whole_scalars(a.strides(0)) || !whole_scalars(a.strides(1));
+            result.badstrides = (np_rows > 1 && !whole_scalars(a.strides(0)))
+                                || (np_cols > 1 && !whole_scalars(a.strides(1)));
             return result;
         }
 
@@ -209,7 +211,7 @@ struct EigenProps {
         // whichever is used, we want the (single) numpy stride value.
         const EigenIndex n = a.shape(0),
                          stride = a.strides(0) / static_cast<ssize_t>(sizeof(Scalar));
-        const bool bad = !whole_scalars(a.strides(0));
+        const bool bad = n > 1 && !whole_scalars(a.strides(0));
 
         auto make = [bad](EigenIndex r, EigenIndex c, EigenIndex s) {
             EigenConformable<row_major> result{r, c, s};
@@ -568,6 +570,17 @@ public:
                 return false;
             }
             fits = props::conformable(copy);
+            if (fits && !fits.template stride_compatible<props>()) {
+                // `ensure` does not copy an array of the correct type when `Array` has no layout
+                // flag (dynamic strides), so force a copy to get strides that Eigen can use.
+                copy = reinterpret_steal<Array>(
+                    npy_api::get().PyArray_NewCopy_(copy.ptr(), -1 /* any order */));
+                if (!copy) {
+                    PyErr_Clear();
+                    return false;
+                }
+                fits = props::conformable(copy);
+            }
             if (!fits || !fits.template stride_compatible<props>()) {
                 return false;
             }
