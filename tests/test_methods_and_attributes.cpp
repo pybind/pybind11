@@ -105,6 +105,13 @@ struct TestPropertiesOverride : TestProperties {
 };
 int TestPropertiesOverride::static_value = 99;
 
+struct TestProperties2 {
+    TestProperties value;
+    TestProperties *raw_ptr = nullptr;
+    std::unique_ptr<TestProperties> unique_ptr;
+    std::shared_ptr<TestProperties> shared_ptr;
+};
+
 struct TestPropRVP {
     UserType v1{1};
     UserType v2{1};
@@ -466,6 +473,16 @@ TEST_SUBMODULE(methods_and_attributes, m) {
         .def(py::init<>())
         .def_readonly("def_readonly", &TestPropertiesOverride::value)
         .def_readonly_static("def_readonly_static", &TestPropertiesOverride::static_value);
+
+    py::class_<TestProperties2>(m, "TestProperties2")
+        .def(py::init<>())
+        .def_readonly("def_readonly_value", &TestProperties2::value)
+        .def_readwrite("def_readwrite_value", &TestProperties2::value)
+        .def_readonly("def_readonly_raw_ptr", &TestProperties2::raw_ptr)
+        .def_readwrite("def_readwrite_raw_ptr", &TestProperties2::raw_ptr)
+        .def_readwrite("def_readwrite_unique_ptr", &TestProperties2::unique_ptr)
+        .def_readonly("def_readonly_shared_ptr", &TestProperties2::shared_ptr)
+        .def_readwrite("def_readwrite_shared_ptr", &TestProperties2::shared_ptr);
 
     auto static_get1 = [](const py::object &) -> const UserType & { return TestPropRVP::sv1; };
     auto static_get2 = [](const py::object &) -> const UserType & { return TestPropRVP::sv2; };

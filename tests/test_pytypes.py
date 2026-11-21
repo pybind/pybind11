@@ -1029,6 +1029,14 @@ def test_inplace_rshift(a, b):
     assert m.inplace_rshift(a, b) == expected
 
 
+def test_typing_handle_annotations(doc):
+    assert doc(m.annotate_handle) == "annotate_handle(arg0: list[int]) -> list[int]"
+
+
+def test_typing_object_annotations(doc):
+    assert doc(m.annotate_object) == "annotate_object(arg0: list[int]) -> list[int]"
+
+
 def test_tuple_nonempty_annotations(doc):
     assert (
         doc(m.annotate_tuple_float_str)

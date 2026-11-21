@@ -36,6 +36,28 @@ PYBIND11_NAMESPACE_BEGIN(typing)
 
 // Tuple type hint defined in cast.h for use in py::make_tuple to avoid circular includes
 
+template <typename T, bool Cast = false>
+class Handle : public handle {
+public:
+    Handle() = default;
+    using handle::handle;
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    Handle(const handle &h) : handle(h) {}
+};
+
+template <typename T, bool Cast = false>
+class Object : public object {
+public:
+    Object() = default;
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    Object(const object &o) : object(o) {}
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    Object(object &&other) noexcept : object(std::move(other)) {}
+    Object(handle h, borrowed_t) : object(h, borrowed_t{}) {}
+    Object(handle h, stolen_t) : object(h, stolen_t{}) {}
+    static bool check_(handle h) noexcept { return h.ptr() != nullptr; }
+};
+
 template <typename K, typename V>
 class Dict : public dict {
     using dict::dict;
@@ -140,6 +162,18 @@ class TypeVar : public object {
 PYBIND11_NAMESPACE_END(typing)
 
 PYBIND11_NAMESPACE_BEGIN(detail)
+
+template <typename T, bool Cast>
+struct handle_type_name<typing::Handle<T, Cast>> {
+    static constexpr auto name = ::pybind11::detail::const_name<Cast>(
+        make_caster<T>::name, ::pybind11::detail::return_descr(make_caster<T>::name));
+};
+
+template <typename T, bool Cast>
+struct handle_type_name<typing::Object<T, Cast>> {
+    static constexpr auto name = ::pybind11::detail::const_name<Cast>(
+        make_caster<T>::name, ::pybind11::detail::return_descr(make_caster<T>::name));
+};
 
 template <typename... Types>
 struct handle_type_name<typing::Tuple<Types...>> {
