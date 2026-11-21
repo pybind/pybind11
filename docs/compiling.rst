@@ -367,6 +367,14 @@ Python-exclusive module. Specifying ``SHARED`` will create a more traditional
 dynamic library which can also be linked from elsewhere. ``EXCLUDE_FROM_ALL``
 removes this target from the default build (see CMake docs for details).
 
+.. note::
+
+    A ``SHARED`` library does not link ``libpython`` on Apple platforms, in
+    classic (non-FindPython) mode, or if FindPython did not find the
+    ``Development.Embed`` component. An executable that links such a library
+    must also link ``pybind11::embed``. On Apple platforms, a library that
+    links ``libpython`` cannot be imported by a statically linked interpreter.
+
 Since pybind11 is a template library, ``pybind11_add_module`` adds compiler
 flags to ensure high quality code generation without bloat arising from long
 symbol names and duplication of code in different translation units. It
