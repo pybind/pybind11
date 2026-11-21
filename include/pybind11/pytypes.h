@@ -83,6 +83,11 @@ template <>
 struct is_pyobject<const PyObject> : std::false_type {};
 #endif
 
+// bool and character types are integral, but `cast` does not convert them to a Python int.
+template <typename T>
+using is_integer_key
+    = all_of<std::is_integral<T>, none_of<std::is_same<T, bool>, is_std_char_type<T>>>;
+
 /** \rst
     A mixin class which adds common functions to `handle`, `object` and various accessors.
     The only requirement for `Derived` is to implement ``PyObject *Derived::ptr() const``.
@@ -113,6 +118,9 @@ public:
     item_accessor operator[](object &&key) const;
     /// See above (the only difference is that the key is provided as a string literal)
     item_accessor operator[](const char *key) const;
+    /// See above (the key is a C++ integer; bool and character types are excluded)
+    template <typename T, enable_if_t<is_integer_key<T>::value, int> = 0>
+    item_accessor operator[](T key) const;
 
     /** \rst
         Return an internal functor to access the object's attributes. Casting the
@@ -2574,6 +2582,11 @@ item_accessor object_api<D>::operator[](object &&key) const {
 template <typename D>
 item_accessor object_api<D>::operator[](const char *key) const {
     return {derived(), pybind11::str(key)};
+}
+template <typename D>
+template <typename T, enable_if_t<is_integer_key<T>::value, int>>
+item_accessor object_api<D>::operator[](T key) const {
+    return {derived(), pybind11::int_(key)};
 }
 template <typename D>
 obj_attr_accessor object_api<D>::attr(handle key) const {

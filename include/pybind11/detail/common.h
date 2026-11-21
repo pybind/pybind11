@@ -1043,6 +1043,16 @@ using any_of = std::disjunction<Ts...>;
 template <class... Ts>
 using none_of = negation<any_of<Ts...>>;
 
+template <typename CharT>
+using is_std_char_type = any_of<std::is_same<CharT, char>, /* std::string */
+#if defined(PYBIND11_HAS_U8STRING)
+                                std::is_same<CharT, char8_t>, /* std::u8string */
+#endif
+                                std::is_same<CharT, char16_t>, /* std::u16string */
+                                std::is_same<CharT, char32_t>, /* std::u32string */
+                                std::is_same<CharT, wchar_t>   /* std::wstring */
+                                >;
+
 template <class T, template <class> class... Predicates>
 using satisfies_all_of = all_of<Predicates<T>...>;
 template <class T, template <class> class... Predicates>
