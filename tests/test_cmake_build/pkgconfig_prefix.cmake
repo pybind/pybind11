@@ -12,8 +12,7 @@ foreach(datarootdir IN ITEMS "share" "." "./share" "lib/foo/share")
     COMMAND
       "${CMAKE_COMMAND}" -S "${SOURCE_DIR}" -B "${build_dir}" -G "${GENERATOR}"
       "-DCMAKE_CXX_COMPILER=${CXX_COMPILER}" -DPYBIND11_TEST=OFF -DPYBIND11_NOPYTHON=ON
-      "-DCMAKE_INSTALL_PREFIX=${install_dir}"
-      "-DCMAKE_INSTALL_DATAROOTDIR=${datarootdir}"
+      "-DCMAKE_INSTALL_PREFIX=${install_dir}" "-DCMAKE_INSTALL_DATAROOTDIR=${datarootdir}"
     RESULT_VARIABLE result
     OUTPUT_QUIET)
   if(NOT result EQUAL 0)
@@ -36,10 +35,8 @@ foreach(datarootdir IN ITEMS "share" "." "./share" "lib/foo/share")
   get_filename_component(expected "${install_dir}" ABSOLUTE)
 
   if(NOT pc_prefix STREQUAL expected)
-    message(
-      FATAL_ERROR
-        "CMAKE_INSTALL_DATAROOTDIR=${datarootdir}: ${prefix_line} resolves to "
-        "${pc_prefix}, expected ${expected}")
+    message(FATAL_ERROR "CMAKE_INSTALL_DATAROOTDIR=${datarootdir}: ${prefix_line} resolves to "
+                        "${pc_prefix}, expected ${expected}")
   endif()
   message(STATUS "CMAKE_INSTALL_DATAROOTDIR=${datarootdir}: ${prefix_line} OK")
 endforeach()
