@@ -401,7 +401,7 @@ struct array_caster {
 private:
     std::unique_ptr<ArrayType> value;
 
-    // Both `convert_elements` overloads index `l` up to a size that is determined only once,
+    // All `convert_elements` overloads index `l` up to a size that is determined only once,
     // rather than iterating over `l`: the accesses stay in bounds even if the length of `l`
     // changes underneath (e.g. if another thread resizes a list in a free-threaded build).
 
@@ -434,18 +434,19 @@ private:
                           int> = 0>
     bool convert_elements(handle seq, bool convert) {
         auto l = reinterpret_borrow<sequence>(seq);
-        if (l.size() != Size) {
+        const size_t size = l.size();
+        if (size != Size) {
             return false;
         }
         // Not `ArrayType{}`: that does not compile if `Value` has an explicit default constructor.
         std::unique_ptr<ArrayType> result(new ArrayType());
-        size_t ctr = 0;
-        for (const auto &it : l) {
-            value_conv conv;
-            if (!conv.load(it, convert)) {
+        for (size_t i = 0; i < size; i++) {
+            value_conv conv;          // Constructed before the item is fetched.
+            const object item = l[i]; // Keeps the item alive while `conv` is in use.
+            if (!conv.load(item, convert)) {
                 return false;
             }
-            (*result)[ctr++] = cast_op<Value &&>(std::move(conv));
+            (*result)[i] = cast_op<Value &&>(std::move(conv));
         }
         value = std::move(result);
         return true;
