@@ -99,6 +99,17 @@ if(PYBIND11_INSTALL)
       OR PYBIND11_STABLE_ABI))
     pybind11_add_build_test(installed_embed INSTALL)
   endif()
+
+  add_custom_target(
+    test_build_pkgconfig_prefix
+    ${CMAKE_COMMAND}
+    "-DSOURCE_DIR=${pybind11_SOURCE_DIR}"
+    "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/pkgconfig_prefix"
+    "-DGENERATOR=${CMAKE_GENERATOR}"
+    "-DCXX_COMPILER=${CMAKE_CXX_COMPILER}"
+    -P
+    "${CMAKE_CURRENT_SOURCE_DIR}/pkgconfig_prefix.cmake")
+  add_dependencies(test_cmake_build test_build_pkgconfig_prefix)
 endif()
 
 add_dependencies(check test_cmake_build)
