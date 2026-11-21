@@ -105,3 +105,23 @@ Packaging produces two distributions: the normal `pybind11` (headers live inside
 - PR descriptions follow a template, the key part is under "Suggested changelog entry", which is how we generate our changelog (with `nox -s make_changelog`)
 - We follow conventional commits.
 - External contributors must follow AI_POLICY.md.
+
+### Race fixes based on inspection
+
+When a race fix relies on source inspection and has no targeted regression
+test, add a source comment next to the corrected ordering or synchronization.
+Explain what another thread could observe and how the fix prevents the race.
+Reference the fixing PR and include the exact sentence
+`No targeted race test yet.`
+
+When reviewing a PR in this situation, flag the affected code if the exact
+sentence is missing. For example, say "Please add the
+`No targeted race test yet.` comment here and explain why the ordering or
+synchronization matters." Prefer a targeted test when it can reliably detect
+the race at reasonable cost.
+
+Use the sentence to find related races that can share a ThreadSanitizer test
+fixture. Check that each scenario detects its race on the unfixed revision and
+passes after the fix. When a test covers the race, replace the sentence with a
+reference to that test and keep the explanation of why the code is ordered or
+synchronized that way.

@@ -1333,11 +1333,14 @@ PYBIND11_INLINE void generic_type::initialize(const type_record &rec) {
     tinfo->module_local = rec.module_local;
     tinfo->holder_enum_v = rec.holder_enum_v;
 
+    // Finish initializing this type_info before publishing it in the registries.
+    // On free-threaded builds, another thread can look it up as soon as the
+    // internals lock is released, then read its fields outside the lock.
+    // PR #6274 was verified by inspection. No targeted race test yet.
     if (rec.module_local) {
         tinfo->module_local_load = &type_caster_generic::local_load;
     }
 
-    // Finish all writes to tinfo before other threads can see it (free-threading).
     if (rec.bases.size() > 1 || rec.multiple_inheritance) {
         mark_parents_nonsimple(tinfo->type);
         tinfo->simple_ancestors = false;
