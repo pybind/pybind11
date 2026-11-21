@@ -585,6 +585,42 @@ def test_array_cast_sequence():
     assert m.array_cast_sequence((1, 2, 3)) == [1, 2, 3]
 
 
+class SequenceWithChangingLen:
+    """Reports `lens[0]` when first asked for its length, `lens[1]` after that."""
+
+    def __init__(self, items, lens):
+        self.items = items
+        self.lens = list(lens)
+        self.indices = []
+
+    def __len__(self):
+        return self.lens.pop(0) if len(self.lens) > 1 else self.lens[0]
+
+    def __getitem__(self, index):
+        self.indices.append(index)
+        return self.items[index]
+
+
+ARRAY_CASTER_LOADS = [m.array_cast_sequence, m.valarray_cast_sequence]
+
+
+@pytest.mark.parametrize("load", ARRAY_CASTER_LOADS)
+@pytest.mark.parametrize("len_change", [-1, 1])
+def test_array_caster_len_changes(load, len_change):
+    """The length is determined only once, which rules out out-of-bounds accesses."""
+    seq = SequenceWithChangingLen(list(range(4)), [3, 3 + len_change])
+    assert load(seq) == [0, 1, 2]
+    assert seq.indices == [0, 1, 2]
+
+
+@pytest.mark.parametrize("load", ARRAY_CASTER_LOADS)
+def test_array_caster_len_exceeds_items(load):
+    seq = SequenceWithChangingLen([0, 1], [3])
+    with pytest.raises(IndexError):
+        load(seq)
+    assert seq.indices == [0, 1, 2]
+
+
 def test_issue_1561():
     """check fix for issue #1561"""
     bar = m.Issue1561Outer()

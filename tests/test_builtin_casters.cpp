@@ -11,6 +11,8 @@
 
 #include "pybind11_tests.h"
 
+#include <set>
+
 struct ConstRefCasted {
     int tag;
 };
@@ -256,6 +258,23 @@ TEST_SUBMODULE(builtin_casters, m) {
         },
         "Return a triple in reversed order");
     m.def("empty_tuple", []() { return std::tuple<>(); });
+
+    // test_tuple_items_created_on_the_fly
+    // The copy constructor records if the source instance was alive.
+    struct TupleItem {
+        explicit TupleItem(int) { alive().insert(this); }
+        TupleItem(const TupleItem &other) : source_was_alive{alive().count(&other) != 0} {}
+        ~TupleItem() { alive().erase(this); }
+        static std::set<const TupleItem *> &alive() {
+            static std::set<const TupleItem *> instances;
+            return instances;
+        }
+        bool source_was_alive = true;
+    };
+    py::class_<TupleItem>(m, "TupleItem").def(py::init<int>());
+    m.def("pair_item_sources_were_alive", [](const std::pair<TupleItem, TupleItem> &input) {
+        return std::make_pair(input.first.source_was_alive, input.second.source_was_alive);
+    });
     static std::pair<RValueCaster, RValueCaster> lvpair;
     static std::tuple<RValueCaster, RValueCaster, RValueCaster> lvtuple;
     static std::pair<RValueCaster, std::tuple<RValueCaster, std::pair<RValueCaster, RValueCaster>>>

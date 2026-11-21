@@ -283,6 +283,11 @@ TEST_SUBMODULE(pytypes, m) {
           [](const py::dict &dict, const py::object &val) { return dict.contains(val); });
     m.def("dict_contains",
           [](const py::dict &dict, const char *val) { return dict.contains(val); });
+    m.def("dict_get", [](const py::dict &dict, const py::object &key) { return dict.get(key); });
+    m.def("dict_get", [](const py::dict &dict, const py::object &key, const py::object &def) {
+        return dict.get(key, def);
+    });
+    m.def("dict_get_cast", [](const py::dict &dict) { return dict.get("foo", 42); });
 
     // test_tuple
     m.def("tuple_no_args", []() { return py::tuple{}; });

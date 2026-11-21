@@ -877,13 +877,13 @@ jobs:
     - name: Build C++11
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
-        cmake --build build-11 -j 2 -v
+        cmake --build build-11 -j $(nproc) -v
 
     - name: Python tests C++11
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
         sudo service apport stop
-        cmake --build build-11 --target check
+        cmake --build build-11 --target check -j $(nproc)
 
     - name: C++ tests C++11
       timeout-minutes: 3
@@ -915,13 +915,13 @@ jobs:
     - name: Build C++17
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
-        cmake --build build-17 -j 2 -v
+        cmake --build build-17 -j $(nproc) -v
 
     - name: Python tests C++17
       run: |
         set +e; source /opt/intel/oneapi/setvars.sh; set -e
         sudo service apport stop
-        cmake --build build-17 --target check
+        cmake --build build-17 --target check -j $(nproc)
 
     - name: C++ tests C++17
       timeout-minutes: 3

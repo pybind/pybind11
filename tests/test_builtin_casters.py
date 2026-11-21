@@ -467,6 +467,19 @@ def test_tuple(doc):
     assert m.int_string_pair() == (2, "items")
 
 
+def test_tuple_items_created_on_the_fly():
+    """Each item is kept alive until its value was copied (no use-after-free)."""
+
+    class OnTheFly:
+        def __len__(self):
+            return 2
+
+        def __getitem__(self, index):
+            return m.TupleItem(index)  # The sequence does not retain the item.
+
+    assert m.pair_item_sources_were_alive(OnTheFly()) == (True, True)
+
+
 def test_builtins_cast_return_none():
     """Casters produced with PYBIND11_TYPE_CASTER() should convert nullptr to None"""
     assert m.return_none_string() is None

@@ -88,6 +88,22 @@ public:
 
         subinterpreter result;
         {
+#if PY_VERSION_HEX < 0x030E0000 && defined(Py_MOD_PER_INTERPRETER_GIL_SUPPORTED)
+            // Several internal CPython modules are not safe when two interpreters initialize
+            // concurrently before 3.14 (see #6071), so only one thread can create at a time.
+            // Initialization in 3.13 takes the main GIL, so a thread must not hold a GIL while it
+            // waits for this mutex.
+            static std::mutex one_at_a_time;
+            std::unique_lock<std::mutex> one_at_a_time_lock(one_at_a_time, std::defer_lock);
+            if (auto *waiting_tstate = detail::get_thread_state_unchecked()) {
+                PyEval_SaveThread();
+                one_at_a_time_lock.lock();
+                PyEval_RestoreThread(waiting_tstate);
+            } else {
+                one_at_a_time_lock.lock();
+            }
+#endif
+
             // we must hold the main GIL in order to create a subinterpreter
             subinterpreter_scoped_activate main_guard(main());
 
@@ -97,21 +113,7 @@ public:
 
             auto *prev_tstate = PyThreadState_Get();
 
-            PyStatus status;
-
-            {
-                /*
-                Several internal CPython modules are lacking proper subinterpreter support in 3.12
-                even though it is "stable" in that version.  This most commonly seems to cause
-                crashes when two interpreters concurrently initialize, which imports several things
-                (like builtins, unicode, codecs).
-                */
-#if PY_VERSION_HEX < 0x030D0000 && defined(Py_MOD_PER_INTERPRETER_GIL_SUPPORTED)
-                static std::mutex one_at_a_time;
-                std::lock_guard<std::mutex> guard(one_at_a_time);
-#endif
-                status = Py_NewInterpreterFromConfig(&result.creation_tstate_, &cfg);
-            }
+            PyStatus status = Py_NewInterpreterFromConfig(&result.creation_tstate_, &cfg);
 
             // this doesn't raise a normal Python exception, it provides an exit() status code.
             if (PyStatus_Exception(status) != 0) {

@@ -401,22 +401,27 @@ struct array_caster {
 private:
     std::unique_ptr<ArrayType> value;
 
+    // Both `convert_elements` overloads index `l` up to a size that is determined only once,
+    // rather than iterating over `l`: the accesses stay in bounds even if the length of `l`
+    // changes underneath (e.g. if another thread resizes a list in a free-threaded build).
+
     template <bool R = Resizable, enable_if_t<R, int> = 0>
     bool convert_elements(handle seq, bool convert) {
         auto l = reinterpret_borrow<sequence>(seq);
+        const size_t size = l.size();
         value.reset(new ArrayType{});
         // Using `resize` to preserve the behavior exactly as it was before PR #5305
         // For the `resize` to work, `Value` must be default constructible.
         // For `std::valarray`, this is a requirement:
         // https://en.cppreference.com/w/cpp/named_req/NumericType
-        value->resize(l.size());
-        size_t ctr = 0;
-        for (const auto &it : l) {
-            value_conv conv;
-            if (!conv.load(it, convert)) {
+        value->resize(size);
+        for (size_t i = 0; i < size; i++) {
+            value_conv conv;          // Constructed before the item is fetched.
+            const object item = l[i]; // Keeps the item alive while `conv` is in use.
+            if (!conv.load(item, convert)) {
                 return false;
             }
-            (*value)[ctr++] = cast_op<Value &&>(std::move(conv));
+            (*value)[i] = cast_op<Value &&>(std::move(conv));
         }
         return true;
     }
@@ -424,7 +429,8 @@ private:
     template <bool R = Resizable, enable_if_t<!R, int> = 0>
     bool convert_elements(handle seq, bool convert) {
         auto l = reinterpret_borrow<sequence>(seq);
-        if (l.size() != Size) {
+        const size_t size = l.size();
+        if (size != Size) {
             return false;
         }
         // The `temp` storage is needed to support `Value` types that are not
@@ -433,10 +439,11 @@ private:
         // because the compile time overhead for the specializations is deemed
         // more significant than the runtime overhead for the `temp` storage.
         std::vector<Value> temp;
-        temp.reserve(l.size());
-        for (auto it : l) {
-            value_conv conv;
-            if (!conv.load(it, convert)) {
+        temp.reserve(size);
+        for (size_t i = 0; i < size; i++) {
+            value_conv conv;          // Constructed before the item is fetched.
+            const object item = l[i]; // Keeps the item alive while `conv` is in use.
+            if (!conv.load(item, convert)) {
                 return false;
             }
             temp.emplace_back(cast_op<Value &&>(std::move(conv)));
