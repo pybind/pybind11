@@ -206,6 +206,32 @@ private:
 } // namespace detail
 } // namespace PYBIND11_NAMESPACE
 
+// The type caster holds a counted token from `load()` until it is destroyed.
+struct TokenView {};
+
+std::shared_ptr<int> &token_source() {
+    static auto *source = new std::shared_ptr<int>(std::make_shared<int>(0));
+    return *source;
+}
+
+namespace PYBIND11_NAMESPACE {
+namespace detail {
+template <>
+struct type_caster<TokenView> {
+    PYBIND11_TYPE_CASTER(TokenView, const_name("str"));
+    static constexpr bool refers_to_caster = true;
+
+    bool load(handle src, bool) {
+        token = token_source();
+        return isinstance<str>(src);
+    }
+
+private:
+    std::shared_ptr<int> token;
+};
+} // namespace detail
+} // namespace PYBIND11_NAMESPACE
+
 template <typename Container>
 py::list copy_strings(const Container &c) {
     py::list out;
@@ -711,6 +737,10 @@ TEST_SUBMODULE(stl, m) {
 #ifdef PYBIND11_HAS_VARIANT
     m.def("load_variant_vector_cstr", [](const std::variant<int, std::vector<const char *>> &v) {
         return copy_strings(std::get<std::vector<const char *>>(v));
+    });
+    // Returns the index of the alternative and the number of live type caster tokens.
+    m.def("load_variant_token_view", [](const std::variant<TokenView, int> &v) {
+        return std::make_pair(v.index(), token_source().use_count() - 1);
     });
 #endif
     using py::detail::cast_refers_to_caster;

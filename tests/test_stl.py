@@ -189,6 +189,9 @@ def test_element_casters_kept_alive():
         assert m.load_optional_cstr(strs[1]) == strs[1]
     if hasattr(m, "load_variant_vector_cstr"):
         assert m.load_variant_vector_cstr(strs) == strs
+        # The type caster of a rejected alternative is released before the call
+        assert m.load_variant_token_view("x") == (0, 1)
+        assert m.load_variant_token_view(1) == (1, 0)
 
 
 def test_deque():

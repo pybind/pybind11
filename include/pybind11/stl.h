@@ -704,12 +704,15 @@ struct variant_caster<V<Ts...>> {
     bool load_alternative(handle src, bool convert, type_list<U, Us...>) {
         auto &casters = std::get<sizeof...(Ts) - sizeof...(Us) - 1>(alternative_casters);
         casters.clear();
-        typename element_casters<U>::slot slot(casters);
-        make_caster<U> &caster = slot.caster;
-        if (caster.load(src, convert)) {
-            value = cast_op<U>(std::move(caster));
-            return true;
+        {
+            typename element_casters<U>::slot slot(casters);
+            make_caster<U> &caster = slot.caster;
+            if (caster.load(src, convert)) {
+                value = cast_op<U>(std::move(caster));
+                return true;
+            }
         }
+        casters.clear(); // Do not keep the type_caster of a rejected alternative.
         return load_alternative(src, convert, type_list<Us...>{});
     }
 
