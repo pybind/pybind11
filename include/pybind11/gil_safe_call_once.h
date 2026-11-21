@@ -203,7 +203,8 @@ public:
                 ::new (value->storage) T(fn());
                 value->finalize = finalize_fn;
                 value->is_initialized = true;
-                // Let the storage reset the cache below when the interpreter destroys it.
+                // Let the storage reset the cache below when the interpreter destroys it. Set
+                // only here: `get_stored()` can run concurrently in threads of one interpreter.
                 value->owner = this;
                 // Publish the cached pointer before setting the validity flag, so that any reader
                 // which observes the flag as true is guaranteed to also observe this pointer.
@@ -228,7 +229,6 @@ public:
             gil_scoped_acquire gil_acq;
             auto *value = get_or_create_storage_in_state_dict();
             result = reinterpret_cast<T *>(value->storage);
-            value->owner = this;
             last_storage_ptr_ = result;
         }
         assert(result != nullptr);
