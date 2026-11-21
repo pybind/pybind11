@@ -360,11 +360,12 @@ public:
         if (!dt) {
             throw error_already_set();
         }
-        const auto tt = pybind11::int_(dt.attr("timestamp")()).cast<std::time_t>();
+        // Not time_t, which can be 32-bit (e.g. mingw32) while Python's timestamp() is not.
+        const auto ts = pybind11::int_(dt.attr("timestamp")()).cast<seconds::rep>();
         // system_clock counts from the time_t epoch. from_time_t would convert to
         // system_clock::duration first, and nanoseconds overflow outside about 1678-2262.
         Duration d{};
-        if (!checked_duration_cast(microseconds(seconds(tt) + msecs), d)) {
+        if (!checked_duration_cast(microseconds(seconds(ts) + msecs), d)) {
             return false;
         }
         value = type(d);
