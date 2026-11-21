@@ -419,6 +419,54 @@ def test_floating_point_duration():
     assert 665556 <= diff.microseconds <= 665557
 
 
+@pytest.mark.parametrize(
+    "value",
+    [
+        dt.timedelta.max,
+        dt.timedelta.min,
+        float("inf"),
+        float("-inf"),
+        float("nan"),
+        1e300,
+    ],
+)
+def test_chrono_duration_out_of_range(value):
+    # Values that do not fit in int64 microseconds are rejected instead of overflowing
+    with pytest.raises(TypeError):
+        m.test_chrono7(value)
+
+
+def test_chrono_duration_out_of_range_boundaries():
+    big = dt.timedelta(days=106751990, seconds=86399, microseconds=999999)
+    assert m.test_chrono7(big) == big
+    assert m.test_chrono7(-big) == -big
+
+    # 2**31 - 1 milliseconds is about 24.86 days
+    for value in (
+        dt.timedelta(milliseconds=2**31 - 1),
+        dt.timedelta(milliseconds=-(2**31)),
+    ):
+        assert m.test_chrono_int32_ms(value) == value
+    assert m.test_chrono_int32_ms(-2147483.0) == dt.timedelta(seconds=-2147483)
+    for value in (
+        dt.timedelta(milliseconds=2**31),
+        dt.timedelta(milliseconds=-(2**31) - 1),
+        2147484.0,
+    ):
+        with pytest.raises(TypeError):
+            m.test_chrono_int32_ms(value)
+
+    # int64 nanoseconds cover about 292 years either side of the epoch
+    with pytest.raises(TypeError):
+        m.test_nano_timepoint(dt.datetime(2000, 1, 1), dt.timedelta(days=365 * 300))
+    try:
+        dt.datetime(2300, 1, 1).timestamp()
+    except (OverflowError, OSError):
+        return  # 32-bit time_t
+    with pytest.raises(TypeError):
+        m.test_nano_timepoint(dt.datetime(2300, 1, 1), dt.timedelta(0))
+
+
 def test_nano_timepoint():
     time = dt.datetime.now()
     time1 = m.test_nano_timepoint(time, dt.timedelta(seconds=60))
