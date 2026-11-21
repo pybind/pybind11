@@ -51,6 +51,10 @@ struct func_wrapper : func_wrapper_base {
 
 PYBIND11_NAMESPACE_END(type_caster_std_function_specializations)
 
+// The policy applies to the return value of the callable, not to the std::function.
+template <typename Return, typename... Args>
+struct cast_forwards_automatic_policy<std::function<Return(Args...)>> : std::true_type {};
+
 template <typename Return, typename... Args>
 struct type_caster<std::function<Return(Args...)>> {
     using type = std::function<Return(Args...)>;
