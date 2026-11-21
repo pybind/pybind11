@@ -42,13 +42,13 @@ Python
      - 3.15t
      - First release of ``abi3t``.
    * - PyPy
-     - 3.10 (some v7 edition)
+     - 3.10 (v7.3.17)
      - 3.11 (v7.3.23)
      - We support v8 too.
    * - GraalPy
      - 25.0
      - 25.0
-     - Older versions supported 24.x somewhat.
+     - CI tested 24.x before pybind11 3.1. It can work, but we do not test it.
 
 We plan to drop 3.13t support soon, as it was experimental. Use 3.14t or newer.
 
