@@ -168,8 +168,13 @@ inline PyTypeObject *get_function_record_module_PyTypeObject() {
                             0,
                             Py_TPFLAGS_DEFAULT,
                             slots};
-        PyObject *py_obj
-            = PyType_FromSpecWithBases(&spec, reinterpret_cast<PyObject *>(&PyModule_Type));
+        // Python < 3.10 needs a tuple for the bases.
+        auto bases = reinterpret_steal<object>(
+            PyTuple_Pack(1, reinterpret_cast<PyObject *>(&PyModule_Type)));
+        if (!bases) {
+            throw error_already_set();
+        }
+        PyObject *py_obj = PyType_FromSpecWithBases(&spec, bases.ptr());
         if (py_obj == nullptr) {
             throw error_already_set();
         }
