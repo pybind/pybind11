@@ -201,6 +201,10 @@ TEST_SUBMODULE(builtin_casters, m) {
         static constexpr auto val = "Have some \360\237\216\202"sv;
         return py::memoryview::from_memory(val);
     });
+    m.def("string_view_call_then_copy", [](std::string_view s, const py::function &f) {
+        f();
+        return py::bytes(s.data(), s.size());
+    });
 
 #    ifdef PYBIND11_HAS_U8STRING
     m.def("string_view8_print", [](std::u8string_view s) { py::print(s, s.size()); });
