@@ -437,7 +437,8 @@ private:
         if (l.size() != Size) {
             return false;
         }
-        std::unique_ptr<ArrayType> result(new ArrayType{});
+        // Not `ArrayType{}`: that does not compile if `Value` has an explicit default constructor.
+        std::unique_ptr<ArrayType> result(new ArrayType());
         size_t ctr = 0;
         for (const auto &it : l) {
             value_conv conv;

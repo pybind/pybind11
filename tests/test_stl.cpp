@@ -627,6 +627,15 @@ TEST_SUBMODULE(stl, m) {
         return std::accumulate(a.begin(), a.end(), 0LL);
     });
 
+    // An explicit default constructor must not be used in copy-list-initialization
+    struct ExplicitDefault {
+        explicit ExplicitDefault(int v = 0) : value(v) {}
+        int value;
+    };
+    py::class_<ExplicitDefault>(m, "ExplicitDefault").def(py::init<int>());
+    m.def("sum_explicit_default_array",
+          [](const std::array<ExplicitDefault, 2> &a) { return a[0].value + a[1].value; });
+
     /// test_issue_1561
     struct Issue1561Inner {
         std::string data;
