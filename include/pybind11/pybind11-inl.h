@@ -682,7 +682,7 @@ PYBIND11_INLINE void cpp_function::initialize_generic(unique_function_record &&u
         rec->def->ml_flags = METH_FASTCALL | METH_KEYWORDS;
 
         object py_func_rec = detail::function_record_PyObject_New(rec->scope, rec);
-        (void) unique_rec.release();
+        unique_rec.release(); // NOLINT(bugprone-unused-return-value): owned by py_func_rec
         guarded_strdup.release();
 #if defined(PYBIND11_FUNCTION_RECORD_QUALNAME)
         if (PyModule_Check(py_func_rec.ptr()) != 0) {
