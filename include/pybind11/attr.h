@@ -130,6 +130,9 @@ struct arithmetic {};
 /// Mark a function for addition at the beginning of the existing overload chain instead of the end
 struct prepend {};
 
+// Disallow a function to return a nullptr.
+struct returns_non_null {};
+
 /** \rst
     A call policy which places one or more guard variables (``Ts...``) around the function call.
 
@@ -202,7 +205,7 @@ struct function_record {
     function_record()
         : is_constructor(false), is_new_style_constructor(false), is_stateless(false),
           is_operator(false), is_method(false), is_setter(false), has_args(false),
-          has_kwargs(false), prepend(false) {}
+          has_kwargs(false), prepend(false), returns_non_null(false) {}
 
     /// Function name
     char *name = nullptr; /* why no C++ strings? They generate heavier code.. */
@@ -254,6 +257,9 @@ struct function_record {
 
     /// True if this function is to be inserted at the beginning of the overload resolution chain
     bool prepend : 1;
+
+    // True if this function does not return a nullptr
+    bool returns_non_null : 1;
 
     /// Number of arguments (including py::args and/or py::kwargs, if present)
     std::uint16_t nargs;
@@ -614,6 +620,11 @@ struct process_attribute<release_gil_before_calling_cpp_dtor>
 template <>
 struct process_attribute<prepend> : process_attribute_default<prepend> {
     static void init(const prepend &, function_record *r) { r->prepend = true; }
+};
+
+template <>
+struct process_attribute<returns_non_null> : process_attribute_default<returns_non_null> {
+    static void init(const returns_non_null &, function_record *r) { r->returns_non_null = true; }
 };
 
 /// Process an 'arithmetic' attribute for enums (does nothing here)

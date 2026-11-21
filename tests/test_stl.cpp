@@ -526,12 +526,18 @@ TEST_SUBMODULE(stl, m) {
     };
 
     // test_variant
-    m.def("load_variant", [](const variant<int, std::string, double, std::nullptr_t> &v) {
-        return py::detail::visit_helper<variant>::call(visitor(), v);
-    });
-    m.def("load_variant_2pass", [](variant<int, double> v) {
-        return py::detail::visit_helper<variant>::call(visitor(), v);
-    });
+    m.def(
+        "load_variant",
+        [](const variant<int, std::string, double, std::nullptr_t> &v) {
+            return py::detail::visit_helper<variant>::call(visitor(), v);
+        },
+        py::returns_non_null());
+    m.def(
+        "load_variant_2pass",
+        [](variant<int, double> v) {
+            return py::detail::visit_helper<variant>::call(visitor(), v);
+        },
+        py::returns_non_null());
     m.def("cast_variant", []() {
         using V = variant<int, std::string>;
         return py::make_tuple(V(5), V("Hello"));
@@ -539,10 +545,12 @@ TEST_SUBMODULE(stl, m) {
 
 #    if defined(PYBIND11_HAS_VARIANT)
     // std::monostate tests.
-    m.def("load_monostate_variant",
-          [](const variant<std::monostate, int, std::string> &v) -> const char * {
-              return py::detail::visit_helper<variant>::call(visitor(), v);
-          });
+    m.def(
+        "load_monostate_variant",
+        [](const variant<std::monostate, int, std::string> &v) -> const char * {
+            return py::detail::visit_helper<variant>::call(visitor(), v);
+        },
+        py::returns_non_null());
     m.def("cast_monostate_variant", []() {
         using V = variant<std::monostate, int, std::string>;
         return py::make_tuple(V{}, V(5), V("Hello"));

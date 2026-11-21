@@ -336,46 +336,86 @@ TEST_SUBMODULE(numpy_array, sm) {
     });
 
     // test_overload_resolution
-    sm.def("overloaded", [](const py::array_t<double> &) { return "double"; });
-    sm.def("overloaded", [](const py::array_t<float> &) { return "float"; });
-    sm.def("overloaded", [](const py::array_t<int> &) { return "int"; });
-    sm.def("overloaded", [](const py::array_t<unsigned short> &) { return "unsigned short"; });
-    sm.def("overloaded", [](const py::array_t<long long> &) { return "long long"; });
-    sm.def("overloaded",
-           [](const py::array_t<std::complex<double>> &) { return "double complex"; });
-    sm.def("overloaded", [](const py::array_t<std::complex<float>> &) { return "float complex"; });
+    sm.def(
+        "overloaded",
+        [](const py::array_t<double> &) { return "double"; },
+        py::returns_non_null());
+    sm.def(
+        "overloaded", [](const py::array_t<float> &) { return "float"; }, py::returns_non_null());
+    sm.def("overloaded", [](const py::array_t<int> &) { return "int"; }, py::returns_non_null());
+    sm.def(
+        "overloaded",
+        [](const py::array_t<unsigned short> &) { return "unsigned short"; },
+        py::returns_non_null());
+    sm.def(
+        "overloaded",
+        [](const py::array_t<long long> &) { return "long long"; },
+        py::returns_non_null());
+    sm.def(
+        "overloaded",
+        [](const py::array_t<std::complex<double>> &) { return "double complex"; },
+        py::returns_non_null());
+    sm.def(
+        "overloaded",
+        [](const py::array_t<std::complex<float>> &) { return "float complex"; },
+        py::returns_non_null());
 
-    sm.def("overloaded2",
-           [](const py::array_t<std::complex<double>> &) { return "double complex"; });
-    sm.def("overloaded2", [](const py::array_t<double> &) { return "double"; });
-    sm.def("overloaded2",
-           [](const py::array_t<std::complex<float>> &) { return "float complex"; });
-    sm.def("overloaded2", [](const py::array_t<float> &) { return "float"; });
+    sm.def(
+        "overloaded2",
+        [](const py::array_t<std::complex<double>> &) { return "double complex"; },
+        py::returns_non_null());
+    sm.def(
+        "overloaded2",
+        [](const py::array_t<double> &) { return "double"; },
+        py::returns_non_null());
+    sm.def(
+        "overloaded2",
+        [](const py::array_t<std::complex<float>> &) { return "float complex"; },
+        py::returns_non_null());
+    sm.def(
+        "overloaded2", [](const py::array_t<float> &) { return "float"; }, py::returns_non_null());
 
     // [workaround(intel)] ICC 20/21 breaks with py::arg().stuff, using py::arg{}.stuff works.
 
     // Only accept the exact types:
-    sm.def("overloaded3", [](const py::array_t<int> &) { return "int"; }, py::arg{}.noconvert());
+    sm.def(
+        "overloaded3",
+        [](const py::array_t<int> &) { return "int"; },
+        py::arg{}.noconvert(),
+        py::returns_non_null());
     sm.def(
         "overloaded3",
         [](const py::array_t<double> &) { return "double"; },
+        py::returns_non_null(),
         py::arg{}.noconvert());
 
     // Make sure we don't do unsafe coercion (e.g. float to int) when not using forcecast, but
     // rather that float gets converted via the safe (conversion to double) overload:
-    sm.def("overloaded4", [](const py::array_t<long long, 0> &) { return "long long"; });
-    sm.def("overloaded4", [](const py::array_t<double, 0> &) { return "double"; });
+    sm.def(
+        "overloaded4",
+        [](const py::array_t<long long, 0> &) { return "long long"; },
+        py::returns_non_null());
+    sm.def(
+        "overloaded4",
+        [](const py::array_t<double, 0> &) { return "double"; },
+        py::returns_non_null());
 
     // But we do allow conversion to int if forcecast is enabled (but only if no overload matches
     // without conversion)
-    sm.def("overloaded5", [](const py::array_t<unsigned int> &) { return "unsigned int"; });
-    sm.def("overloaded5", [](const py::array_t<double> &) { return "double"; });
+    sm.def(
+        "overloaded5",
+        [](const py::array_t<unsigned int> &) { return "unsigned int"; },
+        py::returns_non_null());
+    sm.def(
+        "overloaded5",
+        [](const py::array_t<double> &) { return "double"; },
+        py::returns_non_null());
 
     // test_greedy_string_overload
     // Issue 685: ndarray shouldn't go to std::string overload
-    sm.def("issue685", [](const std::string &) { return "string"; });
-    sm.def("issue685", [](const py::array &) { return "array"; });
-    sm.def("issue685", [](const py::object &) { return "other"; });
+    sm.def("issue685", [](const std::string &) { return "string"; }, py::returns_non_null());
+    sm.def("issue685", [](const py::array &) { return "array"; }, py::returns_non_null());
+    sm.def("issue685", [](const py::object &) { return "other"; }, py::returns_non_null());
 
     // test_array_unchecked_fixed_dims
     sm.def(

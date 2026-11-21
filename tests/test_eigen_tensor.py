@@ -288,6 +288,10 @@ def test_doc_string(m, doc):
         f'round_trip_view_tensor(arg0: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[?, ?, ?]", "flags.writeable", {order_flag}])'
         f' -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[?, ?, ?]", "flags.writeable", {order_flag}]'
     )
+    assert doc(m.round_trip_view_tensor_ptr) == (
+        f'round_trip_view_tensor_ptr(arg0: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[?, ?, ?]", "flags.writeable", {order_flag}] | None)'
+        f' -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[?, ?, ?]", "flags.writeable", {order_flag}] | None'
+    )
     assert doc(m.round_trip_const_view_tensor) == (
         f'round_trip_const_view_tensor(arg0: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[?, ?, ?]", {order_flag}])'
         ' -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[?, ?, ?]"]'

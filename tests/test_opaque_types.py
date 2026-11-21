@@ -42,7 +42,7 @@ def test_pointers(msg, backport_typehints):
         backport_typehints(msg(excinfo.value))
         == """
             get_void_ptr_value(): incompatible function arguments. The following argument types are supported:
-                1. (arg0: types.CapsuleType) -> int
+                1. (arg0: types.CapsuleType | None) -> int
 
             Invoked with: [1, 2, 3]
         """

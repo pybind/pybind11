@@ -119,13 +119,19 @@ void init_tensor_module(pybind11::module &m) {
     m.def(
         "copy_fixed_tensor",
         []() { return &get_fixed_tensor<Options>(); },
+        py::returns_non_null(),
         py::return_value_policy::copy);
 
-    m.def("copy_tensor", []() { return &get_tensor<Options>(); }, py::return_value_policy::copy);
+    m.def(
+        "copy_tensor",
+        []() { return &get_tensor<Options>(); },
+        py::returns_non_null(),
+        py::return_value_policy::copy);
 
     m.def(
         "copy_const_tensor",
         []() { return &get_const_tensor<Options>(); },
+        py::returns_non_null(),
         py::return_value_policy::copy);
 
     m.def(
@@ -156,6 +162,7 @@ void init_tensor_module(pybind11::module &m) {
                     get_fixed_tensor<Options>());
             return obj; // take_ownership will fail.
         },
+        py::returns_non_null(),
         py::return_value_policy::take_ownership);
 
     m.def(
@@ -164,6 +171,7 @@ void init_tensor_module(pybind11::module &m) {
             static auto *obj = new Eigen::Tensor<double, 3, Options>(get_tensor<Options>());
             return obj; // take_ownership will fail.
         },
+        py::returns_non_null(),
         py::return_value_policy::take_ownership);
 
     m.def(
@@ -172,6 +180,7 @@ void init_tensor_module(pybind11::module &m) {
             static auto *obj = new Eigen::Tensor<double, 3, Options>(get_tensor<Options>());
             return obj; // take_ownership will fail.
         },
+        py::returns_non_null(),
         py::return_value_policy::take_ownership);
 
     m.def(
@@ -181,11 +190,13 @@ void init_tensor_module(pybind11::module &m) {
                 = new Eigen::TensorMap<Eigen::Tensor<double, 3, Options>>(get_tensor<Options>());
             return obj; // take_ownership will fail.
         },
+        py::returns_non_null(),
         py::return_value_policy::take_ownership);
 
     m.def(
         "reference_tensor",
         []() { return &get_tensor<Options>(); },
+        py::returns_non_null(),
         py::return_value_policy::reference);
 
     m.def(
@@ -196,16 +207,19 @@ void init_tensor_module(pybind11::module &m) {
     m.def(
         "reference_tensor_internal",
         []() { return &get_tensor<Options>(); },
+        py::returns_non_null(),
         py::return_value_policy::reference_internal);
 
     m.def(
         "reference_fixed_tensor",
         []() { return &get_tensor<Options>(); },
+        py::returns_non_null(),
         py::return_value_policy::reference);
 
     m.def(
         "reference_const_tensor",
         []() { return &get_const_tensor<Options>(); },
+        py::returns_non_null(),
         py::return_value_policy::reference);
 
     m.def(
@@ -233,6 +247,7 @@ void init_tensor_module(pybind11::module &m) {
         []() -> Eigen::TensorMap<Eigen::Tensor<double, 3, Options>> * {
             return &get_tensor_map<Options>();
         },
+        py::returns_non_null(),
         py::return_value_policy::reference);
 
     m.def(
@@ -240,6 +255,7 @@ void init_tensor_module(pybind11::module &m) {
         []() -> const Eigen::TensorMap<Eigen::Tensor<double, 3, Options>> * {
             return &get_tensor_map<Options>();
         },
+        py::returns_non_null(),
         py::return_value_policy::reference);
 
     m.def(
