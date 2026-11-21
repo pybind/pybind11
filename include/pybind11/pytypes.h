@@ -944,6 +944,22 @@ inline PyObject *dict_getitemstringref(PyObject *v, const char *key) {
 #endif
 }
 
+// PyDict_GetItemRef was added in Python 3.13.0a1 (limited API: 3.13).
+inline PyObject *dict_getitemref(PyObject *v, PyObject *key) {
+#if (defined(Py_LIMITED_API) && Py_LIMITED_API + 0 >= 0x030D0000)                                 \
+    || (!defined(Py_LIMITED_API) && PY_VERSION_HEX >= 0x030D00A1)
+    PyObject *rv = nullptr;
+    if (PyDict_GetItemRef(v, key, &rv) < 0) {
+        throw error_already_set();
+    }
+    return rv;
+#else
+    PyObject *rv = dict_getitem(v, key);
+    Py_XINCREF(rv);
+    return rv;
+#endif
+}
+
 // Returns a borrowed reference (the dict holds the value).
 inline PyObject *dict_setdefaultstring(PyObject *v, const char *key, PyObject *defaultobj) {
     PyObject *kv = PyUnicode_FromString(key);
@@ -2173,6 +2189,20 @@ public:
             throw error_already_set();
         }
         return result == 1;
+    }
+    /// Equivalent to Python's ``dict.get(key, default)``: one lookup, no ``KeyError``.
+    template <typename K, typename D>
+    object get(K &&key, D &&default_) const {
+        PyObject *rv
+            = detail::dict_getitemref(m_ptr, detail::object_or_cast(std::forward<K>(key)).ptr());
+        if (rv != nullptr) {
+            return reinterpret_steal<object>(rv);
+        }
+        return reinterpret_borrow<object>(detail::object_or_cast(std::forward<D>(default_)).ptr());
+    }
+    template <typename K>
+    object get(K &&key) const {
+        return get(std::forward<K>(key), none());
     }
 
 private:
