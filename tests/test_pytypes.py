@@ -47,6 +47,11 @@ def test_int_conversion_overflow(func, lo, hi):
             func(value)
 
 
+@pytest.mark.parametrize("value", [0, 1, -1, 2**64 - 1, 2**100, -(2**100)])
+def test_int_conversion_bool(value):
+    assert m.int_to_bool(value) is bool(value)
+
+
 def test_iterator(doc):
     assert doc(m.get_iterator) == "get_iterator() -> collections.abc.Iterator"
 

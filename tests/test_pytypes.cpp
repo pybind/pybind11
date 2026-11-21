@@ -191,6 +191,11 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("int_to_unsigned", [](const py::int_ &o) { return static_cast<unsigned>(o); });
     m.def("int_to_unsigned_long_long",
           [](const py::int_ &o) { return static_cast<unsigned long long>(o); });
+    // Copy-initialization: an explicit cast selects handle::operator bool (a null check).
+    m.def("int_to_bool", [](const py::int_ &o) {
+        bool result = o;
+        return result;
+    });
     // test_iterator
     m.def("get_iterator", [] { return py::iterator(); });
     // test_iterable

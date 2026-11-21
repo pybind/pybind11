@@ -1924,15 +1924,16 @@ public:
                                   unsigned long,
                                   unsigned long long>,
             detail::conditional_t<sizeof(T) <= sizeof(long), long, long long>>;
-        wide_t value = std::is_unsigned<T>::value ? detail::as_unsigned<wide_t>(m_ptr)
+        // bool uses truthiness, so it has no range limit.
+        wide_t value = std::is_same<T, bool>::value ? static_cast<wide_t>(PyObject_IsTrue(m_ptr))
+                       : std::is_unsigned<T>::value ? detail::as_unsigned<wide_t>(m_ptr)
                        : sizeof(T) <= sizeof(long)
                            ? static_cast<wide_t>(PyLong_AsLong(m_ptr))
                            : static_cast<wide_t>(PYBIND11_LONG_AS_LONGLONG(m_ptr));
         if (value == static_cast<wide_t>(-1) && PyErr_Occurred()) {
             throw error_already_set();
         }
-        // bool keeps its truthiness semantics instead of a range check.
-        if (!std::is_same<T, bool>::value && static_cast<wide_t>(static_cast<T>(value)) != value) {
+        if (static_cast<wide_t>(static_cast<T>(value)) != value) {
             PyErr_SetString(PyExc_OverflowError, "Python int too large to convert to C++ type");
             throw error_already_set();
         }
