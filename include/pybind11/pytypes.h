@@ -113,6 +113,13 @@ public:
     item_accessor operator[](object &&key) const;
     /// See above (the only difference is that the key is provided as a string literal)
     item_accessor operator[](const char *key) const;
+    /// See above (the key is any other C++ type; it is converted with `pybind11::cast`)
+    template <typename T,
+              enable_if_t<none_of<is_pyobject<T>,
+                                  std::is_convertible<T, handle>,
+                                  std::is_convertible<T, const char *>>::value,
+                          int> = 0>
+    item_accessor operator[](T &&key) const;
 
     /** \rst
         Return an internal functor to access the object's attributes. Casting the
@@ -2544,6 +2551,15 @@ item_accessor object_api<D>::operator[](object &&key) const {
 template <typename D>
 item_accessor object_api<D>::operator[](const char *key) const {
     return {derived(), pybind11::str(key)};
+}
+template <typename D>
+template <typename T,
+          enable_if_t<none_of<is_pyobject<T>,
+                              std::is_convertible<T, handle>,
+                              std::is_convertible<T, const char *>>::value,
+                      int>>
+item_accessor object_api<D>::operator[](T &&key) const {
+    return {derived(), object_or_cast(std::forward<T>(key))};
 }
 template <typename D>
 obj_attr_accessor object_api<D>::attr(handle key) const {
