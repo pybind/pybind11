@@ -177,6 +177,70 @@ int pass_std_vector_int(const std::vector<int> &v) {
     return zum;
 }
 
+// test_element_casters_kept_alive
+struct IntSpan {
+    const int *data;
+    size_t size;
+};
+
+namespace PYBIND11_NAMESPACE {
+namespace detail {
+template <>
+struct type_caster<IntSpan> {
+    PYBIND11_TYPE_CASTER(IntSpan, make_caster<std::vector<int>>::name);
+    // The span refers to `storage`.
+    static constexpr bool refers_to_caster = true;
+
+    bool load(handle src, bool convert) {
+        if (!storage.load(src, convert)) {
+            return false;
+        }
+        auto &vec = cast_op<std::vector<int> &>(storage);
+        value = IntSpan{vec.data(), vec.size()};
+        return true;
+    }
+
+private:
+    make_caster<std::vector<int>> storage;
+};
+} // namespace detail
+} // namespace PYBIND11_NAMESPACE
+
+// The type caster holds a counted token from `load()` until it is destroyed.
+struct TokenView {};
+
+std::shared_ptr<int> &token_source() {
+    static auto *source = new std::shared_ptr<int>(std::make_shared<int>(0));
+    return *source;
+}
+
+namespace PYBIND11_NAMESPACE {
+namespace detail {
+template <>
+struct type_caster<TokenView> {
+    PYBIND11_TYPE_CASTER(TokenView, const_name("str"));
+    static constexpr bool refers_to_caster = true;
+
+    bool load(handle src, bool) {
+        token = token_source();
+        return isinstance<str>(src);
+    }
+
+private:
+    std::shared_ptr<int> token;
+};
+} // namespace detail
+} // namespace PYBIND11_NAMESPACE
+
+template <typename Container>
+py::list copy_strings(const Container &c) {
+    py::list out;
+    for (const auto *s : c) {
+        out.append(s);
+    }
+    return out;
+}
+
 TEST_SUBMODULE(stl, m) {
     // test_vector
     m.def("cast_vector", []() { return std::vector<int>{1}; });
@@ -600,6 +664,95 @@ TEST_SUBMODULE(stl, m) {
               return destroyed.size();
           });
 #endif
+
+    // test_element_casters_kept_alive
+    // #2527: these elements refer to data that their type casters own
+    m.def("load_vector_cstr", [](const std::vector<const char *> &v) { return copy_strings(v); });
+    m.def("load_vector_wcstr",
+          [](const std::vector<const wchar_t *> &v) { return copy_strings(v); });
+    m.def("load_vector_str_ptr", [](const std::vector<std::string *> &v) {
+        py::list out;
+        for (const std::string *s : v) {
+            out.append(*s);
+        }
+        return out;
+    });
+    m.def("load_vector_str_ref",
+          [](const std::vector<std::reference_wrapper<const std::string>> &v) {
+              py::list out;
+              for (const std::string &s : v) {
+                  out.append(s);
+              }
+              return out;
+          });
+    m.def("load_nested_vector_cstr", [](const std::vector<std::vector<const char *>> &v) {
+        py::list out;
+        for (const auto &inner : v) {
+            out.append(copy_strings(inner));
+        }
+        return out;
+    });
+    m.def("load_vector_pair_cstr", [](const std::vector<std::pair<const char *, int>> &v) {
+        std::vector<std::pair<std::string, int>> out;
+        out.reserve(v.size());
+        for (const auto &p : v) {
+            out.emplace_back(p.first, p.second);
+        }
+        return out;
+    });
+    m.def("load_array_cstr", [](const std::array<const char *, 2> &v) { return copy_strings(v); });
+    m.def("load_valarray_cstr", [](const std::valarray<const char *> &v) {
+        py::list out;
+        for (size_t i = 0; i < v.size(); i++) {
+            out.append(v[i]);
+        }
+        return out;
+    });
+    m.def("load_set_cstr", [](const std::set<const char *> &v) { return copy_strings(v); });
+    m.def("load_map_cstr", [](const std::map<const char *, const char *> &v) {
+        std::map<std::string, std::string> out;
+        for (const auto &p : v) {
+            out.emplace(p.first, p.second);
+        }
+        return out;
+    });
+    m.def("load_map_array_cstr", [](const std::map<std::string, std::array<const char *, 2>> &v) {
+        py::dict out;
+        for (const auto &kv : v) {
+            out[py::str(kv.first)] = copy_strings(kv.second);
+        }
+        return out;
+    });
+    m.def("load_vector_span", [](const std::vector<IntSpan> &v) {
+        py::list out;
+        for (const IntSpan &span : v) {
+            out.append(std::vector<int>(span.data, span.data + span.size));
+        }
+        return out;
+    });
+#ifdef PYBIND11_HAS_OPTIONAL
+    m.def("load_optional_cstr",
+          [](const std::optional<const char *> &v) { return std::string(v.value()); });
+#endif
+#ifdef PYBIND11_HAS_VARIANT
+    m.def("load_variant_vector_cstr", [](const std::variant<int, std::vector<const char *>> &v) {
+        return copy_strings(std::get<std::vector<const char *>>(v));
+    });
+    // Returns the index of the alternative and the number of live type caster tokens.
+    m.def("load_variant_token_view", [](const std::variant<TokenView, int> &v) {
+        return std::make_pair(v.index(), token_source().use_count() - 1);
+    });
+#endif
+    using py::detail::cast_refers_to_caster;
+    static_assert(cast_refers_to_caster<std::vector<const char *>>::value, "");
+    static_assert(cast_refers_to_caster<std::vector<std::vector<const char *>>>::value, "");
+    static_assert(cast_refers_to_caster<std::map<int, std::pair<int, std::string *>>>::value, "");
+    // These element casters must not be kept
+    static_assert(!cast_refers_to_caster<std::vector<std::string>>::value, "");
+    static_assert(!cast_refers_to_caster<std::vector<std::vector<int>>>::value, "");
+    static_assert(!cast_refers_to_caster<std::vector<UserType *>>::value, "");
+    static_assert(!cast_refers_to_caster<std::vector<std::reference_wrapper<UserType>>>::value,
+                  "");
 
     class Placeholder {
     public:

@@ -129,6 +129,11 @@ TEST_SUBMODULE(type_caster_pyobject_ptr, m) {
         return acc;
     });
 
+    // The callback runs while the loaded argument is in use.
+    m.def(
+        "pass_list_pyobject_ptr_call",
+        [](const std::vector<PyObject *> &, const py::function &callback) { return callback(); });
+
     m.def("return_list_pyobject_ptr_take_ownership",
           make_vector_pyobject_ptr,
           // Ownership is transferred one-by-one when the vector is converted to a Python list.

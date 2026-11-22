@@ -162,6 +162,38 @@ def test_string_view_life_support_for_nested_containers():
     assert len(destroyed) == 4
 
 
+def test_element_casters_kept_alive():
+    """#2527: elements can refer to data that their type casters own."""
+    # One string fits the small string optimization, one is on the heap.
+    strs = ["short", "a string that is too long for the small string optimization"]
+    assert m.load_vector_cstr(strs) == strs
+    assert m.load_vector_cstr(s.encode() for s in strs) == strs
+    assert m.load_vector_cstr(["a", None, "b"]) == ["a", None, "b"]
+    assert m.load_vector_wcstr(strs) == strs
+    assert m.load_vector_str_ptr(strs) == strs
+    assert m.load_vector_str_ref(strs) == strs
+    assert m.load_nested_vector_cstr([strs, strs[::-1]]) == [strs, strs[::-1]]
+    pairs = list(zip(strs, range(2)))
+    assert m.load_vector_pair_cstr(pairs) == pairs
+    assert m.load_array_cstr(strs) == strs
+    assert m.load_valarray_cstr(strs) == strs
+    assert sorted(m.load_set_cstr(set(strs))) == sorted(strs)
+    str_map = dict(zip(strs, strs[::-1]))
+    assert m.load_map_cstr(str_map) == str_map
+    str_lists = {"x": strs, "y": strs[::-1]}
+    assert m.load_map_array_cstr(str_lists) == str_lists
+    # A custom type caster that declares `refers_to_caster`
+    assert m.load_vector_span([[1, 2], [3, 4, 5]]) == [[1, 2], [3, 4, 5]]
+    if hasattr(m, "load_optional_cstr"):
+        assert m.load_optional_cstr(strs[0]) == strs[0]
+        assert m.load_optional_cstr(strs[1]) == strs[1]
+    if hasattr(m, "load_variant_vector_cstr"):
+        assert m.load_variant_vector_cstr(strs) == strs
+        # The type caster of a rejected alternative is released before the call
+        assert m.load_variant_token_view("x") == (0, 1)
+        assert m.load_variant_token_view(1) == (1, 0)
+
+
 def test_deque():
     """std::deque <-> list"""
     lst = m.cast_deque()
