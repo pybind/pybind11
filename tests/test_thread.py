@@ -75,7 +75,13 @@ def test_bind_shared_instance():
 
 @pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
 @pytest.mark.parametrize(
-    "get_shared", [m.get_shared_object_classic, m.get_shared_object_sh]
+    "get_shared",
+    [
+        m.get_shared_object_classic,
+        m.get_shared_object_sh,
+        # reference_internal adds a patient to the new wrapper.
+        lambda: m.get_shared_object_sh_keep_alive(m),
+    ],
 )
 def test_concurrent_cast_of_shared_cpp_object(get_shared):
     # Only fails under ThreadSanitizer on free-threaded builds; otherwise the race is silent.

@@ -235,6 +235,19 @@ TEST_SUBMODULE(class_sh_basic, m) {
         []() { return std::unique_ptr<atyp>(new atyp("rtrn_uq_automatic_reference")); },
         pybind11::return_value_policy::automatic_reference);
 
+    // reference_internal without a parent: keep_alive fails before the holder exists.
+    m.def("cast_uq_reference_internal_no_parent", []() {
+        return py::cast(std::unique_ptr<atyp>(new atyp("uq_no_parent")),
+                        py::return_value_policy::reference_internal);
+    });
+    m.def(
+        "rtrn_shcr_reference_internal_no_parent",
+        []() -> const std::shared_ptr<atyp> & {
+            static const std::shared_ptr<atyp> obj(new atyp("sh_no_parent"));
+            return obj;
+        },
+        py::return_value_policy::reference_internal);
+
     m.def("pass_shared_ptr_ptr", [](std::shared_ptr<atyp> *) {});
 
     py::classh<LocalUnusualOpRef>(m, "LocalUnusualOpRef");
