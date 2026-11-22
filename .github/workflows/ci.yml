@@ -1276,9 +1276,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - sys: mingw32
-            env: i686
-            extra_install: ""
           - sys: mingw64
             env: x86_64
             extra_install: |
