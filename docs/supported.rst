@@ -66,9 +66,9 @@ We support C++11 through C++23.
      - Minimum tested
      - Notes
    * - GCC
-     - 4.8
-     - 8 (AlmaLinux 8)
      -
+     - 8 (AlmaLinux 8)
+     - 4.8 is the historical cutoff in the headers.
    * - Clang
      - 3.3
      - 5
@@ -76,11 +76,11 @@ We support C++11 through C++23.
    * - Apple Clang
      - Xcode 5
      - Xcode 16
-     - The version of the default macOS runner.
+     - The default Xcode on the ``macos-15-intel`` runner.
    * - MSVC
      - 2019 (19.20)
-     - 2022
-     - GitHub Actions does not have MSVC 2019 runners.
+     - 2019 (19.29)
+     - Tested on AppVeyor.
    * - Intel ICC (classic)
      - 18 (C++11), 19 (C++14)
      - Latest classic ICC
@@ -111,11 +111,11 @@ Build tools and optional dependencies
      - 4.x supported too.
    * - Eigen
      - 3.2.7
-     - 3.3.9
+     - 3.3.7
      - ``pybind11/eigen/tensor.h`` needs Eigen 3.3.0 or newer.
    * - NumPy
      -
-     - 1.21
+     - 1.19.5
      - NumPy 2 needs pybind11 2.12 or newer.
    * - scikit-build-core
      - 0.11.2
