@@ -203,6 +203,12 @@ TEST_SUBMODULE(multiple_inheritance, m) {
     m.def("i801e_c", []() -> I801C * { return new I801E(); });
     m.def("i801e_b2", []() -> I801B2 * { return new I801E(); });
 
+    // test_mi_base_shared_ptr_return
+    // Issue #4365: the holder copied from an offset base shared_ptr must not be used as is.
+    m.def("i801c_b2_sharedptr",
+          []() -> std::shared_ptr<I801B2> { return std::make_shared<I801C>(); });
+    m.def("i801c_a_sharedptr", [](const std::shared_ptr<I801C> &c) { return c->a; });
+
     // test_mi_static_properties
     py::class_<Vanilla>(m, "Vanilla").def(py::init<>()).def("vanilla", &Vanilla::vanilla);
 

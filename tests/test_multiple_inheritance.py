@@ -239,6 +239,14 @@ def test_multiple_inheritance_virtbase():
     assert m.bar_base2a_sharedptr(mt) == 4
 
 
+def test_mi_base_shared_ptr_return():
+    """Issue #4365: shared_ptr to an offset base, loaded as shared_ptr to the derived type"""
+    c = m.i801c_b2_sharedptr()
+    assert type(c) is m.I801C
+    assert c.a == 1
+    assert m.i801c_a_sharedptr(c) == 1
+
+
 def test_mi_static_properties():
     """Mixing bases with and without static properties should be possible
     and the result should be independent of base definition order"""
