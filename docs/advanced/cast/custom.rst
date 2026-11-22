@@ -138,6 +138,15 @@ type is explicitly allowed.
     intended only for type-caster implementations. See
     :ref:`string_view_lifetime` for a concrete example.
 
+.. note::
+
+    If a custom ``load()`` instead produces a non-owning view of storage that
+    the type caster itself owns (for example, a span over a ``std::vector``
+    member), add ``static constexpr bool refers_to_caster = true;`` to the type
+    caster. The STL container casters then keep the type caster of each element
+    alive, so that a ``std::vector`` of such views stays valid for the duration
+    of a bound-function call.
+
 .. warning::
 
     When using custom type casters, it's important to declare them consistently

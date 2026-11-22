@@ -159,6 +159,10 @@ bool isinstance_native_enum(handle obj, const std::type_info &tp) {
     return isinstance_native_enum_impl<intrinsic_t<T>>(obj, tp);
 }
 
+// Defined below, after `cast_is_temporary_value_reference`.
+template <typename T, typename SFINAE = void>
+struct cast_refers_to_caster;
+
 template <typename type>
 class type_caster<std::reference_wrapper<type>> {
 private:
@@ -176,6 +180,7 @@ private:
 public:
     bool load(handle src, bool convert) { return subcaster.load(src, convert); }
     static constexpr auto name = caster_t::name;
+    static constexpr bool refers_to_caster = cast_refers_to_caster<reference_t>::value;
     static handle
     cast(const std::reference_wrapper<type> &src, return_value_policy policy, handle parent) {
         // It is definitely wrong to take ownership of this pointer, so mask that rvp
@@ -800,6 +805,7 @@ public:
     static constexpr auto name = const_name("tuple[")
                                  + ::pybind11::detail::concat(make_caster<Ts>::name...)
                                  + const_name("]");
+    static constexpr bool refers_to_caster = any_of<cast_refers_to_caster<Ts>...>::value;
 
     template <typename T>
     using cast_op_type = type;
@@ -1644,6 +1650,16 @@ using cast_is_temporary_value_reference
                     && !std::is_base_of<type_caster_generic, make_caster<type>>::value
                     && !std::is_same<intrinsic_t<type>, void>::value>;
 
+// Detect whether the result of a cast to `T` refers to data that the type_caster owns. The
+// type_caster must then stay alive for as long as the result is in use. This is the case for
+// `cast_is_temporary_value_reference`, and for a type_caster that has a
+// `static constexpr bool refers_to_caster = true` member. A type_caster needs that member if
+// it returns, by value, a type that does not own its data (a container of pointers, a span).
+template <typename T, typename SFINAE>
+struct cast_refers_to_caster : cast_is_temporary_value_reference<T> {};
+template <typename T>
+struct cast_refers_to_caster<T, enable_if_t<make_caster<T>::refers_to_caster>> : std::true_type {};
+
 // When a value returned from a C++ function is being cast back to Python, we almost always want to
 // force `policy = move`, regardless of the return value policy the function/method was declared
 // with.
@@ -2088,9 +2104,8 @@ arg_v arg::operator=(T &&value) const {
     return {*this, std::forward<T>(value)};
 }
 
-/// Alias for backward compatibility -- to be removed in version 2.0
 template <typename /*unused*/>
-using arg_t = arg_v;
+using arg_t PYBIND11_DEPRECATED("Use py::arg_v instead") = arg_v;
 
 inline namespace literals {
 /** \rst
