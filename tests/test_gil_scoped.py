@@ -213,16 +213,19 @@ def _run_in_process_target(
     target, args, kwargs, status_writer, traceback_path, timeout
 ):
     with status_writer, open(traceback_path, "w") as traceback_file:
-        status_writer.send("started")
-        # Repeat more often than the parent checks, so a hang always leaves a recent dump.
-        with contextlib.suppress(Exception):
-            faulthandler.dump_traceback_later(
-                0.9 * timeout, repeat=True, file=traceback_file
-            )
-        target(*args, **kwargs)
-        with contextlib.suppress(Exception):
-            faulthandler.cancel_dump_traceback_later()
-        status_writer.send("finished")
+        # Give the watchdog time to dump before the parent's execution timeout.
+        traceback_interval = 0.9 * timeout
+        try:
+            with contextlib.suppress(Exception):
+                faulthandler.dump_traceback_later(
+                    traceback_interval, repeat=True, file=traceback_file
+                )
+            status_writer.send("started")
+            target(*args, **kwargs)
+            status_writer.send("finished")
+        finally:
+            with contextlib.suppress(Exception):
+                faulthandler.cancel_dump_traceback_later()
 
 
 def _last_traceback_dump(traceback_path):
@@ -473,6 +476,37 @@ def test_run_in_process_without_events(monkeypatch):
 
     monkeypatch.setattr(multiprocessing, "Event", unavailable_event)
     assert _run_in_process(test_callback_py_obj) == 0
+
+
+def test_run_in_process_target_cancels_watchdog_on_error(monkeypatch, tmp_path):
+    events = []
+    traceback_file = None
+
+    class StatusWriter(contextlib.nullcontext):
+        def send(self, status):
+            events.append(status)
+
+    def arm_watchdog(_interval, *, file, **_kwargs):
+        nonlocal traceback_file
+        traceback_file = file
+        events.append("armed")
+
+    def cancel_watchdog():
+        events.append(("cancelled", traceback_file.closed))
+
+    def fail():
+        raise ValueError("target failed")
+
+    monkeypatch.setattr(
+        faulthandler, "dump_traceback_later", arm_watchdog, raising=False
+    )
+    monkeypatch.setattr(
+        faulthandler, "cancel_dump_traceback_later", cancel_watchdog, raising=False
+    )
+    with pytest.raises(ValueError, match="target failed"):
+        _run_in_process_target(fail, (), {}, StatusWriter(), tmp_path / "tracebacks", 1)
+
+    assert events == ["armed", "started", ("cancelled", False)]
 
 
 @pytest.mark.skipif(env.PY_GIL_DISABLED, reason="Requires the GIL to deadlock")
