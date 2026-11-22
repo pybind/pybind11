@@ -17,7 +17,10 @@ if(COMMAND python_add_library OR COMMAND python3_add_library)
   pybind11_add_module(test_subdirectory_function_shared SHARED WITH_SOABI ../main.cpp)
 
   # An executable can link a SHARED module; it only links libpython itself on Apple.
-  if(NOT WIN32 AND (TARGET Python::Python OR TARGET Python3::Python))
+  # Stable-ABI SHARED libraries never link libpython, and abi3t has no PyInit_ symbol.
+  if(NOT WIN32
+     AND NOT PYBIND11_STABLE_ABI
+     AND (TARGET Python::Python OR TARGET Python3::Python))
     add_executable(test_subdirectory_function_exe ../link_shared.cpp)
     target_link_libraries(test_subdirectory_function_exe PRIVATE test_subdirectory_function_shared)
     if(APPLE)
