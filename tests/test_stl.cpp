@@ -626,7 +626,7 @@ TEST_SUBMODULE(stl, m) {
         auto lst = py::cast(vec, policy).cast<py::list>();
         bool copied = lst[0].cast<NoAssign *>() != owner.get();
         if (!copied && policy == py::return_value_policy::automatic) {
-            owner.release(); // Python took ownership; avoid a double free
+            (void) owner.release(); // Python took ownership; avoid a double free
         }
         return copied;
     };
