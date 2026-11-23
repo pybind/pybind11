@@ -1406,7 +1406,10 @@ public:
         // so the reinterpret_cast shortcut in load_impl Case 2a is invalid.
         // Force the MI path (implicit_casts) for correct pointer adjustment.
         // Detection: static_cast<Derived*>(Base*) is ill-formed for virtual bases.
-        if PYBIND11_MAYBE_CONSTEXPR (!detail::is_static_downcastable<Base, type>::value) {
+        // The vptr of a polymorphic class also offsets a non-polymorphic base.
+        if PYBIND11_MAYBE_CONSTEXPR (!detail::is_static_downcastable<Base, type>::value
+                                     || (std::is_polymorphic<type>::value
+                                         && !std::is_polymorphic<Base>::value)) {
             rec.multiple_inheritance = true;
         }
     }

@@ -507,3 +507,19 @@ def test_python_inherit_from_mi():
     assert o.g == 7
 
     assert o.get_g_g() == 7
+
+
+def test_polymorphic_derived_nonpolymorphic_base():
+    """Issue #1080: the base subobject is not at offset 0"""
+
+    class PyDerived(m.I1080Derived):
+        pass
+
+    for cls in (m.I1080Derived, PyDerived):
+        o = cls()
+        assert o.a == 1
+        assert o.d == 4
+        assert m.i1080_get_d(o) == 4
+        o.d = 7
+        assert m.i1080_get_d(o) == 7
+        assert m.i1080_as_base(o).d == 7
