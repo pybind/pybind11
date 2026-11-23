@@ -3,5 +3,6 @@ furo
 myst_parser
 sphinx
 sphinx-copybutton
+sphinx-llm
 sphinxcontrib-moderncmakedomain
 sphinxcontrib-svg2pdfconverter
