@@ -955,6 +955,25 @@ inline auto with_internals(const F &cb) -> decltype(cb(get_internals())) {
     return cb(internals);
 }
 
+using implicit_cast_t = std::pair<const std::type_info *, void *(*)(void *)>;
+
+// Reads entry `index` of `tinfo->implicit_casts` into `out`; returns false past the end.
+// On free-threaded builds, another thread can register a derived class at any time, and
+// type_record::add_base() then appends to the vector of this (already published) base.
+// An unlocked reader could see the vector during reallocation. The append and this read both
+// hold the internals lock. Callers must not hold the lock while they use the entry, because
+// the cast functions and nested loads can take it again.
+// PR #NNNN was verified by inspection. No targeted race test yet.
+inline bool get_implicit_cast(const type_info *tinfo, size_t index, implicit_cast_t &out) {
+    return with_internals([&](internals &) {
+        if (index >= tinfo->implicit_casts.size()) {
+            return false;
+        }
+        out = tinfo->implicit_casts[index];
+        return true;
+    });
+}
+
 template <typename F>
 inline void with_internals_if_internals(const F &cb) {
     auto &ppmgr = get_internals_pp_manager();

@@ -800,7 +800,8 @@ public:
         value = vptr;
     }
     bool try_implicit_casts(handle src, bool convert) {
-        for (const auto &cast : typeinfo->implicit_casts) {
+        implicit_cast_t cast;
+        for (size_t i = 0; get_implicit_cast(typeinfo, i, cast); ++i) {
             type_caster_generic sub_caster(*cast.first);
             if (sub_caster.load(src, convert)) {
                 value = cast.second(sub_caster.value);

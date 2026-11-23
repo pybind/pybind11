@@ -58,7 +58,8 @@ PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void type_record::add_base(const std::typ
 #endif
 
     if (caster) {
-        base_info->implicit_casts.emplace_back(type, caster);
+        // See get_implicit_cast() for why this takes the internals lock.
+        with_internals([&](internals &) { base_info->implicit_casts.emplace_back(type, caster); });
     }
 }
 
