@@ -222,16 +222,6 @@ public:                                                                         
     template <typename T_>                                                                        \
     using cast_op_type = ::pybind11::detail::movable_cast_op_type<T_>
 
-template <typename CharT>
-using is_std_char_type = any_of<std::is_same<CharT, char>, /* std::string */
-#if defined(PYBIND11_HAS_U8STRING)
-                                std::is_same<CharT, char8_t>, /* std::u8string */
-#endif
-                                std::is_same<CharT, char16_t>, /* std::u16string */
-                                std::is_same<CharT, char32_t>, /* std::u32string */
-                                std::is_same<CharT, wchar_t>   /* std::wstring */
-                                >;
-
 template <typename T>
 struct type_caster<T, enable_if_t<std::is_arithmetic<T>::value && !is_std_char_type<T>::value>> {
     using _py_type_0 = conditional_t<sizeof(T) <= sizeof(long), long, long long>;
