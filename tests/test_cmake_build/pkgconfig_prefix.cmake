@@ -1,23 +1,69 @@
 # Check that prefix= in the installed pybind11.pc resolves to the install prefix.
 # Usage: cmake -DSOURCE_DIR=... -DWORK_DIR=... -DGENERATOR=... -DCXX_COMPILER=...
-#        -P pkgconfig_prefix.cmake
+#        [-DMAKE_PROGRAM=...] [-DGENERATOR_PLATFORM=...] [-DGENERATOR_TOOLSET=...]
+#        [-DTOOLCHAIN_FILE=...] -P pkgconfig_prefix.cmake
 
-foreach(datarootdir IN ITEMS "share" "." "./share" "lib/foo/share" "../shared-data")
-  string(MAKE_C_IDENTIFIER "${datarootdir}" name)
+set(extra_args "")
+if(MAKE_PROGRAM)
+  list(APPEND extra_args "-DCMAKE_MAKE_PROGRAM=${MAKE_PROGRAM}")
+endif()
+if(GENERATOR_PLATFORM)
+  list(APPEND extra_args -A "${GENERATOR_PLATFORM}")
+endif()
+if(GENERATOR_TOOLSET)
+  list(APPEND extra_args -T "${GENERATOR_TOOLSET}")
+endif()
+if(TOOLCHAIN_FILE)
+  list(APPEND extra_args "-DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_FILE}")
+endif()
+
+# Check that prefix= resolves to the prefix and includedir= to the installed headers.
+function(check_pc_file label pcfiledir expected_prefix)
+  file(STRINGS "${pcfiledir}/pybind11.pc" prefix_line REGEX "^prefix=")
+  string(REPLACE "prefix=" "" pc_prefix "${prefix_line}")
+  string(REPLACE "\${pcfiledir}" "${pcfiledir}" pc_prefix "${pc_prefix}")
+  get_filename_component(pc_prefix "${pc_prefix}" ABSOLUTE)
+  get_filename_component(expected "${expected_prefix}" ABSOLUTE)
+  if(NOT pc_prefix STREQUAL expected)
+    message(FATAL_ERROR "${label}: ${prefix_line} resolves to ${pc_prefix}, expected ${expected}")
+  endif()
+
+  file(STRINGS "${pcfiledir}/pybind11.pc" includedir_line REGEX "^includedir=")
+  string(REPLACE "includedir=" "" pc_includedir "${includedir_line}")
+  string(REPLACE "\${prefix}" "${pc_prefix}" pc_includedir "${pc_includedir}")
+  if(NOT EXISTS "${pc_includedir}/pybind11/pybind11.h")
+    message(FATAL_ERROR "${label}: ${includedir_line} resolves to ${pc_includedir}, "
+                        "which does not contain pybind11/pybind11.h")
+  endif()
+  message(STATUS "${label}: ${prefix_line} OK")
+endfunction()
+
+foreach(case IN ITEMS "share" "." "./share" "lib/foo/share" "../shared-data" "ABSOLUTE")
+  string(MAKE_C_IDENTIFIER "${case}" name)
   set(case_dir "${WORK_DIR}/${name}")
   set(build_dir "${case_dir}/build")
   set(install_dir "${case_dir}/install")
   file(REMOVE_RECURSE "${case_dir}")
 
+  if(case STREQUAL "ABSOLUTE")
+    set(datarootdir "${install_dir}/share")
+    set(pcfiledir "${datarootdir}/pkgconfig")
+  else()
+    set(datarootdir "${case}")
+    set(pcfiledir "${install_dir}/${datarootdir}/pkgconfig")
+  endif()
+  set(label "CMAKE_INSTALL_DATAROOTDIR=${datarootdir}")
+
+  # :STRING stops old CMake versions from making a relative value absolute.
   execute_process(
     COMMAND
-      "${CMAKE_COMMAND}" -S "${SOURCE_DIR}" -B "${build_dir}" -G "${GENERATOR}"
+      "${CMAKE_COMMAND}" -S "${SOURCE_DIR}" -B "${build_dir}" -G "${GENERATOR}" ${extra_args}
       "-DCMAKE_CXX_COMPILER=${CXX_COMPILER}" -DPYBIND11_TEST=OFF -DPYBIND11_NOPYTHON=ON
-      "-DCMAKE_INSTALL_PREFIX=${install_dir}" "-DCMAKE_INSTALL_DATAROOTDIR=${datarootdir}"
+      "-DCMAKE_INSTALL_PREFIX=${install_dir}" "-DCMAKE_INSTALL_DATAROOTDIR:STRING=${datarootdir}"
     RESULT_VARIABLE result
     OUTPUT_QUIET)
   if(NOT result EQUAL 0)
-    message(FATAL_ERROR "Configure failed for CMAKE_INSTALL_DATAROOTDIR=${datarootdir}")
+    message(FATAL_ERROR "Configure failed for ${label}")
   endif()
 
   execute_process(
@@ -25,19 +71,22 @@ foreach(datarootdir IN ITEMS "share" "." "./share" "lib/foo/share" "../shared-da
     RESULT_VARIABLE result
     OUTPUT_QUIET)
   if(NOT result EQUAL 0)
-    message(FATAL_ERROR "Install failed for CMAKE_INSTALL_DATAROOTDIR=${datarootdir}")
+    message(FATAL_ERROR "Install failed for ${label}")
   endif()
+  check_pc_file("${label}" "${pcfiledir}" "${install_dir}")
 
-  set(pcfiledir "${install_dir}/${datarootdir}/pkgconfig")
-  file(STRINGS "${pcfiledir}/pybind11.pc" prefix_line REGEX "^prefix=")
-  string(REPLACE "prefix=" "" pc_prefix "${prefix_line}")
-  string(REPLACE "\${pcfiledir}" "${pcfiledir}" pc_prefix "${pc_prefix}")
-  get_filename_component(pc_prefix "${pc_prefix}" ABSOLUTE)
-  get_filename_component(expected "${install_dir}" ABSOLUTE)
-
-  if(NOT pc_prefix STREQUAL expected)
-    message(FATAL_ERROR "CMAKE_INSTALL_DATAROOTDIR=${datarootdir}: ${prefix_line} resolves to "
-                        "${pc_prefix}, expected ${expected}")
+  # A data directory outside the prefix (absolute or sibling) is not relocatable.
+  if(NOT case STREQUAL "ABSOLUTE" AND NOT case MATCHES "^\\.\\.")
+    set(relocated_dir "${case_dir}/relocated")
+    execute_process(
+      COMMAND "${CMAKE_COMMAND}" "-DCMAKE_INSTALL_PREFIX=${relocated_dir}" -P
+              "${build_dir}/cmake_install.cmake"
+      RESULT_VARIABLE result
+      OUTPUT_QUIET)
+    if(NOT result EQUAL 0)
+      message(FATAL_ERROR "Relocated install failed for ${label}")
+    endif()
+    check_pc_file("${label} (relocated)" "${relocated_dir}/${datarootdir}/pkgconfig"
+                  "${relocated_dir}")
   endif()
-  message(STATUS "CMAKE_INSTALL_DATAROOTDIR=${datarootdir}: ${prefix_line} OK")
 endforeach()
