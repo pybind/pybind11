@@ -83,10 +83,12 @@ template <>
 struct is_pyobject<const PyObject> : std::false_type {};
 #endif
 
-// bool and character types are integral, but `cast` does not convert them to a Python int.
+// py::int_ converts through long long or unsigned long long. Exclude wider integers
+// along with bool and character types that `cast` converts to Python strings.
 template <typename T>
-using is_integer_key
-    = all_of<std::is_integral<T>, none_of<std::is_same<T, bool>, is_std_char_type<T>>>;
+using is_integer_key = all_of<std::is_integral<T>,
+                              bool_constant<(sizeof(T) <= sizeof(unsigned long long))>,
+                              none_of<std::is_same<T, bool>, is_std_char_type<T>>>;
 
 /** \rst
     A mixin class which adds common functions to `handle`, `object` and various accessors.
@@ -118,7 +120,8 @@ public:
     item_accessor operator[](object &&key) const;
     /// See above (the only difference is that the key is provided as a string literal)
     item_accessor operator[](const char *key) const;
-    /// See above (the key is a C++ integer; bool and character types are excluded)
+    /// See above (the key is a C++ integer type no wider than unsigned long long).
+    /// Excludes bool and character types that cast to Python strings.
     template <typename T, enable_if_t<is_integer_key<T>::value, int> = 0>
     item_accessor operator[](T key) const;
 

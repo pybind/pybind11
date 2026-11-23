@@ -454,8 +454,13 @@ TEST_SUBMODULE(pytypes, m) {
     });
 
     // Issue #1309: integer keys
+#ifdef __SIZEOF_INT128__
+    __extension__ using wide_integer = unsigned __int128;
+    static_assert(!py::detail::is_integer_key<wide_integer>::value,
+                  "Wide integer keys would be truncated by py::int_");
+#endif
     m.def("accessor_int_key", [](const py::object &o) {
-        py::object d = py::dict();
+        py::dict d;
         d[1] = "int";
         d[0] = "zero";
         d[-1] = "negative";
