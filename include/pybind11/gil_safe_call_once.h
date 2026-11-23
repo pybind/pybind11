@@ -150,8 +150,8 @@ struct call_once_storage {
     ~call_once_storage() {
         if (cache != nullptr) {
             // Clear the cache only if it still points to this storage.
-            T *self = reinterpret_cast<T *>(storage);
-            cache->compare_exchange_strong(self, nullptr);
+            T *expected = reinterpret_cast<T *>(storage);
+            cache->compare_exchange_strong(expected, nullptr);
         }
         if (is_initialized) {
             if (finalize != nullptr) {
