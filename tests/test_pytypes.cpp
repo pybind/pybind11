@@ -186,6 +186,16 @@ TEST_SUBMODULE(pytypes, m) {
     m.def("get_bool", [] { return py::bool_(false); });
     // test_int
     m.def("get_int", [] { return py::int_(0); });
+    m.def("int_to_int", [](const py::int_ &o) { return static_cast<int>(o); });
+    m.def("int_to_long_long", [](const py::int_ &o) { return static_cast<long long>(o); });
+    m.def("int_to_unsigned", [](const py::int_ &o) { return static_cast<unsigned>(o); });
+    m.def("int_to_unsigned_long_long",
+          [](const py::int_ &o) { return static_cast<unsigned long long>(o); });
+    // Copy-initialization: an explicit cast selects handle::operator bool (a null check).
+    m.def("int_to_bool", [](const py::int_ &o) {
+        bool result = o;
+        return result;
+    });
     // test_iterator
     m.def("get_iterator", [] { return py::iterator(); });
     // test_iterable
@@ -283,6 +293,11 @@ TEST_SUBMODULE(pytypes, m) {
           [](const py::dict &dict, const py::object &val) { return dict.contains(val); });
     m.def("dict_contains",
           [](const py::dict &dict, const char *val) { return dict.contains(val); });
+    m.def("dict_get", [](const py::dict &dict, const py::object &key) { return dict.get(key); });
+    m.def("dict_get", [](const py::dict &dict, const py::object &key, const py::object &def) {
+        return dict.get(key, def);
+    });
+    m.def("dict_get_cast", [](const py::dict &dict) { return dict.get("foo", 42); });
 
     // test_tuple
     m.def("tuple_no_args", []() { return py::tuple{}; });

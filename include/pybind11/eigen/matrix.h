@@ -687,6 +687,12 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
             }
         }
 
+        // Eigen requires sorted inner indices without duplicates
+        if (!obj.attr("has_canonical_format").cast<bool>()) {
+            obj = obj.attr("copy")();
+            obj.attr("sum_duplicates")();
+        }
+
         auto values = array_t<Scalar>((object) obj.attr("data"));
         auto innerIndices = array_t<StorageIndex>((object) obj.attr("indices"));
         auto outerIndices = array_t<StorageIndex>((object) obj.attr("indptr"));

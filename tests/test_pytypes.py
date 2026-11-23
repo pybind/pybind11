@@ -30,6 +30,28 @@ def test_int(doc):
     assert doc(m.get_int) == "get_int() -> int"
 
 
+@pytest.mark.parametrize(
+    ("func", "lo", "hi"),
+    [
+        (m.int_to_int, -(2**31), 2**31 - 1),
+        (m.int_to_long_long, -(2**63), 2**63 - 1),
+        (m.int_to_unsigned, 0, 2**32 - 1),
+        (m.int_to_unsigned_long_long, 0, 2**64 - 1),
+    ],
+)
+def test_int_conversion_overflow(func, lo, hi):
+    assert func(lo) == lo
+    assert func(hi) == hi
+    for value in (lo - 1, hi + 1, 2**100, -(2**100)):
+        with pytest.raises(OverflowError):
+            func(value)
+
+
+@pytest.mark.parametrize("value", [0, 1, -1, 2**64 - 1, 2**100, -(2**100)])
+def test_int_conversion_bool(value):
+    assert m.int_to_bool(value) is bool(value)
+
+
 def test_iterator(doc):
     assert doc(m.get_iterator) == "get_iterator() -> collections.abc.Iterator"
 
@@ -203,6 +225,15 @@ def test_dict(capture, doc):
     assert not m.dict_contains({}, 42)
     assert m.dict_contains({42: None}, 42)
     assert m.dict_contains({"foo": None}, "foo")
+
+    assert m.dict_get({42: "x"}, 42) == "x"
+    assert m.dict_get({}, 42) is None
+    assert m.dict_get({42: None}, 42, "default") is None
+    assert m.dict_get({}, 42, "default") == "default"
+    assert m.dict_get_cast({"foo": "bar"}) == "bar"
+    assert m.dict_get_cast({}) == 42
+    with pytest.raises(TypeError, match="unhashable"):
+        m.dict_get({}, [])
 
     assert doc(m.get_dict) == "get_dict() -> dict"
     assert doc(m.print_dict) == "print_dict(arg0: dict) -> None"

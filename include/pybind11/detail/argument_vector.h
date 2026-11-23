@@ -253,7 +253,10 @@ public:
 
     small_vector(std::size_t count, bool value) {
         if (count > kInlineSize) {
-            new (&m_repr.hvector) typename repr_type::heap_vector(count, value);
+            // Build first: a throwing constructor must not leave the heap tag set.
+            using heap_vector = typename repr_type::heap_vector;
+            heap_vector hv(count, value);
+            new (&m_repr.hvector) heap_vector(std::move(hv));
         } else {
             auto &inline_arr = m_repr.iarray;
             inline_arr.arr.fill(value ? static_cast<std::size_t>(-1) : 0);

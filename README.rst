@@ -81,7 +81,7 @@ Goodies
 In addition to the core functionality, pybind11 provides some extra
 goodies:
 
-- CPython 3.9+, PyPy3 7.3.17+, and GraalPy 24.1+ are supported with an
+- CPython 3.9+, PyPy3 7.3.17+, and GraalPy 25.0+ are supported with an
   implementation-agnostic interface (see older versions for older CPython
   and PyPy versions).
 
@@ -124,7 +124,9 @@ Supported platforms & compilers
 -------------------------------
 
 pybind11 is exercised in continuous integration across a range of operating
-systems, Python versions, C++ standards, and toolchains. For an up-to-date
+systems, Python versions, C++ standards, and toolchains. The
+`supported versions <https://pybind11.readthedocs.io/en/latest/supported.html>`_
+page lists the minimum version of each one. For an up-to-date
 view of the combinations we currently test, please see the
 `pybind11 GitHub Actions <https://github.com/pybind/pybind11/actions?query=branch%3Amaster>`_
 and `AppVeyor <https://ci.appveyor.com/project/wjakob/pybind11>`_ logs.

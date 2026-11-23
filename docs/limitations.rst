@@ -24,45 +24,22 @@ pybind11; see `pybind11_json <https://github.com/pybind/pybind11_json>`_ for an
 example.
 
 
-Known bugs
-^^^^^^^^^^
-
-These are issues that hopefully will one day be fixed, but currently are
-unsolved. If you know how to help with one of these issues, contributions
-are welcome!
-
-- Intel 20.2 is currently having an issue with the test suite.
-  `#2573 <https://github.com/pybind/pybind11/pull/2573>`_
-
-- Debug mode Python does not support 1-5 tests in the test suite currently.
-  `#2422 <https://github.com/pybind/pybind11/pull/2422>`_
-
-- PyPy3 7.3.1 and 7.3.2 have issues with several tests on 32-bit Windows.
-
 Known limitations
 ^^^^^^^^^^^^^^^^^
 
 These are issues that are probably solvable, but have not been fixed yet. A
 clean, well written patch would likely be accepted to solve them.
 
-- Type casters are not kept alive recursively.
+- ``py::cast<T>()`` does not keep type casters alive. A ``T`` that refers to
+  data that its type caster owns, such as a container of ``char *``, is valid
+  only as an argument of a bound function.
   `#2527 <https://github.com/pybind/pybind11/issues/2527>`_
-  One consequence is that containers of ``char *`` are currently not supported.
-  `#2245 <https://github.com/pybind/pybind11/issues/2245>`_
 
 Python 3.9.0 warning
 ^^^^^^^^^^^^^^^^^^^^
 
-Combining older versions of pybind11 (< 2.6.0) with Python on exactly 3.9.0
-will trigger undefined behavior that typically manifests as crashes during
-interpreter shutdown (but could also destroy your data. **You have been
-warned**).
-
-This issue was `fixed in Python <https://github.com/python/cpython/pull/22670>`_.
-As a mitigation for this bug, pybind11 2.6.0 or newer includes a workaround
-specifically when Python 3.9.0 is detected at runtime, leaking about 50 bytes
-of memory when a callback function is garbage collected.  For reference, the
-pybind11 test suite has about 2,000 such callbacks, but only 49 are garbage
-collected before the end-of-process. Wheels (even if built with Python 3.9.0)
-will correctly avoid the leak when run in Python 3.9.1, and this does not
-affect other 3.X versions.
+pybind11 older than 2.6.0 with Python 3.9.0 causes undefined behavior, which
+usually shows as a crash at interpreter shutdown. The bug was `fixed in Python
+3.9.1 <https://github.com/python/cpython/pull/22670>`_. pybind11 2.6.0 and newer
+detect 3.9.0 at runtime and leak about 50 bytes each time a callback function is
+garbage collected to avoid the bug. Use Python 3.9.1 or newer.

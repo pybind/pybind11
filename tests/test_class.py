@@ -641,6 +641,7 @@ def test_class_refcount():
         pass
 
     for cls in m.Dog, PyDog:
+        pytest.gc_collect()  # Garbage from earlier tests can hold a reference
         refcount_1 = refcount_immortal(cls)
         molly = [cls("Molly") for _ in range(10)]
         refcount_2 = refcount_immortal(cls)

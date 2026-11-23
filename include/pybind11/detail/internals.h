@@ -730,6 +730,20 @@ std::pair<Payload *, bool> atomic_get_or_create_in_state_dict(const char *key,
 
 #undef PYBIND11_DTOR_USE_DELETE
 
+// Minimal lock for very short critical sections that make no Python calls. With MSVC, a
+// `std::mutex` crashes if an older `msvcp140.dll` is already loaded in the process (#6053).
+class spinlock {
+    std::atomic_flag flag_ = ATOMIC_FLAG_INIT;
+
+public:
+    void lock() {
+        while (flag_.test_and_set(std::memory_order_acquire)) {
+            std::this_thread::yield();
+        }
+    }
+    void unlock() { flag_.clear(std::memory_order_release); }
+};
+
 template <typename InternalsType>
 class internals_pp_manager {
 public:
@@ -790,7 +804,7 @@ public:
             if (!tstate || get_interpreter(tstate) == last_istate_tls()) {
                 auto tpp = internals_p_tls();
                 {
-                    std::lock_guard<std::mutex> lock(pp_set_mutex_);
+                    std::lock_guard<spinlock> lock(pp_set_lock_);
                     pps_have_created_content_.erase(tpp); // untrack deleted pp
                 }
                 delete tpp; // may call back into Python
@@ -800,7 +814,7 @@ public:
         }
 #endif
         {
-            std::lock_guard<std::mutex> lock(pp_set_mutex_);
+            std::lock_guard<spinlock> lock(pp_set_lock_);
             pps_have_created_content_.erase(internals_singleton_pp_); // untrack deleted pp
         }
         delete internals_singleton_pp_; // may call back into Python
@@ -816,7 +830,7 @@ public:
         {
             // Lock scope must not include Python calls, which may require the GIL and cause
             // deadlocks.
-            std::lock_guard<std::mutex> lock(pp_set_mutex_);
+            std::lock_guard<spinlock> lock(pp_set_lock_);
 
             if (*pp) {
                 // Already created in another thread.
@@ -888,7 +902,7 @@ private:
     // Track pointer-to-pointers whose internals have been created, to detect re-entrancy.
     // Use instance member over static due to singleton pattern of this class.
     std::unordered_set<std::unique_ptr<InternalsType> *> pps_have_created_content_;
-    std::mutex pp_set_mutex_;
+    spinlock pp_set_lock_;
 };
 
 // If We loaded the internals through `state_dict`, our `error_already_set`

@@ -53,6 +53,7 @@ void bind_ConstructorStats(py::module_ &m) {
         .def_static("get",
                     (ConstructorStats & (*)(py::object)) & ConstructorStats::get,
                     py::return_value_policy::reference_internal)
+        .def_static("reset_all", &ConstructorStats::reset_all)
 
         // Not exactly ConstructorStats, but related: expose the internal pybind number of
         // registered instances to allow instance cleanup checks (invokes a GC first)

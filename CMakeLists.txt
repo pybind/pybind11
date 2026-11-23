@@ -108,12 +108,28 @@ set(PYBIND11_TYPE_CREATION_VIA_SPEC
 set(PYBIND11_INTERNALS_VERSION
     ""
     CACHE STRING "Override the ABI version, may be used to enable the unstable ABI.")
-# Record whether the project set this before option() supplies its OFF default, so
-# pybind11Common.cmake can apply its CMP0190-aware default without clobbering an explicit value.
-if(NOT DEFINED PYBIND11_USE_CROSSCOMPILING)
-  set(_PYBIND11_USE_CROSSCOMPILING_DEFAULTED ON)
+# CMP0190 prohibits calling FindPython with both Interpreter and Development components
+# when cross-compiling, unless CMAKE_CROSSCOMPILING_EMULATOR is defined. Compute the default
+# here, before option() caches it, so that a reconfigure keeps it (pybind11Common.cmake applies
+# the same default for find_package() consumers, where the option does not exist).
+#
+# Without CMP0190, FindPython cannot query the ABI flags of the interpreter when
+# cross-compiling and drops a free-threaded ABI requested with Python_FIND_ABI, so also
+# default to ON in that case.
+set(_pybind11_use_crosscompiling_default OFF)
+if(NOT DEFINED CMAKE_CROSSCOMPILING_EMULATOR)
+  set(_pybind11_cmp0190 "OLD")
+  if(CMAKE_VERSION VERSION_GREATER_EQUAL "4.1")
+    cmake_policy(GET CMP0190 _pybind11_cmp0190)
+  endif()
+  string(TOUPPER "${Python_FIND_ABI}" _pybind11_find_abi)
+  if(_pybind11_cmp0190 STREQUAL "NEW" OR _pybind11_find_abi MATCHES
+                                         "^[^;]*;[^;]*;[^;]*;(ON|TRUE|YES|Y|1)$")
+    set(_pybind11_use_crosscompiling_default ON)
+  endif()
 endif()
-option(PYBIND11_USE_CROSSCOMPILING "Respect CMAKE_CROSSCOMPILING" OFF)
+option(PYBIND11_USE_CROSSCOMPILING "Respect CMAKE_CROSSCOMPILING"
+       ${_pybind11_use_crosscompiling_default})
 
 cmake_dependent_option(
   USE_PYTHON_INCLUDE_DIR

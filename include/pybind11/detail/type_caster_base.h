@@ -443,6 +443,11 @@ handle smart_holder_from_unique_ptr(std::unique_ptr<T, D> &&src,
     }
 
     auto inst = reinterpret_steal<object>(make_new_instance(tinfo->type));
+    // Before the instance owns the pointer (this can throw), and before init_instance
+    // publishes the instance to other threads.
+    if (policy == return_value_policy::reference_internal) {
+        keep_alive_impl(inst, parent);
+    }
     auto *inst_raw_ptr = get_instance(inst.ptr());
     inst_raw_ptr->owned = true;
     void *&valueptr = values_and_holders(inst_raw_ptr).begin()->value_ptr();
@@ -455,10 +460,6 @@ handle smart_holder_from_unique_ptr(std::unique_ptr<T, D> &&src,
     }
     auto smhldr = smart_holder::from_unique_ptr(std::move(src), src_raw_void_ptr);
     tinfo->init_instance(inst_raw_ptr, static_cast<const void *>(&smhldr));
-
-    if (policy == return_value_policy::reference_internal) {
-        keep_alive_impl(inst, parent);
-    }
 
     return inst.release();
 }
@@ -511,6 +512,11 @@ handle smart_holder_from_shared_ptr(const std::shared_ptr<T> &src,
     }
 
     auto inst = reinterpret_steal<object>(make_new_instance(tinfo->type));
+    // Before the instance owns the pointer (this can throw), and before init_instance
+    // publishes the instance to other threads.
+    if (policy == return_value_policy::reference_internal) {
+        keep_alive_impl(inst, parent);
+    }
     auto *inst_raw_ptr = get_instance(inst.ptr());
     inst_raw_ptr->owned = true;
     void *&valueptr = values_and_holders(inst_raw_ptr).begin()->value_ptr();
@@ -518,10 +524,6 @@ handle smart_holder_from_shared_ptr(const std::shared_ptr<T> &src,
 
     auto smhldr = smart_holder::from_shared_ptr(std::shared_ptr<void>(src, src_raw_void_ptr));
     tinfo->init_instance(inst_raw_ptr, static_cast<const void *>(&smhldr));
-
-    if (policy == return_value_policy::reference_internal) {
-        keep_alive_impl(inst, parent);
-    }
 
     return inst.release();
 }

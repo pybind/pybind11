@@ -235,6 +235,14 @@ TEST_SUBMODULE(thread, m) {
     m.def("get_shared_object_classic", &get_shared<SharedObjectClassic>);
     py::classh<SharedObjectSh>(m, "SharedObjectSh").def("value", &SharedObjectSh::value);
     m.def("get_shared_object_sh", &get_shared<SharedObjectSh>);
+    m.def(
+        "get_shared_object_sh_keep_alive",
+        // By reference: a by-value return has its policy replaced with `move`.
+        [](py::handle /*parent*/) -> const std::shared_ptr<SharedObjectSh> & {
+            static const auto instance = get_shared<SharedObjectSh>();
+            return instance;
+        },
+        py::return_value_policy::reference_internal);
 
 #if defined(PYBIND11_HAS_STD_BARRIER)
     // In the free-threaded build, during PyThreadState_Clear, removing the thread from the biased

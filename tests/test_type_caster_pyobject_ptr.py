@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import weakref
+
 import pytest
 
 from pybind11_tests import type_caster_pyobject_ptr as m
@@ -84,6 +86,22 @@ def test_cast_to_python_non_nullptr_with_error_set():
 def test_pass_list_pyobject_ptr():
     acc = m.pass_list_pyobject_ptr([ValueHolder(842), ValueHolder(452)])
     assert acc == 842452
+
+
+def test_pass_generator_pyobject_ptr():
+    # The generator items have no other owner, so the type_caster must keep them alive.
+    refs = []
+
+    def gen():
+        for value in (842, 452):
+            obj = ValueHolder(value)
+            refs.append(weakref.ref(obj))
+            yield obj
+
+    def values():
+        return [getattr(ref(), "value", None) for ref in refs]
+
+    assert m.pass_list_pyobject_ptr_call(gen(), values) == [842, 452]
 
 
 def test_return_list_pyobject_ptr_take_ownership():

@@ -944,6 +944,22 @@ inline PyObject *dict_getitemstringref(PyObject *v, const char *key) {
 #endif
 }
 
+// PyDict_GetItemRef was added in Python 3.13.0a1 (limited API: 3.13).
+inline PyObject *dict_getitemref(PyObject *v, PyObject *key) {
+#if (defined(Py_LIMITED_API) && Py_LIMITED_API + 0 >= 0x030D0000)                                 \
+    || (!defined(Py_LIMITED_API) && PY_VERSION_HEX >= 0x030D00A1)
+    PyObject *rv = nullptr;
+    if (PyDict_GetItemRef(v, key, &rv) < 0) {
+        throw error_already_set();
+    }
+    return rv;
+#else
+    PyObject *rv = dict_getitem(v, key);
+    Py_XINCREF(rv);
+    return rv;
+#endif
+}
+
 // Returns a borrowed reference (the dict holds the value).
 inline PyObject *dict_setdefaultstring(PyObject *v, const char *key, PyObject *defaultobj) {
     PyObject *kv = PyUnicode_FromString(key);
@@ -1902,9 +1918,26 @@ public:
     template <typename T, detail::enable_if_t<std::is_integral<T>::value, int> = 0>
     // NOLINTNEXTLINE(google-explicit-constructor)
     operator T() const {
-        return std::is_unsigned<T>::value  ? detail::as_unsigned<T>(m_ptr)
-               : sizeof(T) <= sizeof(long) ? (T) PyLong_AsLong(m_ptr)
-                                           : (T) PYBIND11_LONG_AS_LONGLONG(m_ptr);
+        using wide_t = detail::conditional_t<
+            std::is_unsigned<T>::value,
+            detail::conditional_t<sizeof(T) <= sizeof(unsigned long),
+                                  unsigned long,
+                                  unsigned long long>,
+            detail::conditional_t<sizeof(T) <= sizeof(long), long, long long>>;
+        // bool uses truthiness, so it has no range limit.
+        wide_t value = std::is_same<T, bool>::value ? static_cast<wide_t>(PyObject_IsTrue(m_ptr))
+                       : std::is_unsigned<T>::value ? detail::as_unsigned<wide_t>(m_ptr)
+                       : sizeof(T) <= sizeof(long)
+                           ? static_cast<wide_t>(PyLong_AsLong(m_ptr))
+                           : static_cast<wide_t>(PYBIND11_LONG_AS_LONGLONG(m_ptr));
+        if (value == static_cast<wide_t>(-1) && PyErr_Occurred()) {
+            throw error_already_set();
+        }
+        if (static_cast<wide_t>(static_cast<T>(value)) != value) {
+            PyErr_SetString(PyExc_OverflowError, "Python int too large to convert to C++ type");
+            throw error_already_set();
+        }
+        return static_cast<T>(value);
     }
 };
 
@@ -2173,6 +2206,20 @@ public:
             throw error_already_set();
         }
         return result == 1;
+    }
+    /// Equivalent to Python's ``dict.get(key, default)``: one lookup, no ``KeyError``.
+    template <typename K, typename D>
+    object get(K &&key, D &&default_) const {
+        PyObject *rv
+            = detail::dict_getitemref(m_ptr, detail::object_or_cast(std::forward<K>(key)).ptr());
+        if (rv != nullptr) {
+            return reinterpret_steal<object>(rv);
+        }
+        return reinterpret_borrow<object>(detail::object_or_cast(std::forward<D>(default_)).ptr());
+    }
+    template <typename K>
+    object get(K &&key) const {
+        return get(std::forward<K>(key), none());
     }
 
 private:
