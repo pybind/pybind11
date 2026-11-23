@@ -42,6 +42,15 @@ public:
     int value;
 };
 
+/// Issue #1470: operator== returns a type that does not convert to bool
+struct ElementwiseEq {
+    int value;
+};
+
+struct ElementwiseEqResult {};
+
+ElementwiseEqResult operator==(const ElementwiseEq &, const ElementwiseEq &) { return {}; }
+
 template <class Container>
 Container *one_to_n(int n) {
     auto *v = new Container();
@@ -252,6 +261,12 @@ TEST_SUBMODULE(stl_binders, m) {
     // Bind with private inheritance + `using` directives.
     py::bind_vector<UserVectorLike>(m, "UserVectorLike");
     py::bind_map<UserMapLike>(m, "UserMapLike");
+
+    // test_vector_non_bool_eq
+    py::class_<ElementwiseEq>(m, "ElementwiseEq")
+        .def(py::init<int>())
+        .def_readwrite("value", &ElementwiseEq::value);
+    py::bind_vector<std::vector<ElementwiseEq>>(m, "VectorElementwiseEq");
 
     // The rest depends on numpy:
     try {

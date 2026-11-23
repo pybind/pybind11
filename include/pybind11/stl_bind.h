@@ -24,9 +24,12 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 /* SFINAE helper class used by 'is_comparable */
 template <typename T>
 struct container_traits {
+    // The result of operator== must convert to bool for std::find and friends (#1470).
     template <typename T2>
-    static std::true_type
-    test_comparable(decltype(std::declval<const T2 &>() == std::declval<const T2 &>()) *);
+    static std::true_type test_comparable(
+        enable_if_t<
+            std::is_convertible<decltype(std::declval<const T2 &>() == std::declval<const T2 &>()),
+                                bool>::value> *);
     template <typename T2>
     static std::false_type test_comparable(...);
     template <typename T2>

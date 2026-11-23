@@ -451,6 +451,15 @@ def test_user_vector_like():
     assert len(vec) == 1
 
 
+def test_vector_non_bool_eq():
+    vec = m.VectorElementwiseEq()
+    vec.append(m.ElementwiseEq(1))
+    assert vec[0].value == 1
+    assert not hasattr(vec, "count")
+    assert not hasattr(vec, "remove")
+    assert "__contains__" not in type(vec).__dict__
+
+
 def test_user_like_map():
     map = m.UserMapLike()
     map[33] = 44
