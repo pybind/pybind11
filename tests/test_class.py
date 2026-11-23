@@ -804,3 +804,38 @@ def test_all_type_info_multithreaded():
 
         for thread in threads:
             thread.join()
+
+
+def test_instantiate_pybind11_object_base():
+    base = m.NoConstructor.__base__
+    assert base.__name__.startswith("pybind11_object")
+    with pytest.raises(TypeError, match="no pybind11-registered base types"):
+        base()
+
+    class Derived(base):
+        pass
+
+    with pytest.raises(TypeError, match="no pybind11-registered base types"):
+        Derived()
+
+    # PyPy reads __module__ to make a qualified type name
+    class NoModule(base):
+        __module__ = None
+
+    with pytest.raises(TypeError, match="no pybind11-registered base types"):
+        NoModule()
+
+
+@pytest.mark.skipif(
+    not hasattr(m, "call_with_failing_calloc"), reason="Needs PyMem_SetAllocator"
+)
+def test_instance_allocation_failure():
+    # Two registered bases give the non-simple layout, which allocates
+    class Derived(m.NoConstructor, m.BaseClass):
+        pass
+
+    with pytest.raises(MemoryError):
+        m.call_with_failing_calloc(Derived)
+
+    gc.collect()
+    assert not any(type(o) is Derived for o in gc.get_objects())
