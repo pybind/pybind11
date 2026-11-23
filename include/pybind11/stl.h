@@ -757,9 +757,9 @@ struct variant_caster<V<Ts...>> {
         return cast(*src, policy, parent);
     }
 
-    operator Type *() { return &*value; }
-    operator Type &() { return *value; }
-    operator Type &&() && { return std::move(*value); }
+    explicit operator Type *() { return &*value; }
+    explicit operator Type &() { return *value; }
+    explicit operator Type &&() && { return std::move(*value); }
     template <typename T_>
     using cast_op_type = movable_cast_op_type<T_>;
 
