@@ -428,11 +428,11 @@ if(PYBIND11_INSTALL)
       set(prefix_for_pc_file "${CMAKE_INSTALL_PREFIX}")
     else()
       # Relative path from the pkgconfig install directory back to the prefix.
-      # The base directory is a stand-in for the prefix; ABSOLUTE normalizes
-      # values such as "." or "./share".
+      # Use the actual prefix because the data directory can be a sibling of it.
+      get_filename_component(pc_install_prefix "${CMAKE_INSTALL_PREFIX}" ABSOLUTE)
       get_filename_component(pc_install_dir "${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig" ABSOLUTE
-                             BASE_DIR "${CMAKE_CURRENT_BINARY_DIR}")
-      file(RELATIVE_PATH prefix_for_pc_file "${pc_install_dir}" "${CMAKE_CURRENT_BINARY_DIR}")
+                             BASE_DIR "${pc_install_prefix}")
+      file(RELATIVE_PATH prefix_for_pc_file "${pc_install_dir}" "${pc_install_prefix}")
       string(REGEX REPLACE "/+$" "" prefix_for_pc_file "${prefix_for_pc_file}")
       set(prefix_for_pc_file "\${pcfiledir}/${prefix_for_pc_file}")
     endif()

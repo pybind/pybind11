@@ -108,7 +108,8 @@ if(PYBIND11_INSTALL)
     "-DGENERATOR=${CMAKE_GENERATOR}"
     "-DCXX_COMPILER=${CMAKE_CXX_COMPILER}"
     -P
-    "${CMAKE_CURRENT_SOURCE_DIR}/pkgconfig_prefix.cmake")
+    "${CMAKE_CURRENT_SOURCE_DIR}/pkgconfig_prefix.cmake"
+    VERBATIM)
   add_dependencies(test_cmake_build test_build_pkgconfig_prefix)
 endif()
 

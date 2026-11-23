@@ -2,11 +2,12 @@
 # Usage: cmake -DSOURCE_DIR=... -DWORK_DIR=... -DGENERATOR=... -DCXX_COMPILER=...
 #        -P pkgconfig_prefix.cmake
 
-foreach(datarootdir IN ITEMS "share" "." "./share" "lib/foo/share")
+foreach(datarootdir IN ITEMS "share" "." "./share" "lib/foo/share" "../shared-data")
   string(MAKE_C_IDENTIFIER "${datarootdir}" name)
-  set(build_dir "${WORK_DIR}/build_${name}")
-  set(install_dir "${WORK_DIR}/install_${name}")
-  file(REMOVE_RECURSE "${build_dir}" "${install_dir}")
+  set(case_dir "${WORK_DIR}/${name}")
+  set(build_dir "${case_dir}/build")
+  set(install_dir "${case_dir}/install")
+  file(REMOVE_RECURSE "${case_dir}")
 
   execute_process(
     COMMAND
