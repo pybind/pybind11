@@ -44,7 +44,19 @@ double apply_custom_transform(const py::object &src, double value) {
 struct TestNotCopyable {
     TestNotCopyable() = default;
     TestNotCopyable(const TestNotCopyable &obj) = delete;
+    ~TestNotCopyable() { ++destroyed; }
+    static int destroyed;
 };
+int TestNotCopyable::destroyed = 0;
+
+struct TestCopyable {
+    int value = 1;
+};
+
+TestCopyable &static_func_return_ref() {
+    static TestCopyable obj;
+    return obj;
+}
 
 // Python takes ownership (automatic policy on a cpp_function)
 TestNotCopyable *full_func_return_ptr() { return new TestNotCopyable(); }
@@ -320,6 +332,28 @@ TEST_SUBMODULE(callbacks, m) {
     std::function<TestNotCopyable *()> func_return_ptr = &static_func_return_ptr;
     m.attr("func_return_ptr") = func_return_ptr;
     py::class_<TestNotCopyable>(m, "TestNotCopyable");
+    m.def("not_copyable_destroyed", []() { return TestNotCopyable::destroyed; });
+
+    using func_ptr_t = std::function<TestNotCopyable *()>;
+    m.attr("func_return_ptr_rvalue") = func_ptr_t(&static_func_return_ptr);
+    int state = 0;
+    m.attr("func_return_ptr_stateful") = func_ptr_t([state]() {
+        (void) state;
+        return static_func_return_ptr();
+    });
+    func_ptr_t func_return_new_ptr = &full_func_return_ptr;
+    m.attr("func_return_ptr_automatic")
+        = py::cast(func_return_new_ptr, py::return_value_policy::automatic);
+    // The automatic policies must also reach a std::function in a container
+    m.attr("func_return_ptr_pair") = py::cast(std::make_pair(1, func_return_ptr));
+    m.attr("func_return_ptr_ref") = py::cast(std::ref(func_return_ptr));
+
+    // The policy of a pointer cast is for the std::function, not for the return value
+    py::class_<TestCopyable>(m, "TestCopyable").def_readwrite("value", &TestCopyable::value);
+    m.attr("func_return_ref_owned_ptr")
+        = py::cast(new std::function<TestCopyable &()>(&static_func_return_ref),
+                   py::return_value_policy::automatic);
+    m.def("static_copyable_value", []() { return static_func_return_ref().value; });
 
     m.def("cast_function_pointer_takes_ownership", []() {
         auto token = std::make_shared<int>(42);

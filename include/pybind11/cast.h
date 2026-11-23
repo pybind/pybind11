@@ -1751,6 +1751,12 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 // pybind11::cast() (std::function passes the policy on to the return value of the callable).
 template <typename T>
 struct cast_forwards_automatic_policy : std::false_type {};
+// A container of such a type (std::vector, std::pair, std::reference_wrapper, ...) also qualifies.
+template <template <typename...> class Container, typename... Ts>
+struct cast_forwards_automatic_policy<Container<Ts...>>
+    : any_of<cast_forwards_automatic_policy<Ts>...> {};
+template <typename T, std::size_t N>
+struct cast_forwards_automatic_policy<std::array<T, N>> : cast_forwards_automatic_policy<T> {};
 PYBIND11_NAMESPACE_END(detail)
 
 // C++ type -> py::object
