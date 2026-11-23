@@ -246,3 +246,47 @@ def test_boost_histogram_apply_custom_transform():
     assert apply(lambda value: value, 9) == -200
     assert apply({}, 0) == -100
     assert apply("", 0) == -100
+
+
+def _destroyed_by(func):
+    before = m.not_copyable_destroyed()
+    obj = func()
+    assert isinstance(obj, m.TestNotCopyable)
+    del obj
+    pytest.gc_collect()
+    return m.not_copyable_destroyed() - before
+
+
+def test_full_func_return_ptr():
+    assert _destroyed_by(m.full_func_return_ptr) == 1
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "func_return_ptr",
+        "func_return_ptr_rvalue",
+        "func_return_ptr_stateful",
+        "func_return_ptr_ref",
+    ],
+)
+def test_full_func_return_ptr_inherit(name):
+    assert _destroyed_by(getattr(m, name)) == 0
+
+
+def test_func_return_ptr_in_container():
+    assert _destroyed_by(m.func_return_ptr_pair[1]) == 0
+
+
+def test_func_return_ptr_automatic():
+    assert _destroyed_by(m.func_return_ptr_automatic) == 1
+
+
+def test_func_return_ref_owned_ptr():
+    obj = m.func_return_ref_owned_ptr()
+    obj.value = 5
+    assert m.static_copyable_value() == 1
+
+
+def test_cast_function_pointer_takes_ownership():
+    assert m.cast_function_pointer_takes_ownership()

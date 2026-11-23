@@ -1752,20 +1752,35 @@ T cast(Object &&obj) {
     return obj.release().ptr();
 }
 
+PYBIND11_NAMESPACE_BEGIN(detail)
+// Specialize to true for a type whose caster must get the automatic policies unresolved from
+// pybind11::cast() (std::function passes the policy on to the return value of the callable).
+template <typename T>
+struct cast_forwards_automatic_policy : std::false_type {};
+// A container of such a type (std::vector, std::pair, std::reference_wrapper, ...) also qualifies.
+template <template <typename...> class Container, typename... Ts>
+struct cast_forwards_automatic_policy<Container<Ts...>>
+    : any_of<cast_forwards_automatic_policy<Ts>...> {};
+template <typename T, std::size_t N>
+struct cast_forwards_automatic_policy<std::array<T, N>> : cast_forwards_automatic_policy<T> {};
+PYBIND11_NAMESPACE_END(detail)
+
 // C++ type -> py::object
 template <typename T, detail::enable_if_t<!detail::is_pyobject<T>::value, int> = 0>
 object cast(T &&value,
             return_value_policy policy = return_value_policy::automatic_reference,
             handle parent = handle()) {
     using no_ref_T = typename std::remove_reference<T>::type;
-    if (policy == return_value_policy::automatic) {
-        policy = std::is_pointer<no_ref_T>::value     ? return_value_policy::take_ownership
-                 : std::is_lvalue_reference<T>::value ? return_value_policy::copy
-                                                      : return_value_policy::move;
-    } else if (policy == return_value_policy::automatic_reference) {
-        policy = std::is_pointer<no_ref_T>::value     ? return_value_policy::reference
-                 : std::is_lvalue_reference<T>::value ? return_value_policy::copy
-                                                      : return_value_policy::move;
+    if (!detail::cast_forwards_automatic_policy<detail::remove_cvref_t<T>>::value) {
+        if (policy == return_value_policy::automatic) {
+            policy = std::is_pointer<no_ref_T>::value     ? return_value_policy::take_ownership
+                     : std::is_lvalue_reference<T>::value ? return_value_policy::copy
+                                                          : return_value_policy::move;
+        } else if (policy == return_value_policy::automatic_reference) {
+            policy = std::is_pointer<no_ref_T>::value     ? return_value_policy::reference
+                     : std::is_lvalue_reference<T>::value ? return_value_policy::copy
+                                                          : return_value_policy::move;
+        }
     }
     return reinterpret_steal<object>(
         detail::make_caster<T>::cast(std::forward<T>(value), policy, parent));

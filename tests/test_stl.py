@@ -613,6 +613,11 @@ def test_stl_ownership():
     assert cstats.alive() == 0
 
 
+def test_cast_lvalue_ptr_vector_copies():
+    assert m.cast_lvalue_ptr_vector_copies_automatic()
+    assert m.cast_lvalue_ptr_vector_copies_automatic_reference()
+
+
 def test_array_cast_sequence():
     assert m.array_cast_sequence((1, 2, 3)) == [1, 2, 3]
 

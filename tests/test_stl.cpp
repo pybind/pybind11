@@ -772,6 +772,25 @@ TEST_SUBMODULE(stl, m) {
         },
         py::return_value_policy::take_ownership);
 
+    // py::cast() of an lvalue container copies the pointees, also for the automatic policies
+    auto cast_lvalue_ptr_vector_copies = [](py::return_value_policy policy) {
+        std::unique_ptr<NoAssign> owner(new NoAssign(7));
+        std::vector<NoAssign *> vec{owner.get()};
+        auto lst = py::cast(vec, policy).cast<py::list>();
+        bool copied = lst[0].cast<NoAssign *>() != owner.get();
+        if (!copied && policy == py::return_value_policy::automatic) {
+            // Python took ownership; avoid a double free
+            // NOLINTNEXTLINE(bugprone-unused-return-value)
+            (void) owner.release();
+        }
+        return copied;
+    };
+    m.def("cast_lvalue_ptr_vector_copies_automatic",
+          [=]() { return cast_lvalue_ptr_vector_copies(py::return_value_policy::automatic); });
+    m.def("cast_lvalue_ptr_vector_copies_automatic_reference", [=]() {
+        return cast_lvalue_ptr_vector_copies(py::return_value_policy::automatic_reference);
+    });
+
     m.def("array_cast_sequence", [](std::array<int, 3> x) { return x; });
 
     /// test_issue_1561

@@ -51,6 +51,11 @@ struct func_wrapper : func_wrapper_base {
 
 PYBIND11_NAMESPACE_END(type_caster_std_function_specializations)
 
+// In a value or reference cast, the policy applies to the return value of the callable, not to
+// the std::function. A pointer cast is different, see the pointer overload of cast() below.
+template <typename Return, typename... Args>
+struct cast_forwards_automatic_policy<std::function<Return(Args...)>> : std::true_type {};
+
 template <typename Return, typename... Args>
 struct type_caster<std::function<Return(Args...)>> {
     using type = std::function<Return(Args...)>;
@@ -127,6 +132,24 @@ public:
             return cpp_function(*result, policy).release();
         }
         return cpp_function(std::forward<Func>(f_), policy).release();
+    }
+
+    // In a pointer cast, the policy applies to the std::function. take_ownership must not reach
+    // the callable, or Python would also own each object that the callable returns.
+    static handle cast(const type *src, return_value_policy policy, handle parent) {
+        if (!src) {
+            return none().release();
+        }
+        if (policy == return_value_policy::take_ownership) {
+            auto h = cast(*src, return_value_policy::automatic, parent);
+            delete src;
+            return h;
+        }
+        return cast(*src, policy, parent);
+    }
+    // Non-template overloads, so that these win over the one in PYBIND11_TYPE_CASTER.
+    static handle cast(type *src, return_value_policy policy, handle parent) {
+        return cast(const_cast<const type *>(src), policy, parent);
     }
 
     PYBIND11_TYPE_CASTER(
