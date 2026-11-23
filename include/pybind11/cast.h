@@ -222,6 +222,19 @@ public:                                                                         
     template <typename T_>                                                                        \
     using cast_op_type = ::pybind11::detail::movable_cast_op_type<T_>
 
+// Clear an error that means "does not convert"; propagate any other (e.g. KeyboardInterrupt).
+inline void clear_arithmetic_conversion_error() {
+    if (PyErr_Occurred() == nullptr) {
+        return;
+    }
+    if (PyErr_ExceptionMatches(PyExc_TypeError) == 0
+        && PyErr_ExceptionMatches(PyExc_ValueError) == 0
+        && PyErr_ExceptionMatches(PyExc_OverflowError) == 0) {
+        throw error_already_set();
+    }
+    PyErr_Clear();
+}
+
 template <typename T>
 struct type_caster<T, enable_if_t<std::is_arithmetic<T>::value && !is_std_char_type<T>::value>> {
     using _py_type_0 = conditional_t<sizeof(T) <= sizeof(long), long, long long>;
@@ -260,7 +273,7 @@ public:
                 && PYBIND11_INDEX_CHECK(src.ptr())) {
                 index = reinterpret_steal<object>(PyNumber_Index(src.ptr()));
                 if (!index) {
-                    PyErr_Clear();
+                    clear_arithmetic_conversion_error();
                     if (!convert) {
                         return false;
                     }
@@ -287,12 +300,12 @@ public:
         if (py_err
             || (std::is_integral<T>::value && sizeof(py_type) != sizeof(T)
                 && py_value != (py_type) (T) py_value)) {
-            PyErr_Clear();
+            clear_arithmetic_conversion_error();
             if (py_err && convert && (PyNumber_Check(src.ptr()) != 0)) {
                 auto tmp = reinterpret_steal<object>(std::is_floating_point<T>::value
                                                          ? PyNumber_Float(src.ptr())
                                                          : PyNumber_Long(src.ptr()));
-                PyErr_Clear();
+                clear_arithmetic_conversion_error();
                 return load(tmp, false);
             }
             return false;

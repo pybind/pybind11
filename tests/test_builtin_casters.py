@@ -367,6 +367,30 @@ def test_int_convert(doc, prefix):
     cant_convert(IndexFloatIntFloat())  # convert mode rejects (both fail)
     requires_conversion(IndexFloatIntFloat())  # noconvert mode also rejects
 
+    # gh-2862: only "does not convert" errors are cleared
+    class RaisingOnIndex:
+        def __init__(self, exc):
+            self.exc = exc
+
+        def __index__(self):
+            raise self.exc
+
+        def __int__(self):
+            return 42
+
+    class RaisingOnInt:
+        def __init__(self, exc):
+            self.exc = exc
+
+        def __int__(self):
+            raise self.exc
+
+    for exc in (KeyboardInterrupt, RuntimeError):
+        pytest.raises(exc, convert, RaisingOnIndex(exc))
+        pytest.raises(exc, noconvert, RaisingOnIndex(exc))
+        pytest.raises(exc, convert, RaisingOnInt(exc))
+        requires_conversion(RaisingOnInt(exc))
+
 
 def test_float_convert(doc):
     class Int:
@@ -402,6 +426,26 @@ def test_float_convert(doc):
     assert pytest.approx(convert(3)) == 3.0
     assert pytest.approx(noconvert(3)) == 3.0
     cant_convert(Int())
+
+    # gh-2862: only "does not convert" errors are cleared
+    class RaisingOnFloat:
+        def __init__(self, exc):
+            self.exc = exc
+
+        def __float__(self):
+            raise self.exc
+
+    class RaisingOnIndex:
+        def __init__(self, exc):
+            self.exc = exc
+
+        def __index__(self):
+            raise self.exc
+
+    for exc in (KeyboardInterrupt, RuntimeError):
+        pytest.raises(exc, convert, RaisingOnFloat(exc))
+        requires_conversion(RaisingOnFloat(exc))
+        pytest.raises(exc, convert, RaisingOnIndex(exc))
 
 
 @pytest.mark.parametrize("prefix", ["int", "uint"])
