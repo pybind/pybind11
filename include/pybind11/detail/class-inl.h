@@ -733,7 +733,17 @@ PYBIND11_INLINE PyObject *make_new_instance(PyTypeObject *type,
     }
     auto *inst = get_instance(self);
     // Allocate the value/holder internals:
-    inst->allocate_layout(bases);
+    try {
+        inst->allocate_layout(bases);
+    } catch (...) {
+        // The layout is incomplete, so release the object without running tp_dealloc.
+        if (PyType_HasFeature(type, Py_TPFLAGS_HAVE_GC) != 0) {
+            PyObject_GC_UnTrack(self);
+        }
+        type_free(type, self);
+        Py_DECREF(reinterpret_cast<PyObject *>(type));
+        throw;
+    }
 
     return self;
 }
@@ -744,9 +754,8 @@ pybind11_object_new(PyTypeObject *type, PyObject *, PyObject *) {
         // Check before allocating, so a failure never deallocates a half-built instance.
         const auto &bases = all_type_info(type);
         if (bases.empty()) {
-            std::string msg = get_fully_qualified_tp_name(type)
-                              + ": cannot be instantiated, no pybind11-registered base types";
-            set_error(PyExc_TypeError, msg.c_str());
+            set_error(PyExc_TypeError,
+                      "cannot be instantiated: no pybind11-registered base types");
             return nullptr;
         }
         return make_new_instance(type, bases);

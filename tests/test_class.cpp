@@ -115,6 +115,23 @@ struct OldStyleInit {
 TEST_SUBMODULE(class_, m) {
     m.def("obj_class_name", [](py::handle obj) { return py::detail::obj_class_name(obj.ptr()); });
 
+#if !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON) && !defined(Py_LIMITED_API)
+    // test_instance_allocation_failure
+    m.def("call_with_failing_calloc", [](py::handle type) {
+        PyMemAllocatorEx orig;
+        PyMem_GetAllocator(PYMEM_DOMAIN_MEM, &orig);
+        PyMemAllocatorEx failing = orig;
+        failing.calloc = [](void *, size_t, size_t) -> void * { return nullptr; };
+        PyMem_SetAllocator(PYMEM_DOMAIN_MEM, &failing);
+        PyObject *result = PyObject_CallObject(type.ptr(), nullptr);
+        PyMem_SetAllocator(PYMEM_DOMAIN_MEM, &orig);
+        if (result == nullptr) {
+            throw py::error_already_set();
+        }
+        return py::reinterpret_steal<py::object>(result);
+    });
+#endif
+
     // test_instance
     struct NoConstructor {
         NoConstructor() = default;
