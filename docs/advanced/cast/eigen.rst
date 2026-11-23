@@ -131,6 +131,12 @@ also use ``py::return_value_policy::reference_internal`` or a
 ``py::keep_alive`` to ensure the data stays valid as long as the returned numpy
 array does.
 
+``Eigen::Map`` and other map-like types (except ``Eigen::Ref``) cannot be
+loaded from Python. Thus you cannot use them as function arguments or as the
+return type of a ``PYBIND11_OVERRIDE`` trampoline. Use ``Eigen::Ref`` for
+arguments, and a plain Eigen type such as ``Eigen::MatrixXd`` (a copy) for
+override return values.
+
 When returning such a reference of map, pybind11 additionally respects the
 readonly-status of the returned value, marking the numpy array as non-writeable
 if the reference or map was itself read-only.
