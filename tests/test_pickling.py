@@ -48,14 +48,21 @@ def test_pickle_simple_callable(protocol):
     # creates issues.
 
 
+@pytest.mark.parametrize("protocol", all_pickle_protocols())
 @pytest.mark.parametrize("cls_name", ["Pickleable", "PickleableNew"])
-def test_roundtrip(cls_name):
+def test_roundtrip(cls_name, protocol):
     cls = getattr(m, cls_name)
     p = cls("test_value")
     p.setExtra1(15)
     p.setExtra2(48)
 
-    data = pickle.dumps(p, 2)  # Must use pickle protocol >= 2
+    if cls_name == "Pickleable" and protocol < 2:
+        # Only py::pickle() supports protocols 0 and 1 (issue #3745)
+        with pytest.raises(TypeError):
+            pickle.dumps(p, protocol)
+        return
+
+    data = pickle.dumps(p, protocol)
     p2 = pickle.loads(data)
     assert p2.value() == p.value()
     assert p2.extra1() == p.extra1()

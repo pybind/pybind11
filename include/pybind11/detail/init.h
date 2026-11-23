@@ -523,6 +523,16 @@ struct pickle_factory<Get, Set, RetState(Self), NewInstance(ArgState)> {
     void execute(Class &cl, const Extra &...extra) && {
         cl.def("__getstate__", std::move(get), pos_only());
 
+        // Protocols 0 and 1 do not use `__new__` and `__setstate__` by default, so reduce as
+        // protocol 2. The result is valid for all protocols.
+        cl.def(
+            "__reduce_ex__",
+            [](const object &self, int protocol) -> object {
+                handle base(reinterpret_cast<PyObject *>(&PyBaseObject_Type));
+                return base.attr("__reduce_ex__")(self, protocol < 2 ? 2 : protocol);
+            },
+            pos_only());
+
 #if defined(__cpp_init_captures) && __cpp_init_captures >= 201304L
         cl.def(
             "__setstate__",

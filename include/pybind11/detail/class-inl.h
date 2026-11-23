@@ -732,6 +732,13 @@ PYBIND11_INLINE PyObject *make_new_instance(PyTypeObject *type) {
 
 extern "C" PYBIND11_INLINE PyObject *
 pybind11_object_new(PyTypeObject *type, PyObject *, PyObject *) {
+    // Must not throw into C; reachable from pickle protocols 0 and 1 (issue #3745).
+    if (all_type_info(type).empty()) {
+        std::string msg = "cannot create '" + get_fully_qualified_tp_name(type)
+                          + "' instances: no pybind11-registered base types";
+        set_error(PyExc_TypeError, msg.c_str());
+        return nullptr;
+    }
     return make_new_instance(type);
 }
 
