@@ -12,6 +12,7 @@
 #include "constructor_stats.h"
 #include "pybind11_tests.h"
 
+#include <memory>
 #include <thread>
 
 namespace test_callbacks {
@@ -319,4 +320,16 @@ TEST_SUBMODULE(callbacks, m) {
     std::function<TestNotCopyable *()> func_return_ptr = &static_func_return_ptr;
     m.attr("func_return_ptr") = func_return_ptr;
     py::class_<TestNotCopyable>(m, "TestNotCopyable");
+
+    m.def("cast_function_pointer_takes_ownership", []() {
+        auto token = std::make_shared<int>(42);
+        const auto *source = new std::function<int()>([token] { return *token; });
+        auto function = py::cast(source, py::return_value_policy::automatic);
+        // The local token and the Python callable should be the only owners of the token.
+        const auto count = token.use_count();
+        if (count == 3) {
+            delete source; // The original wrapper was not deleted by the caster.
+        }
+        return count == 2 && function().cast<int>() == 42;
+    });
 }

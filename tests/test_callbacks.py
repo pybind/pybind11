@@ -254,3 +254,7 @@ def test_full_func_return_ptr():
 
 def test_full_func_return_ptr_inherit():
     m.func_return_ptr()
+
+
+def test_cast_function_pointer_takes_ownership():
+    assert m.cast_function_pointer_takes_ownership()

@@ -1759,7 +1759,7 @@ object cast(T &&value,
             return_value_policy policy = return_value_policy::automatic_reference,
             handle parent = handle()) {
     using no_ref_T = typename std::remove_reference<T>::type;
-    if (!detail::cast_forwards_automatic_policy<detail::intrinsic_t<T>>::value) {
+    if (!detail::cast_forwards_automatic_policy<detail::remove_cvref_t<T>>::value) {
         if (policy == return_value_policy::automatic) {
             policy = std::is_pointer<no_ref_T>::value     ? return_value_policy::take_ownership
                      : std::is_lvalue_reference<T>::value ? return_value_policy::copy
