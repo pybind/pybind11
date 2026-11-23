@@ -58,6 +58,10 @@ def test_roundtrip(cls_name, protocol):
 
     if cls_name == "Pickleable" and protocol < 2:
         # Only py::pickle() supports protocols 0 and 1 (issue #3745)
+        if env.PYPY:
+            pytest.skip(
+                "PyPy pickles it, but loads calls __setstate__ on an uninitialized instance"
+            )
         with pytest.raises(TypeError):
             pickle.dumps(p, protocol)
         return
