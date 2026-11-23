@@ -2356,6 +2356,7 @@ public:
             pybind11_fail("Could not allocate set object!");
         }
     }
+    /// Throws on failure. The return value is always true; kept for compatibility.
     template <typename T>
     bool add(T &&val) /* py-non-const */ {
         if (PySet_Add(m_ptr, detail::object_or_cast(std::forward<T>(val)).ptr()) != 0) {
