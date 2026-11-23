@@ -556,6 +556,8 @@ struct type_info {
     /* A simple type never occurs as a (direct or indirect) parent
      * of a class that makes use of multiple inheritance.
      * A type can be simple even if it has non-simple ancestors as long as it has no descendants.
+     * This is written when a subclass is registered, so reads are not thread-safe. pybind11
+     * no longer reads it; it stays up to date for modules built with pybind11 <= 3.1.
      */
     bool simple_type : 1;
     /* True if there is no multiple inheritance in this type's inheritance tree */
