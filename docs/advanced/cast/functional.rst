@@ -103,10 +103,9 @@ The following interactive session shows how to call them from Python.
 
     A return value policy given to a ``std::function`` applies to the return
     value of the callable. ``py::cast(func)`` and assignments such as
-    ``m.attr("name") = func`` use the default policy
-    (``return_value_policy::automatic_reference``), as ``py::cpp_function``
-    does. A callable that returns a raw pointer then gives Python a reference
-    that Python does not own. The C++ object must stay alive while Python
+    ``m.attr("name") = func`` use the default policy of ``py::cast``
+    (``return_value_policy::automatic_reference``). A callable that returns a
+    raw pointer then gives Python a reference that Python does not own. The C++ object must stay alive while Python
     uses that reference. Before pybind11 3.2, Python got a copy. To give
     Python the ownership of the returned object, use
     ``py::cast(func, py::return_value_policy::automatic)`` or
