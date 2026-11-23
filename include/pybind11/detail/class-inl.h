@@ -723,6 +723,9 @@ PYBIND11_INLINE PyObject *make_new_instance(PyTypeObject *type) {
     }
 #endif
     PyObject *self = type_alloc(type);
+    if (self == nullptr) {
+        throw error_already_set();
+    }
     auto *inst = get_instance(self);
     // Allocate the value/holder internals:
     inst->allocate_layout();
