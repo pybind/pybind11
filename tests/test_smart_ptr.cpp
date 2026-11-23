@@ -101,6 +101,18 @@ public:
     T *get() const { return ptr_.get(); }
 };
 
+// Issue #3851: custom holder without element_type
+template <typename T>
+class shared_ptr_without_element_type {
+    std::shared_ptr<T> ptr_;
+
+public:
+    shared_ptr_without_element_type() = default;
+    explicit shared_ptr_without_element_type(T *ptr) : ptr_(ptr) {}
+    explicit shared_ptr_without_element_type(std::shared_ptr<T> ptr) : ptr_(std::move(ptr)) {}
+    T *get() const { return ptr_.get(); }
+};
+
 // Custom object with builtin reference counting (see 'object.h' for the implementation)
 class MyObject1 : public Object {
 public:
@@ -276,6 +288,13 @@ struct SharedFromThisVBase : std::enable_shared_from_this<SharedFromThisVBase> {
 };
 struct SharedFromThisVirt : virtual SharedFromThisVBase {};
 
+struct SftCustomHolder : std::enable_shared_from_this<SftCustomHolder> {
+    static std::shared_ptr<SftCustomHolder> &existing() {
+        static auto *sp = new std::shared_ptr<SftCustomHolder>(new SftCustomHolder());
+        return *sp;
+    }
+};
+
 // Issue #5989: static_pointer_cast where dynamic_pointer_cast is needed
 // (virtual inheritance with shared_ptr holder)
 struct SftVirtBase : std::enable_shared_from_this<SftVirtBase> {
@@ -410,6 +429,7 @@ struct holder_helper<ref<T>> {
 PYBIND11_DECLARE_HOLDER_TYPE(T, ref<T>, true)
 PYBIND11_DECLARE_HOLDER_TYPE(T, const_only_shared_ptr<T>, true)
 PYBIND11_DECLARE_HOLDER_TYPE(T, shared_ptr_as_custom_holder<T>, )
+PYBIND11_DECLARE_HOLDER_TYPE(T, shared_ptr_without_element_type<T>, )
 // The following is not required anymore for std::shared_ptr, but it should compile without error:
 PYBIND11_DECLARE_HOLDER_TYPE(T, std::shared_ptr<T>, )
 PYBIND11_DECLARE_HOLDER_TYPE(T, huge_unique_ptr<T>, )
@@ -574,6 +594,14 @@ TEST_SUBMODULE(smart_ptr, m) {
     py::class_<Issue6064UnsafePath, shared_ptr_as_custom_holder<Issue6064UnsafePath>>(
         m, "Issue6064UnsafePath");
     m.def("get_issue6064_unsafe_path_shared_ptr", []() { return Issue6064UnsafePath::create(); });
+
+    // test_shared_from_this_custom_holder
+    py::class_<SftCustomHolder, shared_ptr_without_element_type<SftCustomHolder>>(
+        m, "SftCustomHolder")
+        .def(py::init<>())
+        .def_static("get_existing", []() { return SftCustomHolder::existing().get(); })
+        .def_static("existing_use_count",
+                    []() { return SftCustomHolder::existing().use_count(); });
 
     // test_shared_ptr_and_references
     using A = SharedPtrRef::A;
