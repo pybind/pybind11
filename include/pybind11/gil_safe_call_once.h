@@ -7,15 +7,15 @@
 #include "gil.h"
 
 #include <cassert>
+#include <cstdint>
 #include <mutex>
+#include <string>
 
 #if defined(Py_GIL_DISABLED) || defined(PYBIND11_HAS_SUBINTERPRETER_SUPPORT)
 #    include <atomic>
 #endif
 #ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
-#    include <cstdint>
 #    include <memory>
-#    include <string>
 #endif
 
 PYBIND11_NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
@@ -62,12 +62,42 @@ PYBIND11_NAMESPACE_END(detail)
 // functions, which is usually the case.
 //
 // For in-depth background, see docs/advanced/deadlock.md
+
+// Prefix for storage keys in the interpreter state dict.
+#define PYBIND11_CALL_ONCE_STORAGE_KEY_PREFIX PYBIND11_INTERNALS_ID "_call_once_storage__"
+
 #ifndef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
 // Subinterpreter support is disabled.
 // In this case, we can store the result globally, because there is only a single interpreter.
 //
-// The life span of the stored result is the entire process lifetime. It is leaked on process
-// termination to avoid destructor calls after the Python interpreter was finalized.
+// The stored result is never destroyed, to avoid destructor calls after the Python interpreter
+// was finalized. If the interpreter is finalized and initialized again, the result is stored
+// again and the old result is leaked.
+
+PYBIND11_NAMESPACE_BEGIN(detail)
+
+// Lives in the interpreter state dict. The interpreter destroys it during finalization, and
+// then the owner must forget its stored result.
+template <typename Owner>
+struct call_once_reset_on_finalize {
+    Owner *owner = nullptr;
+
+    call_once_reset_on_finalize() = default;
+    ~call_once_reset_on_finalize() {
+        if (owner != nullptr) {
+            owner->reset();
+        }
+    }
+    call_once_reset_on_finalize(const call_once_reset_on_finalize &) = delete;
+    call_once_reset_on_finalize(call_once_reset_on_finalize &&) = delete;
+    call_once_reset_on_finalize &operator=(const call_once_reset_on_finalize &) = delete;
+    call_once_reset_on_finalize &operator=(call_once_reset_on_finalize &&) = delete;
+};
+
+PYBIND11_NAMESPACE_END(detail)
+
+// The helper must have static storage duration and stay loaded until the interpreter is
+// finalized.
 template <typename T>
 class gil_safe_call_once_and_store {
 public:
@@ -86,6 +116,12 @@ public:
             std::call_once(once_flag_, [&] {
                 // Only one thread will ever enter here.
                 gil_scoped_acquire gil_acq;
+                // Registered first: if this throws, there is no stored result to roll back.
+                detail::atomic_get_or_create_in_state_dict<reset_type>(
+                    (PYBIND11_CALL_ONCE_STORAGE_KEY_PREFIX
+                     + std::to_string(reinterpret_cast<std::uintptr_t>(this)))
+                        .c_str())
+                    .first->owner = this;
                 ::new (storage_) T(fn()); // fn may release, but will reacquire, the GIL.
                 is_initialized_ = true;   // This write is guarded by the GIL.
             });
@@ -120,6 +156,17 @@ public:
     gil_safe_call_once_and_store &operator=(gil_safe_call_once_and_store &&) = delete;
 
 private:
+    using reset_type = detail::call_once_reset_on_finalize<gil_safe_call_once_and_store>;
+    friend reset_type;
+
+    // Called during interpreter finalization. The stored result belongs to that interpreter.
+    // It is leaked, and the next `call_once_and_store_result()` stores a new one.
+    void reset() {
+        is_initialized_ = false;
+        once_flag_.~once_flag();
+        ::new (&once_flag_) std::once_flag();
+    }
+
     // The global static storage (per-process) when subinterpreter support is disabled.
     alignas(T) char storage_[sizeof(T)] = {};
     std::once_flag once_flag_;
@@ -147,7 +194,8 @@ struct call_once_storage {
     void (*finalize)(T &) = nullptr;
     std::atomic_bool is_initialized{false};
     // The `gil_safe_call_once_and_store` which caches a pointer into `storage`, if any.
-    // It is a global static, therefore it outlives this storage, which the interpreter owns.
+    // The interpreter owns this storage. The owner must outlive it: see the requirement on
+    // `gil_safe_call_once_and_store` below.
     gil_safe_call_once_and_store<T> *owner = nullptr;
 
     call_once_storage() = default;
@@ -172,10 +220,9 @@ struct call_once_storage {
 
 PYBIND11_NAMESPACE_END(detail)
 
-// Prefix for storage keys in the interpreter state dict.
-#    define PYBIND11_CALL_ONCE_STORAGE_KEY_PREFIX PYBIND11_INTERNALS_ID "_call_once_storage__"
-
-// The helper must have static storage duration and outlive every interpreter that uses it.
+// The helper must have static storage duration and outlive every interpreter that uses it:
+// the interpreter writes to the helper during finalization. Do not unload the shared library
+// that contains the helper before that.
 // The stored result lives as long as its interpreter. An optional `finalize_fn` can clean up
 // the result when that interpreter is destroyed.
 template <typename T>
@@ -219,8 +266,15 @@ public:
         if (auto *cached = get_cached_storage()) {
             return *cached;
         }
+        // The cache is not published again here. It can thus stay empty if another interpreter
+        // replaced the pointer and then cleared it. This is accepted: `get_stored()` is then
+        // slower, but correct.
         gil_scoped_acquire gil_acq;
         auto *value = get_or_create_storage_in_state_dict();
+        if (!value->is_initialized) {
+            pybind11_fail("gil_safe_call_once_and_store::get_stored(): no stored value in this "
+                          "interpreter");
+        }
         return *reinterpret_cast<T *>(value->storage);
     }
 
@@ -248,8 +302,10 @@ private:
     }
 
     T *get_cached_storage() const {
-        // Load the pointer first. A subinterpreter can publish its own pointer as soon as it
-        // marks that multiple interpreters have been seen.
+        // Load the pointer first. A subinterpreter sets the flag before it can publish its own
+        // pointer. If the flag was read first, a thread of the main interpreter could read
+        // "false", then load the pointer of the subinterpreter (PR #6162).
+        // No targeted race test yet.
         auto *cached = last_storage_ptr_.load();
         return cached != nullptr && !detail::has_seen_non_main_interpreter() ? cached : nullptr;
     }

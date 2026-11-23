@@ -543,9 +543,8 @@ TEST_CASE("Enum module survives restart") { // Added in PR #6015
     REQUIRE(enum_mod.attr("SomeEnum").attr("value2").attr("name").cast<std::string>() == "value2");
 }
 
-#ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
-// Added for gh-6159: the per-interpreter storage is destroyed with the interpreter, therefore the
-// fast-path cache in `gil_safe_call_once_and_store` must be reset, too.
+// Added for gh-6159: the stored value belongs to the interpreter, therefore
+// `gil_safe_call_once_and_store` must forget it when the interpreter is finalized.
 PYBIND11_CONSTINIT static py::gil_safe_call_once_and_store<py::object> restart_test_storage;
 static int restart_test_call_count = 0;
 
@@ -586,6 +585,13 @@ TEST_CASE("Exception module survives restart") { // Added for gh-6159
     auto exc_mod = py::module_::import("exception_module");
     REQUIRE(py::hasattr(exc_mod, "SomeCppException"));
     REQUIRE_THROWS_WITH(exc_mod.attr("raise_it")(), "SomeCppException: C++ Error");
+}
+
+#ifdef PYBIND11_HAS_SUBINTERPRETER_SUPPORT
+TEST_CASE("gil_safe_call_once_and_store get_stored without a stored value") {
+    PYBIND11_CONSTINIT static py::gil_safe_call_once_and_store<py::object> storage;
+    // No `call_once_and_store_result()` call: there is no value to return a reference to.
+    REQUIRE_THROWS_WITH(storage.get_stored(), Catch::Contains("no stored value"));
 }
 #endif
 
