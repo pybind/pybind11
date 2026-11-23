@@ -714,6 +714,11 @@ PYBIND11_INLINE Py_ssize_t instance_data_offset() {
 #endif
 
 PYBIND11_INLINE PyObject *make_new_instance(PyTypeObject *type) {
+    return make_new_instance(type, all_type_info(type));
+}
+
+PYBIND11_INLINE PyObject *make_new_instance(PyTypeObject *type,
+                                            const std::vector<type_info *> &bases) {
 #if defined(PYPY_VERSION)
     // PyPy gets tp_basicsize wrong (issue 2482) under multiple inheritance when the first
     // inherited object is a plain Python type (i.e. not derived from an extension type).  Fix it.
@@ -728,7 +733,7 @@ PYBIND11_INLINE PyObject *make_new_instance(PyTypeObject *type) {
     }
     auto *inst = get_instance(self);
     // Allocate the value/holder internals:
-    inst->allocate_layout();
+    inst->allocate_layout(bases);
 
     return self;
 }
@@ -737,13 +742,14 @@ extern "C" PYBIND11_INLINE PyObject *
 pybind11_object_new(PyTypeObject *type, PyObject *, PyObject *) {
     try {
         // Check before allocating, so a failure never deallocates a half-built instance.
-        if (all_type_info(type).empty()) {
+        const auto &bases = all_type_info(type);
+        if (bases.empty()) {
             std::string msg = get_fully_qualified_tp_name(type)
                               + ": cannot be instantiated, no pybind11-registered base types";
             set_error(PyExc_TypeError, msg.c_str());
             return nullptr;
         }
-        return make_new_instance(type);
+        return make_new_instance(type, bases);
     } catch (...) {
         try_translate_exceptions();
         return nullptr;

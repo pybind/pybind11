@@ -848,7 +848,7 @@ struct instance {
 
     /// Initializes all of the above type/values/holders data (but not the instance values
     /// themselves)
-    void allocate_layout();
+    void allocate_layout(const std::vector<type_info *> &tinfo);
 
     /// Destroys/deallocates all of the above
     void deallocate_layout();

@@ -364,9 +364,8 @@ instance::get_value_and_holder(const type_info *find_type /*= nullptr default in
 #endif
 }
 
-PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void instance::allocate_layout() {
-    const auto &tinfo = all_type_info(Py_TYPE(instance_object(this)));
-
+PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void
+instance::allocate_layout(const std::vector<type_info *> &tinfo) {
     const size_t n_types = tinfo.size();
 
     if (n_types == 0) {
