@@ -207,10 +207,13 @@ public:
                 ::new (value->storage) T(fn());
                 value->finalize = finalize_fn;
                 value->is_initialized = true;
-                // Let the storage reset the cache below when the interpreter destroys it. Set
-                // only here: `get_stored()` can run concurrently in threads of one interpreter.
-                value->owner = this;
-                last_storage_ptr_ = reinterpret_cast<T *>(value->storage);
+                if (can_publish_cache()) {
+                    // Let the storage reset the cache below when the interpreter destroys it.
+                    // Set only here: `get_stored()` can run concurrently in threads of one
+                    // interpreter.
+                    value->owner = this;
+                    last_storage_ptr_ = reinterpret_cast<T *>(value->storage);
+                }
             });
         }
         // Intentionally not returning `T &` to ensure the calling code is self-documenting.
@@ -222,9 +225,7 @@ public:
         if (auto *cached = get_cached_storage()) {
             return *cached;
         }
-        // The cache is not published again here. It can thus stay empty if another interpreter
-        // replaced the pointer and then cleared it. This is accepted: `get_stored()` is then
-        // slower, but correct.
+        // The cache is not published here: see `can_publish_cache()`.
         gil_scoped_acquire gil_acq;
         auto *value = get_or_create_storage_in_state_dict();
         if (!value->is_initialized) {
@@ -250,18 +251,28 @@ private:
     using storage_type = detail::call_once_storage<T>;
     friend storage_type;
 
-    // Another interpreter can publish its pointer during teardown. Compare and clear in one
-    // operation so the destructor only removes its own storage from the cache (PR #6162).
-    // No targeted race test yet.
+    // Only the main interpreter uses the cache: no other interpreter can exist when
+    // `has_seen_non_main_interpreter()` is false.
+    // A callback can call the helper during finalization, after the interpreter destroyed the
+    // storage. The interpreter does not destroy the storage which that call creates, thus
+    // nothing would remove its pointer from the cache, and the next interpreter would use it.
+    static bool can_publish_cache() {
+#    if PY_VERSION_HEX >= 0x030D0000
+        const bool is_finalizing = Py_IsFinalizing() != 0;
+#    else
+        const bool is_finalizing = _Py_IsFinalizing() != 0;
+#    endif
+        return !is_finalizing && PyInterpreterState_Get() == PyInterpreterState_Main();
+    }
+
+    // Compare and clear in one operation, so that the destructor only removes its own storage
+    // from the cache (PR #6162).
     void invalidate_cache(T *storage_ptr) {
         last_storage_ptr_.compare_exchange_strong(storage_ptr, nullptr);
     }
 
     T *get_cached_storage() const {
-        // Load the pointer first. A subinterpreter sets the flag before it can publish its own
-        // pointer. If the flag was read first, a thread of the main interpreter could read
-        // "false", then load the pointer of the subinterpreter (PR #6162).
-        // No targeted race test yet.
+        // The pointer belongs to the main interpreter. Other interpreters must not use it.
         auto *cached = last_storage_ptr_.load();
         return cached != nullptr && !detail::has_seen_non_main_interpreter() ? cached : nullptr;
     }
@@ -286,7 +297,7 @@ private:
     }
 
     // Fast cache for the single-interpreter case. A null pointer means the cache is empty.
-    // Initialization and teardown can access it concurrently across interpreters.
+    // The teardown of other interpreters can access it concurrently.
     std::atomic<T *> last_storage_ptr_{nullptr};
 };
 #endif
