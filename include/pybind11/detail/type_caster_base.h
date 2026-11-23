@@ -864,7 +864,7 @@ public:
             // `typeinfo->simple_type`. On free-threaded builds, another thread can register a
             // subclass at any time, and that clears `simple_type` on this (already published)
             // parent. `simple_ancestors` does not change after the type is published.
-            // PR #NNNN was verified by inspection. No targeted race test yet.
+            // PR #6298 was verified by inspection. No targeted race test yet.
 
             // Case 2a: the python type inherits from just one pybind11 class that has no C++ MI
             // in its ancestors, or that is an exact match, so the C++ instance is of

@@ -965,7 +965,7 @@ using implicit_cast_t = std::pair<const std::type_info *, void *(*)(void *)>;
 // An unlocked reader could see the vector during reallocation. The append and this read both
 // hold the internals lock. Callers must not hold the lock while they use the entry, because
 // the cast functions and nested loads can take it again.
-// PR #NNNN was verified by inspection. No targeted race test yet.
+// PR #6298 was verified by inspection. No targeted race test yet.
 inline bool get_implicit_cast(const type_info *tinfo, size_t index, implicit_cast_t &out) {
     return with_internals([&](internals &) {
         if (index >= tinfo->implicit_casts.size()) {
