@@ -12,6 +12,23 @@ add_subdirectory("${pybind11_SOURCE_DIR}" pybind11)
 pybind11_add_module(test_subdirectory_function ../main.cpp)
 set_target_properties(test_subdirectory_function PROPERTIES OUTPUT_NAME test_cmake_build)
 
+# FindPython mode accepts WITH_SOABI, which CMake ignores for SHARED libraries.
+if(COMMAND python_add_library OR COMMAND python3_add_library)
+  pybind11_add_module(test_subdirectory_function_shared SHARED WITH_SOABI ../main.cpp)
+
+  # An executable can link a SHARED module; it only links libpython itself on Apple.
+  # Stable-ABI SHARED libraries never link libpython, and abi3t has no PyInit_ symbol.
+  if(NOT WIN32
+     AND NOT PYBIND11_STABLE_ABI
+     AND (TARGET Python::Python OR TARGET Python3::Python))
+    add_executable(test_subdirectory_function_exe ../link_shared.cpp)
+    target_link_libraries(test_subdirectory_function_exe PRIVATE test_subdirectory_function_shared)
+    if(APPLE)
+      target_link_libraries(test_subdirectory_function_exe PRIVATE pybind11::embed)
+    endif()
+  endif()
+endif()
+
 if(DEFINED Python_EXECUTABLE)
   set(_Python_EXECUTABLE "${Python_EXECUTABLE}")
 elseif(DEFINED PYTHON_EXECUTABLE)
@@ -30,3 +47,14 @@ add_custom_target(
   ${PROJECT_SOURCE_DIR}/../test.py
   ${PROJECT_NAME}
   DEPENDS test_subdirectory_function)
+
+if(TARGET test_subdirectory_function_shared)
+  add_dependencies(check_subdirectory_function test_subdirectory_function_shared)
+endif()
+
+if(TARGET test_subdirectory_function_exe)
+  add_custom_command(
+    TARGET check_subdirectory_function
+    POST_BUILD
+    COMMAND test_subdirectory_function_exe)
+endif()

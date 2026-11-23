@@ -367,6 +367,22 @@ Python-exclusive module. Specifying ``SHARED`` will create a more traditional
 dynamic library which can also be linked from elsewhere. ``EXCLUDE_FROM_ALL``
 removes this target from the default build (see CMake docs for details).
 
+.. note::
+
+    In FindPython mode, a non-stable-ABI ``SHARED`` library uses the same
+    Python linkage as a ``MODULE`` library on Apple platforms or when
+    ``Development.Embed`` is unavailable. Classic mode also uses module
+    linkage for ``SHARED`` libraries. On some platforms, such as Windows,
+    module linkage includes the Python library. On Apple platforms, linking
+    an extension against ``libpython`` can load a second Python runtime when
+    a statically linked interpreter imports it.
+
+    An executable that needs to supply Python linkage should link to
+    ``pybind11::embed``. This requires the embedding development files.
+    If your project calls ``find_package(Python ...)`` or
+    ``find_package(Python3 ...)`` itself, request ``Development.Embed`` in that
+    call before loading pybind11.
+
 Since pybind11 is a template library, ``pybind11_add_module`` adds compiler
 flags to ensure high quality code generation without bloat arising from long
 symbol names and duplication of code in different translation units. It

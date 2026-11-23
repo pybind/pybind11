@@ -448,6 +448,15 @@ function(pybind11_add_module target_name)
     endif()
   endif()
 
+  # An extension module must not link libpython on Apple platforms; with a statically
+  # linked interpreter (e.g. python-build-standalone) that loads a second Python
+  # runtime and aborts on import. Other platforms keep the link when the embedding
+  # library is available, so that an executable can link the SHARED library alone.
+  set(shared_as_module OFF)
+  if(lib_type STREQUAL "SHARED" AND (APPLE OR NOT TARGET ${_Python}::Python))
+    set(shared_as_module ON)
+  endif()
+
   if(own_sabi)
     # python_add_library would consume WITH_SOABI; here it selects the same abi3/abi3t suffix as
     # the default handling below.
@@ -461,6 +470,11 @@ function(pybind11_add_module target_name)
       endif()
     endif()
     _pybind11_stable_abi_setup(${target_name})
+  elseif(shared_as_module)
+    # Bypass python_add_library, which links SHARED libraries against libpython.
+    set(_sources ${ARG_UNPARSED_ARGUMENTS})
+    list(REMOVE_ITEM _sources WITH_SOABI)
+    add_library(${target_name} SHARED ${_sources})
   elseif("${_Python}" STREQUAL "Python")
     python_add_library(${target_name} ${lib_type} ${use_sabi} ${ARG_UNPARSED_ARGUMENTS})
   elseif("${_Python}" STREQUAL "Python3")
@@ -480,6 +494,8 @@ function(pybind11_add_module target_name)
     endif()
   elseif(stable_abi)
     # A SHARED helper library that stable-ABI modules link: same ABI, no embedding.
+  elseif(shared_as_module)
+    target_link_libraries(${target_name} PRIVATE pybind11::module)
   else()
     target_link_libraries(${target_name} PRIVATE pybind11::embed)
   endif()
