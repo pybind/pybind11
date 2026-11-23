@@ -593,20 +593,19 @@ TEST_CASE("Exception module survives restart") { // Added for gh-6159
 // go into the fast-path cache.
 PYBIND11_CONSTINIT static py::gil_safe_call_once_and_store<int> late_call_storage;
 static int late_call_count = 0;
+static int count_late_call() { return ++late_call_count; }
 
 TEST_CASE("gil_safe_call_once_and_store late call during finalization") {
-    auto count_call = []() { return ++late_call_count; };
-    auto late_call = [](int &) {
-        late_call_storage.call_once_and_store_result([]() { return ++late_call_count; });
-    };
+    auto late_call = [](int &) { late_call_storage.call_once_and_store_result(count_late_call); };
 
-    REQUIRE(late_call_storage.call_once_and_store_result(count_call, late_call).get_stored() == 1);
+    REQUIRE(late_call_storage.call_once_and_store_result(count_late_call, late_call).get_stored()
+            == 1);
 
     py::finalize_interpreter();
     REQUIRE(late_call_count == 2);
     py::initialize_interpreter();
 
-    REQUIRE(late_call_storage.call_once_and_store_result(count_call).get_stored() == 3);
+    REQUIRE(late_call_storage.call_once_and_store_result(count_late_call).get_stored() == 3);
 }
 
 TEST_CASE("gil_safe_call_once_and_store get_stored without a stored value") {
