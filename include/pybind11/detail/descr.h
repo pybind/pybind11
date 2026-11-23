@@ -126,31 +126,38 @@ io_name(char const (&)[N1], char const (&)[N2], char const (&text3)[N3], char co
 #ifndef _
 #    define PYBIND11_DETAIL_UNDERSCORE_BACKWARD_COMPATIBILITY
 template <size_t N>
+PYBIND11_DEPRECATED("Use py::detail::const_name instead")
 constexpr descr<N - 1> _(char const (&text)[N]) {
     return const_name<N>(text);
 }
 template <bool B, size_t N1, size_t N2>
+PYBIND11_DEPRECATED("Use py::detail::const_name instead")
 constexpr enable_if_t<B, descr<N1 - 1>> _(char const (&text1)[N1], char const (&text2)[N2]) {
     return const_name<B, N1, N2>(text1, text2);
 }
 template <bool B, size_t N1, size_t N2>
+PYBIND11_DEPRECATED("Use py::detail::const_name instead")
 constexpr enable_if_t<!B, descr<N2 - 1>> _(char const (&text1)[N1], char const (&text2)[N2]) {
     return const_name<B, N1, N2>(text1, text2);
 }
 template <bool B, typename T1, typename T2>
+PYBIND11_DEPRECATED("Use py::detail::const_name instead")
 constexpr enable_if_t<B, T1> _(const T1 &d1, const T2 &d2) {
     return const_name<B, T1, T2>(d1, d2);
 }
 template <bool B, typename T1, typename T2>
+PYBIND11_DEPRECATED("Use py::detail::const_name instead")
 constexpr enable_if_t<!B, T2> _(const T1 &d1, const T2 &d2) {
     return const_name<B, T1, T2>(d1, d2);
 }
 
 template <size_t Size>
+PYBIND11_DEPRECATED("Use py::detail::const_name instead")
 auto constexpr _() -> remove_cv_t<decltype(int_to_str<Size / 10, Size % 10>::digits)> {
     return const_name<Size>();
 }
 template <typename Type>
+PYBIND11_DEPRECATED("Use py::detail::const_name instead")
 constexpr descr<1, Type> _() {
     return const_name<Type>();
 }

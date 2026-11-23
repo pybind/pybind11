@@ -1046,6 +1046,7 @@ PYBIND11_INLINE PyObject *cpp_function::dispatcher(PyObject *self,
                     // replaced later
                     if (func.has_args && call.args.size() == func.nargs_pos) {
                         call.args.push_back(none());
+                        call.args_convert.push_back(false);
                     }
 
                     call.args.push_back(value);
@@ -1077,10 +1078,11 @@ PYBIND11_INLINE PyObject *cpp_function::dispatcher(PyObject *self,
                 }
                 if (call.args.size() <= func.nargs_pos) {
                     call.args.push_back(call.args_ref);
+                    call.args_convert.push_back(false);
                 } else {
+                    // The stub pushed in step 2 already has its convert flag.
                     call.args[func.nargs_pos] = call.args_ref;
                 }
-                call.args_convert.push_back(false);
             }
 
             // 4b. If we have a py::kwargs, pass on any remaining kwargs
@@ -1136,11 +1138,12 @@ PYBIND11_INLINE PyObject *cpp_function::dispatcher(PyObject *self,
                 // The (overloaded) call failed; if the call has at least one argument that
                 // permits conversion (i.e. it hasn't been explicitly specified `.noconvert()`)
                 // then add this call to the list of second pass overloads to try.
-                for (size_t i = func.is_method ? 1 : 0; i < pos_args; i++) {
+                // Keyword-only arguments count too, so scan all of the flags.
+                for (size_t i = func.is_method ? 1 : 0; i < second_pass_convert.size(); i++) {
                     if (second_pass_convert[i]) {
-                        // Found one: swap the converting flags back in and store the call for
+                        // Found one: move the converting flags back in and store the call for
                         // the second pass.
-                        call.args_convert.swap(second_pass_convert);
+                        call.args_convert = std::move(second_pass_convert);
                         second_pass.push_back(std::move(call));
                         break;
                     }
@@ -1333,6 +1336,26 @@ PYBIND11_INLINE void generic_type::initialize(const type_record &rec) {
     tinfo->module_local = rec.module_local;
     tinfo->holder_enum_v = rec.holder_enum_v;
 
+    // Finish initializing this type_info before publishing it in the registries.
+    // On free-threaded builds, another thread can look it up as soon as the
+    // internals lock is released, then read its fields outside the lock.
+    // PR #6274 was verified by inspection. No targeted race test yet.
+    if (rec.module_local) {
+        tinfo->module_local_load = &type_caster_generic::local_load;
+    }
+
+    if (rec.bases.size() > 1 || rec.multiple_inheritance) {
+        mark_parents_nonsimple(tinfo->type);
+        tinfo->simple_ancestors = false;
+    } else if (rec.bases.size() == 1) {
+        auto *parent_tinfo = get_type_info(reinterpret_cast<PyTypeObject *>(rec.bases[0].ptr()));
+        assert(parent_tinfo != nullptr);
+        bool parent_simple_ancestors = parent_tinfo->simple_ancestors;
+        tinfo->simple_ancestors = parent_simple_ancestors;
+        // The parent can no longer be a simple type if it has MI and has a child
+        parent_tinfo->simple_type = parent_tinfo->simple_type && parent_simple_ancestors;
+    }
+
     with_internals([&](internals &internals) {
         auto tindex = std::type_index(*rec.type);
         tinfo->direct_conversions = &internals.direct_conversions[tindex];
@@ -1358,21 +1381,8 @@ PYBIND11_INLINE void generic_type::initialize(const type_record &rec) {
         PYBIND11_WARNING_POP
     });
 
-    if (rec.bases.size() > 1 || rec.multiple_inheritance) {
-        mark_parents_nonsimple(tinfo->type);
-        tinfo->simple_ancestors = false;
-    } else if (rec.bases.size() == 1) {
-        auto *parent_tinfo = get_type_info(reinterpret_cast<PyTypeObject *>(rec.bases[0].ptr()));
-        assert(parent_tinfo != nullptr);
-        bool parent_simple_ancestors = parent_tinfo->simple_ancestors;
-        tinfo->simple_ancestors = parent_simple_ancestors;
-        // The parent can no longer be a simple type if it has MI and has a child
-        parent_tinfo->simple_type = parent_tinfo->simple_type && parent_simple_ancestors;
-    }
-
     if (rec.module_local) {
         // Stash the local typeinfo and loader so that external modules can access it.
-        tinfo->module_local_load = &type_caster_generic::local_load;
         setattr(m_ptr, PYBIND11_MODULE_LOCAL_ID, capsule(tinfo));
     }
 }

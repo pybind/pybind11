@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import contextlib
+import faulthandler
 import multiprocessing
+import os
 import queue
 import sys
 import sysconfig
+import tempfile
 import threading
 import time
 
@@ -205,11 +209,33 @@ def _intentional_deadlock():
     m.intentional_deadlock()
 
 
-def _run_in_process_target(target, args, kwargs, status_writer):
-    with status_writer:
-        status_writer.send("started")
-        target(*args, **kwargs)
-        status_writer.send("finished")
+def _run_in_process_target(
+    target, args, kwargs, status_writer, traceback_path, timeout
+):
+    with status_writer, open(traceback_path, "w") as traceback_file:
+        # Give the watchdog time to dump before the parent's execution timeout.
+        traceback_interval = 0.9 * timeout
+        try:
+            with contextlib.suppress(Exception):
+                faulthandler.dump_traceback_later(
+                    traceback_interval, repeat=True, file=traceback_file
+                )
+            status_writer.send("started")
+            target(*args, **kwargs)
+            status_writer.send("finished")
+        finally:
+            with contextlib.suppress(Exception):
+                faulthandler.cancel_dump_traceback_later()
+
+
+def _last_traceback_dump(traceback_path):
+    try:
+        with open(traceback_path) as traceback_file:
+            dump = traceback_file.read()
+    except OSError:
+        return ""
+    _, sep, last = dump.rpartition("Timeout (")
+    return f"\nChild tracebacks:\n{sep}{last}" if sep else ""
 
 
 def _run_in_process(target, *args, timeout=10, get_progress=None, **kwargs):
@@ -219,10 +245,11 @@ def _run_in_process(target, *args, timeout=10, get_progress=None, **kwargs):
     # Events allocate named semaphores whose delayed cleanup can fail on PyPy.
     status_reader, status_writer = multiprocessing.Pipe(duplex=False)
     # Keep the parent's writer open through cleanup so EOF cannot look like a signal.
-    with status_reader, status_writer:
+    with status_reader, status_writer, tempfile.TemporaryDirectory() as traceback_dir:
+        traceback_path = os.path.join(traceback_dir, "tracebacks.txt")
         process = multiprocessing.Process(
             target=_run_in_process_target,
-            args=(target, args, kwargs, status_writer),
+            args=(target, args, kwargs, status_writer, traceback_path, timeout),
         )
         process.daemon = True
         try:
@@ -281,6 +308,7 @@ def _run_in_process(target, *args, timeout=10, get_progress=None, **kwargs):
                 assert t_delta > 0.9 * timeout
                 msg = (
                     "DEADLOCK, most likely, exactly what this test is meant to detect."
+                    + _last_traceback_dump(traceback_path)
                 )
                 soabi = sysconfig.get_config_var("SOABI")
                 if env.WIN and env.PYPY:
@@ -450,6 +478,37 @@ def test_run_in_process_without_events(monkeypatch):
     assert _run_in_process(test_callback_py_obj) == 0
 
 
+def test_run_in_process_target_cancels_watchdog_on_error(monkeypatch, tmp_path):
+    events = []
+    traceback_file = None
+
+    class StatusWriter(contextlib.nullcontext):
+        def send(self, status):
+            events.append(status)
+
+    def arm_watchdog(_interval, *, file, **_kwargs):
+        nonlocal traceback_file
+        traceback_file = file
+        events.append("armed")
+
+    def cancel_watchdog():
+        events.append(("cancelled", traceback_file.closed))
+
+    def fail():
+        raise ValueError("target failed")
+
+    monkeypatch.setattr(
+        faulthandler, "dump_traceback_later", arm_watchdog, raising=False
+    )
+    monkeypatch.setattr(
+        faulthandler, "cancel_dump_traceback_later", cancel_watchdog, raising=False
+    )
+    with pytest.raises(ValueError, match="target failed"):
+        _run_in_process_target(fail, (), {}, StatusWriter(), tmp_path / "tracebacks", 1)
+
+    assert events == ["armed", "started", ("cancelled", False)]
+
+
 @pytest.mark.skipif(env.PY_GIL_DISABLED, reason="Requires the GIL to deadlock")
 @pytest.mark.skipif(
     env.GRAALPY, reason="GraalPy can leave unfinished threads at process exit"
@@ -460,12 +519,17 @@ def test_run_in_process_detects_deadlock():
         _run_in_process(_intentional_deadlock, timeout=0.1)
 
 
+# The delay must exceed the timeout, or counting it would not fail the test.
+SLOW_TIMEOUT = 0.5
+SLOW_DELAY = 2 * SLOW_TIMEOUT
+
+
 def _run_with_delay(target, args, delay_before):
     if delay_before:
-        time.sleep(0.2)
+        time.sleep(SLOW_DELAY)
     target(*args)
     if not delay_before:
-        time.sleep(0.2)
+        time.sleep(SLOW_DELAY)
 
 
 @pytest.mark.parametrize("delay_before", [True, False], ids=["startup", "shutdown"])
@@ -479,4 +543,4 @@ def test_run_in_process_slow_start_or_exit(monkeypatch, delay_before):
         )
 
     monkeypatch.setattr(multiprocessing, "Process", delayed_process)
-    assert _run_in_process(test_callback_py_obj, timeout=0.1) == 0
+    assert _run_in_process(test_callback_py_obj, timeout=SLOW_TIMEOUT) == 0

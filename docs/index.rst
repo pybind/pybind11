@@ -46,5 +46,6 @@
    faq
    benchmark
    limitations
+   supported
    reference
    cmake/index

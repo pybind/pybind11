@@ -661,6 +661,17 @@ TEST_SUBMODULE(numpy_dtypes, m) {
     PYBIND11_NUMPY_DTYPE(TrailingPaddingStruct, a, b);
     m.def("trailing_padding_dtype", []() { return py::dtype::of<TrailingPaddingStruct>(); });
 
+    // test_const_members (#2147); registered on call so a failure does not break import
+    struct ConstMembersStruct {
+        const double x;
+        const double y;
+    };
+    m.def("const_double_format", []() { return py::format_descriptor<const double>::format(); });
+    m.def("register_const_members_dtype", []() {
+        PYBIND11_NUMPY_DTYPE(ConstMembersStruct, x, y);
+        return py::dtype::of<ConstMembersStruct>();
+    });
+
     // test_half_dtype (issue #4061)
     m.def("half_dtype_num", []() { return py::dtype::num_of<UserHalf>(); });
     m.def("half_roundtrip", [](const py::array_t<UserHalf> &arr) { return arr; });

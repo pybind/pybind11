@@ -44,6 +44,11 @@ def use_multiprocessing_forkserver_on_linux():
     multiprocessing.set_start_method("forkserver")
 
 
+@pytest.fixture(autouse=True)
+def reset_constructor_stats():
+    pybind11_tests.ConstructorStats.reset_all()
+
+
 _long_marker = re.compile(r"([0-9])L")
 _hexadecimal = re.compile(r"0x[0-9a-fA-F]+")
 

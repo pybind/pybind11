@@ -232,6 +232,20 @@ def test_unique_ptr_return_value_policy_automatic_reference():
     assert m.get_mtxt(m.rtrn_uq_automatic_reference()) == "rtrn_uq_automatic_reference"
 
 
+@pytest.mark.parametrize(
+    "rtrn_f",
+    [
+        m.cast_uq_reference_internal_no_parent,
+        m.rtrn_shcr_reference_internal_no_parent,
+    ],
+)
+def test_reference_internal_no_parent(rtrn_f):
+    # Was a double free: the wrapper and the temporary holder both owned the pointer.
+    for _ in range(2):
+        with pytest.raises(RuntimeError, match="Could not activate keep_alive!"):
+            rtrn_f()
+
+
 def test_pass_shared_ptr_ptr():
     obj = m.atyp()
     with pytest.raises(RuntimeError) as excinfo:
