@@ -16,6 +16,8 @@
 
 #include "class.h"
 
+#include <algorithm>
+
 #if defined(Py_LIMITED_API)
 #    include <pybind11/gil_safe_call_once.h>
 #endif
@@ -745,9 +747,14 @@ extern "C" PYBIND11_INLINE int pybind11_object_init(PyObject *self, PyObject *, 
 PYBIND11_INLINE void add_patient(PyObject *nurse, PyObject *patient) {
     auto *instance = get_instance(nurse);
     instance->has_patients = true;
-    Py_INCREF(patient);
 
-    with_internals([&](internals &internals) { internals.patients[nurse].push_back(patient); });
+    with_internals([&](internals &internals) {
+        auto &patients = internals.patients[nurse];
+        if (std::find(patients.begin(), patients.end(), patient) == patients.end()) {
+            Py_INCREF(patient);
+            patients.push_back(patient);
+        }
+    });
 }
 
 PYBIND11_INLINE void clear_patients(PyObject *self) {
