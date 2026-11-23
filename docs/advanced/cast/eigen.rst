@@ -19,7 +19,9 @@ the Eigen type, copy its values into a temporary Eigen variable of the
 appropriate type, then call the function with this temporary variable.
 
 Sparse matrices are similarly copied to or from
-``scipy.sparse.csr_matrix``/``scipy.sparse.csc_matrix`` objects.
+``scipy.sparse.csr_matrix``/``scipy.sparse.csc_matrix`` objects. An
+``Eigen::SparseVector`` maps to a one-column ``csc_matrix`` (or a one-row
+``csr_matrix`` if it is row-major).
 
 Pass-by-reference
 =================

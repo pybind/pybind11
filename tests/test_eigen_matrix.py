@@ -838,6 +838,32 @@ def test_sparse():
     assert_sparse_equal_ref(m.sparse_copy_c(m.sparse_r()))
 
 
+def test_sparse_vector():
+    sp = pytest.importorskip("scipy.sparse")
+    row = m.sparse_vector_r()
+    col = m.sparse_vector_c()
+    assert isinstance(row, sp.csr_matrix)
+    assert isinstance(col, sp.csc_matrix)
+    np.testing.assert_array_equal(row.toarray(), ref[2:3, :])
+    np.testing.assert_array_equal(col.toarray(), ref[:, 1:2])
+
+    np.testing.assert_array_equal(m.sparse_vector_copy_r(row).toarray(), ref[2:3, :])
+    np.testing.assert_array_equal(m.sparse_vector_copy_c(col).toarray(), ref[:, 1:2])
+    np.testing.assert_array_equal(
+        m.sparse_vector_copy_r(sp.csc_matrix(row)).toarray(), ref[2:3, :]
+    )
+    np.testing.assert_array_equal(
+        m.sparse_vector_copy_c(sp.csr_matrix(col)).toarray(), ref[:, 1:2]
+    )
+
+    with pytest.raises(TypeError):
+        m.sparse_vector_copy_r(col)
+    with pytest.raises(TypeError):
+        m.sparse_vector_copy_c(row)
+    with pytest.raises(TypeError):
+        m.sparse_vector_copy_c(sp.csc_matrix(ref))
+
+
 @pytest.mark.parametrize("layout", ["r", "c"])
 @pytest.mark.parametrize("readonly", ["data", "indices", "indptr", "all"])
 def test_sparse_readonly(layout, readonly):

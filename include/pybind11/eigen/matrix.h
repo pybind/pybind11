@@ -703,6 +703,8 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
     using StorageIndex = remove_reference_t<decltype(*std::declval<Type>().outerIndexPtr())>;
     using Index = typename Type::Index;
     static constexpr bool rowMajor = Type::IsRowMajor;
+    // Eigen::SparseVector maps to a one-row csr or one-column csc matrix
+    static constexpr bool isVector = Type::IsVectorAtCompileTime != 0;
 
     bool load(handle src, bool) {
         if (!src) {
@@ -733,6 +735,10 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
         auto shape = pybind11::tuple((pybind11::object) obj.attr("shape"));
         auto nnz = obj.attr("nnz").cast<Index>();
 
+        if (isVector && shape[rowMajor ? 0 : 1].cast<Index>() != 1) {
+            return false;
+        }
+
         if (!values || !innerIndices || !outerIndices) {
             return false;
         }
@@ -749,14 +755,19 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
         return true;
     }
 
+    static void make_compressed(Type &src, std::false_type) { src.makeCompressed(); }
+    static void make_compressed(Type &, std::true_type) {}
+
     static handle cast(const Type &src, return_value_policy /* policy */, handle /* parent */) {
-        const_cast<Type &>(src).makeCompressed();
+        make_compressed(const_cast<Type &>(src), bool_constant<isVector>{});
+        const StorageIndex vectorOuterIndices[2] = {0, static_cast<StorageIndex>(src.nonZeros())};
 
         object matrix_type
             = module_::import("scipy.sparse").attr(rowMajor ? "csr_matrix" : "csc_matrix");
 
         array data(src.nonZeros(), src.valuePtr());
-        array outerIndices((rowMajor ? src.rows() : src.cols()) + 1, src.outerIndexPtr());
+        array outerIndices((rowMajor ? src.rows() : src.cols()) + 1,
+                           isVector ? vectorOuterIndices : src.outerIndexPtr());
         array innerIndices(src.nonZeros(), src.innerIndexPtr());
 
         return matrix_type(pybind11::make_tuple(

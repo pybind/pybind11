@@ -90,6 +90,8 @@ TEST_SUBMODULE(eigen_matrix, m) {
     using FourColMatrixR = Eigen::Matrix<float, Eigen::Dynamic, 4>;
     using SparseMatrixR = Eigen::SparseMatrix<float, Eigen::RowMajor>;
     using SparseMatrixC = Eigen::SparseMatrix<float>;
+    using SparseVectorR = Eigen::SparseVector<float, Eigen::RowMajor>;
+    using SparseVectorC = Eigen::SparseVector<float>;
 
     // various tests
     m.def("double_col", [](const Eigen::VectorXf &x) -> Eigen::VectorXf { return 2.0f * x; });
@@ -368,6 +370,11 @@ TEST_SUBMODULE(eigen_matrix, m) {
           [mat]() -> SparseMatrixC { return Eigen::SparseView<Eigen::MatrixXf>(mat); });
     m.def("sparse_copy_r", [](const SparseMatrixR &m) -> SparseMatrixR { return m; });
     m.def("sparse_copy_c", [](const SparseMatrixC &m) -> SparseMatrixC { return m; });
+    // test_sparse_vector (#2301)
+    m.def("sparse_vector_r", [mat]() -> SparseVectorR { return mat.row(2).sparseView(); });
+    m.def("sparse_vector_c", [mat]() -> SparseVectorC { return mat.col(1).sparseView(); });
+    m.def("sparse_vector_copy_r", [](const SparseVectorR &v) -> SparseVectorR { return v; });
+    m.def("sparse_vector_copy_c", [](const SparseVectorC &v) -> SparseVectorC { return v; });
     // test_partially_fixed
     m.def("partial_copy_four_rm_r", [](const FourRowMatrixR &m) -> FourRowMatrixR { return m; });
     m.def("partial_copy_four_rm_c", [](const FourColMatrixR &m) -> FourColMatrixR { return m; });
