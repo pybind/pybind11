@@ -273,7 +273,7 @@ def test_stride_not_multiple_of_scalar_from_python():
     )
     np.testing.assert_array_equal(m.diagonal(mat["a"]), [0.0, 4.0])
     with pytest.raises(TypeError):
-        m.add_rm(mat["a"], 0, 0, 100.0)
+        m.add_any(mat["a"], 0, 2, 100.0)
     np.testing.assert_array_equal(mat["a"], np.arange(6.0).reshape((2, 3)))
     np.testing.assert_array_equal(mat["b"], np.ones((2, 3), dtype="i1"))
 
