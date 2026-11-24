@@ -893,9 +893,10 @@ An instance can now be pickled as follows:
 
 
 .. note::
-    Classes that use ``py::pickle()`` support all pickle protocols. If you
-    bind ``__getstate__`` and ``__setstate__`` directly, the second argument
-    to ``dumps`` must be 2 or larger; protocols 0 and 1 are not supported.
+    Classes that use ``py::pickle()`` and ``py::enum_`` types support all
+    pickle protocols. If you bind ``__getstate__`` and ``__setstate__``
+    directly, the second argument to ``dumps`` must be 2 or larger; protocols
+    0 and 1 are not supported.
 
 .. seealso::
 

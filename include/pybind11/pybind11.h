@@ -1957,6 +1957,8 @@ Ret init(CFunc &&c, AFunc &&a) {
 
 /// Binds pickling functions `__getstate__` and `__setstate__` and ensures that the type
 /// returned by `__getstate__` is the same as the argument accepted by `__setstate__`.
+/// Also binds a `__reduce_ex__` that makes protocols 0 and 1 use the protocol 2 reduction,
+/// unless the class binds its own `__reduce_ex__`.
 template <typename GetState, typename SetState>
 detail::initimpl::pickle_factory<GetState, SetState> pickle(GetState &&g, SetState &&s) {
     return {std::forward<GetState>(g), std::forward<SetState>(s)};
@@ -2127,6 +2129,7 @@ public:
             is_method(*this),
             arg("state"),
             pos_only());
+        detail::add_pickle_reduce_ex(handle(this->ptr()));
     }
 
     template <typename Func, typename... Extra>

@@ -267,6 +267,40 @@ PYBIND11_INLINE void add_class_method(object &cls, const char *name_, const cpp_
     }
 }
 
+PYBIND11_INLINE void add_pickle_reduce_ex(handle cl) {
+    if (cl.attr("__dict__").contains("__reduce_ex__")) {
+        return;
+    }
+    // This is a plain function without a scope, so a later user `__reduce_ex__` replaces it
+    // and does not join its overload chain. `cl` is not owned, which prevents a reference cycle.
+    cpp_function func(
+        [cl](const object &self, int protocol) -> object {
+            // Call the next `__reduce_ex__` in the MRO after `cl`.
+            handle object_type(reinterpret_cast<PyObject *>(&PyBaseObject_Type));
+            handle next = object_type;
+            bool after_cl = false;
+            for (handle base : type::handle_of(self).attr("__mro__")) {
+                if (after_cl && base.attr("__dict__").contains("__reduce_ex__")) {
+                    next = base;
+                    break;
+                }
+                after_cl = after_cl || base.is(cl);
+            }
+            // Protocols 0 and 1 do not use `__new__` and `__setstate__` by default, so reduce
+            // as protocol 2. The result is valid for all protocols.
+            if (next.is(object_type) && protocol < 2) {
+                protocol = 2;
+            }
+            return next.attr("__reduce_ex__")(self, protocol);
+        },
+        name("__reduce_ex__"),
+        arg("self"),
+        arg("protocol"),
+        pos_only());
+    cl.attr("__reduce_ex__")
+        = reinterpret_steal<object>(PYBIND11_INSTANCE_METHOD_NEW(func.ptr(), cl.ptr()));
+}
+
 PYBIND11_INLINE str enum_name(handle arg) {
     dict entries = type::handle_of(arg).attr("__entries");
     for (auto kv : entries) {

@@ -100,10 +100,35 @@ def test_roundtrip_with_dict(cls_name):
     assert p2.dynamic == p.dynamic
 
 
-def test_enum_pickle():
+class ReduceExMixin:
+    def __reduce_ex__(self, protocol):
+        return (type(self), (f"mixin:{protocol}",))
+
+
+class PyDerivedWithMixin(m.PickleableNew, ReduceExMixin):
+    pass
+
+
+@pytest.mark.parametrize("protocol", all_pickle_protocols())
+@pytest.mark.parametrize(
+    "cls_name", ["ReduceExDerived", "ReduceExAfter", "ReduceExBefore"]
+)
+def test_pickle_keeps_user_reduce_ex(cls_name, protocol):
+    p = getattr(m, cls_name)("x")
+    assert pickle.loads(pickle.dumps(p, protocol)).value == f"custom:{protocol}"
+
+
+@pytest.mark.parametrize("protocol", all_pickle_protocols())
+def test_pickle_keeps_mixin_reduce_ex(protocol):
+    p = PyDerivedWithMixin("x")
+    assert pickle.loads(pickle.dumps(p, protocol)).value() == f"mixin:{protocol}"
+
+
+@pytest.mark.parametrize("protocol", all_pickle_protocols())
+def test_enum_pickle(protocol):
     from pybind11_tests import enums as e
 
-    data = pickle.dumps(e.EOne, 2)
+    data = pickle.dumps(e.EOne, protocol)
     assert e.EOne == pickle.loads(data)
 
 
@@ -147,6 +172,13 @@ def test_new_style_pickle_getstate_pos_only():
     assert (
         re.match(
             r"^__getstate__\(self: [\w\.]+, /\)", m.PickleableNew.__getstate__.__doc__
+        )
+        is not None
+    )
+    assert (
+        re.match(
+            r"^__reduce_ex__\(self: object, protocol: [^,]+, /\)",
+            m.PickleableNew.__reduce_ex__.__doc__,
         )
         is not None
     )
