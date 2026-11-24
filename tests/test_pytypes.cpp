@@ -463,6 +463,25 @@ TEST_SUBMODULE(pytypes, m) {
         return d;
     });
 
+    // Issue #1309: integer keys
+#ifdef __SIZEOF_INT128__
+    __extension__ using wide_integer = unsigned __int128;
+    static_assert(!py::detail::is_integer_key<wide_integer>::value,
+                  "Wide integer keys would be truncated by py::int_");
+#endif
+    m.def("accessor_int_key", [](const py::object &o) {
+        py::dict d;
+        d[1] = "int";
+        d[0] = "zero";
+        d[-1] = "negative";
+        d[std::size_t{2}] = "size_t";
+        d["read"] = py::object(d[1]);
+        d["nested"] = py::object(o[1][2]);
+        d["via_accessor"] = py::object(o.attr("__getitem__")(1)[0]);
+        d["list_object_key"] = py::object(py::list(o)[py::int_(0)][1]);
+        return d;
+    });
+
     m.def("tuple_accessor", [](const py::tuple &existing_t) {
         try {
             existing_t[0] = 1;
