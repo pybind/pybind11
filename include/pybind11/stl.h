@@ -757,9 +757,12 @@ struct variant_caster<V<Ts...>> {
         return cast(*src, policy, parent);
     }
 
+    // Only called after a successful load(), so value is engaged.
+    // NOLINTBEGIN(bugprone-unchecked-optional-access)
     explicit operator Type *() { return &*value; }
     explicit operator Type &() { return *value; }
     explicit operator Type &&() && { return std::move(*value); }
+    // NOLINTEND(bugprone-unchecked-optional-access)
     template <typename T_>
     using cast_op_type = movable_cast_op_type<T_>;
 
