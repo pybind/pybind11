@@ -128,8 +128,10 @@ if(NOT DEFINED CMAKE_CROSSCOMPILING_EMULATOR)
     set(_pybind11_use_crosscompiling_default ON)
   endif()
 endif()
+
 option(PYBIND11_USE_CROSSCOMPILING "Respect CMAKE_CROSSCOMPILING"
        ${_pybind11_use_crosscompiling_default})
+option(PYBIND11_BUILD_FUZZERS "Build the OSS-Fuzz harnesses" OFF)
 
 cmake_dependent_option(
   USE_PYTHON_INCLUDE_DIR

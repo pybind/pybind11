@@ -753,4 +753,8 @@ if(NOT PYBIND11_CUDA_TESTS)
 
   # Test visibility of common symbols across shared libraries
   add_subdirectory(test_cross_module_rtti)
+
+  # Optional OSS-Fuzz harness. The subdirectory is a no-op unless
+  # PYBIND11_BUILD_FUZZERS is ON.
+  add_subdirectory(fuzz)
 endif()
