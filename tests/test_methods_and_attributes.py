@@ -220,63 +220,6 @@ def test_properties_docstring():
     )
 
 
-TestProperties2GetDocstring = "(self: pybind11_tests.methods_and_attributes.TestProperties2) -> pybind11_tests.methods_and_attributes.TestProperties"
-TestProperties2SetDocstring = "(self: pybind11_tests.methods_and_attributes.TestProperties2, arg0: pybind11_tests.methods_and_attributes.TestProperties) -> None"
-
-
-def test_properties_2_docstring():
-    assert (
-        m.TestProperties2.def_readonly_value.fget.__doc__.strip()
-        == TestProperties2GetDocstring
-    )
-
-    assert (
-        m.TestProperties2.def_readwrite_value.fget.__doc__.strip()
-        == TestProperties2GetDocstring
-    )
-    assert (
-        m.TestProperties2.def_readwrite_value.fset.__doc__.strip()
-        == TestProperties2SetDocstring
-    )
-
-    assert (
-        m.TestProperties2.def_readonly_raw_ptr.fget.__doc__.strip()
-        == TestProperties2GetDocstring
-    )
-
-    assert (
-        m.TestProperties2.def_readwrite_raw_ptr.fget.__doc__.strip()
-        == TestProperties2GetDocstring
-    )
-    assert (
-        m.TestProperties2.def_readwrite_raw_ptr.fset.__doc__.strip()
-        == TestProperties2SetDocstring
-    )
-
-    assert (
-        m.TestProperties2.def_readwrite_unique_ptr.fget.__doc__.strip()
-        == TestProperties2GetDocstring
-    )
-    assert (
-        m.TestProperties2.def_readwrite_unique_ptr.fset.__doc__.strip()
-        == TestProperties2SetDocstring
-    )
-
-    assert (
-        m.TestProperties2.def_readonly_shared_ptr.fget.__doc__.strip()
-        == TestProperties2GetDocstring
-    )
-
-    assert (
-        m.TestProperties2.def_readwrite_shared_ptr.fget.__doc__.strip()
-        == TestProperties2GetDocstring
-    )
-    assert (
-        m.TestProperties2.def_readwrite_shared_ptr.fset.__doc__.strip()
-        == TestProperties2SetDocstring
-    )
-
-
 @pytest.mark.xfail(
     reason="The signature of a cpp_function without is_method is fixed at construction",
     strict=True,

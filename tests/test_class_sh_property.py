@@ -216,3 +216,62 @@ def test_non_smart_holder_member_type_with_smart_holder_owner_aliases_member_mul
 
     assert b.value == 13
     assert obj.legacy.value == 13
+
+ClassicFieldGetInt = "(self: m.class_sh_property.ClassicField) -> int"
+ClassicFieldSetInt = "(self: m.class_sh_property.ClassicField, arg0: typing.SupportsInt | typing.SupportsIndex) -> None"
+ClassicOuterGetField = "(self: m.class_sh_property.ClassicOuter) -> m.class_sh_property.ClassicField"
+ClassicOuterSetField = "(self: m.class_sh_property.ClassicOuter, arg0: m.class_sh_property.ClassicField) -> None"
+FieldGetInt = "(self: m.class_sh_property.Field) -> int"
+FieldSetInt = "(self: m.class_sh_property.Field, arg0: typing.SupportsInt | typing.SupportsIndex) -> None"
+OuterGetField = "(self: m.class_sh_property.Outer) -> m.class_sh_property.Field"
+OuterSetField = "(self: m.class_sh_property.Outer, arg0: m.class_sh_property.Field) -> None"
+
+def test_docstring(doc):
+    # Classic
+    assert doc(m.ClassicField.num.fget) == ClassicFieldGetInt
+    assert doc(m.ClassicField.num.fset) == ClassicFieldSetInt
+
+    assert doc(m.ClassicOuter.m_mptr_readonly.fget) == ClassicOuterGetField
+
+    assert doc(m.ClassicOuter.m_mptr_readwrite.fget) == ClassicOuterGetField
+    assert doc(m.ClassicOuter.m_mptr_readwrite.fset) == ClassicOuterSetField
+
+    assert doc(m.ClassicOuter.m_cptr_readonly.fget) == ClassicOuterGetField
+
+    assert doc(m.ClassicOuter.m_cptr_readwrite.fget) == ClassicOuterGetField
+    assert doc(m.ClassicOuter.m_cptr_readwrite.fset) == ClassicOuterSetField
+
+    # Smart holder
+    assert doc(m.Field.num.fget) == FieldGetInt
+    assert doc(m.Field.num.fset) == FieldSetInt
+
+    assert doc(m.Outer.m_valu_readonly.fget) == OuterGetField
+
+    assert doc(m.Outer.m_valu_readwrite.fget) == OuterGetField
+    assert doc(m.Outer.m_valu_readwrite.fset) == OuterSetField
+
+    assert doc(m.Outer.m_mptr_readonly.fget) == OuterGetField
+
+    assert doc(m.Outer.m_mptr_readwrite.fget) == OuterGetField
+    assert doc(m.Outer.m_mptr_readwrite.fset) == OuterSetField
+
+    assert doc(m.Outer.m_cptr_readonly.fget) == OuterGetField
+
+    assert doc(m.Outer.m_cptr_readwrite.fget) == OuterGetField
+    assert doc(m.Outer.m_cptr_readwrite.fset) == OuterSetField
+
+    assert doc(m.Outer.m_uqmp_readwrite.fget) == OuterGetField
+    assert doc(m.Outer.m_uqmp_readwrite.fset) == OuterSetField
+
+    assert doc(m.Outer.m_uqcp_readwrite.fget) == OuterGetField
+    assert doc(m.Outer.m_uqcp_readwrite.fset) == OuterSetField
+
+    assert doc(m.Outer.m_shmp_readonly.fget) == OuterGetField
+
+    assert doc(m.Outer.m_shmp_readwrite.fget) == OuterGetField
+    assert doc(m.Outer.m_shmp_readwrite.fset) == OuterSetField
+
+    assert doc(m.Outer.m_shcp_readonly.fget) == OuterGetField
+
+    assert doc(m.Outer.m_shcp_readwrite.fget) == OuterGetField
+    assert doc(m.Outer.m_shcp_readwrite.fset) == OuterSetField
