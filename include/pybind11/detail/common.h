@@ -847,8 +847,8 @@ struct instance {
 #endif
 
     /// Initializes all of the above type/values/holders data (but not the instance values
-    /// themselves)
-    void allocate_layout();
+    /// themselves). `tinfo` must be `all_type_info()` of this instance's type.
+    void allocate_layout(const std::vector<type_info *> &tinfo);
 
     /// Destroys/deallocates all of the above
     void deallocate_layout();
