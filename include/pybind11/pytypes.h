@@ -773,13 +773,17 @@ bool isinstance(handle obj) {
     return T::check_(obj);
 }
 
-template <typename T, detail::enable_if_t<!std::is_base_of<object, T>::value && !detail::is_handle<T>::value, int> = 0>
+template <typename T,
+          detail::enable_if_t<!std::is_base_of<object, T>::value && !detail::is_handle<T>::value,
+                              int> = 0>
 bool isinstance(handle obj) {
     return detail::isinstance_native_enum<T>(obj, typeid(T))
            || detail::isinstance_generic(obj, typeid(T));
 }
 
-template <typename T, detail::enable_if_t<!std::is_base_of<object, T>::value && detail::is_handle<T>::value, int> = 0>
+template <typename T,
+          detail::enable_if_t<!std::is_base_of<object, T>::value && detail::is_handle<T>::value,
+                              int> = 0>
 bool isinstance(handle) = delete;
 
 template <>
