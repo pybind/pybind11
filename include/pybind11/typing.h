@@ -56,6 +56,8 @@ public:
     Object(handle h, borrowed_t) : object(h, borrowed_t{}) {}
     Object(handle h, stolen_t) : object(h, stolen_t{}) {}
     static bool check_(handle h) noexcept { return h.ptr() != nullptr; }
+    template <typename Policy_> /* NOLINTNEXTLINE(google-explicit-constructor) */
+    Object(const ::pybind11::detail::accessor<Policy_> &a) : Object(object(a)) {}
 };
 
 template <typename K, typename V>
