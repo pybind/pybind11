@@ -41,7 +41,8 @@ PYBIND11_NAMESPACE_BEGIN(typing)
 
     The first template parameter is the C++ type and the second enables the casting type hint.
     `py::typing::Handle<float>` is type hinted as `float`.
-    `py::typing::Handle<float, true>` is type hinted as `typing.SupportsFloat | typing.SupportsIndex`.
+    `py::typing::Handle<float, true>` is type hinted as `typing.SupportsFloat |
+typing.SupportsIndex`.
 \endrst */
 template <typename T, bool Cast = false>
 class Handle : public handle {
@@ -57,7 +58,8 @@ public:
 
     The first template parameter is the C++ type and the second enables the casting type hint.
     `py::typing::Object<float>` is type hinted as `float`.
-    `py::typing::Object<float, true>` is type hinted as `typing.SupportsFloat | typing.SupportsIndex`.
+    `py::typing::Object<float, true>` is type hinted as `typing.SupportsFloat |
+typing.SupportsIndex`.
 \endrst */
 template <typename T, bool Cast = false>
 class Object : public object {
