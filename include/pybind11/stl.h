@@ -391,6 +391,10 @@ private:
 
     bool convert_elements(handle seq, bool convert) {
         auto s = reinterpret_borrow<sequence>(seq);
+        PYBIND11_WARNING_PUSH
+#if !defined(__clang__) && defined(__GNUC__) && __GNUC__ >= 13
+        PYBIND11_WARNING_DISABLE_GCC("-Wmaybe-uninitialized")
+#endif
         value.clear();
         value_casters.clear();
         reserve_maybe(s, &value);
@@ -402,6 +406,7 @@ private:
             }
             value.push_back(cast_op<Value &&>(std::move(conv)));
         }
+        PYBIND11_WARNING_POP
         return true;
     }
 
