@@ -175,6 +175,19 @@ def test_all_basic_tests_completeness():
     assert len(ALL_BASIC_TESTS) == num_found
 
 
+def test_release_disarm():
+    held = m.test_release_disarm()
+    if m.can_check_gil:
+        assert not held
+
+
+@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
+def test_acquire_disarm():
+    held = m.test_acquire_disarm()
+    if m.can_check_gil:
+        assert held
+
+
 # Defined after ALL_BASIC_TESTS on purpose: this test is a regression for the
 # `gil_scoped_release` + factory `py::init` path, not a deadlock check, so it should not
 # run in the subprocess batches (whose cases get at least a 10s execution allowance;
