@@ -179,10 +179,10 @@ class TypeVar : public object {
 
 PYBIND11_NAMESPACE_END(typing)
 
-template <typename T, bool Cast>
-bool isinstance<typing::Handle<T, Cast>>(handle) = delete;
-
 PYBIND11_NAMESPACE_BEGIN(detail)
+
+template <typename T, bool Cast>
+struct is_handle<typing::Handle<T, Cast>> : std::true_type {};
 
 template <typename T, bool Cast>
 struct handle_type_name<typing::Handle<T, Cast>> {
