@@ -187,13 +187,15 @@ struct is_handle<typing::Handle<T, Cast>> : std::true_type {};
 template <typename T, bool Cast>
 struct handle_type_name<typing::Handle<T, Cast>> {
     static constexpr auto name = ::pybind11::detail::const_name<Cast>(
-        make_caster<T>::name, ::pybind11::detail::return_descr(make_caster<T>::name));
+        ::pybind11::detail::arg_descr(make_caster<T>::name),
+        ::pybind11::detail::return_descr(make_caster<T>::name));
 };
 
 template <typename T, bool Cast>
 struct handle_type_name<typing::Object<T, Cast>> {
     static constexpr auto name = ::pybind11::detail::const_name<Cast>(
-        make_caster<T>::name, ::pybind11::detail::return_descr(make_caster<T>::name));
+        ::pybind11::detail::arg_descr(make_caster<T>::name),
+        ::pybind11::detail::return_descr(make_caster<T>::name));
 };
 
 template <typename... Types>
