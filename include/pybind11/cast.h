@@ -619,7 +619,18 @@ private:
             }
             value = StringType(bytearray, (size_t) PyByteArray_Size(src.ptr()));
             if (IsView) {
+#if !defined(PYPY_VERSION) && !defined(GRAALVM_PYTHON)
+                // A bytearray can be resized (reallocating its buffer) while the view is in
+                // use; hold a buffer export so that resizing raises BufferError instead.
+                auto export_ = reinterpret_steal<object>(PyMemoryView_FromObject(src.ptr()));
+                if (!export_) {
+                    PyErr_Clear();
+                    return false;
+                }
+                loader_life_support::try_add_patient(export_);
+#else
                 loader_life_support::try_add_patient(src);
+#endif
             }
             return true;
         }
