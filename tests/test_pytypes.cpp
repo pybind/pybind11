@@ -915,12 +915,24 @@ TEST_SUBMODULE(pytypes, m) {
         return a;
     });
 
-    m.def("annotate_handle",
-          [](py::typing::Handle<py::typing::List<int>>)
-              -> py::typing::Handle<py::typing::List<int>> { return py::handle(); });
-    m.def("annotate_object",
-          [](const py::typing::Object<py::typing::List<int>> &)
-              -> py::typing::Object<py::typing::List<int>> { return py::object(); });
+    m.def("annotate_handle_default",
+          [](py::typing::Handle<float> h)
+              -> py::typing::Handle<float> { return h.inc_ref(); });
+    m.def("annotate_handle_nocast",
+          [](py::typing::Handle<float, false> h)
+              -> py::typing::Handle<float, false> { return h.inc_ref(); });
+    m.def("annotate_handle_cast",
+          [](py::typing::Handle<float, true> h)
+              -> py::typing::Handle<float, true> { return h.inc_ref(); });
+    m.def("annotate_object_default",
+          [](const py::typing::Object<float> & obj)
+              -> py::typing::Object<float> { return obj; });
+    m.def("annotate_object_nocast",
+          [](const py::typing::Object<float, false> & obj)
+              -> py::typing::Object<float, false> { return obj; });
+    m.def("annotate_object_cast",
+          [](const py::typing::Object<float, true> & obj)
+              -> py::typing::Object<float, true> { return obj; });
     m.def("annotate_tuple_float_str", [](const py::typing::Tuple<py::float_, py::str> &) {});
     m.def("annotate_tuple_empty", [](const py::typing::Tuple<> &) {});
     m.def("annotate_tuple_variable_length",
