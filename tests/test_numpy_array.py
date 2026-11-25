@@ -877,9 +877,15 @@ def test_at_stride_not_multiple_of_itemsize():
     field = packed["a"]
     assert field.strides == (3,)
 
-    assert m.at_t(field, 1) == 20
     assert m.at_t(field, 2) == 30
     assert m.at_t(field, -1) == 30
 
     m.mutate_at_t(field, 2)
     assert packed["a"].tolist() == [10, 20, 31]
+
+    # Element 1 is at an odd address; a uint16_t reference to it would be misaligned
+    for func in (m.at_t, m.mutate_at_t):
+        with pytest.raises(ValueError, match="not aligned"):
+            func(field, 1)
+        with pytest.raises(ValueError, match="not aligned"):
+            func(field, -2)
