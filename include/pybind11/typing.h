@@ -36,6 +36,13 @@ PYBIND11_NAMESPACE_BEGIN(typing)
 
 // Tuple type hint defined in cast.h for use in py::make_tuple to avoid circular includes
 
+/** \rst
+    A type hinted `handle` class. This is interchangeable with `py::handle`.
+
+    The first template parameter is the C++ type and the second enables the casting type hint.
+    `py::typing::Handle<float>` is type hinted as `float`.
+    `py::typing::Handle<float, true>` is type hinted as `typing.SupportsFloat | typing.SupportsIndex`.
+\endrst */
 template <typename T, bool Cast = false>
 class Handle : public handle {
 public:
@@ -45,6 +52,13 @@ public:
     Handle(const handle &h) : handle(h) {}
 };
 
+/** \rst
+    A type hinted `object` class. This is interchangeable with `py::object`.
+
+    The first template parameter is the C++ type and the second enables the casting type hint.
+    `py::typing::Object<float>` is type hinted as `float`.
+    `py::typing::Object<float, true>` is type hinted as `typing.SupportsFloat | typing.SupportsIndex`.
+\endrst */
 template <typename T, bool Cast = false>
 class Object : public object {
 public:
