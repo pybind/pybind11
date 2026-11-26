@@ -9,6 +9,7 @@ PYBIND11_WARNING_DISABLE_MSVC(4996)
 
 #    include "catch_skip.h"
 
+#    include <atomic>
 #    include <catch.hpp>
 #    include <cstdlib>
 #    include <fstream>
@@ -240,6 +241,49 @@ TEST_CASE("Single Subinterpreter") {
     REQUIRE(py::hasattr(py::module_::import("__main__"), "main_tag"));
     REQUIRE(py::hasattr(py::module_::import("widget_module"), "extension_module_tag"));
     REQUIRE(has_state_dict_internals_obj());
+
+    unsafe_reset_internals_for_single_interpreter();
+}
+
+PYBIND11_CONSTINIT static py::gil_safe_call_once_and_store<int> concurrent_get_stored_storage;
+
+// After a subinterpreter existed, `get_stored()` uses the slow path. Threads of one interpreter
+// must not write to the shared per-interpreter storage there (data race under free-threading,
+// reported by ThreadSanitizer).
+TEST_CASE("gil_safe_call_once_and_store concurrent get_stored after subinterpreter") {
+    unsafe_reset_internals_for_single_interpreter();
+
+    concurrent_get_stored_storage.call_once_and_store_result([]() { return 42; });
+
+    {
+        py::scoped_subinterpreter ssi;
+    }
+    REQUIRE(py::detail::has_seen_non_main_interpreter());
+
+    std::atomic<bool> start{false};
+    std::atomic<int> mismatches{0};
+    {
+        py::gil_scoped_release nogil;
+        std::vector<std::thread> threads;
+        for (int i = 0; i < 4; ++i) {
+            threads.emplace_back([&]() {
+                while (!start) {
+                    std::this_thread::yield();
+                }
+                py::gil_scoped_acquire gil;
+                for (int j = 0; j < 1000; ++j) {
+                    if (concurrent_get_stored_storage.get_stored() != 42) {
+                        ++mismatches;
+                    }
+                }
+            });
+        }
+        start = true;
+        for (auto &t : threads) {
+            t.join();
+        }
+    }
+    REQUIRE(mismatches == 0);
 
     unsafe_reset_internals_for_single_interpreter();
 }

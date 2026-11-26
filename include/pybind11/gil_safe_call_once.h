@@ -143,9 +143,16 @@ struct call_once_storage {
     std::once_flag once_flag;
     void (*finalize)(T &) = nullptr;
     std::atomic_bool is_initialized{false};
+    // Cache of the helper that points into `storage`, if any. The helper outlives this storage.
+    std::atomic<T *> *cache = nullptr;
 
     call_once_storage() = default;
     ~call_once_storage() {
+        if (cache != nullptr) {
+            // Clear the cache only if it still points to this storage.
+            T *expected = reinterpret_cast<T *>(storage);
+            cache->compare_exchange_strong(expected, nullptr);
+        }
         if (is_initialized) {
             if (finalize != nullptr) {
                 finalize(*reinterpret_cast<T *>(storage));
@@ -165,8 +172,11 @@ PYBIND11_NAMESPACE_END(detail)
 // Prefix for storage keys in the interpreter state dict.
 #    define PYBIND11_CALL_ONCE_STORAGE_KEY_PREFIX PYBIND11_INTERNALS_ID "_call_once_storage__"
 
-// The life span of the stored result is the entire interpreter lifetime. An additional
-// `finalize_fn` can be provided to clean up the stored result when the interpreter is destroyed.
+// The helper must have static storage duration and outlive every interpreter that uses it:
+// the interpreter writes to the helper during finalization. Do not unload the shared library
+// that contains the helper before that.
+// The stored result lives as long as its interpreter. An optional `finalize_fn` can clean up
+// the result when that interpreter is destroyed.
 template <typename T>
 class gil_safe_call_once_and_store {
 public:
@@ -174,7 +184,7 @@ public:
     template <typename Callable>
     gil_safe_call_once_and_store &call_once_and_store_result(Callable &&fn,
                                                              void (*finalize_fn)(T &) = nullptr) {
-        if (!is_last_storage_valid()) {
+        if (get_cached_storage() == nullptr) {
             // Multiple threads may enter here, because the GIL is released in the next line and
             // CPython API calls in the `fn()` call below may release and reacquire the GIL.
             gil_scoped_release gil_rel; // Needed to establish lock ordering.
@@ -193,12 +203,12 @@ public:
                 ::new (value->storage) T(fn());
                 value->finalize = finalize_fn;
                 value->is_initialized = true;
-                // Publish the cached pointer before setting the validity flag, so that any reader
-                // which observes the flag as true is guaranteed to also observe this pointer.
-                last_storage_ptr_ = reinterpret_cast<T *>(value->storage);
-                is_initialized_by_at_least_one_interpreter_ = true;
+                if (can_publish_cache()) {
+                    // Let the storage clear the cache when the interpreter destroys it.
+                    value->cache = &last_storage_ptr_;
+                    last_storage_ptr_ = reinterpret_cast<T *>(value->storage);
+                }
             });
-            // All threads will observe `is_initialized_by_at_least_one_interpreter_` as true here.
         }
         // Intentionally not returning `T &` to ensure the calling code is self-documenting.
         return *this;
@@ -206,20 +216,16 @@ public:
 
     // This must only be called after `call_once_and_store_result()` was called.
     T &get_stored() {
-        T *result = nullptr;
-        // Check the validity flag *before* loading the cached pointer: the writer publishes the
-        // pointer before setting the flag, so observing the flag as true guarantees the load below
-        // sees the published pointer.
-        if (is_last_storage_valid()) {
-            result = last_storage_ptr_;
-        } else {
-            gil_scoped_acquire gil_acq;
-            auto *value = get_or_create_storage_in_state_dict();
-            result = reinterpret_cast<T *>(value->storage);
-            last_storage_ptr_ = result;
+        if (auto *cached = get_cached_storage()) {
+            return *cached;
         }
-        assert(result != nullptr);
-        return *result;
+        gil_scoped_acquire gil_acq;
+        auto *value = get_or_create_storage_in_state_dict();
+        if (!value->is_initialized) {
+            pybind11_fail("gil_safe_call_once_and_store::get_stored(): no stored value in this "
+                          "interpreter");
+        }
+        return *reinterpret_cast<T *>(value->storage);
     }
 
     constexpr gil_safe_call_once_and_store() = default;
@@ -237,10 +243,21 @@ public:
 private:
     using storage_type = detail::call_once_storage<T>;
 
-    // Indicator of fast path for single-interpreter case.
-    bool is_last_storage_valid() const {
-        return is_initialized_by_at_least_one_interpreter_
-               && !detail::has_seen_non_main_interpreter();
+    // Only the main interpreter uses the cache. Do not publish during finalization: a callback
+    // can create storage after the interpreter destroyed the state dict entries, and nothing
+    // would then clear the cache before the next interpreter uses it.
+    static bool can_publish_cache() {
+#    if PY_VERSION_HEX >= 0x030D0000
+        const bool is_finalizing = Py_IsFinalizing() != 0;
+#    else
+        const bool is_finalizing = _Py_IsFinalizing() != 0;
+#    endif
+        return !is_finalizing && PyInterpreterState_Get() == PyInterpreterState_Main();
+    }
+
+    // The pointer belongs to the main interpreter. Other interpreters must not use it.
+    T *get_cached_storage() const {
+        return detail::has_seen_non_main_interpreter() ? nullptr : last_storage_ptr_.load();
     }
 
     // Get the unique key for this storage instance in the interpreter's state dict.
@@ -262,21 +279,9 @@ private:
             .first;
     }
 
-    // No storage needed when subinterpreter support is enabled.
-    // The actual storage is stored in the per-interpreter state dict via
-    // `get_or_create_storage_in_state_dict()`.
-
-    // Fast local cache to avoid repeated lookups when there are no multiple interpreters.
-    // This is only valid if there is a single interpreter. Otherwise, it is not used.
-    // It is atomic because under free-threading (`Py_GIL_DISABLED`) the GIL provides no mutual
-    // exclusion, so this pointer may be read and written concurrently by multiple threads.
-    // WARNING: We cannot use thread local cache similar to `internals_pp_manager::internals_p_tls`
-    //          because the thread local storage cannot be explicitly invalidated when interpreters
-    //          are destroyed (unlike `internals_pp_manager` which has explicit hooks for that).
+    // Fast cache for the single-interpreter case. A null pointer means the cache is empty.
+    // The teardown of other interpreters can access it concurrently.
     std::atomic<T *> last_storage_ptr_{nullptr};
-    // This flag is true if the value has been initialized by any interpreter (may not be the
-    // current one).
-    detail::atomic_bool is_initialized_by_at_least_one_interpreter_{false};
 };
 #endif
 
