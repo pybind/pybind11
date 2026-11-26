@@ -90,6 +90,14 @@ using is_integer_key = all_of<std::is_integral<T>,
                               bool_constant<(sizeof(T) <= sizeof(unsigned long long))>,
                               none_of<std::is_same<T, bool>, is_std_char_type<T>>>;
 
+#ifdef PYBIND11_HAS_STRING_VIEW
+template <typename T>
+using is_string_key = any_of<std::is_same<T, std::string>, std::is_same<T, std::string_view>>;
+#else
+template <typename T>
+using is_string_key = std::is_same<T, std::string>;
+#endif
+
 /** \rst
     A mixin class which adds common functions to `handle`, `object` and various accessors.
     The only requirement for `Derived` is to implement ``PyObject *Derived::ptr() const``.
@@ -124,6 +132,10 @@ public:
     /// Excludes bool and character types that cast to Python strings.
     template <typename T, enable_if_t<is_integer_key<T>::value, int> = 0>
     item_accessor operator[](T key) const;
+    /// See above (the key is a ``std::string`` or ``std::string_view``). A template, so that
+    /// types with an implicit conversion to these do not make the other overloads ambiguous.
+    template <typename T, enable_if_t<is_string_key<T>::value, int> = 0>
+    item_accessor operator[](const T &key) const;
 
     /** \rst
         Return an internal functor to access the object's attributes. Casting the
@@ -2607,6 +2619,11 @@ template <typename D>
 template <typename T, enable_if_t<is_integer_key<T>::value, int>>
 item_accessor object_api<D>::operator[](T key) const {
     return {derived(), pybind11::int_(key)};
+}
+template <typename D>
+template <typename T, enable_if_t<is_string_key<T>::value, int>>
+item_accessor object_api<D>::operator[](const T &key) const {
+    return {derived(), pybind11::str(key)};
 }
 template <typename D>
 obj_attr_accessor object_api<D>::attr(handle key) const {
