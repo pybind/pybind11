@@ -124,6 +124,10 @@ public:
     /// Excludes bool and character types that cast to Python strings.
     template <typename T, enable_if_t<is_integer_key<T>::value, int> = 0>
     item_accessor operator[](T key) const;
+    /// See above (the key is a ``std::string``). A template, so that types with an
+    /// implicit conversion to ``std::string`` do not make the other overloads ambiguous.
+    template <typename T, enable_if_t<std::is_same<T, std::string>::value, int> = 0>
+    item_accessor operator[](const T &key) const;
 
     /** \rst
         Return an internal functor to access the object's attributes. Casting the
@@ -2607,6 +2611,11 @@ template <typename D>
 template <typename T, enable_if_t<is_integer_key<T>::value, int>>
 item_accessor object_api<D>::operator[](T key) const {
     return {derived(), pybind11::int_(key)};
+}
+template <typename D>
+template <typename T, enable_if_t<std::is_same<T, std::string>::value, int>>
+item_accessor object_api<D>::operator[](const T &key) const {
+    return {derived(), pybind11::str(key)};
 }
 template <typename D>
 obj_attr_accessor object_api<D>::attr(handle key) const {

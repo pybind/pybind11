@@ -476,6 +476,14 @@ def test_accessors():
         "list_object_key": 2,
     }
 
+    assert m.accessor_string_key({"const": {"inner": 7}}) == {
+        "const": "lvalue",
+        "temp": "rvalue",
+        "nul\0key": "embedded",
+        "read": "lvalue",
+        "nested": 7,
+    }
+
     assert m.tuple_accessor(()) == (0, 1, 2)
 
     d = m.accessor_assignment()
