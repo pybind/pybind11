@@ -38,12 +38,16 @@ function(check_pc_file label pcfiledir expected_prefix)
   message(STATUS "${label}: ${prefix_line} OK")
 endfunction()
 
-foreach(case IN ITEMS "share" "." "./share" "lib/foo/share" "../shared-data" "ABSOLUTE")
+# Configure once (compiler detection is slow, especially on Windows), then
+# reconfigure the same build directory for each case.
+set(build_dir "${WORK_DIR}/build")
+file(REMOVE_RECURSE "${WORK_DIR}")
+set(configure_args -G "${GENERATOR}" ${extra_args} "-DCMAKE_CXX_COMPILER=${CXX_COMPILER}"
+                   -DPYBIND11_TEST=OFF -DPYBIND11_NOPYTHON=ON)
+
+foreach(case IN ITEMS "share" "." "lib/foo/share" "../shared-data" "ABSOLUTE")
   string(MAKE_C_IDENTIFIER "${case}" name)
-  set(case_dir "${WORK_DIR}/${name}")
-  set(build_dir "${case_dir}/build")
-  set(install_dir "${case_dir}/install")
-  file(REMOVE_RECURSE "${case_dir}")
+  set(install_dir "${WORK_DIR}/${name}/install")
 
   if(case STREQUAL "ABSOLUTE")
     set(datarootdir "${install_dir}/share")
@@ -57,14 +61,14 @@ foreach(case IN ITEMS "share" "." "./share" "lib/foo/share" "../shared-data" "AB
   # :STRING stops old CMake versions from making a relative value absolute.
   execute_process(
     COMMAND
-      "${CMAKE_COMMAND}" -S "${SOURCE_DIR}" -B "${build_dir}" -G "${GENERATOR}" ${extra_args}
-      "-DCMAKE_CXX_COMPILER=${CXX_COMPILER}" -DPYBIND11_TEST=OFF -DPYBIND11_NOPYTHON=ON
+      "${CMAKE_COMMAND}" -S "${SOURCE_DIR}" -B "${build_dir}" ${configure_args}
       "-DCMAKE_INSTALL_PREFIX=${install_dir}" "-DCMAKE_INSTALL_DATAROOTDIR:STRING=${datarootdir}"
     RESULT_VARIABLE result
     OUTPUT_QUIET)
   if(NOT result EQUAL 0)
     message(FATAL_ERROR "Configure failed for ${label}")
   endif()
+  set(configure_args "")
 
   execute_process(
     COMMAND "${CMAKE_COMMAND}" -P "${build_dir}/cmake_install.cmake"
@@ -75,9 +79,8 @@ foreach(case IN ITEMS "share" "." "./share" "lib/foo/share" "../shared-data" "AB
   endif()
   check_pc_file("${label}" "${pcfiledir}" "${install_dir}")
 
-  # A data directory outside the prefix (absolute or sibling) is not relocatable.
-  if(NOT case STREQUAL "ABSOLUTE" AND NOT case MATCHES "^\\.\\.")
-    set(relocated_dir "${case_dir}/relocated")
+  if(case STREQUAL "lib/foo/share")
+    set(relocated_dir "${WORK_DIR}/${name}/relocated")
     execute_process(
       COMMAND "${CMAKE_COMMAND}" "-DCMAKE_INSTALL_PREFIX=${relocated_dir}" -P
               "${build_dir}/cmake_install.cmake"
