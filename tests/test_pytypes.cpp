@@ -493,6 +493,18 @@ TEST_SUBMODULE(pytypes, m) {
         return d;
     });
 
+#ifdef PYBIND11_HAS_STRING_VIEW
+    m.def("accessor_string_view_key", [](const py::object &o) {
+        py::dict d;
+        const std::string_view key = "view";
+        d[key] = "lvalue";
+        d[std::string_view("nul\0key", 7)] = "embedded";
+        d["read"] = py::object(d[key]);
+        d["nested"] = py::object(o[key][std::string_view("inner")]);
+        return d;
+    });
+#endif
+
     m.def("tuple_accessor", [](const py::tuple &existing_t) {
         try {
             existing_t[0] = 1;
