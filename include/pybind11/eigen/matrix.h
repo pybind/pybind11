@@ -717,6 +717,15 @@ struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
 
         if (!type::handle_of(obj).is(matrix_type)) {
             try {
+                // A 1-D sparse array is one row or one column of a SparseVector
+                if (sparse_module.attr("issparse")(obj).template cast<bool>()
+                    && obj.attr("ndim").template cast<int>() == 1) {
+                    if (!isVector) {
+                        return false;
+                    }
+                    obj = obj.attr("reshape")(rowMajor ? pybind11::make_tuple(1, -1)
+                                                       : pybind11::make_tuple(-1, 1));
+                }
                 obj = matrix_type(obj);
             } catch (const error_already_set &) {
                 return false;

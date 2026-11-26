@@ -21,7 +21,9 @@ appropriate type, then call the function with this temporary variable.
 Sparse matrices are similarly copied to or from
 ``scipy.sparse.csr_matrix``/``scipy.sparse.csc_matrix`` objects. An
 ``Eigen::SparseVector`` maps to a one-column ``csc_matrix`` (or a one-row
-``csr_matrix`` if it is row-major).
+``csr_matrix`` if it is row-major). SciPy sparse arrays (``csr_array``,
+``csc_array``, ...) are accepted as arguments; a 1-D sparse array is accepted
+only for an ``Eigen::SparseVector``. Return values are always sparse matrices.
 
 Pass-by-reference
 =================
