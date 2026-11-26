@@ -193,9 +193,10 @@ inline void native_enum_data::finalize() {
     for (auto member : members) {
         object member_name = member[int_(0)];
         if (member_names.contains(member_name)) {
-            pybind11_fail("pybind11::native_enum<...>(\"" + enum_name_encoded + "\").value(\""
-                          + member_name.cast<std::string>()
-                          + "\"): an object with that name is already defined");
+            // TypeError matches what Python's Enum raises in release builds.
+            throw type_error("pybind11::native_enum<...>(\"" + enum_name_encoded + "\").value(\""
+                             + member_name.cast<std::string>()
+                             + "\"): an object with that name is already defined");
         }
         member_names.add(member_name);
     }
