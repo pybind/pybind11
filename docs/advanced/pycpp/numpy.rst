@@ -236,6 +236,44 @@ Types whose spelling contains a comma must be wrapped in ``PYBIND11_TYPE``:
 ``PYBIND11_NUMPY_DTYPE(PYBIND11_TYPE(C<int, double>), x, y)``.
 See :ref:`macro_notes`.
 
+Use ``PYBIND11_NUMPY_DTYPE_EX`` to give a field a different name in NumPy. It
+takes pairs of field and name:
+
+.. code-block:: cpp
+
+    PYBIND11_NUMPY_DTYPE_EX(A, x, "count", y, "value");
+
+These macros read the fields of the registered type, so the fields must be
+accessible. If the fields are in a different type with the same layout (for
+example, a public data struct that a class keeps as its only private member),
+use ``py::register_numpy_dtype`` with a list of field descriptors:
+
+.. code-block:: cpp
+
+    struct Data {
+        int64_t n_;
+        double v_;
+    };
+
+    class Wrapper {
+        Data data_;
+        // ...
+    };
+
+    static_assert(sizeof(Wrapper) == sizeof(Data), "layouts must match");
+    py::register_numpy_dtype<Wrapper>({
+        PYBIND11_FIELD_DESCRIPTOR_EX(Data, n_, "count"),
+        PYBIND11_FIELD_DESCRIPTOR(Data, v_),
+    });
+
+``PYBIND11_FIELD_DESCRIPTOR(Type, field)`` makes a
+``py::numpy_field_descriptor`` with the name of the field, and
+``PYBIND11_FIELD_DESCRIPTOR_EX(Type, field, "name")`` sets the name. pybind11
+does not check that the field offsets are correct for the registered type.
+
+.. versionadded:: 3.2
+   ``py::register_numpy_dtype`` and ``py::numpy_field_descriptor``.
+
 Scalar types
 ============
 
