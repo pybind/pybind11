@@ -558,6 +558,10 @@ struct type_info {
      * A type can be simple even if it has non-simple ancestors as long as it has no descendants.
      * This is written when a subclass is registered, so reads are not thread-safe. pybind11
      * no longer reads it; it stays up to date for modules built with pybind11 <= 3.1.
+     * The write is under the internals lock, but it rewrites the byte shared with the flags
+     * below. Unlocked reads of those flags are formally a data race with it; their values do
+     * not change after the type is published, so the reader always gets the correct bit.
+     * Separate storage needs a new PYBIND11_INTERNALS_VERSION.
      */
     bool simple_type : 1;
     /* True if there is no multiple inheritance in this type's inheritance tree */
@@ -967,13 +971,19 @@ using implicit_cast_t = std::pair<const std::type_info *, void *(*)(void *)>;
 // the cast functions and nested loads can take it again.
 // PR #6298 was verified by inspection. No targeted race test yet.
 inline bool get_implicit_cast(const type_info *tinfo, size_t index, implicit_cast_t &out) {
-    return with_internals([&](internals &) {
+    auto read = [&]() {
         if (index >= tinfo->implicit_casts.size()) {
             return false;
         }
         out = tinfo->implicit_casts[index];
         return true;
-    });
+    };
+#ifdef Py_GIL_DISABLED
+    return with_internals([&](internals &) { return read(); });
+#else
+    // No lock to take, so skip the internals lookup.
+    return read();
+#endif
 }
 
 template <typename F>

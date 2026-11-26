@@ -1352,8 +1352,11 @@ PYBIND11_INLINE void generic_type::initialize(const type_record &rec) {
         assert(parent_tinfo != nullptr);
         bool parent_simple_ancestors = parent_tinfo->simple_ancestors;
         tinfo->simple_ancestors = parent_simple_ancestors;
-        // The parent can no longer be a simple type if it has MI and has a child
-        parent_tinfo->simple_type = parent_tinfo->simple_type && parent_simple_ancestors;
+        // The parent can no longer be a simple type if it has MI and has a child.
+        // See mark_parents_nonsimple() for why this takes the internals lock.
+        if (!parent_simple_ancestors) {
+            with_internals([&](internals &) { parent_tinfo->simple_type = false; });
+        }
     }
 
     with_internals([&](internals &internals) {
@@ -1391,7 +1394,12 @@ PYBIND11_INLINE void generic_type::mark_parents_nonsimple(PyTypeObject *value) {
     for (handle h : get_bases(value)) {
         auto *tinfo2 = get_type_info(reinterpret_cast<PyTypeObject *>(h.ptr()));
         if (tinfo2) {
-            tinfo2->simple_type = false;
+            // A bit-field write rewrites the byte that holds all the type_info flags. On
+            // free-threaded builds, two threads that register subclasses of the same
+            // (already published) parent could interleave and lose this update. All writes
+            // to the flags of a published type_info hold the internals lock.
+            // PR #6298 was verified by inspection. No targeted race test yet.
+            with_internals([&](internals &) { tinfo2->simple_type = false; });
         }
         mark_parents_nonsimple(reinterpret_cast<PyTypeObject *>(h.ptr()));
     }

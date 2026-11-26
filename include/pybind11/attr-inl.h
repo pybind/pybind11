@@ -58,7 +58,9 @@ PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void type_record::add_base(const std::typ
 #endif
 
     if (caster) {
-        // See get_implicit_cast() for why this takes the internals lock.
+        // On free-threaded builds, this append can reallocate the vector while another
+        // thread reads it in get_implicit_cast(). Both sides hold the internals lock.
+        // PR #6298 was verified by inspection. No targeted race test yet.
         with_internals([&](internals &) { base_info->implicit_casts.emplace_back(type, caster); });
     }
 }
