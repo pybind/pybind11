@@ -41,26 +41,33 @@ endif()
 configure_file("${PYBIND11_FUZZER_INCLUDE_DIR}/fuzzer/FuzzedDataProvider.h"
                "${CMAKE_CURRENT_BINARY_DIR}/include/fuzzer/FuzzedDataProvider.h" COPYONLY)
 
-set(_pybind11_fuzz_sources pybind_fuzzer.cpp)
+# One fuzz target per *_fuzzer.cpp in this directory.
+set(_pybind11_fuzz_targets pybind_fuzzer interp_gil_fuzzer)
 # OSS-Fuzz exports LIB_FUZZING_ENGINE to the object that provides main().
 # Locally, link a small file-replay driver instead.
 if(DEFINED ENV{LIB_FUZZING_ENGINE} AND NOT "$ENV{LIB_FUZZING_ENGINE}" STREQUAL "")
   set(_pybind11_fuzz_engine "$ENV{LIB_FUZZING_ENGINE}")
 else()
-  list(APPEND _pybind11_fuzz_sources fuzz_replay.cpp)
   set(_pybind11_fuzz_engine "")
 endif()
 
-add_executable(pybind_fuzzer ${_pybind11_fuzz_sources})
-add_executable(test_fuzz_input test_fuzz_input.cpp)
-foreach(target pybind_fuzzer test_fuzz_input)
+foreach(target ${_pybind11_fuzz_targets})
+  set(_pybind11_fuzz_sources ${target}.cpp)
+  if(NOT _pybind11_fuzz_engine)
+    list(APPEND _pybind11_fuzz_sources fuzz_replay.cpp)
+  endif()
+  add_executable(${target} ${_pybind11_fuzz_sources})
   pybind11_enable_warnings(${target})
   target_include_directories(${target} SYSTEM PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/include")
+  target_link_libraries(${target} PRIVATE pybind11::embed)
+  if(_pybind11_fuzz_engine)
+    target_link_libraries(${target} PRIVATE ${_pybind11_fuzz_engine})
+  endif()
 endforeach()
-target_link_libraries(pybind_fuzzer PRIVATE pybind11::embed)
-if(_pybind11_fuzz_engine)
-  target_link_libraries(pybind_fuzzer PRIVATE ${_pybind11_fuzz_engine})
-endif()
+
+add_executable(test_fuzz_input test_fuzz_input.cpp)
+pybind11_enable_warnings(test_fuzz_input)
+target_include_directories(test_fuzz_input SYSTEM PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/include")
 
 file(GLOB _pybind11_fuzz_corpus CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/corpus/*")
 add_custom_target(
