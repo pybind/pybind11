@@ -69,7 +69,6 @@ add_executable(test_fuzz_input test_fuzz_input.cpp)
 pybind11_enable_warnings(test_fuzz_input)
 target_include_directories(test_fuzz_input SYSTEM PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/include")
 
-
 file(GLOB _pybind11_fuzz_corpus CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/corpus/*")
 add_custom_target(
   fuzz_replay

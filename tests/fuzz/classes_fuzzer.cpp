@@ -32,7 +32,10 @@
 //     dropped and gc.collect() runs every iteration so per-iteration leaks
 //     and dealloc-order problems surface immediately.
 
-#include <fuzzer/FuzzedDataProvider.h>
+#include "pybind11/pybind11.h"
+#include "pybind11/embed.h"
+#include "pybind11/native_enum.h"
+#include "pybind11/operators.h"
 
 #include <memory>
 #include <stdexcept>
@@ -40,10 +43,7 @@
 #include <utility>
 #include <vector>
 
-#include "pybind11/embed.h"
-#include "pybind11/native_enum.h"
-#include "pybind11/operators.h"
-#include "pybind11/pybind11.h"
+#include <fuzzer/FuzzedDataProvider.h>
 
 namespace py = pybind11;
 
@@ -114,7 +114,8 @@ PYBIND11_EMBEDDED_MODULE(fz, m) {
         .def_readwrite("value", &Widget::value)
         .def_property("label", &Widget::get_label, &Widget::set_label)
         .def(py::self + py::self)
-        .def("__repr__", [](const Widget &w) { return "<Widget " + std::to_string(w.value) + ">"; });
+        .def("__repr__",
+             [](const Widget &w) { return "<Widget " + std::to_string(w.value) + ">"; });
 
     py::class_<Base>(m, "Base").def(py::init<>()).def("who", &Base::who);
 
@@ -129,9 +130,9 @@ PYBIND11_EMBEDDED_MODULE(fz, m) {
         .def("set", &Box::set)
         .def("has", &Box::has);
 
-    py::class_<Gadget>(m, "Gadget")
-        .def(py::init<int>())
-        .def("id", [](const Gadget &g) { return g.id; });
+    py::class_<Gadget>(m, "Gadget").def(py::init<int>()).def("id", [](const Gadget &g) {
+        return g.id;
+    });
 
     m.def("make_gadget", &make_gadget);
     m.def("gadget_id_copy", &gadget_id_copy);
@@ -169,13 +170,11 @@ struct FuzzEnv {
     py::object gadget_copy_fn;
     py::object Color_cls;
 
-    FuzzEnv() : guard{}, fz(py::module_::import("fz")),
-                gc_mod(py::module_::import("gc")),
-                Widget_cls(fz.attr("Widget")), Derived_cls(fz.attr("Derived")),
-                Box_cls(fz.attr("Box")), Gadget_cls(fz.attr("Gadget")),
-                make_gadget_fn(fz.attr("make_gadget")),
-                gadget_copy_fn(fz.attr("gadget_id_copy")),
-                Color_cls(fz.attr("Color")) {
+    FuzzEnv()
+        : guard{}, fz(py::module_::import("fz")), gc_mod(py::module_::import("gc")),
+          Widget_cls(fz.attr("Widget")), Derived_cls(fz.attr("Derived")), Box_cls(fz.attr("Box")),
+          Gadget_cls(fz.attr("Gadget")), make_gadget_fn(fz.attr("make_gadget")),
+          gadget_copy_fn(fz.attr("gadget_id_copy")), Color_cls(fz.attr("Color")) {
         warm_up();
     }
 
@@ -185,52 +184,52 @@ struct FuzzEnv {
     }
 
     void warm_up() {
-    // Exercise every op once with fixed arguments so first-time caches
-    // (type method caches, attribute lookups, enum construction) are filled
-    // outside traced executions.
-    py::object w = Widget_cls(1, std::string("warm"));
-    (void) w.attr("add")(1).cast<int>();
-    (void) w.attr("name")();
-    (void) py::repr(w);
-    (void) py::str(w);
-    (void) py::hash(w);
-    (void) py::bool_(w);
-    w.attr("value") = 2;
-    (void) w.attr("value").cast<int>();
-    w.attr("label") = std::string("warm2");
-    (void) w.attr("label").cast<std::string>();
-    w.attr("probe") = 3;
-    (void) w.attr("probe").cast<int>();
-    (void) w.cast<std::shared_ptr<Widget>>();
-    py::object box = Box_cls(w);
-    (void) box.attr("has")();
-    (void) box.attr("get")();
-    (void) box.attr("get")().attr("add")(1);
-    box.attr("set")(py::none());
-    py::object g = make_gadget_fn(7);
-    (void) gadget_copy_fn(g);
-    try {
-        (void) box.attr("add")(1);
-    } catch (const py::error_already_set &) {
-    }
-    try {
-        (void) w.attr("fail")();
-    } catch (const py::error_already_set &e) {
-        (void) e.what();
-    }
-    py::object val = Color_cls.attr("Red");
-    w.attr("set_color")(val);
-    (void) w.attr("color_name")();
-    (void) w.attr("get_color")().attr("name");
-    (void) val.attr("value").cast<int>();
-    py::object d = Derived_cls();
-    (void) py::isinstance<Derived>(d);
-    (void) py::isinstance<Base>(d);
-    (void) d.attr("only_derived")().cast<int>();
-    // NOTE: no shared_ptr casts here -- Derived is registered with the
-    // default (unique_ptr) holder, so loading shared_ptr<Derived/Base> from
-    // its instances throws cast_error (rejected-run r4 failure).
-    (void) gc_mod.attr("collect")();
+        // Exercise every op once with fixed arguments so first-time caches
+        // (type method caches, attribute lookups, enum construction) are filled
+        // outside traced executions.
+        py::object w = Widget_cls(1, std::string("warm"));
+        (void) w.attr("add")(1).cast<int>();
+        (void) w.attr("name")();
+        (void) py::repr(w);
+        (void) py::str(w);
+        (void) py::hash(w);
+        (void) py::bool_(w);
+        w.attr("value") = 2;
+        (void) w.attr("value").cast<int>();
+        w.attr("label") = std::string("warm2");
+        (void) w.attr("label").cast<std::string>();
+        w.attr("probe") = 3;
+        (void) w.attr("probe").cast<int>();
+        (void) w.cast<std::shared_ptr<Widget>>();
+        py::object box = Box_cls(w);
+        (void) box.attr("has")();
+        (void) box.attr("get")();
+        (void) box.attr("get")().attr("add")(1);
+        box.attr("set")(py::none());
+        py::object g = make_gadget_fn(7);
+        (void) gadget_copy_fn(g);
+        try {
+            (void) box.attr("add")(1);
+        } catch (const py::error_already_set &) {
+        }
+        try {
+            (void) w.attr("fail")();
+        } catch (const py::error_already_set &e) {
+            (void) e.what();
+        }
+        py::object val = Color_cls.attr("Red");
+        w.attr("set_color")(val);
+        (void) w.attr("color_name")();
+        (void) w.attr("get_color")().attr("name");
+        (void) val.attr("value").cast<int>();
+        py::object d = Derived_cls();
+        (void) py::isinstance<Derived>(d);
+        (void) py::isinstance<Base>(d);
+        (void) d.attr("only_derived")().cast<int>();
+        // NOTE: no shared_ptr casts here -- Derived is registered with the
+        // default (unique_ptr) holder, so loading shared_ptr<Derived/Base> from
+        // its instances throws cast_error (rejected-run r4 failure).
+        (void) gc_mod.attr("collect")();
     }
 };
 
@@ -238,7 +237,6 @@ extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv) {
     FuzzEnv::get();
     return 0;
 }
-
 
 // Bounded operation ids. Kept small enough for ConsumeIntegralInRange<uint8_t>.
 enum Op : uint8_t {
@@ -258,7 +256,7 @@ enum Op : uint8_t {
     kEnumOps,
     kIsinstanceDowncast,
     kDeleteAndGc,
-    kMaxOp  // sentinel
+    kMaxOp // sentinel
 };
 
 inline uint8_t next_op(FuzzedDataProvider &fdp) {
@@ -269,11 +267,9 @@ inline int next_int(FuzzedDataProvider &fdp) {
     return fdp.ConsumeIntegralInRange<int>(-1000, 1000000);
 }
 
-inline std::string next_str(FuzzedDataProvider &fdp) {
-    return fdp.ConsumeRandomLengthString(48);
-}
+inline std::string next_str(FuzzedDataProvider &fdp) { return fdp.ConsumeRandomLengthString(48); }
 
-}  // namespace pybind11_fuzz
+} // namespace pybind11_fuzz
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     using namespace pybind11_fuzz;
@@ -298,146 +294,147 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
             const uint8_t op = next_op(fdp);
             try {
                 switch (op) {
-                case kWidgetCtor: {
-                    int v = next_int(fdp);
-                    std::string s = next_str(fdp);
-                    keep(FuzzEnv::get().Widget_cls(v, s));
-                    break;
-                }
-                case kWidgetFloatCtor: {
-                    float f = static_cast<float>(next_int(fdp)) / 7.0f;
-                    keep(FuzzEnv::get().Widget_cls(f));
-                    break;
-                }
-                case kMethodInt: {
-                    if (!live.empty()) {
-                        int d = next_int(fdp);
-                        (void) last().attr("add")(d).cast<int>();
-                    }
-                    break;
-                }
-                case kMethodStr: {
-                    if (!live.empty()) {
+                    case kWidgetCtor: {
+                        int v = next_int(fdp);
                         std::string s = next_str(fdp);
-                        (void) last().attr("name")();
-                        (void) last().attr(s.c_str());  // attacker-style attr lookup
+                        keep(FuzzEnv::get().Widget_cls(v, s));
+                        break;
                     }
-                    break;
-                }
+                    case kWidgetFloatCtor: {
+                        float f = static_cast<float>(next_int(fdp)) / 7.0f;
+                        keep(FuzzEnv::get().Widget_cls(f));
+                        break;
+                    }
+                    case kMethodInt: {
+                        if (!live.empty()) {
+                            int d = next_int(fdp);
+                            (void) last().attr("add")(d).cast<int>();
+                        }
+                        break;
+                    }
+                    case kMethodStr: {
+                        if (!live.empty()) {
+                            std::string s = next_str(fdp);
+                            (void) last().attr("name")();
+                            (void) last().attr(s.c_str()); // attacker-style attr lookup
+                        }
+                        break;
+                    }
 
-                case kPropertyRoundtrip: {
-                    if (!live.empty()) {
+                    case kPropertyRoundtrip: {
+                        if (!live.empty()) {
+                            int v = next_int(fdp);
+                            last().attr("value") = v;
+                            (void) last().attr("value").cast<int>();
+                            std::string s = next_str(fdp);
+                            last().attr("label") = s;
+                            (void) last().attr("label").cast<std::string>();
+                        }
+                        break;
+                    }
+                    case kDynamicAttr: {
+                        if (!live.empty()) {
+                            std::string s = next_str(fdp);
+                            int v = next_int(fdp);
+                            last().attr(s.c_str()) = v;
+                            (void) last().attr(s.c_str()).cast<int>();
+                        }
+                        break;
+                    }
+                    case kReprStrHash: {
+                        if (!live.empty()) {
+                            (void) py::repr(last());
+                            (void) py::str(last());
+                            (void) py::hash(last());
+                            (void) py::bool_(last());
+                        }
+                        break;
+                    }
+                    case kCastBackSharedPtr: {
+                        if (!live.empty()) {
+                            (void) py::isinstance<Widget>(last());
+                            (void) last().cast<std::shared_ptr<Widget>>();
+                        }
+                        break;
+                    }
+                    case kBoxOps: {
+                        if (!live.empty()) {
+                            py::object box = FuzzEnv::get().Box_cls(last());
+                            (void) box.attr("has")();
+                            (void) box.attr("get")();
+                            (void) box.attr("get")().attr("add")(next_int(fdp));
+                            box.attr("set")(py::none());
+                            keep(std::move(box));
+                        }
+                        break;
+                    }
+                    case kGadgetFactory: {
                         int v = next_int(fdp);
-                        last().attr("value") = v;
-                        (void) last().attr("value").cast<int>();
-                        std::string s = next_str(fdp);
-                        last().attr("label") = s;
-                        (void) last().attr("label").cast<std::string>();
+                        keep(FuzzEnv::get().make_gadget_fn(v));
+                        break;
                     }
-                    break;
-                }
-                case kDynamicAttr: {
-                    if (!live.empty()) {
-                        std::string s = next_str(fdp);
-                        int v = next_int(fdp);
-                        last().attr(s.c_str()) = v;
-                        (void) last().attr(s.c_str()).cast<int>();
+                    case kGadgetCopyArg: {
+                        if (!live.empty()) {
+                            (void) FuzzEnv::get().gadget_copy_fn(last());
+                        }
+                        break;
                     }
-                    break;
-                }
-                case kReprStrHash: {
-                    if (!live.empty()) {
-                        (void) py::repr(last());
-                        (void) py::str(last());
-                        (void) py::hash(last());
-                        (void) py::bool_(last());
-                    }
-                    break;
-                }
-                case kCastBackSharedPtr: {
-                    if (!live.empty()) {
-                        (void) py::isinstance<Widget>(last());
-                        (void) last().cast<std::shared_ptr<Widget>>();
-                    }
-                    break;
-                }
-                case kBoxOps: {
-                    if (!live.empty()) {
-                        py::object box = FuzzEnv::get().Box_cls(last());
-                        (void) box.attr("has")();
-                        (void) box.attr("get")();
-                        (void) box.attr("get")().attr("add")(next_int(fdp));
-                        box.attr("set")(py::none());
-                        keep(std::move(box));
-                    }
-                    break;
-                }
-                case kGadgetFactory: {
-                    int v = next_int(fdp);
-                    keep(FuzzEnv::get().make_gadget_fn(v));
-                    break;
-                }
-                case kGadgetCopyArg: {
-                    if (!live.empty()) {
-                        (void) FuzzEnv::get().gadget_copy_fn(last());
-                    }
-                    break;
-                }
-                case kWrongTypeCall: {
-                    // Dispatch/type-error paths: call methods on a mismatched type.
-                    py::object box = FuzzEnv::get().Box_cls(py::none());
-                    (void) box.attr("get")();  // None held -> get() returns null ptr
-                    try {
-                        (void) box.attr("add")(1);
-                    } catch (const py::error_already_set &) {
-                    }
-                    keep(std::move(box));
-                    break;
-                }
-                case kRaiseAndCatch: {
-                    if (!live.empty()) {
+                    case kWrongTypeCall: {
+                        // Dispatch/type-error paths: call methods on a mismatched type.
+                        py::object box = FuzzEnv::get().Box_cls(py::none());
+                        (void) box.attr("get")(); // None held -> get() returns null ptr
                         try {
-                            (void) last().attr("fail")();
-                        } catch (const py::error_already_set &e) {
-                            (void) e.what();  // exercises error_fetch_and_normalize
+                            (void) box.attr("add")(1);
+                        } catch (const py::error_already_set &) {
                         }
+                        keep(std::move(box));
+                        break;
                     }
-                    break;
-                }
+                    case kRaiseAndCatch: {
+                        if (!live.empty()) {
+                            try {
+                                (void) last().attr("fail")();
+                            } catch (const py::error_already_set &e) {
+                                (void) e.what(); // exercises error_fetch_and_normalize
+                            }
+                        }
+                        break;
+                    }
 
-                case kEnumOps: {
-                    int which = next_op(fdp) % 3;
-                    py::object val = FuzzEnv::get().Color_cls.attr(
-                        which == 0 ? "Red" : which == 1 ? "Green" : "Blue");
-                    if (!live.empty() && py::isinstance<Widget>(last())) {
-                        last().attr("set_color")(val);
-                        (void) last().attr("color_name")();
-                        (void) last().attr("get_color")().attr("name");
-                    }
-                    (void) val.attr("value").cast<int>();
-                    break;
-                }
-                case kIsinstanceDowncast: {
-                    keep(FuzzEnv::get().Derived_cls());
-                    if (!live.empty()) {
-                        (void) py::isinstance<Derived>(last());
-                        (void) py::isinstance<Base>(last());
-                        if (py::isinstance<Derived>(last())) {
-                            (void) last().attr("only_derived")().cast<int>();
-                            (void) last().attr("who")();
+                    case kEnumOps: {
+                        int which = next_op(fdp) % 3;
+                        py::object val = FuzzEnv::get().Color_cls.attr(which == 0   ? "Red"
+                                                                       : which == 1 ? "Green"
+                                                                                    : "Blue");
+                        if (!live.empty() && py::isinstance<Widget>(last())) {
+                            last().attr("set_color")(val);
+                            (void) last().attr("color_name")();
+                            (void) last().attr("get_color")().attr("name");
                         }
+                        (void) val.attr("value").cast<int>();
+                        break;
                     }
-                    break;
-                }
-                case kDeleteAndGc: {
-                    if (!live.empty()) {
-                        live.pop_back();
+                    case kIsinstanceDowncast: {
+                        keep(FuzzEnv::get().Derived_cls());
+                        if (!live.empty()) {
+                            (void) py::isinstance<Derived>(last());
+                            (void) py::isinstance<Base>(last());
+                            if (py::isinstance<Derived>(last())) {
+                                (void) last().attr("only_derived")().cast<int>();
+                                (void) last().attr("who")();
+                            }
+                        }
+                        break;
                     }
-                    (void) FuzzEnv::get().gc_mod.attr("collect")();
-                    break;
-                }
-                default:
-                    break;
+                    case kDeleteAndGc: {
+                        if (!live.empty()) {
+                            live.pop_back();
+                        }
+                        (void) FuzzEnv::get().gc_mod.attr("collect")();
+                        break;
+                    }
+                    default:
+                        break;
                 }
             } catch (const py::error_already_set &) {
                 // Expected control flow: attacker-influenced arguments routinely
