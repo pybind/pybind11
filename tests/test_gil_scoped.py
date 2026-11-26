@@ -238,7 +238,15 @@ def _last_traceback_dump(traceback_path):
     return f"\nChild tracebacks:\n{sep}{last}" if sep else ""
 
 
-def _run_in_process(target, *args, timeout=10, get_progress=None, **kwargs):
+# On free-threaded CPython, a blocking acquire of a held lock yields the CPU up
+# to 40 times before it parks. On Windows each yield can cost a scheduler
+# quantum when other processes use the CPU, so Thread.start() can take seconds.
+DEFAULT_TIMEOUT = 60 if env.WIN and env.PY_GIL_DISABLED else 10
+
+
+def _run_in_process(
+    target, *args, timeout=DEFAULT_TIMEOUT, get_progress=None, **kwargs
+):
     if env.ANDROID or env.IOS or sys.platform.startswith("emscripten"):
         pytest.skip("Requires subprocess support")
 
