@@ -25,6 +25,12 @@
 // (one byte each, first op = last byte); strings from the FRONT
 // (ConsumeRandomLengthString(64)).
 
+#include "pybind11/pybind11.h"
+#include "pybind11/embed.h"
+#include "pybind11/eval.h"
+#include "pybind11/gil.h"
+#include "pybind11/iostream.h"
+
 #include <cstdio>
 #include <fstream>
 #include <sstream>
@@ -32,12 +38,6 @@
 #include <utility>
 
 #include <fuzzer/FuzzedDataProvider.h>
-
-#include "pybind11/embed.h"
-#include "pybind11/eval.h"
-#include "pybind11/gil.h"
-#include "pybind11/iostream.h"
-#include "pybind11/pybind11.h"
 
 namespace py = pybind11;
 
@@ -52,7 +52,7 @@ enum Op : uint8_t {
     kOstreamRedirect,
     kGilReleaseAcquire,
     kGlobalsManipulate,
-    kMaxOp  // sentinel
+    kMaxOp // sentinel
 };
 
 inline uint8_t next_op(FuzzedDataProvider &fdp) {
@@ -63,13 +63,10 @@ inline int next_int(FuzzedDataProvider &fdp) {
     return fdp.ConsumeIntegralInRange<int>(-1000, 1000);
 }
 
-inline std::string next_str(FuzzedDataProvider &fdp) {
-    return fdp.ConsumeRandomLengthString(64);
-}
+inline std::string next_str(FuzzedDataProvider &fdp) { return fdp.ConsumeRandomLengthString(64); }
 inline std::string eval_file_dir() { return "/tmp"; }
 
-}  // namespace pybind11_fuzz
-
+} // namespace pybind11_fuzz
 
 // Interpreter fixture and static handles. Member order guarantees py::object
 // handles are released before the interpreter finalizes (see header comment).
@@ -144,7 +141,6 @@ extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv) {
     return 0;
 }
 
-
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     using namespace pybind11_fuzz;
 
@@ -158,89 +154,91 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
             const uint8_t op = next_op(fdp);
             try {
                 switch (op) {
-                case kEvalExpr: {
-                    std::string code = next_str(fdp);
-                    py::object glo = py::globals();
-                    py::object lo = py::dict();
-                    (void) py::eval<py::eval_expr>(py::str(code), glo, lo);
-                    break;
-                }
-                case kEvalStatements: {
-                    std::string code = next_str(fdp);
-                    py::object glo = py::globals();
-                    py::object lo = py::dict();
-                    (void) py::eval<py::eval_statements>(py::str(code), glo, lo);
-                    break;
-                }
-                case kEvalSingleStatement: {
-                    std::string code = next_str(fdp);
-                    py::object glo = py::globals();
-                    py::object lo = py::dict();
-                    (void) py::eval<py::eval_single_statement>(py::str(code), glo, lo);
-                    break;
-                }
-                case kExecLocals: {
-                    std::string code = next_str(fdp);
-                    py::dict locs;
-                    locs[py::str("fzv")] = next_int(fdp);
-                    locs[py::str("fzs")] = py::str(next_str(fdp));
-                    (void) py::exec(py::str(code), py::globals(), locs);
-                    break;
-                }
-                case kEvalFile: {
-                    std::string code = next_str(fdp);
-                    if (code.size() > 256) {
-                        code.resize(256);
-                    }
-                    std::string path = pybind11_fuzz::eval_file_dir() + "/pzf_fuzz.py";
-                    {
-                        std::ofstream f(path, std::ios::binary | std::ios::trunc);
-                        f << code;
-                    }
-                    try {
+                    case kEvalExpr: {
+                        std::string code = next_str(fdp);
                         py::object glo = py::globals();
                         py::object lo = py::dict();
-                        (void) py::eval_file(path, glo, lo);
-                    } catch (const py::error_already_set &) {
+                        (void) py::eval<py::eval_expr>(py::str(code), glo, lo);
+                        break;
                     }
-                    std::remove(path.c_str());
-                    break;
-                }
-                case kOstreamRedirect: {
-                    std::string text = next_str(fdp);
-                    std::ostringstream out;
-                    {
-                        py::scoped_ostream_redirect redir(out, env.sys.attr("stdout"));
-                        py::print(text, py::arg("sep") = " ", py::arg("end") = "",
-                                  py::arg("flush") = true);
+                    case kEvalStatements: {
+                        std::string code = next_str(fdp);
+                        py::object glo = py::globals();
+                        py::object lo = py::dict();
+                        (void) py::eval<py::eval_statements>(py::str(code), glo, lo);
+                        break;
                     }
-                    (void) out.str().find(text);
-                    break;
-                }
-                case kGilReleaseAcquire: {
-                    {
-                        py::gil_scoped_release release;
-                        // Pure C++ section: no Python API calls while the GIL is
-                        // released (single-threaded harness; exercises the
-                        // release/save-restore path).
+                    case kEvalSingleStatement: {
+                        std::string code = next_str(fdp);
+                        py::object glo = py::globals();
+                        py::object lo = py::dict();
+                        (void) py::eval<py::eval_single_statement>(py::str(code), glo, lo);
+                        break;
                     }
-                    {
-                        py::gil_scoped_acquire acquire;
-                        (void) env.gc_mod.attr("collect")();
+                    case kExecLocals: {
+                        std::string code = next_str(fdp);
+                        py::dict locs;
+                        locs[py::str("fzv")] = next_int(fdp);
+                        locs[py::str("fzs")] = py::str(next_str(fdp));
+                        (void) py::exec(py::str(code), py::globals(), locs);
+                        break;
                     }
-                    break;
-                }
-                case kGlobalsManipulate: {
-                    std::string key = next_str(fdp);
-                    int v = next_int(fdp);
-                    py::object glo = py::globals();
-                    glo[py::str(key)] = v;
-                    (void) glo.attr("get")(py::str(key));
-                    (void) glo.attr("get")(py::str("definitely-not-set"));
-                    break;
-                }
-                default:
-                    break;
+                    case kEvalFile: {
+                        std::string code = next_str(fdp);
+                        if (code.size() > 256) {
+                            code.resize(256);
+                        }
+                        std::string path = pybind11_fuzz::eval_file_dir() + "/pzf_fuzz.py";
+                        {
+                            std::ofstream f(path, std::ios::binary | std::ios::trunc);
+                            f << code;
+                        }
+                        try {
+                            py::object glo = py::globals();
+                            py::object lo = py::dict();
+                            (void) py::eval_file(path, glo, lo);
+                        } catch (const py::error_already_set &) {
+                        }
+                        std::remove(path.c_str());
+                        break;
+                    }
+                    case kOstreamRedirect: {
+                        std::string text = next_str(fdp);
+                        std::ostringstream out;
+                        {
+                            py::scoped_ostream_redirect redir(out, env.sys.attr("stdout"));
+                            py::print(text,
+                                      py::arg("sep") = " ",
+                                      py::arg("end") = "",
+                                      py::arg("flush") = true);
+                        }
+                        (void) out.str().find(text);
+                        break;
+                    }
+                    case kGilReleaseAcquire: {
+                        {
+                            py::gil_scoped_release release;
+                            // Pure C++ section: no Python API calls while the GIL is
+                            // released (single-threaded harness; exercises the
+                            // release/save-restore path).
+                        }
+                        {
+                            py::gil_scoped_acquire acquire;
+                            (void) env.gc_mod.attr("collect")();
+                        }
+                        break;
+                    }
+                    case kGlobalsManipulate: {
+                        std::string key = next_str(fdp);
+                        int v = next_int(fdp);
+                        py::object glo = py::globals();
+                        glo[py::str(key)] = v;
+                        (void) glo.attr("get")(py::str(key));
+                        (void) glo.attr("get")(py::str("definitely-not-set"));
+                        break;
+                    }
+                    default:
+                        break;
                 }
             } catch (const py::error_already_set &) {
                 // Expected control flow: fuzzed code fails to parse/run.
