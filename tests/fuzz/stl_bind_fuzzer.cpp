@@ -22,15 +22,15 @@
 // Input layout: op opcodes and small selectors from the END of the buffer
 // (first op = last byte); strings from the FRONT (ConsumeRandomLengthString).
 
-#include <fuzzer/FuzzedDataProvider.h>
+#include "pybind11/pybind11.h"
+#include "pybind11/embed.h"
+#include "pybind11/stl_bind.h"
 
 #include <map>
 #include <string>
 #include <vector>
 
-#include "pybind11/embed.h"
-#include "pybind11/pybind11.h"
-#include "pybind11/stl_bind.h"
+#include <fuzzer/FuzzedDataProvider.h>
 
 namespace py = pybind11;
 
@@ -48,7 +48,7 @@ enum Op : uint8_t {
     kMapGetDel,
     kIterate,
     kWrongType,
-    kMaxOp  // sentinel
+    kMaxOp // sentinel
 };
 
 inline uint8_t next_op(FuzzedDataProvider &fdp) {
@@ -63,16 +63,14 @@ inline int next_int(FuzzedDataProvider &fdp) {
 inline py::object next_index_object(FuzzedDataProvider &fdp, int size) {
     int raw = fdp.ConsumeIntegralInRange<int>(-6, 14);
     if (raw < 0) {
-        raw += size;  // exercise Python negative-index normalisation
+        raw += size; // exercise Python negative-index normalisation
     }
     return py::int_(raw);
 }
 
-inline std::string next_str(FuzzedDataProvider &fdp) {
-    return fdp.ConsumeRandomLengthString(32);
-}
+inline std::string next_str(FuzzedDataProvider &fdp) { return fdp.ConsumeRandomLengthString(32); }
 
-}  // namespace pybind11_fuzz
+} // namespace pybind11_fuzz
 
 PYBIND11_EMBEDDED_MODULE(fzb, m) {
     py::bind_vector<std::vector<int>>(m, "IVec");
@@ -88,8 +86,7 @@ struct FuzzEnv {
     py::object SVec;
     py::object SIMap;
 
-    FuzzEnv()
-        : guard{}, gc_mod(py::module_::import("gc")) {
+    FuzzEnv() : guard{}, gc_mod(py::module_::import("gc")) {
         py::object mod = py::module_::import("fzb");
         IVec = mod.attr("IVec");
         SVec = mod.attr("SVec");
@@ -130,7 +127,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 
     FuzzEnv &env = FuzzEnv::get();
     FuzzedDataProvider fdp(data, size);
-    py::object live;  // most recent container; replaced per op
+    py::object live; // most recent container; replaced per op
     bool have = false;
 
     try {
@@ -140,113 +137,113 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
             const uint8_t op = next_op(fdp);
             try {
                 switch (op) {
-                case kVecNew: {
-                    live = env.IVec();
-                    have = true;
-                    break;
-                }
-                case kVecAppend: {
-                    if (!have) {
+                    case kVecNew: {
+                        live = env.IVec();
+                        have = true;
                         break;
                     }
-                    live.attr("append")(next_int(fdp));
-                    break;
-                }
-                case kVecInsert: {
-                    if (!have) {
+                    case kVecAppend: {
+                        if (!have) {
+                            break;
+                        }
+                        live.attr("append")(next_int(fdp));
                         break;
                     }
-                    int sz = static_cast<int>(py::len(live));
-                    live.attr("insert")(next_index_object(fdp, sz), next_int(fdp));
-                    break;
-                }
-                case kVecPopGet: {
-                    if (!have) {
+                    case kVecInsert: {
+                        if (!have) {
+                            break;
+                        }
+                        int sz = static_cast<int>(py::len(live));
+                        live.attr("insert")(next_index_object(fdp, sz), next_int(fdp));
                         break;
                     }
-                    int sz = static_cast<int>(py::len(live));
-                    try {
-                        (void) live.attr("pop")(next_index_object(fdp, sz));
-                    } catch (const py::error_already_set &) {
-                    }
-                    break;
-                }
-                case kVecSetDel: {
-                    if (!have) {
+                    case kVecPopGet: {
+                        if (!have) {
+                            break;
+                        }
+                        int sz = static_cast<int>(py::len(live));
+                        try {
+                            (void) live.attr("pop")(next_index_object(fdp, sz));
+                        } catch (const py::error_already_set &) {
+                        }
                         break;
                     }
-                    int sz = static_cast<int>(py::len(live));
-                    live.attr("__setitem__")(next_index_object(fdp, sz), next_int(fdp));
-                    break;
-                }
-                case kVecSliceLen: {
-                    if (!have) {
+                    case kVecSetDel: {
+                        if (!have) {
+                            break;
+                        }
+                        int sz = static_cast<int>(py::len(live));
+                        live.attr("__setitem__")(next_index_object(fdp, sz), next_int(fdp));
                         break;
                     }
-                    (void) py::len(live);
-                    (void) py::iter(live);
-                    (void) live.attr("__getitem__")(py::int_(next_int(fdp)));
-                    break;
-                }
-                case kMapNew: {
-                    live = env.SIMap();
-                    have = true;
-                    break;
-                }
-                case kMapSet: {
-                    if (!have) {
+                    case kVecSliceLen: {
+                        if (!have) {
+                            break;
+                        }
+                        (void) py::len(live);
+                        (void) py::iter(live);
+                        (void) live.attr("__getitem__")(py::int_(next_int(fdp)));
                         break;
                     }
-                    std::string k = next_str(fdp);
-                    live.attr("__setitem__")(py::str(k), next_int(fdp));
-                    break;
-                }
-                case kMapGetDel: {
-                    if (!have) {
+                    case kMapNew: {
+                        live = env.SIMap();
+                        have = true;
                         break;
                     }
-                    std::string k = next_str(fdp);
-                    try {
-                        (void) live.attr("__getitem__")(py::str(k));
-                    } catch (const py::error_already_set &) {
-                    }
-                    (void) live.attr("__contains__")(py::str(k));
-                    try {
-                        live.attr("__delitem__")(py::str(k));
-                    } catch (const py::error_already_set &) {
-                    }
-                    break;
-                }
-                case kIterate: {
-                    if (!have) {
+                    case kMapSet: {
+                        if (!have) {
+                            break;
+                        }
+                        std::string k = next_str(fdp);
+                        live.attr("__setitem__")(py::str(k), next_int(fdp));
                         break;
                     }
-                    py::iterator it = py::iter(live);
-                    int steps = 0;
-                    while (it != py::iterator::sentinel() && steps < 32) {
-                        ++steps;
-                        (void) py::reinterpret_borrow<py::object>(*it);
-                        ++it;
-                    }
-                    break;
-                }
-                case kWrongType: {
-                    if (!have) {
+                    case kMapGetDel: {
+                        if (!have) {
+                            break;
+                        }
+                        std::string k = next_str(fdp);
+                        try {
+                            (void) live.attr("__getitem__")(py::str(k));
+                        } catch (const py::error_already_set &) {
+                        }
+                        (void) live.attr("__contains__")(py::str(k));
+                        try {
+                            live.attr("__delitem__")(py::str(k));
+                        } catch (const py::error_already_set &) {
+                        }
                         break;
                     }
-                    try {
-                        live.attr("append")(py::str(next_str(fdp)));  // str into IVec
-                    } catch (const py::error_already_set &) {
-                    } catch (const py::builtin_exception &) {
+                    case kIterate: {
+                        if (!have) {
+                            break;
+                        }
+                        py::iterator it = py::iter(live);
+                        int steps = 0;
+                        while (it != py::iterator::sentinel() && steps < 32) {
+                            ++steps;
+                            (void) py::reinterpret_borrow<py::object>(*it);
+                            ++it;
+                        }
+                        break;
                     }
-                    try {
-                        live.attr("__getitem__")(next_int(fdp));  // int key into map
-                    } catch (const py::error_already_set &) {
+                    case kWrongType: {
+                        if (!have) {
+                            break;
+                        }
+                        try {
+                            live.attr("append")(py::str(next_str(fdp))); // str into IVec
+                        } catch (const py::error_already_set &) {
+                        } catch (const py::builtin_exception &) {
+                        }
+                        try {
+                            live.attr("__getitem__")(next_int(fdp)); // int key into map
+                        } catch (const py::error_already_set &) {
+                        }
+                        break;
                     }
-                    break;
-                }
-                default:
-                    break;
+                    default:
+                        break;
                 }
                 if (ops % 6 == 0) {
                     (void) env.gc_mod.attr("collect")();
@@ -265,4 +262,3 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     }
     return 0;
 }
-
