@@ -1471,6 +1471,33 @@ PYBIND11_NOINLINE_ATTR PYBIND11_INLINE void enum_base::init(bool is_arithmetic,
                                                  none(),
                                                  "");
 
+    m_base.attr("names") = static_property(cpp_function(
+                                                     [](handle arg) -> dict {
+                                                         dict entries = arg.attr("__entries"),
+                                                              m;
+                                                         for (auto kv : entries) {
+                                                             m[kv.first] = kv.second[int_(0)];
+                                                         }
+                                                         return m;
+                                                     },
+                                                     name("names")),
+                                                 none(),
+                                                 none(),
+                                                 "");
+    m_base.attr("values") = static_property(cpp_function(
+                                                     [](handle arg) -> dict {
+                                                         dict entries = arg.attr("__entries"),
+                                                              m;
+                                                         for (auto kv : entries) {
+                                                             m[int_(kv.second[int_(0)])] = kv.second[int_(0)];
+                                                         }
+                                                         return m;
+                                                     },
+                                                     name("values")),
+                                                 none(),
+                                                 none(),
+                                                 "");
+
 #define PYBIND11_ENUM_OP_STRICT(op, expr, strict_behavior)                                        \
     m_base.attr(op) = cpp_function(                                                               \
         [](const object &a, const object &b) {                                                    \
