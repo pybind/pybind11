@@ -126,6 +126,52 @@ def test_unscoped_enum():
     assert m.UnscopedEnum.EOne ^ m.UnscopedEnum.EThree == m.UnscopedEnum.ETwo
 
 
+def test_enum_names_values():
+    # names: Boost.Python-compatible mapping of name -> member
+    assert m.UnscopedEnum.names == {
+        "EOne": m.UnscopedEnum.EOne,
+        "ETwo": m.UnscopedEnum.ETwo,
+        "EThree": m.UnscopedEnum.EThree,
+    }
+    assert m.ScopedEnum.names == {
+        "Two": m.ScopedEnum.Two,
+        "Three": m.ScopedEnum.Three,
+    }
+    assert m.ScopedEnum.names["Two"] is m.ScopedEnum.Two
+
+    # values: Boost.Python-compatible mapping of int value -> member
+    assert m.UnscopedEnum.values == {
+        1: m.UnscopedEnum.EOne,
+        2: m.UnscopedEnum.ETwo,
+        3: m.UnscopedEnum.EThree,
+    }
+    assert m.ScopedEnum.values == {
+        2: m.ScopedEnum.Two,
+        3: m.ScopedEnum.Three,
+    }
+    assert m.ScopedEnum.values[3] is m.ScopedEnum.Three
+    for key in m.ScopedEnum.values:
+        assert type(key) is int
+
+    # also reachable through an instance
+    assert m.ScopedEnum.Two.names == m.ScopedEnum.names
+    assert m.ScopedEnum.Two.values == m.ScopedEnum.values
+
+    # readonly
+    with pytest.raises(AttributeError):
+        m.UnscopedEnum.names = {}
+    with pytest.raises(AttributeError):
+        m.UnscopedEnum.values = {}
+
+    # returns a copy
+    nonaliased_names = m.UnscopedEnum.names
+    nonaliased_names["bar"] = "baz"
+    assert "bar" not in m.UnscopedEnum.names
+    nonaliased_values = m.UnscopedEnum.values
+    nonaliased_values[42] = "baz"
+    assert 42 not in m.UnscopedEnum.values
+
+
 def test_scoped_enum():
     assert m.test_scoped_enum(m.ScopedEnum.Three) == "ScopedEnum::Three"
     z = m.ScopedEnum.Two
