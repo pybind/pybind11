@@ -519,6 +519,12 @@ T reinterpret_steal(handle h) {
 
 PYBIND11_NAMESPACE_BEGIN(detail)
 
+template <typename T>
+struct is_handle : std::false_type {};
+
+template <>
+struct is_handle<handle> : std::true_type {};
+
 #if !defined(Py_LIMITED_API)
 /// The `tp_name` of a type: `module.Name` for static and pybind11 types, `Name` for Python
 /// heap types. Empty if the type has no name.
@@ -778,14 +784,19 @@ bool isinstance(handle obj) {
     return T::check_(obj);
 }
 
-template <typename T, detail::enable_if_t<!std::is_base_of<object, T>::value, int> = 0>
+template <typename T,
+          detail::enable_if_t<!std::is_base_of<object, T>::value && !detail::is_handle<T>::value,
+                              int> = 0>
 bool isinstance(handle obj) {
     return detail::isinstance_native_enum<T>(obj, typeid(T))
            || detail::isinstance_generic(obj, typeid(T));
 }
 
-template <>
-bool isinstance<handle>(handle) = delete;
+template <typename T,
+          detail::enable_if_t<!std::is_base_of<object, T>::value && detail::is_handle<T>::value,
+                              int> = 0>
+bool isinstance(handle) = delete;
+
 template <>
 inline bool isinstance<object>(handle obj) {
     return obj.ptr() != nullptr;

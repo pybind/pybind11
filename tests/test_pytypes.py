@@ -1071,6 +1071,34 @@ def test_inplace_rshift(a, b):
     assert m.inplace_rshift(a, b) == expected
 
 
+def test_typing_handle_annotations(doc):
+    assert (
+        doc(m.annotate_handle_default)
+        == "annotate_handle_default(arg0: float) -> float"
+    )
+    assert (
+        doc(m.annotate_handle_nocast) == "annotate_handle_nocast(arg0: float) -> float"
+    )
+    assert (
+        doc(m.annotate_handle_cast)
+        == "annotate_handle_cast(arg0: typing.SupportsFloat | typing.SupportsIndex) -> typing.SupportsFloat | typing.SupportsIndex"
+    )
+
+
+def test_typing_object_annotations(doc):
+    assert (
+        doc(m.annotate_object_default)
+        == "annotate_object_default(arg0: float) -> float"
+    )
+    assert (
+        doc(m.annotate_object_nocast) == "annotate_object_nocast(arg0: float) -> float"
+    )
+    assert (
+        doc(m.annotate_object_cast)
+        == "annotate_object_cast(arg0: typing.SupportsFloat | typing.SupportsIndex) -> typing.SupportsFloat | typing.SupportsIndex"
+    )
+
+
 def test_tuple_nonempty_annotations(doc):
     assert (
         doc(m.annotate_tuple_float_str)
