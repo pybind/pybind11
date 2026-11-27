@@ -2197,7 +2197,7 @@ public:
                   "py::args cannot be specified more than once");
 
     static constexpr auto arg_names
-        = ::pybind11::detail::concat(type_descr(make_caster<Args>::name)...);
+        = ::pybind11::detail::concat(type_descr(nullable_name<Args>(make_caster<Args>::name))...);
 
     bool load_args(function_call &call) { return load_impl_sequence(call, indices{}); }
 

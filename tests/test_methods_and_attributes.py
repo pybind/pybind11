@@ -220,6 +220,65 @@ def test_properties_docstring():
     )
 
 
+TestProperties2GetDocstring = "(self: pybind11_tests.methods_and_attributes.TestProperties2) -> pybind11_tests.methods_and_attributes.TestProperties"
+TestProperties2SetDocstring = "(self: pybind11_tests.methods_and_attributes.TestProperties2, arg0: pybind11_tests.methods_and_attributes.TestProperties) -> None"
+TestProperties2GetDocstringNone = "(self: pybind11_tests.methods_and_attributes.TestProperties2) -> pybind11_tests.methods_and_attributes.TestProperties | None"
+TestProperties2SetDocstringNone = "(self: pybind11_tests.methods_and_attributes.TestProperties2, arg0: pybind11_tests.methods_and_attributes.TestProperties | None) -> None"
+
+
+def test_properties_2_docstring():
+    assert (
+        m.TestProperties2.def_readonly_value.fget.__doc__.strip()
+        == TestProperties2GetDocstring
+    )
+
+    assert (
+        m.TestProperties2.def_readwrite_value.fget.__doc__.strip()
+        == TestProperties2GetDocstring
+    )
+    assert (
+        m.TestProperties2.def_readwrite_value.fset.__doc__.strip()
+        == TestProperties2SetDocstring
+    )
+
+    assert (
+        m.TestProperties2.def_readonly_raw_ptr.fget.__doc__.strip()
+        == TestProperties2GetDocstringNone
+    )
+
+    assert (
+        m.TestProperties2.def_readwrite_raw_ptr.fget.__doc__.strip()
+        == TestProperties2GetDocstringNone
+    )
+    assert (
+        m.TestProperties2.def_readwrite_raw_ptr.fset.__doc__.strip()
+        == TestProperties2SetDocstringNone
+    )
+
+    assert (
+        m.TestProperties2.def_readwrite_unique_ptr.fget.__doc__.strip()
+        == TestProperties2GetDocstringNone
+    )
+    assert (
+        m.TestProperties2.def_readwrite_unique_ptr.fset.__doc__.strip()
+        == TestProperties2SetDocstringNone
+    )
+
+    assert (
+        m.TestProperties2.def_readonly_shared_ptr.fget.__doc__.strip()
+        == TestProperties2GetDocstringNone
+    )
+
+    assert (
+        m.TestProperties2.def_readwrite_shared_ptr.fget.__doc__.strip()
+        == TestProperties2GetDocstringNone
+    )
+    assert (
+        m.TestProperties2.def_readwrite_shared_ptr.fset.__doc__.strip()
+        == TestProperties2SetDocstringNone
+    )
+
+
 @pytest.mark.xfail(
     reason="The signature of a cpp_function without is_method is fixed at construction",
     strict=True,
@@ -601,6 +660,76 @@ def test_accepts_none(msg):
     with pytest.raises(TypeError) as excinfo:
         m.no_none_kwarg_kw_only(a=None)
     assert "incompatible function arguments" in str(excinfo.value)
+
+
+def test_accepts_none_docstring():
+    assert (
+        m.no_none1.__doc__.strip()
+        == "no_none1(arg0: pybind11_tests.methods_and_attributes.NoneTester) -> int"
+    )
+    assert (
+        m.no_none2.__doc__.strip()
+        == "no_none2(arg0: pybind11_tests.methods_and_attributes.NoneTester) -> int"
+    )
+    assert (
+        m.no_none3.__doc__.strip()
+        == "no_none3(arg0: pybind11_tests.methods_and_attributes.NoneTester) -> int"
+    )
+    assert (
+        m.no_none4.__doc__.strip()
+        == "no_none4(arg0: pybind11_tests.methods_and_attributes.NoneTester) -> int"
+    )
+    assert (
+        m.no_none5.__doc__.strip()
+        == "no_none5(arg0: pybind11_tests.methods_and_attributes.NoneTester) -> int"
+    )
+    assert (
+        m.ok_none1.__doc__.strip()
+        == "ok_none1(arg0: pybind11_tests.methods_and_attributes.NoneTester) -> int"
+    )
+    assert (
+        m.ok_none2.__doc__.strip()
+        == "ok_none2(arg0: pybind11_tests.methods_and_attributes.NoneTester | None) -> int"
+    )
+    assert (
+        m.ok_none3.__doc__.strip()
+        == "ok_none3(arg0: pybind11_tests.methods_and_attributes.NoneTester | None) -> int"
+    )
+    assert (
+        m.ok_none4.__doc__.strip()
+        == "ok_none4(arg0: pybind11_tests.methods_and_attributes.NoneTester | None) -> int"
+    )
+    assert (
+        m.ok_none5.__doc__.strip()
+        == "ok_none5(arg0: pybind11_tests.methods_and_attributes.NoneTester | None) -> int"
+    )
+
+
+def test_returns_none_docstring():
+    assert (
+        m.return_raw_ptr.__doc__.strip()
+        == "return_raw_ptr() -> pybind11_tests.methods_and_attributes.NoneTester"
+    )
+    assert (
+        m.return_unique_ptr.__doc__.strip()
+        == "return_unique_ptr() -> pybind11_tests.methods_and_attributes.NoneTester"
+    )
+    assert (
+        m.return_shared_ptr.__doc__.strip()
+        == "return_shared_ptr() -> pybind11_tests.methods_and_attributes.NoneTester"
+    )
+    assert (
+        m.return_raw_null_ptr.__doc__.strip()
+        == "return_raw_null_ptr() -> pybind11_tests.methods_and_attributes.NoneTester | None"
+    )
+    assert (
+        m.return_unique_null_ptr.__doc__.strip()
+        == "return_unique_null_ptr() -> pybind11_tests.methods_and_attributes.NoneTester | None"
+    )
+    assert (
+        m.return_shared_null_ptr.__doc__.strip()
+        == "return_shared_null_ptr() -> pybind11_tests.methods_and_attributes.NoneTester | None"
+    )
 
 
 def test_casts_none():

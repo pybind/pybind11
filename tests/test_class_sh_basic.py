@@ -212,19 +212,19 @@ def test_py_type_handle_of_atyp():
 def test_function_signatures(doc):
     assert (
         doc(m.args_shared_ptr)
-        == "args_shared_ptr(arg0: m.class_sh_basic.atyp) -> m.class_sh_basic.atyp"
+        == "args_shared_ptr(arg0: m.class_sh_basic.atyp | None) -> m.class_sh_basic.atyp | None"
     )
     assert (
         doc(m.args_shared_ptr_const)
-        == "args_shared_ptr_const(arg0: m.class_sh_basic.atyp) -> m.class_sh_basic.atyp"
+        == "args_shared_ptr_const(arg0: m.class_sh_basic.atyp | None) -> m.class_sh_basic.atyp | None"
     )
     assert (
         doc(m.args_unique_ptr)
-        == "args_unique_ptr(arg0: m.class_sh_basic.atyp) -> m.class_sh_basic.atyp"
+        == "args_unique_ptr(arg0: m.class_sh_basic.atyp | None) -> m.class_sh_basic.atyp | None"
     )
     assert (
         doc(m.args_unique_ptr_const)
-        == "args_unique_ptr_const(arg0: m.class_sh_basic.atyp) -> m.class_sh_basic.atyp"
+        == "args_unique_ptr_const(arg0: m.class_sh_basic.atyp | None) -> m.class_sh_basic.atyp | None"
     )
 
 

@@ -99,6 +99,13 @@ struct TestProperties {
 };
 int TestProperties::static_value = 1;
 
+struct TestProperties2 {
+    TestProperties value;
+    TestProperties *raw_ptr = nullptr;
+    std::unique_ptr<TestProperties> unique_ptr;
+    std::shared_ptr<TestProperties> shared_ptr;
+};
+
 struct TestPropertiesOverride : TestProperties {
     int value = 99;
     static int static_value;
@@ -130,6 +137,15 @@ int none2(NoneTester *obj) { return obj ? obj->answer : -1; }
 int none3(std::shared_ptr<NoneTester> &obj) { return obj ? obj->answer : -1; }
 int none4(std::shared_ptr<NoneTester> *obj) { return obj && *obj ? (*obj)->answer : -1; }
 int none5(const std::shared_ptr<NoneTester> &obj) { return obj ? obj->answer : -1; }
+
+NoneTester *return_raw_ptr() { return new NoneTester; }
+std::unique_ptr<NoneTester> return_unique_ptr() {
+    return std::unique_ptr<NoneTester>(new NoneTester);
+}
+std::shared_ptr<NoneTester> return_shared_ptr() { return std::make_shared<NoneTester>(); }
+NoneTester *return_raw_null_ptr() { return nullptr; }
+std::unique_ptr<NoneTester> return_unique_null_ptr() { return nullptr; }
+std::shared_ptr<NoneTester> return_shared_null_ptr() { return nullptr; }
 
 // Issue #2778: implicit casting from None to object (not pointer)
 class NoneCastTester {
@@ -467,6 +483,16 @@ TEST_SUBMODULE(methods_and_attributes, m) {
         .def_readonly("def_readonly", &TestPropertiesOverride::value)
         .def_readonly_static("def_readonly_static", &TestPropertiesOverride::static_value);
 
+    py::class_<TestProperties2>(m, "TestProperties2")
+        .def(py::init<>())
+        .def_readonly("def_readonly_value", &TestProperties2::value)
+        .def_readwrite("def_readwrite_value", &TestProperties2::value)
+        .def_readonly("def_readonly_raw_ptr", &TestProperties2::raw_ptr)
+        .def_readwrite("def_readwrite_raw_ptr", &TestProperties2::raw_ptr)
+        .def_readwrite("def_readwrite_unique_ptr", &TestProperties2::unique_ptr)
+        .def_readonly("def_readonly_shared_ptr", &TestProperties2::shared_ptr)
+        .def_readwrite("def_readwrite_shared_ptr", &TestProperties2::shared_ptr);
+
     auto static_get1 = [](const py::object &) -> const UserType & { return TestPropRVP::sv1; };
     auto static_get2 = [](const py::object &) -> const UserType & { return TestPropRVP::sv2; };
     auto static_set1 = [](const py::object &, int v) { TestPropRVP::sv1.set(v); };
@@ -590,6 +616,13 @@ TEST_SUBMODULE(methods_and_attributes, m) {
     m.def("ok_none3", &none3);
     m.def("ok_none4", &none4, py::arg{}.none(true));
     m.def("ok_none5", &none5);
+
+    m.def("return_raw_ptr", &return_raw_ptr, py::returns_non_null());
+    m.def("return_unique_ptr", &return_unique_ptr, py::returns_non_null());
+    m.def("return_shared_ptr", &return_shared_ptr, py::returns_non_null());
+    m.def("return_raw_null_ptr", &return_raw_null_ptr);
+    m.def("return_unique_null_ptr", &return_unique_null_ptr);
+    m.def("return_shared_null_ptr", &return_shared_null_ptr);
 
     m.def("no_none_kwarg", &none2, "a"_a.none(false));
     m.def("no_none_kwarg_kw_only", &none2, py::kw_only(), "a"_a.none(false));

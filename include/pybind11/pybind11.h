@@ -95,12 +95,13 @@ inline std::string generate_type_signature() {
 #endif
 
 #define PYBIND11_READABLE_FUNCTION_SIGNATURE_EXPR                                                 \
-    detail::const_name("(") + cast_in::arg_names + detail::const_name(") -> ") + cast_out::name
+    detail::const_name("(") + cast_in::arg_names + detail::const_name(") -> ")                    \
+        + detail::nullable_name<Return>(cast_out::name)
 
 // We factor out readable function signatures to a specific template
 // so that they don't get duplicated across different instantiations of
 // cpp_function::initialize (which is templated on more types).
-template <typename cast_in, typename cast_out>
+template <typename cast_in, typename cast_out, typename Return>
 class ReadableFunctionSignature {
 public:
     using sig_type = decltype(PYBIND11_READABLE_FUNCTION_SIGNATURE_EXPR);
@@ -127,13 +128,14 @@ public:
 // Prior to C++17, we don't have inline variables, so we have to
 // provide an out-of-line definition of the class member.
 #if !defined(__cpp_inline_variables) || __cpp_inline_variables < 201606L
-template <typename cast_in, typename cast_out>
-constexpr typename ReadableFunctionSignature<cast_in, cast_out>::sig_type
-    ReadableFunctionSignature<cast_in, cast_out>::kSig;
+template <typename cast_in, typename cast_out, typename Return>
+constexpr typename ReadableFunctionSignature<cast_in, cast_out, Return>::sig_type
+    ReadableFunctionSignature<cast_in, cast_out, Return>::kSig;
 #    if !defined(_MSC_VER)
-template <typename cast_in, typename cast_out>
-constexpr typename ReadableFunctionSignature<cast_in, cast_out>::types_type
-    ReadableFunctionSignature<cast_in, cast_out>::kTypes;
+template <typename cast_in, typename cast_out, typename Return>
+constexpr typename ReadableFunctionSignature<cast_in, cast_out, Return>::types_type
+    ReadableFunctionSignature<cast_in, cast_out, Return>::kTypes;
+
 #    endif
 #endif
 
@@ -492,10 +494,10 @@ protected:
         /* Generate a readable signature describing the function's arguments and return
            value types */
         static constexpr const auto &signature
-            = detail::ReadableFunctionSignature<cast_in, cast_out>::kSig;
+            = detail::ReadableFunctionSignature<cast_in, cast_out, Return>::kSig;
 #if !defined(_MSC_VER)
         static constexpr const auto &types
-            = detail::ReadableFunctionSignature<cast_in, cast_out>::kTypes;
+            = detail::ReadableFunctionSignature<cast_in, cast_out, Return>::kTypes;
 #else
         PYBIND11_DESCR_CONSTEXPR auto types = std::decay<decltype(signature)>::type::types();
 #endif
@@ -1167,6 +1169,7 @@ struct property_cpp_function_sh_member_held_by_value {
                     return std::shared_ptr<typename std::add_const<D>::type>(c_sp,
                                                                              &(c_sp.get()->*pm));
                 },
+                returns_non_null(),
                 is_method(hdl));
         }
         return property_cpp_function_classic<T, D>::readonly(pm, hdl);
@@ -1183,6 +1186,7 @@ struct property_cpp_function_sh_member_held_by_value {
                             c_hdl);
                     return std::shared_ptr<D>(c_sp, &(c_sp.get()->*pm));
                 },
+                returns_non_null(),
                 is_method(hdl));
         }
         return property_cpp_function_classic<T, D>::read(pm, hdl);
@@ -1669,6 +1673,10 @@ public:
         static_assert(0 == detail::constexpr_sum(detail::is_keep_alive<Extra>::value...),
                       "def_property family does not currently support keep_alive. Use a "
                       "py::cpp_function instead.");
+        static_assert(
+            0 == detail::constexpr_sum(std::is_base_of<returns_non_null, Extra>::value...),
+            "def_property family does not currently support returns_non_null."
+            "Use a py::cpp_function instead.");
         auto rec_fget = get_function_record(fget), rec_fset = get_function_record(fset);
         auto *rec_active = rec_fget;
         if (rec_fget) {

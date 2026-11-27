@@ -234,5 +234,38 @@ constexpr descr<N + 4, Ts...> inv_descr(const descr<N, Ts...> &descr) {
     return const_name("@~") + descr + const_name("@!");
 }
 
+// Pybind11 supports casting pointer types to and from None.
+// The pointer type is discarded before the type caster so this needs to be added on.
+// Custom pointer types can be supported by extending is_nullable
+// Default
+template <typename T, typename SFINAE = void>
+struct is_nullable : std::false_type {};
+// Raw pointer
+template <typename T>
+struct is_nullable<T *> : std::true_type {};
+// Shared pointer
+template <typename T>
+struct is_nullable<std::shared_ptr<T>> : std::true_type {};
+// Unique pointer
+template <typename T, typename D>
+struct is_nullable<std::unique_ptr<T, D>> : std::true_type {};
+
+template <typename T>
+using is_nullable_type = is_nullable<remove_cv_t<remove_reference_t<T>>>;
+
+// `@?` is added after nullable types.
+// generate_function_signature() appends " | None" to the argument and return types.
+template <typename T, size_t N, typename... Ts>
+constexpr enable_if_t<is_nullable_type<T>::value, descr<N + 2, Ts...>>
+nullable_name(const descr<N, Ts...> &d) {
+    return d + const_name("@?");
+}
+
+template <typename T, size_t N, typename... Ts>
+constexpr enable_if_t<!is_nullable_type<T>::value, descr<N, Ts...>>
+nullable_name(const descr<N, Ts...> &d) {
+    return d;
+}
+
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(PYBIND11_NAMESPACE)
