@@ -1,3 +1,8 @@
 .highlight .go {
   color: #707070;
 }
+
+/* Let the sidebar scroll past the last entry. */
+.sidebar-tree {
+  padding-bottom: 8rem;
+}

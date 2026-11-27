@@ -36,17 +36,27 @@ DIR = Path(__file__).parent.resolve()
 extensions = [
     "breathe",
     "myst_parser",
+    "sphinx.ext.intersphinx",
     "sphinx_copybutton",
+    "sphinx_llm.txt",
     "sphinxcontrib.rsvgconverter",
     "sphinxcontrib.moderncmakedomain",
 ]
+
+intersphinx_mapping = {
+    "cmake": ("https://cmake.org/cmake/help/latest/", None),
+    "python": ("https://docs.python.org/3", None),
+}
+
+# sphinx-llm relays the markdown builder's warnings for nodes it can't render.
+llms_txt_suppress_unknown_node_warnings = True
 
 breathe_projects = {"pybind11": ".build/doxygenxml/"}
 breathe_default_project = "pybind11"
 breathe_domain_by_extension = {"h": "cpp"}
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = [".templates"]
+templates_path = ["_templates"]
 
 # The suffix(es) of source filenames.
 source_suffix = [".rst", ".md"]
@@ -132,7 +142,25 @@ html_theme = "furo"
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-# html_theme_options = {}
+html_theme_options = {
+    "source_repository": "https://github.com/pybind/pybind11",
+    "source_branch": "master",
+    "source_directory": "docs/",
+    "footer_icons": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/pybind/pybind11",
+            "html": """
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+            """,
+            "class": "",
+        },
+    ],
+}
+html_copy_source = False
+html_show_sourcelink = False
 
 # Add any paths that contain custom themes here, relative to this directory.
 # html_theme_path = []
@@ -190,9 +218,6 @@ html_css_files = [
 
 # If true, the index is split into individual pages for each letter.
 # html_split_index = False
-
-# If true, links to the reST sources are added to the pages.
-# html_show_sourcelink = True
 
 # If true, "Created using Sphinx" is shown in the HTML footer. Default is True.
 # html_show_sphinx = True
@@ -339,31 +364,19 @@ def generate_doxygen_xml(app):
         sys.stderr.write(f"doxygen execution failed: {e}\n")
 
 
-def prepare(app):
-    with open(DIR.parent / "README.rst") as f:
-        contents = f.read()
+def prepare_readme(app, relative_path, parent_docname, content):  # noqa: ARG001
+    if app.builder.name != "latex" or relative_path.name != "README.rst":
+        return
 
-    if app.builder.name == "latex":
-        # Remove badges and stuff from start
-        contents = contents[contents.find(r".. start") :]
+    # Remove badges and stuff from start
+    contents = content[0][content[0].find(".. start") :]
 
-        # Filter out section titles for index.rst for LaTeX
-        contents = re.sub(r"^(.*)\n[-~]{3,}$", r"**\1**", contents, flags=re.MULTILINE)
-
-    with open(DIR / "readme.rst", "w") as f:
-        f.write(contents)
-
-
-def clean_up(app, exception):  # noqa: ARG001
-    (DIR / "readme.rst").unlink()
+    # Filter out section titles for index.rst for LaTeX
+    content[0] = re.sub(r"^(.*)\n[-~]{3,}$", r"**\1**", contents, flags=re.MULTILINE)
 
 
 def setup(app):
     # Add hook for building doxygen xml when needed
     app.connect("builder-inited", generate_doxygen_xml)
 
-    # Copy the readme in
-    app.connect("builder-inited", prepare)
-
-    # Clean up the generated readme
-    app.connect("build-finished", clean_up)
+    app.connect("include-read", prepare_readme)
