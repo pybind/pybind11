@@ -217,6 +217,13 @@ TEST_SUBMODULE(numpy_array, sm) {
         return;
     }
 
+    sm.attr("defined_NDEBUG") =
+#if defined(NDEBUG)
+        true;
+#else
+        false;
+#endif
+
     // test_dtypes
     py::class_<DtypeCheck>(sm, "DtypeCheck")
         .def_readonly("numpy", &DtypeCheck::numpy)
@@ -275,6 +282,13 @@ TEST_SUBMODULE(numpy_array, sm) {
     // test_mutate_data, test_mutate_readonly
     def_index_fn(mutate_data, arr &);
     def_index_fn(mutate_data_t, arr_t &);
+    sm.def("check_typed_data_alignment", [](arr_t &a, py::ssize_t i, bool mutable_access) {
+        if (mutable_access) {
+            (void) a.mutable_data(i);
+        } else {
+            (void) a.data(i);
+        }
+    });
     def_index_fn(at_t, const arr_t &);
     def_index_fn(mutate_at_t, arr_t &);
 
