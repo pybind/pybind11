@@ -341,6 +341,17 @@ def test_shared_ptr_gc():
         assert i == v.value()
 
 
+def test_shared_from_this_custom_holder():
+    # Issue #3851: custom holder without element_type on an enable_shared_from_this type
+    assert m.SftCustomHolder() is not None
+    assert m.SftCustomHolder.existing_use_count() == 1
+    obj = m.SftCustomHolder.get_existing()
+    assert m.SftCustomHolder.existing_use_count() == 2
+    del obj
+    pytest.gc_collect()
+    assert m.SftCustomHolder.existing_use_count() == 1
+
+
 def test_private_esft_tolerance():
     # Regression test: binding a shared_ptr<T> member where T privately inherits
     # enable_shared_from_this<T> must not cause a C++ compile error.
