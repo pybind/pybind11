@@ -1523,7 +1523,7 @@ public:
         if ((ssize_t) sizeof...(index) != ndim()) {
             fail_dim_check(sizeof...(index), "index dimension mismatch");
         }
-        return *check_aligned(data(index...));
+        return *static_cast<const T *>(check_aligned(array::data(index...)));
     }
 
     // Mutable reference to element at a given index. Negative indices count from the end of each
@@ -1533,7 +1533,7 @@ public:
         if ((ssize_t) sizeof...(index) != ndim()) {
             fail_dim_check(sizeof...(index), "index dimension mismatch");
         }
-        return *check_aligned(mutable_data(index...));
+        return *static_cast<T *>(check_aligned(array::mutable_data(index...)));
     }
 
     /**
