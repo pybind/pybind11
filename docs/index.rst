@@ -3,7 +3,7 @@
    Intro
    =====
 
-.. include:: readme.rst
+.. include:: ../README.rst
 
 .. only:: not latex
 

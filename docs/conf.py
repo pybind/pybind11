@@ -364,31 +364,19 @@ def generate_doxygen_xml(app):
         sys.stderr.write(f"doxygen execution failed: {e}\n")
 
 
-def prepare(app):
-    with open(DIR.parent / "README.rst") as f:
-        contents = f.read()
+def prepare_readme(app, relative_path, parent_docname, content):  # noqa: ARG001
+    if app.builder.name != "latex" or relative_path.name != "README.rst":
+        return
 
-    if app.builder.name == "latex":
-        # Remove badges and stuff from start
-        contents = contents[contents.find(r".. start") :]
+    # Remove badges and stuff from start
+    contents = content[0][content[0].find(".. start") :]
 
-        # Filter out section titles for index.rst for LaTeX
-        contents = re.sub(r"^(.*)\n[-~]{3,}$", r"**\1**", contents, flags=re.MULTILINE)
-
-    with open(DIR / "readme.rst", "w") as f:
-        f.write(contents)
-
-
-def clean_up(app, exception):  # noqa: ARG001
-    (DIR / "readme.rst").unlink(missing_ok=True)
+    # Filter out section titles for index.rst for LaTeX
+    content[0] = re.sub(r"^(.*)\n[-~]{3,}$", r"**\1**", contents, flags=re.MULTILINE)
 
 
 def setup(app):
     # Add hook for building doxygen xml when needed
     app.connect("builder-inited", generate_doxygen_xml)
 
-    # Copy the readme in
-    app.connect("builder-inited", prepare)
-
-    # Clean up the generated readme
-    app.connect("build-finished", clean_up)
+    app.connect("include-read", prepare_readme)
