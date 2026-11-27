@@ -838,6 +838,61 @@ def test_sparse():
     assert_sparse_equal_ref(m.sparse_copy_c(m.sparse_r()))
 
 
+def test_sparse_vector():
+    sp = pytest.importorskip("scipy.sparse")
+    row = m.sparse_vector_r()
+    col = m.sparse_vector_c()
+    assert isinstance(row, sp.csr_matrix)
+    assert isinstance(col, sp.csc_matrix)
+    np.testing.assert_array_equal(row.toarray(), ref[2:3, :])
+    np.testing.assert_array_equal(col.toarray(), ref[:, 1:2])
+
+    np.testing.assert_array_equal(m.sparse_vector_copy_r(row).toarray(), ref[2:3, :])
+    np.testing.assert_array_equal(m.sparse_vector_copy_c(col).toarray(), ref[:, 1:2])
+    np.testing.assert_array_equal(
+        m.sparse_vector_copy_r(sp.csc_matrix(row)).toarray(), ref[2:3, :]
+    )
+    np.testing.assert_array_equal(
+        m.sparse_vector_copy_c(sp.csr_matrix(col)).toarray(), ref[:, 1:2]
+    )
+
+    with pytest.raises(TypeError):
+        m.sparse_vector_copy_r(col)
+    with pytest.raises(TypeError):
+        m.sparse_vector_copy_c(row)
+    with pytest.raises(TypeError):
+        m.sparse_vector_copy_c(sp.csc_matrix(ref))
+
+
+def test_sparse_array():
+    sp = pytest.importorskip("scipy.sparse")
+    if not hasattr(sp, "csr_array"):
+        pytest.skip("scipy.sparse arrays need SciPy 1.8+")
+
+    for array_type in (sp.csr_array, sp.csc_array):
+        assert_sparse_equal_ref(m.sparse_copy_r(array_type(ref)))
+        assert_sparse_equal_ref(m.sparse_copy_c(array_type(ref)))
+        np.testing.assert_array_equal(
+            m.sparse_vector_copy_r(array_type(ref[2:3, :])).toarray(), ref[2:3, :]
+        )
+        np.testing.assert_array_equal(
+            m.sparse_vector_copy_c(array_type(ref[:, 1:2])).toarray(), ref[:, 1:2]
+        )
+
+    vec = sp.coo_array(ref[2])
+    if vec.ndim != 1:
+        return  # 1-D sparse arrays need SciPy 1.13+
+
+    np.testing.assert_array_equal(m.sparse_vector_copy_r(vec).toarray(), ref[2:3, :])
+    np.testing.assert_array_equal(
+        m.sparse_vector_copy_c(vec).toarray(), ref[2].reshape(-1, 1)
+    )
+    with pytest.raises(TypeError):
+        m.sparse_copy_r(vec)
+    with pytest.raises(TypeError):
+        m.sparse_copy_c(vec)
+
+
 @pytest.mark.parametrize("layout", ["r", "c"])
 @pytest.mark.parametrize("readonly", ["data", "indices", "indptr", "all"])
 def test_sparse_readonly(layout, readonly):
