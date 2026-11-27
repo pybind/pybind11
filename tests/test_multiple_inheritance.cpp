@@ -78,6 +78,17 @@ struct I801B2 {
 struct I801C : I801B1, I801B2 {};
 struct I801D : I801C {}; // Indirect MI
 
+// Issue #1080: the vptr of a polymorphic derived class offsets a non-polymorphic base
+struct I1080Base {
+    unsigned int a = 1;
+    unsigned int d = 4;
+};
+struct I1080Derived : I1080Base {
+    I1080Derived() = default;
+    I1080Derived(const I1080Derived &) = default;
+    virtual ~I1080Derived() = default;
+};
+
 } // namespace
 
 TEST_SUBMODULE(multiple_inheritance, m) {
@@ -344,4 +355,15 @@ TEST_SUBMODULE(multiple_inheritance, m) {
         .def("get_f_e", &MVF::get_f_e)
         .def("get_f_f", &MVF::get_f_f)
         .def_readwrite("f", &MVF::f);
+
+    py::class_<I1080Base>(m, "I1080Base")
+        .def(py::init<>())
+        .def_readwrite("a", &I1080Base::a)
+        .def_readwrite("d", &I1080Base::d);
+    py::class_<I1080Derived, I1080Base>(m, "I1080Derived").def(py::init<>());
+    m.def("i1080_get_d", [](const I1080Base &b) { return b.d; });
+    m.def(
+        "i1080_as_base",
+        [](I1080Derived &d) -> I1080Base * { return &d; },
+        py::return_value_policy::reference);
 }
