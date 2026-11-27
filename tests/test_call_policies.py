@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import sys
+
 import pytest
 
 import env  # noqa: F401
@@ -59,6 +61,21 @@ def test_keep_alive_argument(capture):
     with pytest.raises(RuntimeError) as excinfo:
         m.invalid_arg_index()
     assert str(excinfo.value) == "Could not activate keep_alive!"
+
+
+@pytest.mark.skipif("not env.CPYTHON", reason="Uses sys.getrefcount")
+def test_keep_alive_no_duplicate_patients():
+    # Regression test for #1251: repeated keep_alive with the same pair must not
+    # add the patient again.
+    p = m.Parent()
+    c = m.Child()
+    m.free_function(p, c)
+    refcount = sys.getrefcount(c)
+    for _ in range(5):
+        m.free_function(p, c)
+    assert sys.getrefcount(c) == refcount
+    del p
+    assert sys.getrefcount(c) == refcount - 1
 
 
 @pytest.mark.skipif("env.GRAALPY", reason="Cannot reliably trigger GC")
