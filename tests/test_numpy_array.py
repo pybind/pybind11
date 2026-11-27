@@ -871,6 +871,16 @@ def test_arraylike_signature(doc):
         m.round_trip_array_t_noconvert([1, 2, 3])
 
 
+@pytest.mark.skipif(m.defined_NDEBUG, reason="requires a debug build")
+@pytest.mark.parametrize("mutable_access", [False, True], ids=["const", "mutable"])
+def test_typed_data_alignment(mutable_access):
+    packed = np.zeros(2, dtype=[("a", np.uint16), ("b", np.uint8)])
+    field = packed["a"]
+    m.check_typed_data_alignment(field, 0, mutable_access)
+    with pytest.raises(ValueError, match="not aligned"):
+        m.check_typed_data_alignment(field, 1, mutable_access)
+
+
 def test_at_stride_not_multiple_of_itemsize():
     packed = np.zeros(3, dtype=[("a", np.uint16), ("b", np.uint8)])
     packed["a"] = [10, 20, 30]

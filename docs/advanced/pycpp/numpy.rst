@@ -434,6 +434,14 @@ uses of ``py::array``:
     The file :file:`tests/test_numpy_array.cpp` contains additional examples
     demonstrating the use of this feature.
 
+The caller must ensure that the address requested by ``array_t<T>::data()`` or
+``array_t<T>::mutable_data()`` is aligned for ``T``. Builds with ``NDEBUG``
+undefined check this precondition and raise ``ValueError`` on misalignment.
+Use the same ``NDEBUG`` setting across the translation units of an extension.
+The reference accessors ``at()`` and ``mutable_at()`` check alignment in all
+builds. For raw byte access, use ``py::array::data()`` or
+``py::array::mutable_data()``.
+
 Ellipsis
 ========
 

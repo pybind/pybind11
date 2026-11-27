@@ -1506,14 +1506,24 @@ public:
         return offset_at(index...) / itemsize();
     }
 
+    // The requested address must be aligned for T. Debug builds check this before casting.
     template <typename... Ix>
     const T *data(Ix... index) const {
-        return static_cast<const T *>(array::data(index...));
+        const auto *ptr = array::data(index...);
+#ifndef NDEBUG
+        check_aligned(ptr);
+#endif
+        return static_cast<const T *>(ptr);
     }
 
+    // Same alignment precondition as data().
     template <typename... Ix>
     T *mutable_data(Ix... index) {
-        return static_cast<T *>(array::mutable_data(index...));
+        auto *ptr = array::mutable_data(index...);
+#ifndef NDEBUG
+        check_aligned(ptr);
+#endif
+        return static_cast<T *>(ptr);
     }
 
     // Reference to element at a given index. Negative indices count from the end of each
