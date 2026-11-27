@@ -1093,7 +1093,10 @@ protected:
         }
         if (v_h.holder_constructed()) {
             value = v_h.value_ptr();
-            shared_ptr_storage = v_h.template holder<std::shared_ptr<type>>();
+            // The holder can be a copy of a shared_ptr to an offset base (#4365), so only
+            // its ownership is used.
+            shared_ptr_storage = std::shared_ptr<type>(
+                v_h.template holder<std::shared_ptr<type>>(), static_cast<type *>(value));
             return;
         }
         throw cast_error("Unable to cast from non-held to held instance (T& to Holder<T>) "
