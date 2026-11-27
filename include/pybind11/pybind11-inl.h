@@ -437,7 +437,12 @@ PYBIND11_NAMESPACE_BEGIN(detail)
 PYBIND11_INLINE function get_type_override(const void *this_ptr,
                                            const type_info *this_type,
                                            const char *name) {
+#if defined(Py_GIL_DISABLED)
+    // C++ ownership does not keep the Python wrapper alive while another thread drops it.
+    object self = get_object(this_ptr, this_type);
+#else
     handle self = get_object_handle(this_ptr, this_type);
+#endif
     if (!self) {
         return function();
     }
@@ -454,6 +459,11 @@ PYBIND11_INLINE function get_type_override(const void *this_ptr,
         return function();
     }
 
+#if !defined(Py_GIL_DISABLED)
+    // Attribute lookup can execute Python code that drops the wrapper's last owner.
+    // Defer this reference until after the cached no-override fast path.
+    object self_owner = reinterpret_borrow<object>(self);
+#endif
     function override = getattr(self, name, function());
     if (override.is_cpp_function()) {
         with_internals([&](internals &internals) {

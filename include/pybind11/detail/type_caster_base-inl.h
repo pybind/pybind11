@@ -429,8 +429,8 @@ PYBIND11_NOINLINE_ATTR PYBIND11_INLINE bool isinstance_generic(handle obj,
     return isinstance(obj, type);
 }
 
-PYBIND11_NOINLINE_ATTR PYBIND11_INLINE handle get_object_handle(const void *ptr,
-                                                                const detail::type_info *type) {
+template <bool Own>
+PYBIND11_INLINE PyObject *get_object_impl(const void *ptr, const detail::type_info *type) {
 #if defined(PYBIND11_OPAQUE_PYOBJECT)
     // values_and_holders() takes the internals lock, which can suspend the instance map's
     // critical section: take strong references first, then inspect them without the map lock.
@@ -451,26 +451,39 @@ PYBIND11_NOINLINE_ATTR PYBIND11_INLINE handle get_object_handle(const void *ptr,
     for (auto &wrapper : candidates) {
         for (const auto &vh : values_and_holders(wrapper.ptr())) {
             if (vh.type == type) {
-                // Borrowed: the Python owner of `ptr` keeps the wrapper alive, as in the
-                // non-opaque path.
-                return handle(wrapper);
+                return Own ? wrapper.release().ptr() : wrapper.ptr();
             }
         }
     }
-    return handle();
+    return nullptr;
 #else
-    return with_instance_map(ptr, [&](instance_map &instances) {
+    return with_instance_map(ptr, [&](instance_map &instances) -> PyObject * {
         auto range = instances.equal_range(ptr);
         for (auto it = range.first; it != range.second; ++it) {
             for (const auto &vh : values_and_holders(it->second)) {
                 if (vh.type == type) {
-                    return handle(instance_object(it->second));
+                    auto *wrapper = instance_object(it->second);
+                    // The owning lookup must acquire its reference before releasing the map
+                    // lock, and must not revive a wrapper whose deallocation has started.
+                    if (!Own || try_incref(wrapper)) {
+                        return wrapper;
+                    }
                 }
             }
         }
-        return handle();
+        return nullptr;
     });
 #endif
+}
+
+PYBIND11_NOINLINE_ATTR PYBIND11_INLINE handle get_object_handle(const void *ptr,
+                                                                const detail::type_info *type) {
+    return handle(get_object_impl<false>(ptr, type));
+}
+
+PYBIND11_NOINLINE_ATTR PYBIND11_INLINE object get_object(const void *ptr,
+                                                         const detail::type_info *type) {
+    return reinterpret_steal<object>(get_object_impl<true>(ptr, type));
 }
 
 PYBIND11_INLINE object cpp_conduit_method(handle self,
