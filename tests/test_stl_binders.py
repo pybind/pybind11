@@ -103,6 +103,29 @@ def test_vector_delitem_slice_step_zero():
     assert list(v) == list(range(8))
 
 
+def test_vector_slice_index_resizes_vector():
+    # __index__ on a slice bound runs while the slice is being computed and
+    # must not leave the indices computed against the old length.
+    class Shrink:
+        def __init__(self, v):
+            self.v = v
+
+        def __index__(self):
+            del self.v[1:]
+            return 0
+
+    v = m.VectorInt(range(64))
+    with pytest.raises(IndexError):
+        v[Shrink(v) : 64]
+    v = m.VectorInt(range(64))
+    with pytest.raises(IndexError):
+        v[Shrink(v) : 64] = m.VectorInt(range(64))
+    v = m.VectorInt(range(64))
+    with pytest.raises(IndexError):
+        del v[Shrink(v) : 64 : 2]
+    assert v == m.VectorInt([0])
+
+
 # Older PyPy's failed here, related to the PyPy's buffer protocol.
 def test_vector_buffer():
     b = bytearray([1, 2, 3, 4])
