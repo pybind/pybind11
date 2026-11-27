@@ -961,7 +961,8 @@ protected:
     template <typename T = holder_type,
               detail::enable_if_t<std::is_constructible<T, const T &, type *>::value, int> = 0>
     bool try_implicit_casts(handle src, bool convert) {
-        for (auto &cast : typeinfo->implicit_casts) {
+        implicit_cast_t cast;
+        for (size_t i = 0; get_implicit_cast(typeinfo, i, cast); ++i) {
             copyable_holder_caster sub_caster(*cast.first);
             if (sub_caster.load(src, convert)) {
                 value = cast.second(sub_caster.value);
@@ -1115,7 +1116,8 @@ protected:
     template <typename T = std::shared_ptr<type>,
               detail::enable_if_t<std::is_constructible<T, const T &, type *>::value, int> = 0>
     bool try_implicit_casts(handle src, bool convert) {
-        for (auto &cast : typeinfo->implicit_casts) {
+        implicit_cast_t cast;
+        for (size_t i = 0; get_implicit_cast(typeinfo, i, cast); ++i) {
             copyable_holder_caster sub_caster(*cast.first);
             if (sub_caster.load(src, convert)) {
                 value = cast.second(sub_caster.value);
@@ -1316,7 +1318,8 @@ public:
     }
 
     bool try_implicit_casts(handle src, bool convert) {
-        for (auto &cast : typeinfo->implicit_casts) {
+        implicit_cast_t cast;
+        for (size_t i = 0; get_implicit_cast(typeinfo, i, cast); ++i) {
             move_only_holder_caster sub_caster(*cast.first);
             if (sub_caster.load(src, convert)) {
                 value = cast.second(sub_caster.value);

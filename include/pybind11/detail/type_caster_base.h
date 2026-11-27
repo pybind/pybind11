@@ -800,7 +800,8 @@ public:
         value = vptr;
     }
     bool try_implicit_casts(handle src, bool convert) {
-        for (const auto &cast : typeinfo->implicit_casts) {
+        implicit_cast_t cast;
+        for (size_t i = 0; get_implicit_cast(typeinfo, i, cast); ++i) {
             type_caster_generic sub_caster(*cast.first);
             if (sub_caster.load(src, convert)) {
                 value = cast.second(sub_caster.value);
@@ -859,25 +860,31 @@ public:
         // Case 2: We have a derived class
         if (PyType_IsSubtype(srctype, typeinfo->type)) {
             const auto &bases = all_type_info(srctype);
-            bool no_cpp_mi = typeinfo->simple_type;
+            // Cases 2a and 2b read `simple_ancestors` of the source bases and not
+            // `typeinfo->simple_type`. On free-threaded builds, another thread can register a
+            // subclass at any time, and that clears `simple_type` on this (already published)
+            // parent. `simple_ancestors` does not change after the type is published.
+            // PR #6298 was verified by inspection. No targeted race test yet.
 
-            // Case 2a: the python type is a Python-inherited derived class that inherits from just
-            // one simple (no MI) pybind11 class, or is an exact match, so the C++ instance is of
+            // Case 2a: the python type inherits from just one pybind11 class that has no C++ MI
+            // in its ancestors, or that is an exact match, so the C++ instance is of
             // the right type and we can use reinterpret_cast.
             // (This is essentially the same as case 2b, but because not using multiple inheritance
             // is extremely common, we handle it specially to avoid the loop iterator and type
             // pointer lookup overhead)
-            if (bases.size() == 1 && (no_cpp_mi || bases.front()->type == typeinfo->type)) {
+            if (bases.size() == 1
+                && (bases.front()->simple_ancestors || bases.front()->type == typeinfo->type)) {
                 this_.load_value(get_instance(src.ptr())->get_value_and_holder());
                 return true;
             }
             // Case 2b: the python type inherits from multiple C++ bases.  Check the bases to see
-            // if we can find an exact match (or, for a simple C++ type, an inherited match); if
-            // so, we can safely reinterpret_cast to the relevant pointer.
+            // if we can find an exact match (or, for a base without C++ MI in its ancestors, an
+            // inherited match); if so, we can safely reinterpret_cast to the relevant pointer.
             if (bases.size() > 1) {
                 for (auto *base : bases) {
-                    if (no_cpp_mi ? PyType_IsSubtype(base->type, typeinfo->type)
-                                  : base->type == typeinfo->type) {
+                    if (base->type == typeinfo->type
+                        || (base->simple_ancestors
+                            && PyType_IsSubtype(base->type, typeinfo->type) != 0)) {
                         this_.load_value(get_instance(src.ptr())->get_value_and_holder(base));
                         return true;
                     }

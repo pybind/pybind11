@@ -556,6 +556,12 @@ struct type_info {
     /* A simple type never occurs as a (direct or indirect) parent
      * of a class that makes use of multiple inheritance.
      * A type can be simple even if it has non-simple ancestors as long as it has no descendants.
+     * This is written when a subclass is registered, so reads are not thread-safe. pybind11
+     * no longer reads it; it stays up to date for modules built with pybind11 <= 3.1.
+     * The write is under the internals lock, but it rewrites the byte shared with the flags
+     * below. Unlocked reads of those flags are formally a data race with it; their values do
+     * not change after the type is published, so the reader always gets the correct bit.
+     * Separate storage needs a new PYBIND11_INTERNALS_VERSION.
      */
     bool simple_type : 1;
     /* True if there is no multiple inheritance in this type's inheritance tree */
@@ -953,6 +959,31 @@ inline auto with_internals(const F &cb) -> decltype(cb(get_internals())) {
     auto &internals = get_internals();
     PYBIND11_LOCK_INTERNALS(internals);
     return cb(internals);
+}
+
+using implicit_cast_t = std::pair<const std::type_info *, void *(*)(void *)>;
+
+// Reads entry `index` of `tinfo->implicit_casts` into `out`; returns false past the end.
+// On free-threaded builds, another thread can register a derived class at any time, and
+// type_record::add_base() then appends to the vector of this (already published) base.
+// An unlocked reader could see the vector during reallocation. The append and this read both
+// hold the internals lock. Callers must not hold the lock while they use the entry, because
+// the cast functions and nested loads can take it again.
+// PR #6298 was verified by inspection. No targeted race test yet.
+inline bool get_implicit_cast(const type_info *tinfo, size_t index, implicit_cast_t &out) {
+    auto read = [&]() {
+        if (index >= tinfo->implicit_casts.size()) {
+            return false;
+        }
+        out = tinfo->implicit_casts[index];
+        return true;
+    };
+#ifdef Py_GIL_DISABLED
+    return with_internals([&](internals &) { return read(); });
+#else
+    // No lock to take, so skip the internals lookup.
+    return read();
+#endif
 }
 
 template <typename F>

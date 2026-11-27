@@ -384,7 +384,8 @@ PYBIND11_INLINE void traverse_offset_bases(void *valueptr,
                                            bool (*f)(void * /*parentptr*/, instance * /*self*/)) {
     for (handle h : get_bases(tinfo->type)) {
         if (auto *parent_tinfo = get_type_info(reinterpret_cast<PyTypeObject *>(h.ptr()))) {
-            for (auto &c : parent_tinfo->implicit_casts) {
+            implicit_cast_t c;
+            for (size_t i = 0; get_implicit_cast(parent_tinfo, i, c); ++i) {
                 if (c.first == tinfo->cpptype) {
                     auto *parentptr = c.second(valueptr);
                     if (parentptr != valueptr) {
