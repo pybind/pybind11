@@ -35,6 +35,10 @@ private:
     value_and_holder *value = nullptr;
 };
 
+/// Adds a `__reduce_ex__` to `cl` that makes pickle protocols 0 and 1 work with `__setstate__`.
+/// A `__reduce_ex__` that the user binds on `cl`, before or after this call, takes precedence.
+void add_pickle_reduce_ex(handle cl);
+
 PYBIND11_NAMESPACE_BEGIN(initimpl)
 
 inline void no_nullptr(const void *ptr) {
@@ -522,6 +526,8 @@ struct pickle_factory<Get, Set, RetState(Self), NewInstance(ArgState)> {
     template <typename Class, typename... Extra>
     void execute(Class &cl, const Extra &...extra) && {
         cl.def("__getstate__", std::move(get), pos_only());
+
+        add_pickle_reduce_ex(cl);
 
 #if defined(__cpp_init_captures) && __cpp_init_captures >= 201304L
         cl.def(

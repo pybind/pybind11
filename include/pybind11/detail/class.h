@@ -157,6 +157,7 @@ Py_ssize_t static_property_dict_offset();
 /// for holding C++ objects and holders.  Allocation is done lazily (the first time the instance is
 /// cast to a reference or pointer), and initialization is done by an `__init__` function.
 PyObject *make_new_instance(PyTypeObject *type);
+PyObject *make_new_instance(PyTypeObject *type, const std::vector<type_info *> &tinfo);
 
 /// Instance creation function for all pybind11 types. It only allocates space for the
 /// C++ object, but doesn't call the constructor -- an `__init__` function must do that.

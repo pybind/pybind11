@@ -893,12 +893,10 @@ An instance can now be pickled as follows:
 
 
 .. note::
-    If given, the second argument to ``dumps`` must be 2 or larger - 0 and 1 are
-    not supported. Newer versions are also fine; for instance, specify ``-1`` to
-    always use the latest available version. Beware: failure to follow these
-    instructions will cause important pybind11 memory allocation routines to be
-    skipped during unpickling, which will likely lead to memory corruption
-    and/or segmentation faults.
+    Classes that use ``py::pickle()`` and ``py::enum_`` types support all
+    pickle protocols. If you bind ``__getstate__`` and ``__setstate__``
+    directly, the second argument to ``dumps`` must be 2 or larger; protocols
+    0 and 1 are not supported.
 
 .. seealso::
 

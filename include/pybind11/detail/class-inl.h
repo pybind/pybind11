@@ -713,7 +713,9 @@ PYBIND11_INLINE Py_ssize_t instance_data_offset() {
 }
 #endif
 
-PYBIND11_INLINE PyObject *make_new_instance(PyTypeObject *type) {
+// `tinfo` must be `all_type_info(type)`; the caller passes it to avoid a second lookup.
+PYBIND11_INLINE PyObject *make_new_instance(PyTypeObject *type,
+                                            const std::vector<type_info *> &tinfo) {
 #if defined(PYPY_VERSION)
     // PyPy gets tp_basicsize wrong (issue 2482) under multiple inheritance when the first
     // inherited object is a plain Python type (i.e. not derived from an extension type).  Fix it.
@@ -725,14 +727,26 @@ PYBIND11_INLINE PyObject *make_new_instance(PyTypeObject *type) {
     PyObject *self = type_alloc(type);
     auto *inst = get_instance(self);
     // Allocate the value/holder internals:
-    inst->allocate_layout();
+    inst->allocate_layout(tinfo);
 
     return self;
 }
 
+PYBIND11_INLINE PyObject *make_new_instance(PyTypeObject *type) {
+    return make_new_instance(type, all_type_info(type));
+}
+
 extern "C" PYBIND11_INLINE PyObject *
 pybind11_object_new(PyTypeObject *type, PyObject *, PyObject *) {
-    return make_new_instance(type);
+    // Must not throw into C; reachable from pickle protocols 0 and 1 (issue #3745).
+    const auto &tinfo = all_type_info(type);
+    if (tinfo.empty()) {
+        std::string msg = "cannot create '" + get_fully_qualified_tp_name(type)
+                          + "' instances: no pybind11-registered base types";
+        set_error(PyExc_TypeError, msg.c_str());
+        return nullptr;
+    }
+    return make_new_instance(type, tinfo);
 }
 
 extern "C" PYBIND11_INLINE int pybind11_object_init(PyObject *self, PyObject *, PyObject *) {

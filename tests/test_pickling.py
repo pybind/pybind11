@@ -48,14 +48,25 @@ def test_pickle_simple_callable(protocol):
     # creates issues.
 
 
+@pytest.mark.parametrize("protocol", all_pickle_protocols())
 @pytest.mark.parametrize("cls_name", ["Pickleable", "PickleableNew"])
-def test_roundtrip(cls_name):
+def test_roundtrip(cls_name, protocol):
     cls = getattr(m, cls_name)
     p = cls("test_value")
     p.setExtra1(15)
     p.setExtra2(48)
 
-    data = pickle.dumps(p, 2)  # Must use pickle protocol >= 2
+    if cls_name == "Pickleable" and protocol < 2:
+        # Only py::pickle() supports protocols 0 and 1 (issue #3745)
+        if env.PYPY:
+            pytest.skip(
+                "PyPy pickles it, but loads calls __setstate__ on an uninitialized instance"
+            )
+        with pytest.raises(TypeError):
+            pickle.dumps(p, protocol)
+        return
+
+    data = pickle.dumps(p, protocol)
     p2 = pickle.loads(data)
     assert p2.value() == p.value()
     assert p2.extra1() == p.extra1()
@@ -89,10 +100,35 @@ def test_roundtrip_with_dict(cls_name):
     assert p2.dynamic == p.dynamic
 
 
-def test_enum_pickle():
+class ReduceExMixin:
+    def __reduce_ex__(self, protocol):
+        return (type(self), (f"mixin:{protocol}",))
+
+
+class PyDerivedWithMixin(m.PickleableNew, ReduceExMixin):
+    pass
+
+
+@pytest.mark.parametrize("protocol", all_pickle_protocols())
+@pytest.mark.parametrize(
+    "cls_name", ["ReduceExDerived", "ReduceExAfter", "ReduceExBefore"]
+)
+def test_pickle_keeps_user_reduce_ex(cls_name, protocol):
+    p = getattr(m, cls_name)("x")
+    assert pickle.loads(pickle.dumps(p, protocol)).value == f"custom:{protocol}"
+
+
+@pytest.mark.parametrize("protocol", all_pickle_protocols())
+def test_pickle_keeps_mixin_reduce_ex(protocol):
+    p = PyDerivedWithMixin("x")
+    assert pickle.loads(pickle.dumps(p, protocol)).value() == f"mixin:{protocol}"
+
+
+@pytest.mark.parametrize("protocol", all_pickle_protocols())
+def test_enum_pickle(protocol):
     from pybind11_tests import enums as e
 
-    data = pickle.dumps(e.EOne, 2)
+    data = pickle.dumps(e.EOne, protocol)
     assert e.EOne == pickle.loads(data)
 
 
@@ -136,6 +172,13 @@ def test_new_style_pickle_getstate_pos_only():
     assert (
         re.match(
             r"^__getstate__\(self: [\w\.]+, /\)", m.PickleableNew.__getstate__.__doc__
+        )
+        is not None
+    )
+    assert (
+        re.match(
+            r"^__reduce_ex__\(self: object, protocol: [^,]+, /\)",
+            m.PickleableNew.__reduce_ex__.__doc__,
         )
         is not None
     )

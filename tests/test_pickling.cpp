@@ -12,6 +12,7 @@
 
 #include <memory>
 #include <stdexcept>
+#include <string>
 #include <utility>
 
 namespace exercise_trampoline {
@@ -56,6 +57,71 @@ void wrap(py::module m) {
 }
 
 } // namespace exercise_trampoline
+
+namespace user_reduce_ex {
+
+struct Base {
+    std::string value;
+};
+struct Derived : Base {};
+struct After {
+    std::string value;
+};
+struct Before {
+    std::string value;
+};
+
+template <typename Class>
+void def_pickle(Class &cl) {
+    using T = typename Class::type;
+    cl.def(py::pickle([](const T &self) { return self.value; },
+                      [](const std::string &value) {
+                          T self;
+                          self.value = value;
+                          return self;
+                      }));
+}
+
+template <typename Class>
+void def_init_and_value(Class &cl) {
+    using T = typename Class::type;
+    cl.def(py::init([](const std::string &value) {
+          T self;
+          self.value = value;
+          return self;
+      }))
+        .def_readonly("value", &T::value);
+}
+
+template <typename Class>
+void def_reduce_ex(Class &cl) {
+    cl.def("__reduce_ex__", [](const py::object &self, int protocol) {
+        return py::make_tuple(py::type::of(self),
+                              py::make_tuple("custom:" + std::to_string(protocol)));
+    });
+}
+
+void wrap(py::module_ &m) {
+    // `__reduce_ex__` in a base class, `py::pickle()` in the derived class
+    py::class_<Base> base(m, "ReduceExBase");
+    def_init_and_value(base);
+    def_reduce_ex(base);
+    py::class_<Derived, Base> derived(m, "ReduceExDerived");
+    def_init_and_value(derived);
+    def_pickle(derived);
+
+    py::class_<After> after(m, "ReduceExAfter");
+    def_init_and_value(after);
+    def_pickle(after);
+    def_reduce_ex(after);
+
+    py::class_<Before> before(m, "ReduceExBefore");
+    def_init_and_value(before);
+    def_reduce_ex(before);
+    def_pickle(before);
+}
+
+} // namespace user_reduce_ex
 
 TEST_SUBMODULE(pickling, m) {
     m.def("simple_callable", []() { return 20220426; });
@@ -188,4 +254,5 @@ TEST_SUBMODULE(pickling, m) {
 #endif
 
     exercise_trampoline::wrap(m);
+    user_reduce_ex::wrap(m);
 }
