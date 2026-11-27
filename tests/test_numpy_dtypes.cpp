@@ -57,7 +57,9 @@ PYBIND11_PACKED(struct NestedStruct {
 });
 
 std::ostream &operator<<(std::ostream &os, const NestedStruct &v) {
-    return os << "n:a=" << v.a << ";b=" << v.b;
+    // Copy: binding a reference to a member of a packed struct can be misaligned.
+    const SimpleStruct a = v.a;
+    return os << "n:a=" << a << ";b=" << v.b;
 }
 
 struct PartialStruct {

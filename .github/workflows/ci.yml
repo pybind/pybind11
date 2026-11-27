@@ -67,7 +67,7 @@ jobs:
             fuzz-replay: true
           - runs-on: macos-latest
             python-version: '3.14'
-            cmake-args: -DCMAKE_CXX_STANDARD=14
+            cmake-args: -DCMAKE_CXX_STANDARD=14 -DCMAKE_CXX_FLAGS=-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_DEBUG
           - runs-on: windows-2022
             python-version: '3.9'
             cmake-args: -DPYBIND11_FINDPYTHON=OFF
@@ -399,7 +399,7 @@ jobs:
             cmake-args: -DCMAKE_CXX_STANDARD=17 -DPYBIND11_DISABLE_HANDLE_TYPE_NAME_DEFAULT_IMPLEMENTATION=ON
           - runs-on: macos-latest
             python-version: '3.14t'
-            cmake-args: -DCMAKE_CXX_STANDARD=20
+            cmake-args: -DCMAKE_CXX_STANDARD=20 -DCMAKE_CXX_FLAGS=-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_DEBUG
           - runs-on: macos-latest
             python-version: '3.15'
             cmake-args: -DCMAKE_CXX_STANDARD=17
@@ -777,7 +777,7 @@ jobs:
           - gcc: 13
             std: 20
             container: "gcc:13"
-            cxx_flags: "-Wall -Wextra -Wwrite-strings -Wunreachable-code -Wpointer-arith -Wredundant-decls"
+            cxx_flags: "-Wall -Wextra -Wwrite-strings -Wunreachable-code -Wpointer-arith -Wredundant-decls -D_GLIBCXX_ASSERTIONS -fsanitize=undefined -fno-sanitize-recover=all"
 
     name: "🐍 3 • GCC ${{ matrix.gcc }} • C++${{ matrix.std }} • x64${{ matrix.cxx_flags && ' • cxx_flags' || '' }}"
     container: "${{ matrix.container }}"
