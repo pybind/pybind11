@@ -617,6 +617,19 @@ def test_array_cast_sequence():
     assert m.array_cast_sequence((1, 2, 3)) == [1, 2, 3]
 
 
+def test_large_array():
+    assert m.sum_large_array(range(102400)) == 102399 * 102400 // 2
+    with pytest.raises(TypeError):
+        m.sum_large_array(range(10))
+    with pytest.raises(TypeError):
+        m.sum_large_array([0] * 102399 + ["x"])
+
+
+def test_array_explicit_default_constructor():
+    items = [m.ExplicitDefault(1), m.ExplicitDefault(2)]
+    assert m.sum_explicit_default_array(items) == 3
+
+
 class SequenceWithChangingLen:
     """Reports `lens[0]` when first asked for its length, `lens[1]` after that."""
 

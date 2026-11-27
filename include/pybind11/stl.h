@@ -458,7 +458,7 @@ private:
     std::unique_ptr<ArrayType> value;
     element_casters<Value> value_casters;
 
-    // Both `convert_elements` overloads index `l` up to a size that is determined only once,
+    // All `convert_elements` overloads index `l` up to a size that is determined only once,
     // rather than iterating over `l`: the accesses stay in bounds even if the length of `l`
     // changes underneath (e.g. if another thread resizes a list in a free-threaded build).
 
@@ -486,7 +486,37 @@ private:
         return true;
     }
 
-    template <bool R = Resizable, enable_if_t<!R, int> = 0>
+    // Filling in place avoids the index_sequence expansion in vector_to_array,
+    // which is very slow to compile for large Size (#5765).
+    template <bool R = Resizable,
+              enable_if_t<!R && std::is_default_constructible<Value>::value
+                              && std::is_move_assignable<Value>::value,
+                          int> = 0>
+    bool convert_elements(handle seq, bool convert) {
+        auto l = reinterpret_borrow<sequence>(seq);
+        const size_t size = l.size();
+        if (size != Size) {
+            return false;
+        }
+        // Not `ArrayType{}`: that does not compile if `Value` has an explicit default constructor.
+        std::unique_ptr<ArrayType> result(new ArrayType());
+        for (size_t i = 0; i < size; i++) {
+            value_conv conv;          // Constructed before the item is fetched.
+            const object item = l[i]; // Keeps the item alive while `conv` is in use.
+            if (!conv.load(item, convert)) {
+                return false;
+            }
+            (*result)[i] = cast_op<Value &&>(std::move(conv));
+        }
+        value = std::move(result);
+        return true;
+    }
+
+    template <bool R = Resizable,
+              enable_if_t<!R
+                              && !(std::is_default_constructible<Value>::value
+                                   && std::is_move_assignable<Value>::value),
+                          int> = 0>
     bool convert_elements(handle seq, bool convert) {
         auto l = reinterpret_borrow<sequence>(seq);
         const size_t size = l.size();
@@ -495,9 +525,6 @@ private:
         }
         // The `temp` storage is needed to support `Value` types that are not
         // default-constructible.
-        // Deliberate choice: no template specializations, for simplicity, and
-        // because the compile time overhead for the specializations is deemed
-        // more significant than the runtime overhead for the `temp` storage.
         std::vector<Value> temp;
         temp.reserve(size);
         value_casters.clear();
