@@ -146,8 +146,8 @@ available and in how a few things are implemented.
      - Through the ``Py_bf_*`` type slots.
    * - ``py::gil_scoped_acquire`` / ``release``
      - supported
-     - ``PYBIND11_SIMPLE_GIL_MANAGEMENT`` is forced; ``disarm()`` and
-       thread-state disassociation are not available.
+     - ``PYBIND11_SIMPLE_GIL_MANAGEMENT`` is forced; thread-state
+       disassociation is not available.
    * - ``py::metaclass(handle)``
      - restricted
      - The metaclass must not define ``__new__``, and a metaclass less

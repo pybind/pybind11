@@ -34,6 +34,21 @@ public:
     explicit SlowInit(int) {}
 };
 
+// PyGILState_Check is not part of the stable ABI.
+#if defined(Py_LIMITED_API)
+constexpr bool can_check_gil = false;
+#else
+constexpr bool can_check_gil = true;
+#endif
+
+static bool gil_held() {
+#if defined(Py_LIMITED_API)
+    return false;
+#else
+    return PyGILState_Check() != 0;
+#endif
+}
+
 class PyVirtClass : public VirtClass {
     void virtual_func() override { PYBIND11_OVERRIDE(void, VirtClass, virtual_func, ); }
     void pure_virtual_func() override {
@@ -51,6 +66,45 @@ TEST_SUBMODULE(gil_scoped, m) {
 
     m.def("intentional_deadlock",
           []() { std::thread([]() { py::gil_scoped_acquire gil_acquired; }).join(); });
+
+    m.attr("can_check_gil") = can_check_gil;
+
+    // The tests below return whether the GIL is held after the disarmed scope
+    // ends. If disarm() does not work, they skip the cleanup to fail, not hang.
+    m.def("test_release_disarm", []() {
+        PyThreadState *tstate = PyThreadState_Get();
+        {
+            py::gil_scoped_release no_gil;
+            no_gil.disarm();
+        }
+        bool held = gil_held();
+        if (!held) {
+            PyEval_RestoreThread(tstate);
+        }
+        return held;
+    });
+
+    m.def("test_acquire_disarm", []() {
+        bool held = false;
+        py::gil_scoped_release no_gil;
+        // A new thread, so that the acquire creates the thread state.
+        std::thread([&held]() {
+            {
+                py::gil_scoped_acquire gil;
+                gil.disarm();
+            }
+            held = gil_held();
+            if (held || !can_check_gil) {
+                // Do the cleanup that the disarmed destructor skipped.
+#if defined(PYBIND11_SIMPLE_GIL_MANAGEMENT)
+                PyGILState_Release(PyGILState_UNLOCKED);
+#else
+                PyThreadState_DeleteCurrent();
+#endif
+            }
+        }).join();
+        return held;
+    });
 
     py::class_<VirtClass, PyVirtClass>(m, "VirtClass")
         .def(py::init<>())
