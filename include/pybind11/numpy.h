@@ -1517,23 +1517,23 @@ public:
     }
 
     // Reference to element at a given index. Negative indices count from the end of each
-    // dimension. Throws if out of bounds.
+    // dimension. Throws if out of bounds or if the element is not aligned for T.
     template <typename... Ix>
     const T &at(Ix... index) const {
         if ((ssize_t) sizeof...(index) != ndim()) {
             fail_dim_check(sizeof...(index), "index dimension mismatch");
         }
-        return *data(index...);
+        return *static_cast<const T *>(check_aligned(array::data(index...)));
     }
 
     // Mutable reference to element at a given index. Negative indices count from the end of each
-    // dimension. Throws if out of bounds.
+    // dimension. Throws if out of bounds or if the element is not aligned for T.
     template <typename... Ix>
     T &mutable_at(Ix... index) {
         if ((ssize_t) sizeof...(index) != ndim()) {
             fail_dim_check(sizeof...(index), "index dimension mismatch");
         }
-        return *mutable_data(index...);
+        return *static_cast<T *>(check_aligned(array::mutable_data(index...)));
     }
 
     /**
@@ -1591,6 +1591,16 @@ protected:
                                                        detail::npy_api::NPY_ARRAY_ENSUREARRAY_
                                                            | ExtraFlags,
                                                        nullptr);
+    }
+
+private:
+    // Strides that are not a multiple of alignof(T) can give misaligned elements.
+    template <typename U>
+    static U *check_aligned(U *ptr) {
+        if (reinterpret_cast<std::uintptr_t>(ptr) % alignof(T) != 0) {
+            throw value_error("array element is not aligned for its type");
+        }
+        return ptr;
     }
 };
 
