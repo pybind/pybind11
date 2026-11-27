@@ -483,11 +483,16 @@ public:
     // since Ref<...> args can only accept arrays.
     static constexpr auto name = return_descr(props::descriptor);
 
-    // Explicitly delete these: support python -> C++ conversion on these (i.e. these can be return
-    // types but not bound arguments).  We still provide them (with an explicitly delete) so that
-    // you end up here if you try anyway.
-    bool load(handle, bool) = delete;
-    operator MapType() = delete;
+    // Python -> C++ conversion is not supported: the result would point into a numpy array that
+    // nothing keeps alive.  These exist only to give a clear error if you try anyway.
+    bool load(handle, bool) {
+        static_assert(always_false<MapType>::value, PYBIND11_EIGEN_MESSAGE_MAP_CANNOT_BE_LOADED);
+        return false;
+    }
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    operator MapType() {
+        static_assert(always_false<MapType>::value, PYBIND11_EIGEN_MESSAGE_MAP_CANNOT_BE_LOADED);
+    }
     template <typename>
     using cast_op_type = MapType;
 };
