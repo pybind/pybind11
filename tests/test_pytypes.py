@@ -465,11 +465,15 @@ def test_accessors():
     assert d["implicit_list"] == [1, 2, 3]
     assert all(x in TestObject.__dict__ for x in d["implicit_dict"])
 
-    assert m.accessor_int_key(((1, 2, 3), (4, 5, 6))) == {
+    assert m.accessor_key(((1, 2, 3), (4, 5, 6))) == {
         1: "int",
         0: "zero",
         -1: "negative",
         2: "size_t",
+        2.5: "float",
+        "s": "string",
+        "c": "char",
+        (1, 2): "pair",
         "read": "int",
         "nested": 6,
         "via_accessor": 4,
