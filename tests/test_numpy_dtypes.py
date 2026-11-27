@@ -231,6 +231,14 @@ def test_direct_field_descriptor():
     assert m.direct_field_descriptors() == ["uint_", "flt", "b"]
 
 
+def test_register_numpy_dtype():
+    arr = m.create_layout_wrappers(3)
+    assert arr.dtype == np.dtype([("count", "i8"), ("value", "f8")])
+    assert arr["count"].tolist() == [0, 1, 2]
+    assert arr["value"].tolist() == [0.0, 0.5, 1.0]
+    assert m.sum_layout_wrappers(arr) == 1.5
+
+
 def test_recarray(simple_dtype, packed_dtype):
     elements = [(False, 0, 0.0, -0.0), (True, 1, 1.5, -2.5), (False, 2, 3.0, -5.0)]
 

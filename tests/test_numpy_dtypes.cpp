@@ -104,6 +104,22 @@ PYBIND11_PACKED(struct StructWithUglyNames {
     uint64_t __y__;
 });
 
+struct LayoutData {
+    int64_t n_;
+    double v_;
+};
+
+// Private members; the dtype comes from the layout-compatible LayoutData
+class LayoutWrapper {
+public:
+    LayoutWrapper() = default;
+    LayoutWrapper(int64_t n, double v) : data_{n, v} {}
+    double value() const { return data_.v_; }
+
+private:
+    LayoutData data_;
+};
+
 template <typename T1, typename T2>
 struct TemplatedStruct {
     T1 a;
@@ -385,7 +401,7 @@ TEST_SUBMODULE(numpy_dtypes, m) {
 
     // test_direct_field_descriptor
     m.def("direct_field_descriptors", []() {
-        py::detail::field_descriptor direct[]
+        py::numpy_field_descriptor direct[]
             = {PYBIND11_FIELD_DESCRIPTOR(SimpleStruct, uint_),
                PYBIND11_FIELD_DESCRIPTOR_EX(SimpleStruct, float_, "flt"),
                PYBIND11_FIELD_DESCRIPTOR(PYBIND11_TYPE(TemplatedStruct<int32_t, float>), b)};
@@ -413,9 +429,29 @@ TEST_SUBMODULE(numpy_dtypes, m) {
 
     // Check that dtypes can be registered programmatically, both from
     // initializer lists of field descriptors and from other containers.
-    py::detail::npy_format_descriptor<A>::register_dtype({});
-    py::detail::npy_format_descriptor<B>::register_dtype(
-        std::vector<py::detail::field_descriptor>{});
+    py::register_numpy_dtype<A>({});
+    py::register_numpy_dtype<B>(std::vector<py::numpy_field_descriptor>{});
+
+    // test_register_numpy_dtype
+    static_assert(sizeof(LayoutWrapper) == sizeof(LayoutData), "layouts must match");
+    py::register_numpy_dtype<LayoutWrapper>(
+        {PYBIND11_FIELD_DESCRIPTOR_EX(LayoutData, n_, "count"),
+         PYBIND11_FIELD_DESCRIPTOR_EX(LayoutData, v_, "value")});
+    m.def("create_layout_wrappers", [](py::ssize_t n) {
+        py::array_t<LayoutWrapper> arr(n);
+        auto *ptr = arr.mutable_data();
+        for (py::ssize_t i = 0; i < n; i++) {
+            ptr[i] = LayoutWrapper(i, static_cast<double>(i) * 0.5);
+        }
+        return arr;
+    });
+    m.def("sum_layout_wrappers", [](const py::array_t<LayoutWrapper> &arr) {
+        double sum = 0;
+        for (py::ssize_t i = 0; i < arr.size(); i++) {
+            sum += arr.data()[i].value();
+        }
+        return sum;
+    });
 
     // test_recarray, test_scalar_conversion
     m.def("create_rec_simple", &create_recarray<SimpleStruct>);

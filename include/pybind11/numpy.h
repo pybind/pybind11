@@ -1894,6 +1894,20 @@ private:
     }
 };
 
+PYBIND11_NAMESPACE_END(detail)
+
+/// One field of a structured dtype; make it with ``PYBIND11_FIELD_DESCRIPTOR[_EX]``.
+using numpy_field_descriptor = detail::field_descriptor;
+
+/// Register a structured dtype for ``T`` from a list of field descriptors. The fields can
+/// come from a different type; the caller must make sure that the layout matches ``T``.
+template <typename T>
+void register_numpy_dtype(detail::any_container<numpy_field_descriptor> fields) {
+    detail::npy_format_descriptor<T>::register_dtype(std::move(fields));
+}
+
+PYBIND11_NAMESPACE_BEGIN(detail)
+
 #ifdef __CLION_IDE__ // replace heavy macro with dummy code for the IDE (doesn't affect code)
 #    define PYBIND11_NUMPY_DTYPE(Type, ...) ((void) 0)
 #    define PYBIND11_NUMPY_DTYPE_EX(Type, ...) ((void) 0)
