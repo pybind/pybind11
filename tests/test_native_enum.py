@@ -285,7 +285,7 @@ def test_native_enum_name_clash():
 
 def test_native_enum_duplicate_value_name():
     check_enabled = m.native_enum_duplicate_value_name_check_enabled
-    with pytest.raises(RuntimeError if check_enabled else TypeError) as excinfo:
+    with pytest.raises(TypeError) as excinfo:
         m.native_enum_duplicate_value_name(m)
     if check_enabled:
         assert (
