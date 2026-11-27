@@ -869,6 +869,12 @@ PYBIND11_INLINE PyObject *cpp_function::dispatcher(PyObject *self,
         // If this value is already registered it must mean __init__ is invoked multiple times;
         // we really can't support that in C++, so just ignore the second __init__.
         if (self_value_and_holder.instance_registered()) {
+            // `__setstate__` is not part of an `__init__` chain; ignoring it loses the state.
+            if (std::strcmp(overloads->name, "__setstate__") == 0) {
+                set_error(PyExc_TypeError,
+                          "__setstate__ called on an already-initialized instance");
+                return nullptr;
+            }
             return none().release().ptr();
         }
     }

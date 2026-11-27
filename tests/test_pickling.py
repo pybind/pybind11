@@ -62,6 +62,17 @@ def test_roundtrip(cls_name):
     assert p2.extra2() == p.extra2()
 
 
+@pytest.mark.parametrize("cls_name", ["Pickleable", "PickleableNew"])
+def test_setstate_on_initialized_instance(cls_name):
+    # Issue #1450: this was a silent no-op.
+    cls = getattr(m, cls_name)
+    p = cls("first")
+    state = cls("second").__getstate__()
+    with pytest.raises(TypeError, match="already-initialized"):
+        p.__setstate__(state)
+    assert p.value() == "first"
+
+
 @pytest.mark.xfail("env.PYPY")
 @pytest.mark.parametrize(
     "cls_name",
