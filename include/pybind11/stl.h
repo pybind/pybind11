@@ -708,7 +708,11 @@ struct variant_caster<V<Ts...>> {
             typename element_casters<U>::slot slot(casters);
             make_caster<U> &caster = slot.caster;
             if (caster.load(src, convert)) {
+#if defined(PYBIND11_HAS_OPTIONAL)
+                value.emplace(cast_op<U>(std::move(caster)));
+#else
                 value = cast_op<U>(std::move(caster));
+#endif
                 return true;
             }
         }
@@ -736,7 +740,37 @@ struct variant_caster<V<Ts...>> {
     }
 
     using Type = V<Ts...>;
+#if defined(PYBIND11_HAS_OPTIONAL)
+    // Like PYBIND11_TYPE_CASTER, but the alternatives need not be default constructible.
+    static constexpr auto name = union_concat(make_caster<Ts>::name...);
+
+    template <typename T_, enable_if_t<std::is_same<Type, remove_cv_t<T_>>::value, int> = 0>
+    static handle cast(T_ *src, return_value_policy policy, handle parent) {
+        if (!src) {
+            return none().release();
+        }
+        if (policy == return_value_policy::take_ownership) {
+            auto h = cast(std::move(*src), policy, parent);
+            delete src;
+            return h;
+        }
+        return cast(*src, policy, parent);
+    }
+
+    // Only called after a successful load(), so value is engaged.
+    // NOLINTBEGIN(bugprone-unchecked-optional-access)
+    explicit operator Type *() { return &*value; }
+    explicit operator Type &() { return *value; }
+    explicit operator Type &&() && { return std::move(*value); }
+    // NOLINTEND(bugprone-unchecked-optional-access)
+    template <typename T_>
+    using cast_op_type = movable_cast_op_type<T_>;
+
+protected:
+    std::optional<Type> value;
+#else
     PYBIND11_TYPE_CASTER(Type, ::pybind11::detail::union_concat(make_caster<Ts>::name...));
+#endif
 
 private:
     std::tuple<element_casters<Ts>...> alternative_casters;

@@ -537,6 +537,22 @@ def test_variant_monostate(doc):
     )
 
 
+@pytest.mark.skipif(not hasattr(m, "load_no_default_variant"), reason="no <optional>")
+def test_variant_no_default_ctor():
+    obj = m.make_no_default_variant(7)
+    assert obj.val == 7
+    for f in (
+        m.load_no_default_variant,
+        m.load_no_default_variant_ref,
+        m.load_no_default_variant_rref,
+        m.load_no_default_variant_ptr,
+    ):
+        assert f(obj) == "NoDefaultCtor"
+        assert f("x") == "std::string"
+    with pytest.raises(TypeError):
+        m.load_no_default_variant(1)
+
+
 def test_vec_of_reference_wrapper():
     """#171: Can't return reference wrappers (or STL structures containing them)"""
     assert (

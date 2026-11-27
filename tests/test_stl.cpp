@@ -584,6 +584,7 @@ TEST_SUBMODULE(stl, m) {
         result_type operator()(const std::string &) { return "std::string"; }
         result_type operator()(double) { return "double"; }
         result_type operator()(std::nullptr_t) { return "std::nullptr_t"; }
+        result_type operator()(const NoDefaultCtor &) { return "NoDefaultCtor"; }
 #    if defined(PYBIND11_HAS_VARIANT)
         result_type operator()(std::monostate) { return "std::monostate"; }
 #    endif
@@ -611,6 +612,24 @@ TEST_SUBMODULE(stl, m) {
         using V = variant<std::monostate, int, std::string>;
         return py::make_tuple(V{}, V(5), V("Hello"));
     });
+#    endif
+#    if defined(PYBIND11_HAS_OPTIONAL)
+    // #4108: no alternative is default constructible.
+    using no_default_variant = variant<NoDefaultCtor, std::string>;
+    m.def("load_no_default_variant", [](no_default_variant v) {
+        return py::detail::visit_helper<variant>::call(visitor(), v);
+    });
+    m.def("load_no_default_variant_ref", [](no_default_variant &v) {
+        return py::detail::visit_helper<variant>::call(visitor(), v);
+    });
+    m.def("load_no_default_variant_rref", [](no_default_variant &&v) {
+        no_default_variant moved = std::move(v);
+        return py::detail::visit_helper<variant>::call(visitor(), moved);
+    });
+    m.def("load_no_default_variant_ptr", [](no_default_variant *v) {
+        return py::detail::visit_helper<variant>::call(visitor(), *v);
+    });
+    m.def("make_no_default_variant", [](int i) { return no_default_variant(NoDefaultCtor(i)); });
 #    endif
 #endif
 
